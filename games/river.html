@@ -75,7 +75,10 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
 <div class="screen" id="screen-game">
   <div class="info-bar">
     <h2 id="game-title"></h2>
-    <span class="steps-pill">步數：<span id="step-count">0</span></span>
+    <div style="display:flex;gap:6px">
+      <span class="steps-pill">步數：<span id="step-count">0</span></span>
+      <span class="steps-pill" id="time-display" style="display:none">⏱️ <span id="time-used">0</span>/<span id="time-limit">15</span>分</span>
+    </div>
   </div>
 
   <div class="scene" id="scene">
@@ -151,18 +154,18 @@ const LEVELS=[
     title:'🕯️ 夜渡橋',
     desc:'四人過橋，只有一支火把，橋最多2人，需在時限內通過',
     diff:'⭐⭐ 中等',
-    capacity:1, // 1 person besides torch carrier
+    capacity:2,
     cast:[
-      {e:'🏃',name:'快人 1分',isFarmer:true,speed:1},
-      {e:'🚶',name:'速人 2分',speed:2},
-      {e:'🧓',name:'慢人 5分',speed:5},
-      {e:'🐢',name:'最慢 8分',speed:8},
+      {e:'🏃',name:'快(1分)',speed:1},
+      {e:'🚶',name:'速(2分)',speed:2},
+      {e:'🧓',name:'慢(5分)',speed:5},
+      {e:'🐢',name:'最慢(8分)',speed:8},
     ],
     forbidden:[],
     minSteps:5,
     isBridge:true,
     timeLimit:15,
-    note:'過橋速度取決於最慢的人，火把要帶回來',
+    note:'過橋速度取最慢者，回程必須1人帶火把',
   },
   {
     title:'⚔️ 三對夫妻',
@@ -199,7 +202,7 @@ const LEVELS=[
   },
 ];
 
-let curLvl=0, state={}, steps=0, boatSide='left', boatPassengers=[], won=false, historyLog=[];
+let curLvl=0, state={}, steps=0, boatSide='left', boatPassengers=[], won=false, historyLog=[], timeUsed=0;
 
 // Build level select
 const grid=document.getElementById('lvl-grid');
@@ -225,6 +228,15 @@ function loadLevel(idx){
   document.getElementById('next-lvl-btn').style.display='none';
   document.getElementById('msg-box').textContent=lv.note||'選擇要上船的角色，然後點船划過去！';
   document.getElementById('history').textContent='';
+  timeUsed=0;
+  const timeDisp=document.getElementById('time-display');
+  if(lv.isBridge){
+    timeDisp.style.display='inline-block';
+    document.getElementById('time-used').textContent=0;
+    document.getElementById('time-limit').textContent=lv.timeLimit;
+  } else {
+    timeDisp.style.display='none';
+  }
   updateBoatPos();
   buildControls();
   renderScene();
@@ -252,28 +264,29 @@ function buildControls(){
 function toggleBoard(charIdx){
   if(won)return;
   const lv=LEVELS[curLvl];
-  const ch=lv.cast[charIdx];
   const charSide=state[charIdx];
-
-  // must be on same side as boat or on boat
   if(charSide!==boatSide && charSide!=='boat') return;
 
   if(charSide==='boat'){
-    // get off boat → back to bank
     boatPassengers=boatPassengers.filter(x=>x!==charIdx);
     state[charIdx]=boatSide;
+  } else if(lv.isBridge){
+    const maxOnBoat=boatSide==='right'?1:2;
+    if(boatPassengers.length>=maxOnBoat){
+      setMsg(boatSide==='right'?'回程只能1人帶火把！':'橋上最多2人！',true);return;
+    }
+    boatPassengers.push(charIdx);
+    state[charIdx]='boat';
   } else {
-    // farmer must board first if not on boat
     const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
+    const farmerName=lv.cast[farmerIdx].name;
     const farmerOnBoat=boatPassengers.includes(farmerIdx);
-    // only farmer can row — need farmer on boat to take others
-    // but farmer can board first
     if(charIdx===farmerIdx){
-      if(boatPassengers.includes(charIdx)){return;} // already on
+      if(boatPassengers.includes(charIdx)) return;
       boatPassengers.push(charIdx);
       state[charIdx]='boat';
     } else {
-      if(!farmerOnBoat) {setMsg('農夫必須先上船！',true);return;}
+      if(!farmerOnBoat){setMsg(farmerName+'必須先上船！',true);return;}
       if(boatPassengers.length-1>=lv.capacity){setMsg('船已滿！',true);return;}
       boatPassengers.push(charIdx);
       state[charIdx]='boat';
@@ -285,28 +298,47 @@ function toggleBoard(charIdx){
 function rowBoat(){
   if(won)return;
   const lv=LEVELS[curLvl];
-  const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
-  if(!boatPassengers.includes(farmerIdx)){setMsg('農夫不在船上，無法划船！',true);return;}
 
-  // move boat
+  if(lv.isBridge){
+    if(boatPassengers.length===0){setMsg('沒有人在橋上！',true);return;}
+    if(boatSide==='right'&&boatPassengers.length!==1){setMsg('回程只能1人帶火把！',true);return;}
+  } else {
+    const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
+    const farmerName=lv.cast[farmerIdx].name;
+    if(!boatPassengers.includes(farmerIdx)){setMsg(farmerName+'不在船上，無法划船！',true);return;}
+  }
+
   const fromSide=boatSide;
   boatSide=boatSide==='left'?'right':'left';
   steps++;
   document.getElementById('step-count').textContent=steps;
 
-  // move passengers to new side
   const names=boatPassengers.map(i=>lv.cast[i].e+lv.cast[i].name);
+
+  let logSuffix='';
+  if(lv.isBridge){
+    const crossTime=Math.max(...boatPassengers.map(i=>lv.cast[i].speed));
+    timeUsed+=crossTime;
+    document.getElementById('time-used').textContent=timeUsed;
+    logSuffix=' ('+crossTime+'分)';
+  }
+
   boatPassengers.forEach(i=>state[i]=boatSide);
   boatPassengers=[];
 
-  // log
   const arrow=fromSide==='left'?'→':'←';
-  historyLog.push('步'+steps+' '+arrow+' '+names.join('＋'));
+  historyLog.push('步'+steps+' '+arrow+' '+names.join('＋')+logSuffix);
   document.getElementById('history').textContent=historyLog.join('　');
 
   updateBoatPos();
 
-  // check forbidden
+  if(lv.isBridge&&timeUsed>lv.timeLimit){
+    renderScene();
+    setMsg('⏰ 超時！共用 '+timeUsed+' 分，限制 '+lv.timeLimit+' 分！',true);
+    setTimeout(()=>loadLevel(curLvl),1800);
+    return;
+  }
+
   const violation=checkForbidden();
   if(violation){
     setMsg('❌ '+violation+'！重來！',true);
@@ -316,14 +348,16 @@ function rowBoat(){
 
   renderScene();
 
-  // check win
   const allRight=lv.cast.every((_,i)=>state[i]==='right');
   if(allRight){
     won=true;
     const wb=document.getElementById('win-box');
     wb.style.display='block';
     const best=lv.minSteps;
-    wb.textContent='🎉 全部渡河成功！共 '+steps+' 步'+(steps<=best?' 🏆 最佳解！':'（最少'+best+'步）');
+    let winMsg='🎉 全部渡河成功！共 '+steps+' 步';
+    if(lv.isBridge) winMsg+=' · 用時 '+timeUsed+' 分'+(timeUsed<=lv.timeLimit?' ✅ 達標！':'');
+    else winMsg+=(steps<=best?' 🏆 最佳解！':'（最少'+best+'步）');
+    wb.textContent=winMsg;
     document.getElementById('next-lvl-btn').style.display=curLvl<LEVELS.length-1?'inline-block':'none';
     setMsg('');
   } else {
