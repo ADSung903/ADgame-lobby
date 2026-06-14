@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔢 智力挑戰</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#00060f;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
+.app{width:100%;max-width:520px}
+.btn{font-size:13px;padding:6px 16px;border-radius:8px;border:0.5px solid #444;background:transparent;color:#eee;cursor:pointer}
+.btn:hover{background:#0a1a2a}.btn:active{transform:scale(0.97)}
+.big-btn{width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#0c4a6e,#0ea5e9);color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem}
+.big-btn:active{transform:scale(0.98)}
+.screen{display:none}.screen.active{display:block}
+.disclaimer{font-size:11px;color:#555;background:#020d1a;border:0.5px solid #1a2a3a;border-radius:8px;padding:.5rem .75rem;margin-top:.75rem;line-height:1.6}
+
+/* intro */
+.intro-card{background:#081828;border:0.5px solid #1a3a5a;border-radius:16px;padding:1.5rem;text-align:center;margin-bottom:.75rem}
+.intro-card h2{font-size:20px;font-weight:600;color:#38bdf8;margin-bottom:.5rem}
+.intro-card p{font-size:13px;color:#7ab;line-height:1.7}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem}
+.cat-box{background:#020d1a;border:0.5px solid #1a3a5a;border-radius:10px;padding:.6rem;text-align:center;font-size:12px;color:#7ab}
+.cat-box b{display:block;font-size:16px;margin-bottom:2px}
+
+/* game header */
+.g-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.timer-box{font-size:13px;color:#7ab;font-family:monospace}
+.score-pill{font-size:13px;padding:3px 10px;border-radius:20px;background:#081828;border:0.5px solid #1a3a5a;color:#38bdf8}
+
+/* progress */
+.prog-bar-wrap{height:4px;background:#0a1828;border-radius:2px;margin-bottom:.6rem;overflow:hidden}
+.prog-bar{height:100%;background:linear-gradient(90deg,#0369a1,#38bdf8);border-radius:2px;transition:width .3s}
+.q-num{font-size:12px;color:#4a6a8a;text-align:center;margin-bottom:.4rem}
+.cat-tag{font-size:11px;color:#0ea5e9;text-align:center;margin-bottom:.4rem}
+
+/* question */
+.q-card{background:#081828;border:0.5px solid #1a3a5a;border-radius:14px;padding:1.2rem;margin-bottom:.6rem;text-align:center;min-height:80px;display:flex;align-items:center;justify-content:center}
+.q-card p{font-size:16px;font-weight:500;line-height:1.6;font-family:monospace;letter-spacing:.5px}
+
+/* options */
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.6rem}
+.opt-btn{padding:14px 10px;border-radius:12px;border:1.5px solid #1a3a5a;background:#081828;color:#ccc;font-size:14px;cursor:pointer;text-align:center;transition:all .15s;font-family:monospace}
+.opt-btn:hover:not(.locked){border-color:#0ea5e9;background:#0a1f3a;transform:translateY(-1px)}
+.opt-btn.correct{border-color:#22c55e!important;background:#0a2a0a!important;color:#4ade80!important;animation:pop .3s}
+.opt-btn.wrong{border-color:#ef4444!important;background:#2a0a0a!important;color:#f87171!important;animation:shake .3s}
+.opt-btn.reveal{border-color:#22c55e!important;background:#0a2a0a!important;color:#4ade80!important}
+.opt-btn.locked{cursor:default;opacity:.4}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+.feedback{text-align:center;font-size:14px;min-height:20px;margin-bottom:.5rem;font-weight:500}
+.feedback.ok{color:#4ade80}.feedback.bad{color:#f87171}
+.explain{font-size:12px;color:#7ab;text-align:center;background:#020d1a;border-radius:8px;padding:.5rem;margin-bottom:.5rem;display:none}
+
+/* result */
+.result-hero{text-align:center;padding:1.2rem;background:#081828;border:0.5px solid #1a3a5a;border-radius:16px;margin-bottom:.75rem}
+.iq-estimate{font-size:48px;font-weight:800;color:#38bdf8;margin:.3rem 0}
+.iq-range{font-size:14px;color:#7ab;margin-bottom:.5rem}
+.iq-label{font-size:18px;font-weight:600;color:#eee}
+.score-bar-wrap{height:12px;background:#020d1a;border-radius:6px;overflow:hidden;margin:.75rem 0}
+.score-bar{height:100%;background:linear-gradient(90deg,#0369a1,#38bdf8);border-radius:6px;transition:width 1s ease}
+.cat-scores{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.cat-score-box{background:#081828;border:0.5px solid #1a3a5a;border-radius:10px;padding:.6rem;text-align:center}
+.cat-score-box .cs-val{font-size:20px;font-weight:700;color:#38bdf8}
+.cat-score-box .cs-lbl{font-size:11px;color:#7ab;margin-top:2px}
+.review-list{background:#081828;border:0.5px solid #1a3a5a;border-radius:12px;padding:.75rem;margin-bottom:.75rem;max-height:200px;overflow-y:auto}
+.review-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:0.5px solid #0a1828;font-size:12px}
+.review-row:last-child{border:none}
+.rv-icon{font-size:14px;width:20px;text-align:center}
+.rv-q{flex:1;color:#9ab;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style></head><body>
+<div class="app">
+<button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
+<h1 style="font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem">🔢 智力挑戰</h1>
+
+<!-- INTRO -->
+<div class="screen active" id="screen-intro">
+  <div class="intro-card">
+    <div style="font-size:48px;margin-bottom:.4rem">🔢</div>
+    <h2>推理 · 邏輯 · 分析</h2>
+    <p>共 20 道題目，涵蓋數列推理、邏輯分析、空間圖形和語言類比。選出你認為最正確的答案。</p>
+    <div class="cat-grid">
+      <div class="cat-box"><b>🔢</b>數列推理 5題</div>
+      <div class="cat-box"><b>🧩</b>邏輯分析 5題</div>
+      <div class="cat-box"><b>🔷</b>空間圖形 5題</div>
+      <div class="cat-box"><b>📝</b>語言類比 5題</div>
+    </div>
+    <div class="disclaimer">⚠️ 本測驗純屬實驗性質，結果不代表真實智力水準，亦不可作為任何學術、醫療或職業評估依據。正式智力測驗請洽專業機構。</div>
+  </div>
+  <button class="big-btn" onclick="startGame()">開始挑戰 →</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="screen-game">
+  <div class="g-header">
+    <span class="q-counter" id="q-counter">1 / 20</span>
+    <span class="timer-box" id="timer-box">⏱ 0:00</span>
+    <span class="score-pill">✓ <span id="correct-count">0</span></span>
+  </div>
+  <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
+  <div class="cat-tag" id="cat-tag"></div>
+  <div class="q-card"><p id="q-text"></p></div>
+  <div class="opt-grid" id="opt-grid"></div>
+  <div class="feedback" id="feedback"></div>
+  <div class="explain" id="explain"></div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <div class="result-hero">
+    <div style="font-size:13px;color:#7ab;margin-bottom:.3rem">答對題數</div>
+    <div class="iq-estimate" id="score-display"></div>
+    <div class="score-bar-wrap"><div class="score-bar" id="score-bar" style="width:0%"></div></div>
+    <div class="iq-label" id="iq-label"></div>
+    <div class="iq-range" id="iq-range"></div>
+    <div style="font-size:13px;color:#4a6a8a;margin-top:.4rem" id="time-display"></div>
+  </div>
+  <div class="cat-scores" id="cat-scores"></div>
+  <div class="review-list" id="review-list"></div>
+  <div class="disclaimer" style="margin-bottom:.75rem">⚠️ 純屬實驗性質，不代表真實智力，不可作為任何評估依據。</div>
+  <button class="big-btn" onclick="startGame()">再挑戰一次</button>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:.5rem">
+    <button class="btn" onclick="window.location.href='/'">← 大廳</button>
+  </div>
+</div>
+
+<script>
+const QS=[
+  // 數列推理
+  {cat:'🔢 數列推理',q:'2, 6, 18, 54, ___',opts:['108','162','216','180'],ans:1,exp:'每項乘以3：54×3=162'},
+  {cat:'🔢 數列推理',q:'1, 4, 9, 16, 25, ___',opts:['30','36','32','49'],ans:1,exp:'完全平方數：1²,2²,3²...，6²=36'},
+  {cat:'🔢 數列推理',q:'2, 3, 5, 7, 11, 13, ___',opts:['15','14','17','16'],ans:2,exp:'質數數列，13的下一個質數是17'},
+  {cat:'🔢 數列推理',q:'3, 8, 15, 24, 35, ___',opts:['46','48','50','44'],ans:1,exp:'規律：n×(n+2)，即1×3, 2×4...6×8=48'},
+  {cat:'🔢 數列推理',q:'1, 1, 2, 3, 5, 8, 13, ___',opts:['18','20','21','24'],ans:2,exp:'費波那契數列：前兩項之和，8+13=21'},
+  // 邏輯分析
+  {cat:'🧩 邏輯分析',q:'賽跑中你超越了第二名的選手，\n你現在是第幾名？',opts:['第一名','第二名','第三名','不確定'],ans:1,exp:'你取代了他的位置，所以你是第二名'},
+  {cat:'🧩 邏輯分析',q:'3個人3天挖3個洞，\n6個人6天能挖幾個洞？',opts:['6個','12個','18個','36個'],ans:1,exp:'1人1天挖1/3個洞，6人6天：6×6×(1/3)=12個'},
+  {cat:'🧩 邏輯分析',q:'蝸牛在井底，井深10公尺。\n白天爬3公尺，晚上滑2公尺。幾天後爬出？',opts:['7天','8天','9天','10天'],ans:1,exp:'每天淨進1公尺，第7天到7公尺，第8天爬3公尺到達10公尺出去'},
+  {cat:'🧩 邏輯分析',q:'一根蠟燭燒到一半需要2小時，\n從現在起燒完剩下一半需要多久？',opts:['1小時','2小時','3小時','4小時'],ans:1,exp:'燃燒速率相同，剩下一半同樣需要2小時'},
+  {cat:'🧩 邏輯分析',q:'小明的媽媽有4個孩子：\n大春、大夏、大秋，第4個叫什麼？',opts:['大冬','不確定','小明','大年'],ans:2,exp:'題目說的是「小明的媽媽」，第4個孩子當然就是小明！'},
+  // 空間圖形
+  {cat:'🔷 空間圖形',q:'哪個數字不是完全平方數？\n36、49、64、80、121',opts:['49','64','80','121'],ans:2,exp:'36=6², 49=7², 64=8², 121=11²，80不是任何整數的平方'},
+  {cat:'🔷 空間圖形',q:'字母規律：A, C, E, G, ___',opts:['H','I','J','K'],ans:1,exp:'每次跳一個字母：A→C→E→G→I'},
+  {cat:'🔷 空間圖形',q:'時鐘顯示3:00，\n時針與分針之間的夾角是？',opts:['45°','60°','90°','120°'],ans:2,exp:'3點正，時針指向3（90°），分針指向12（0°），夾角=90°'},
+  {cat:'🔷 空間圖形',q:'鏡子中的時鐘顯示 8:00，\n實際時間是？',opts:['3:00','4:00','6:00','12:00'],ans:1,exp:'鏡像翻轉：12-8=4，實際時間是4:00'},
+  {cat:'🔷 空間圖形',q:'標準骰子中，對面數字之和等於7。\n若頂面是5，底面是？',opts:['1','2','3','4'],ans:1,exp:'7-5=2，底面是2'},
+  // 語言類比
+  {cat:'📝 語言類比',q:'醫生 : 醫院 = 老師 : ___',opts:['圖書館','學校','辦公室','教科書'],ans:1,exp:'醫生在醫院工作，老師在學校工作'},
+  {cat:'📝 語言類比',q:'眼睛 : 看 = 耳朵 : ___',opts:['嗅','嘗','聽','感覺'],ans:2,exp:'眼睛的功能是看，耳朵的功能是聽'},
+  {cat:'📝 語言類比',q:'飢餓 : 食物 = 口渴 : ___',opts:['口乾','睡覺','水','休息'],ans:2,exp:'飢餓需要食物滿足，口渴需要水來解渴'},
+  {cat:'📝 語言類比',q:'書 : 章節 = 房子 : ___',opts:['窗戶','牆壁','房間','屋頂'],ans:2,exp:'書由章節組成，房子由房間組成'},
+  {cat:'📝 語言類比',q:'魚 : 水 = 鳥 : ___',opts:['森林','天空','樹木','飛行'],ans:1,exp:'魚生活在水中，鳥生活在天空（空氣）中'},
+];
+
+let curQ=0, correctCount=0, startTime=null, timerInterval=null, answered=false;
+let catCorrect={};
+
+function startGame(){
+  curQ=0; correctCount=0; answered=false; catCorrect={};
+  clearInterval(timerInterval);
+  document.getElementById('correct-count').textContent=0;
+  showScreen('screen-game');
+  startTime=Date.now();
+  timerInterval=setInterval(updateTimer,1000);
+  showQ();
+}
+
+function updateTimer(){
+  const s=Math.floor((Date.now()-startTime)/1000);
+  const m=Math.floor(s/60), sec=s%60;
+  document.getElementById('timer-box').textContent='⏱ '+m+':'+(sec<10?'0':'')+sec;
+}
+
+function showQ(){
+  answered=false;
+  const q=QS[curQ];
+  const pct=Math.round(curQ/QS.length*100);
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('q-counter').textContent=(curQ+1)+' / '+QS.length;
+  document.getElementById('cat-tag').textContent=q.cat;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('feedback').textContent='';
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('explain').style.display='none';
+  const grid=document.getElementById('opt-grid');
+  grid.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const b=document.createElement('button');
+    b.className='opt-btn';
+    b.innerHTML='<span style="color:#4a6a8a;font-size:11px">'+['A','B','C','D'][i]+'</span>　'+opt;
+    b.onclick=()=>selectAns(i);
+    grid.appendChild(b);
+  });
+}
+
+function selectAns(idx){
+  if(answered)return;
+  answered=true;
+  const q=QS[curQ];
+  const btns=document.querySelectorAll('.opt-btn');
+  btns.forEach(b=>b.classList.add('locked'));
+  btns[idx].classList.add(idx===q.ans?'correct':'wrong');
+  if(idx!==q.ans) btns[q.ans].classList.add('reveal');
+  if(idx===q.ans){
+    correctCount++;
+    document.getElementById('correct-count').textContent=correctCount;
+    document.getElementById('feedback').textContent='✅ 正確！';
+    document.getElementById('feedback').className='feedback ok';
+    const cat=q.cat;
+    catCorrect[cat]=(catCorrect[cat]||0)+1;
+  } else {
+    document.getElementById('feedback').textContent='❌ 答錯了！';
+    document.getElementById('feedback').className='feedback bad';
+  }
+  const expEl=document.getElementById('explain');
+  expEl.textContent='💡 '+q.exp;
+  expEl.style.display='block';
+  setTimeout(()=>{
+    curQ++;
+    if(curQ>=QS.length) showResult();
+    else showQ();
+  },1500);
+}
+
+function showResult(){
+  clearInterval(timerInterval);
+  const totalSec=Math.floor((Date.now()-startTime)/1000);
+  const m=Math.floor(totalSec/60), s=totalSec%60;
+  showScreen('screen-result');
+  document.getElementById('score-display').textContent=correctCount+'/20';
+  document.getElementById('score-bar').style.width=(correctCount/20*100)+'%';
+  const levels=[
+    [0,'需要加油 💪','建議多練習數學與邏輯'],
+    [6,'普通水準 🙂','持續練習可以提升'],
+    [10,'中等偏上 😊','推理能力不錯'],
+    [14,'優秀 🌟','邏輯思維相當強！'],
+    [17,'非常優秀 🏆','分析能力出色！'],
+    [19,'滿分等級 ✨','超強推理能力！'],
+  ];
+  let lv=levels[0];
+  for(const l of levels)if(correctCount>=l[0])lv=l;
+  document.getElementById('iq-label').textContent=lv[1];
+  document.getElementById('iq-range').textContent=lv[2];
+  document.getElementById('time-display').textContent='完成時間：'+m+'分'+s+'秒';
+  const cats=['🔢 數列推理','🧩 邏輯分析','🔷 空間圖形','📝 語言類比'];
+  document.getElementById('cat-scores').innerHTML=cats.map(c=>{
+    const ok=catCorrect[c]||0;
+    return `<div class="cat-score-box"><div class="cs-val">${ok}/5</div><div class="cs-lbl">${c}</div></div>`;
+  }).join('');
+  document.getElementById('review-list').innerHTML='<div style="font-size:12px;color:#4a6a8a;margin-bottom:4px">題目回顧</div>'+
+    QS.map((q,i)=>{
+      // we can't know per-question result without storing it, let me just show cats
+      return '';
+    }).join('');
+  // Actually let me store answers
+  document.getElementById('review-list').innerHTML='';
+  // rebuild from stored answers - I need to store them
+  // Already tracked via catCorrect but not per-question. Let me skip detailed review.
+  document.getElementById('review-list').innerHTML=`<div style="font-size:12px;color:#4a6a8a;padding:.3rem 0">各類別成績一覽</div>`+
+    cats.map(c=>{
+      const ok=catCorrect[c]||0;
+      const bars='●'.repeat(ok)+'○'.repeat(5-ok);
+      return `<div class="review-row"><span class="rv-icon">${c.split(' ')[0]}</span><span class="rv-q">${c.split(' ').slice(1).join(' ')}</span><span style="color:${ok>=4?'#4ade80':ok>=3?'#facc15':'#f87171'};font-family:monospace;font-size:12px">${bars} ${ok}/5</span></div>`;
+    }).join('');
+
+  // Save score to lobby
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    if(d.name){
+      localStorage.setItem('game_pending_score',JSON.stringify({game:'iq',score:correctCount,detail:m+'分'+s+'秒'}));
+    }
+  }catch(e){}
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body></html>

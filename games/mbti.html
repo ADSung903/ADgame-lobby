@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🧩 MBTI 人格測驗</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
+.app{width:100%;max-width:520px}
+.btn{font-size:13px;padding:6px 16px;border-radius:8px;border:0.5px solid #444;background:transparent;color:#eee;cursor:pointer}
+.btn:hover{background:#1a1a2e}.btn:active{transform:scale(0.97)}
+.screen{display:none}.screen.active{display:block}
+
+/* intro */
+.intro-card{background:#12122a;border:0.5px solid #2a2a4a;border-radius:16px;padding:1.5rem;text-align:center;margin-bottom:.75rem}
+.intro-icon{font-size:56px;margin-bottom:.5rem}
+.intro-card h2{font-size:20px;font-weight:600;color:#a78bfa;margin-bottom:.5rem}
+.intro-card p{font-size:13px;color:#9a9ab0;line-height:1.7}
+.disclaimer{font-size:11px;color:#555;background:#0d0d1a;border:0.5px solid #222;border-radius:8px;padding:.5rem .75rem;margin-top:.75rem;line-height:1.6}
+.big-btn{width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#4a1a8a,#7c3aed);color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem}
+.big-btn:active{transform:scale(0.98)}
+
+/* progress */
+.prog-bar-wrap{height:4px;background:#1a1a2e;border-radius:2px;margin-bottom:1rem;overflow:hidden}
+.prog-bar{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:2px;transition:width .3s ease}
+.q-num{font-size:12px;color:#6b6b8a;text-align:center;margin-bottom:.5rem}
+
+/* question */
+.q-card{background:#12122a;border:0.5px solid #2a2a4a;border-radius:14px;padding:1.2rem;margin-bottom:.75rem;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center}
+.q-card p{font-size:16px;line-height:1.6;color:#eee}
+.dim-tag{font-size:11px;color:#7c3aed;margin-bottom:.5rem;text-align:center}
+
+/* choices */
+.choice{width:100%;padding:14px 16px;margin-bottom:10px;border-radius:12px;border:1.5px solid #2a2a4a;background:#0d0d22;color:#ddd;font-size:14px;cursor:pointer;text-align:left;transition:all .15s;line-height:1.4}
+.choice:hover{border-color:#7c3aed;background:#1a1a3a;transform:translateX(2px)}
+.choice:active{transform:scale(0.98)}
+.choice.picked-a{border-color:#a855f7;background:#1a0a3a;color:#e9d5ff}
+.choice.picked-b{border-color:#60a5fa;background:#0a1a3a;color:#bfdbfe}
+
+/* result */
+.type-badge{font-size:48px;margin-bottom:.5rem;text-align:center}
+.type-code{font-size:38px;font-weight:800;text-align:center;letter-spacing:4px;margin-bottom:.25rem}
+.type-name{font-size:16px;text-align:center;color:#9a9ab0;margin-bottom:1rem}
+.result-card{border-radius:14px;padding:1.2rem;margin-bottom:.75rem}
+.result-card h3{font-size:13px;color:#9a9ab0;margin-bottom:.6rem}
+.result-card p{font-size:14px;color:#ddd;line-height:1.7}
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:.5rem}
+.tag{font-size:12px;padding:3px 10px;border-radius:20px;border:0.5px solid;display:inline-block}
+.tag.good{border-color:#22c55e44;background:#0a2a0a;color:#4ade80}
+.tag.weak{border-color:#ef444444;background:#2a0a0a;color:#f87171}
+.dim-bars{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.dim-box{background:#12122a;border:0.5px solid #2a2a4a;border-radius:10px;padding:.6rem .75rem}
+.dim-label{font-size:11px;color:#9a9ab0;margin-bottom:4px;display:flex;justify-content:space-between}
+.dim-track{height:8px;background:#1a1a2e;border-radius:4px;overflow:hidden}
+.dim-fill{height:100%;border-radius:4px;transition:width .8s ease}
+</style></head><body>
+<div class="app">
+<button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
+<h1 style="font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem">🧩 MBTI 人格測驗</h1>
+
+<!-- INTRO -->
+<div class="screen active" id="screen-intro">
+  <div class="intro-card">
+    <div class="intro-icon">🧩</div>
+    <h2>探索你的人格類型</h2>
+    <p>共 20 道情境題，誠實選擇最符合你的答案。<br>沒有對錯，只有最真實的你。</p>
+    <div class="disclaimer">⚠️ 純屬娛樂參考，結果不可作為任何心理診斷、學術研究或人事判斷之依據。正式 MBTI 測驗請洽專業機構。</div>
+  </div>
+  <button class="big-btn" onclick="startTest()">開始測驗 →</button>
+</div>
+
+<!-- QUESTION -->
+<div class="screen" id="screen-q">
+  <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
+  <div class="q-num" id="q-num">題 1 / 20</div>
+  <div class="dim-tag" id="dim-tag"></div>
+  <div class="q-card"><p id="q-text"></p></div>
+  <button class="choice" id="choice-a" onclick="pick(0)"></button>
+  <button class="choice" id="choice-b" onclick="pick(1)"></button>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <div id="type-badge" class="type-badge"></div>
+  <div id="type-code" class="type-code"></div>
+  <div id="type-name" class="type-name"></div>
+  <div class="dim-bars" id="dim-bars"></div>
+  <div class="result-card" id="result-desc-card" style="background:#12122a;border:0.5px solid #2a2a4a">
+    <h3>人格特質</h3>
+    <p id="result-desc"></p>
+  </div>
+  <div class="result-card" id="result-str-card" style="background:#0a1a0a;border:0.5px solid #1a3a1a">
+    <h3>✅ 優勢</h3>
+    <div class="tag-row" id="str-tags"></div>
+  </div>
+  <div class="result-card" id="result-weak-card" style="background:#1a0a0a;border:0.5px solid #3a1a1a">
+    <h3>⚠️ 成長空間</h3>
+    <div class="tag-row" id="weak-tags"></div>
+  </div>
+  <div class="result-card" style="background:#0d0d22;border:0.5px solid #222">
+    <h3>代表人物</h3>
+    <p id="result-famous" style="font-size:13px;color:#9a9ab0"></p>
+  </div>
+  <div class="disclaimer" style="margin-bottom:.75rem">⚠️ 本測驗純屬娛樂，不可作為任何診斷、評估或人事依據。</div>
+  <button class="big-btn" onclick="restartTest()">再測一次</button>
+  <div style="display:flex;gap:8px;justify-content:center;margin-top:.5rem">
+    <button class="btn" onclick="shareResult()">📋 複製結果</button>
+    <button class="btn" onclick="window.location.href='/'">← 大廳</button>
+  </div>
+</div>
+
+<script>
+const QUESTIONS=[
+  // E vs I
+  {dim:'EI',q:'在社交場合中，你通常覺得？',a:['越聊越開心，精力充沛','有點消耗，需要獨處恢復']},
+  {dim:'EI',q:'你更享受哪種週末？',a:['與朋友聚會、出去玩','獨自在家讀書或放鬆']},
+  {dim:'EI',q:'你有煩惱時，通常會？',a:['找朋友聊聊，說出來比較好','自己靜靜消化，不喜歡打擾別人']},
+  {dim:'EI',q:'在陌生人群中，你通常？',a:['主動認識新朋友','等別人先來搭話']},
+  {dim:'EI',q:'你更偏好哪種工作方式？',a:['多人討論、頭腦風暴','獨立作業、安靜專注']},
+  // S vs N
+  {dim:'SN',q:'你更傾向相信？',a:['已被事實或經驗證實的事','直覺和隱約的預感']},
+  {dim:'SN',q:'做計畫時，你更注重？',a:['具體細節和執行步驟','整體方向和未來可能性']},
+  {dim:'SN',q:'你描述一件事情時，傾向？',a:['按順序、有憑據、精確陳述','用比喻、連結、跳躍式表達']},
+  {dim:'SN',q:'你更被哪種人吸引？',a:['腳踏實地、務實可靠的人','富有想像力、有遠見的人']},
+  {dim:'SN',q:'遇到問題，你優先想到？',a:['過去曾用過的有效方法','有沒有從未試過的新方法']},
+  // T vs F
+  {dim:'TF',q:'做重要決定時，你優先考慮？',a:['邏輯分析和客觀原則','對人的影響和情感需求']},
+  {dim:'TF',q:'朋友向你傾訴問題，你傾向？',a:['分析問題，給予具體建議','先理解感受，給予情感支持']},
+  {dim:'TF',q:'你認為「公平」意味著？',a:['相同的規則適用於所有人','根據每個人的情況個別考量']},
+  {dim:'TF',q:'別人批評你時，你通常？',a:['先思考批評是否有道理','先感到難過，再慢慢思考']},
+  {dim:'TF',q:'你更欣賞哪種特質？',a:['能力出眾、思維清晰','善解人意、情感豐富']},
+  // J vs P
+  {dim:'JP',q:'你更喜歡哪種生活方式？',a:['有計畫、有規律，喜歡確定感','彈性隨興、保持開放，什麼都有可能']},
+  {dim:'JP',q:'面對截止日期，你通常？',a:['提前完成，不喜歡最後衝刺','靠近才開始，壓力反而有動力']},
+  {dim:'JP',q:'你的空間（桌面、房間）通常？',a:['整齊有序，東西有固定位置','看似亂但自己知道在哪裡']},
+  {dim:'JP',q:'旅行時，你偏好？',a:['事先規劃好景點和行程','到了再說，隨心所至']},
+  {dim:'JP',q:'面對還未完成的事，你感覺？',a:['不舒服，想趕快處理掉','還好，慢慢來也沒關係']},
+];
+
+const TYPES={
+  INTJ:{name:'策略家',icon:'🧠',color:'#6366f1',
+    desc:'獨立自主的完美主義者。具備強大的長遠規劃能力，善於將複雜的理論轉化為具體行動。對自己的判斷充滿自信，不輕易妥協。',
+    str:['邏輯清晰','長遠規劃','高效自律','洞察力強'],
+    weak:['難以表達情感','可能過度批判','社交疏離','標準太高'],
+    famous:'伊隆·馬斯克、霍金、尼采'},
+  INTP:{name:'邏輯學家',icon:'🔬',color:'#8b5cf6',
+    desc:'充滿好奇心的思想者。對理論和抽象概念有無限熱情，不斷質疑與分析，追求知識的深度與廣度，邏輯是他們的語言。',
+    str:['分析力強','思維靈活','創意豐富','客觀中立'],
+    weak:['容易拖延','忽視實務細節','情感表達少','優柔寡斷'],
+    famous:'愛因斯坦、達爾文、比爾·蓋茲'},
+  ENTJ:{name:'指揮官',icon:'👑',color:'#dc2626',
+    desc:'天生的領導者。自信果斷，目標明確，善於組織資源和帶領他人，對低效率有強烈的不耐受，永遠向前衝。',
+    str:['領導力強','高效決斷','策略眼光','目標導向'],
+    weak:['不耐煩','過度強勢','忽略情感','難以接受失敗'],
+    famous:'賈伯斯、拿破崙、傑克·威爾許'},
+  ENTP:{name:'辯論家',icon:'💡',color:'#f59e0b',
+    desc:'靈活機智的挑戰者。熱愛辯論與新想法，善於看到各種可能性，喜歡打破常規，天生的創新者和點子製造機。',
+    str:['思維發散','創意無限','說服力強','適應力高'],
+    weak:['難以專注','好辯不合作','忽視細節','無法堅持到底'],
+    famous:'愛迪生、班傑明·富蘭克林、薩特'},
+  INFJ:{name:'提倡者',icon:'🌟',color:'#7c3aed',
+    desc:'最罕見的人格之一。有強烈的道德感和理想主義，能深刻洞察他人，致力於讓世界變得更美好，是安靜的先知。',
+    str:['洞察人心','富有遠見','理想主義','同理心強'],
+    weak:['過度完美','自我封閉','過於敏感','容易燃燒殆盡'],
+    famous:'甘地、尼爾森·曼德拉、特蕾莎修女'},
+  INFP:{name:'調停者',icon:'🌸',color:'#ec4899',
+    desc:'充滿理想主義的詩人。以情感和個人價值觀為核心，追求真實與深度，富有創造力，對他人有天然的同理心。',
+    str:['創造力高','同理心強','開放包容','忠於自我'],
+    weak:['過度理想化','情緒起伏','自我懷疑','逃避衝突'],
+    famous:'J.K.羅琳、強尼·戴普、奧黛麗·赫本'},
+  ENFJ:{name:'主人公',icon:'🌈',color:'#10b981',
+    desc:'魅力四射的引路人。天生善於激勵和影響他人，關懷備至，熱衷於幫助每個人發揮潛力，是溫暖的引導者。',
+    str:['領袖魅力','深厚同理心','善於溝通','激勵他人'],
+    weak:['過於敏感批評','難以拒絕','自我犧牲','情緒承擔過多'],
+    famous:'歐普拉、歐巴馬、甘地'},
+  ENFP:{name:'競選者',icon:'✨',color:'#f97316',
+    desc:'充滿熱情的自由靈魂。精力充沛，想像力豐富，善於找到各種可能性，能輕易感染周圍的人，讓生活充滿色彩。',
+    str:['熱情感染力','創意豐富','好奇探索','善於連結人際'],
+    weak:['難以聚焦','過度樂觀','衝動行動','情緒起伏大'],
+    famous:'羅賓·威廉斯、安妮·法蘭克、馬克·吐溫'},
+  ISTJ:{name:'物流師',icon:'📋',color:'#475569',
+    desc:'可靠的傳統守護者。重視責任、誠信和規則，腳踏實地，注重細節，是任何組織不可或缺的穩固基石。',
+    str:['責任心強','可靠穩定','注重細節','邏輯條理'],
+    weak:['守舊固執','不擅彈性','情感內斂','過度謹慎'],
+    famous:'安格拉·梅克爾、喬治·華盛頓、孔子'},
+  ISFJ:{name:'守衛者',icon:'🛡️',color:'#0ea5e9',
+    desc:'溫暖的默默付出者。以關懷他人為使命，記憶力好，忠誠可靠，總是默默在背後支撐著家庭和社群。',
+    str:['溫暖體貼','忠誠可靠','默默付出','記憶力強'],
+    weak:['難以拒絕','壓抑自我','過於謙遜','抗拒改變'],
+    famous:'比雅尼·斯特勞斯特魯普、茱蒂·丹契'},
+  ESTJ:{name:'總經理',icon:'⚖️',color:'#b45309',
+    desc:'嚴格的規則執行者。重視秩序、效率和傳統，善於管理與組織，果斷決策，是社群和組織的強力支柱。',
+    str:['組織能力強','果斷高效','值得信賴','重視傳統'],
+    weak:['缺乏彈性','過度強勢','忽視情感','難接受新觀念'],
+    famous:'亨利·福特、法蘭克·西納特拉'},
+  ESFJ:{name:'執政官',icon:'🤝',color:'#0891b2',
+    desc:'熱心的社群守護者。天生熱愛關懷他人，重視和諧與歸屬感，善於讓每個人都感到被重視和溫暖。',
+    str:['熱心助人','善於社交','責任感強','關懷備至'],
+    weak:['過度在意評價','難以面對衝突','依賴認可','過度付出'],
+    famous:'泰勒絲、比爾·柯林頓、艾爾頓·約翰'},
+  ISTP:{name:'鑑賞家',icon:'🔧',color:'#64748b',
+    desc:'冷靜的技術大師。以旁觀者角度洞察世界，動手能力出色，善於在危機中保持冷靜，用最少動作解決問題。',
+    str:['動手能力強','冷靜分析','靈活應變','獨立自主'],
+    weak:['情感疏離','衝動冒險','難以承諾','不重長遠'],
+    famous:'克林特·伊斯特伍德、布魯斯·李'},
+  ISFP:{name:'探險家',icon:'🎨',color:'#84cc16',
+    desc:'溫柔的藝術靈魂。活在當下，感官敏銳，熱愛美感與和諧，以行動而非語言表達自我，享受每個當下的美好。',
+    str:['藝術感強','溫和體貼','活在當下','隨和包容'],
+    weak:['難以長遠規劃','迴避衝突','低調被動','過度敏感'],
+    famous:'麥可·傑克遜、碧昂絲'},
+  ESTP:{name:'企業家',icon:'🚀',color:'#ef4444',
+    desc:'精力充沛的行動派。善於察言觀色，在當下果斷行動，享受冒險與刺激，能瞬間讀懂環境並做出反應。',
+    str:['行動力強','社交靈活','危機處理','適應力強'],
+    weak:['缺乏耐心','衝動冒險','忽視長遠','難遵守規則'],
+    famous:'川普、麥可·喬丹、海明威'},
+  ESFP:{name:'表演者',icon:'🎭',color:'#f59e0b',
+    desc:'天生的娛樂高手。充滿活力與熱情，享受當下，喜歡帶動現場氣氛，讓身邊的人都開心起來。',
+    str:['活潑外向','樂觀積極','感染力強','隨機應變'],
+    weak:['難以聚焦長遠','衝動消費','迴避困難話題','過度敏感'],
+    famous:'瑪麗蓮·夢露、麥莉·希拉'},
+};
+
+const DIM_NAMES={E:'外向',I:'內向',S:'實感',N:'直覺',T:'思考',F:'情感',J:'判斷',P:'感知'};
+let curQ=0, answers=[], scores={E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
+
+function startTest(){
+  curQ=0; answers=[]; scores={E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
+  showQ();
+  document.getElementById('screen-intro').classList.remove('active');
+  document.getElementById('screen-q').classList.add('active');
+}
+
+function showQ(){
+  const q=QUESTIONS[curQ];
+  const pct=Math.round(curQ/QUESTIONS.length*100);
+  document.getElementById('prog-bar').style.width=pct+'%';
+  document.getElementById('q-num').textContent='題 '+(curQ+1)+' / '+QUESTIONS.length;
+  const dims={EI:'外向 vs 內向',SN:'實感 vs 直覺',TF:'思考 vs 情感',JP:'判斷 vs 感知'};
+  document.getElementById('dim-tag').textContent=dims[q.dim];
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('choice-a').textContent='A　'+q.a[0];
+  document.getElementById('choice-b').textContent='B　'+q.a[1];
+  document.getElementById('choice-a').className='choice';
+  document.getElementById('choice-b').className='choice';
+}
+
+function pick(choice){
+  const q=QUESTIONS[curQ];
+  const [d1,d2]=q.dim.split('');
+  if(choice===0){scores[d1]++;document.getElementById('choice-a').classList.add('picked-a');}
+  else{scores[d2]++;document.getElementById('choice-b').classList.add('picked-b');}
+  answers.push(choice);
+  setTimeout(()=>{
+    curQ++;
+    if(curQ>=QUESTIONS.length) showResult();
+    else showQ();
+  },300);
+}
+
+function showResult(){
+  document.getElementById('screen-q').classList.remove('active');
+  document.getElementById('screen-result').classList.add('active');
+  const type=(scores.E>=scores.I?'E':'I')+(scores.S>=scores.N?'S':'N')+(scores.T>=scores.F?'T':'F')+(scores.J>=scores.P?'J':'P');
+  const t=TYPES[type];
+  document.getElementById('type-badge').textContent=t.icon;
+  document.getElementById('type-code').textContent=type;
+  document.getElementById('type-code').style.color=t.color;
+  document.getElementById('type-name').textContent=t.name;
+  // dim bars
+  const dims=[['EI','E','I'],['SN','S','N'],['TF','T','F'],['JP','J','P']];
+  const barColors=['#7c3aed','#0ea5e9','#10b981','#f59e0b'];
+  document.getElementById('dim-bars').innerHTML=dims.map(([d,a,b],i)=>{
+    const sa=scores[a], sb=scores[b], total=sa+sb||1;
+    const pct=Math.round(sa/total*100);
+    const winner=sa>=sb?a:b;
+    return `<div class="dim-box">
+      <div class="dim-label"><span>${DIM_NAMES[a]}</span><span>${DIM_NAMES[b]}</span></div>
+      <div class="dim-label" style="margin-top:2px"><span style="color:${barColors[i]};font-weight:600">${winner}</span><span>${sa}/${sb}</span></div>
+      <div class="dim-track"><div class="dim-fill" style="width:${pct}%;background:${barColors[i]}"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('result-desc').textContent=t.desc;
+  document.getElementById('str-tags').innerHTML=t.str.map(s=>`<span class="tag good">${s}</span>`).join('');
+  document.getElementById('weak-tags').innerHTML=t.weak.map(s=>`<span class="tag weak">${s}</span>`).join('');
+  document.getElementById('result-famous').textContent=t.famous;
+}
+
+function shareResult(){
+  const type=(scores.E>=scores.I?'E':'I')+(scores.S>=scores.N?'S':'N')+(scores.T>=scores.F?'T':'F')+(scores.J>=scores.P?'J':'P');
+  const t=TYPES[type];
+  const txt=`我的 MBTI 人格類型是 ${type} ${t.name} ${t.icon}\n測出來的分析：${t.desc.slice(0,40)}...\n快來測測你的！`;
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>alert('已複製到剪貼簿！'));}
+}
+
+function restartTest(){
+  document.getElementById('screen-result').classList.remove('active');
+  document.getElementById('screen-intro').classList.add('active');
+}
+</script>
+</body></html>
