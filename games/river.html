@@ -186,9 +186,9 @@ const LEVELS=[
   },
   {
     title:'🏺 五寶渡河',
-    desc:'農夫帶5樣寶物，船載2樣，特定組合會起衝突',
+    desc:'法師帶5樣寶物，船載3樣，特定組合會起衝突',
     diff:'⭐⭐⭐ 困難',
-    capacity:2,
+    capacity:3,
     cast:[
       {e:'🧙',name:'法師',isFarmer:true},
       {e:'🔥',name:'火'},
@@ -197,8 +197,8 @@ const LEVELS=[
       {e:'🌿',name:'草'},
       {e:'🪨',name:'石'},
     ],
-    forbidden:[[1,2],[2,3],[3,4],[4,5],[5,1]], // fire+water, water+thunder, thunder+grass, grass+stone, stone+fire
-    minSteps:9,
+    forbidden:[[1,2],[2,3],[3,4],[4,5],[5,1]],
+    minSteps:5,
   },
 ];
 
