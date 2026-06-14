@@ -89,7 +89,7 @@ h1{font-size:22px;font-weight:500;text-align:center;margin-bottom:1rem}
 
 <!-- SETUP -->
 <div class="screen active" id="screen-setup">
-  <div class="box">
+  <div class="box" id="name-box">
     <h2>你的名字</h2>
     <input class="inp" id="player-name" placeholder="輸入名字" maxlength="12">
   </div>
@@ -255,6 +255,17 @@ const ALL_QS=[
 ];
 
 let playerName='', numQ=10, topic='all', questions=[], curQ=0, score=0, streak=0, maxStreak=0;
+
+// Read name from lobby localStorage
+(function(){
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2'));
+    if(d&&d.name){
+      document.getElementById('player-name').value=d.name;
+      document.getElementById('name-box').style.display='none';
+    }
+  }catch(e){}
+})();
 let llUsed={5050:false,audience:false,phone:false};
 let timer=null, timeLeft=15, totalTime=0, answered=false;
 let correctCount=0;

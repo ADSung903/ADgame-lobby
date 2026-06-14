@@ -59,6 +59,17 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .gs-left{display:flex;align-items:center;gap:6px;font-size:13px;color:#aaa}
 .gs-val{font-size:13px;font-weight:500;color:#f59e0b}
 
+/* WELCOME MODAL */
+.wm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;align-items:center;justify-content:center;padding:1rem}
+.wm-overlay.show{display:flex}
+.wm-card{background:#0d0d22;border:1.5px solid #3a3a5a;border-radius:20px;padding:1.5rem;max-width:360px;width:100%;text-align:center}
+.wm-card h2{font-size:20px;font-weight:600;margin:.4rem 0}
+.wm-card p{font-size:13px;color:#7788aa;line-height:1.9;margin-bottom:1.2rem}
+.wm-inp{width:100%;padding:10px 14px;border-radius:10px;border:1px solid #3a3a5a;background:#0a0a1a;color:#eee;font-size:15px;margin-bottom:.75rem;text-align:center;outline:none}
+.wm-inp:focus{border-color:#7c3aed}
+.wm-start{width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#5555cc,#7c3aed);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.wm-skip{font-size:12px;color:#445566;background:none;border:none;cursor:pointer;margin-top:.6rem;text-decoration:underline}
+
 /* MOBILE */
 @media(max-width:480px){
   .game-grid{grid-template-columns:1fr 1fr;gap:8px}
@@ -132,6 +143,17 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="wm-overlay" id="welcome-modal">
+  <div class="wm-card">
+    <div style="font-size:52px">🎮</div>
+    <h2>歡樂遊戲大廳</h2>
+    <p>7 款完全免費遊戲，永久無廣告！<br>益智・記憶・邏輯・問答一次滿足<br>成績自動儲存，挑戰好友排名 🏆</p>
+    <input class="wm-inp" id="welcome-name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
+    <button class="wm-start" onclick="confirmWelcome()">開始遊戲 🎯</button><br>
+    <button class="wm-skip" onclick="skipWelcome()">先跳過</button>
+  </div>
+</div>
 
 <script>
 const GAMES=[
@@ -320,5 +342,21 @@ document.getElementById('clear-btn').addEventListener('click',()=>{
 });
 
 buildLobby();
+
+// ── WELCOME MODAL ───────────────────────────────────────────
+function confirmWelcome(){
+  const name=document.getElementById('welcome-name-inp').value.trim();
+  if(name){DB.name=name;document.getElementById('name-inp').value=name;save();buildLobby();}
+  document.getElementById('welcome-modal').classList.remove('show');
+}
+function skipWelcome(){
+  document.getElementById('welcome-modal').classList.remove('show');
+}
+if(!DB.name){
+  const modal=document.getElementById('welcome-modal');
+  modal.classList.add('show');
+  setTimeout(()=>document.getElementById('welcome-name-inp').focus(),100);
+  document.getElementById('welcome-name-inp').addEventListener('keydown',e=>{if(e.key==='Enter')confirmWelcome();});
+}
 </script>
 </body></html>

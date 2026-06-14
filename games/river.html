@@ -35,8 +35,7 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
 .wave:nth-child(3){top:75%;animation-delay:1.4s}
 @keyframes wave{0%{transform:translateX(-10px)}50%{transform:translateX(10px)}100%{transform:translateX(-10px)}}
 
-.boat{position:absolute;bottom:18%;width:60px;height:36px;background:#8b5e3c;border-radius:6px 6px 14px 14px;display:flex;align-items:center;justify-content:center;transition:left .6s ease;font-size:11px;color:#ffd;border:1.5px solid #5a3a1a;cursor:pointer}
-.boat:hover{border-color:#f90}
+.boat{position:absolute;bottom:18%;width:60px;height:36px;background:#8b5e3c;border-radius:6px 6px 14px 14px;display:flex;align-items:center;justify-content:center;transition:left .6s ease;font-size:11px;color:#ffd;border:1.5px solid #5a3a1a}
 .boat-left{left:calc(38% - 30px)}
 .boat-right{left:calc(62% - 30px)}
 .boat-label{font-size:9px;color:#ffd;position:absolute;bottom:-18px;width:60px;text-align:center}
@@ -89,16 +88,16 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
     <div class="bank bank-right" id="bank-right">
       <span class="bank-label">目標岸</span>
     </div>
-    <div class="boat boat-left" id="boat" onclick="rowBoat()">
+    <div class="boat boat-left" id="boat">
       <span id="boat-content"></span>
-      <div class="boat-label">點擊划船</div>
     </div>
   </div>
 
   <div class="msg-box" id="msg-box">選擇要上船的角色，然後點船划過去！</div>
   <div class="win-box" id="win-box"></div>
+  <button class="big-btn" id="row-btn" onclick="rowBoat()">🚣 划過去！</button>
 
-  <div class="ctrl-panel">
+  <div class="ctrl-panel" style="margin-top:.6rem">
     <h3>🎮 操作</h3>
     <div class="ctrl-row" id="ctrl-row"></div>
   </div>
@@ -396,7 +395,7 @@ function renderScene(){
     el.className='character';
     el.title=c.name;
     el.textContent=c.e;
-    el.addEventListener('click',function(){toggleBoard(i);});
+    el.addEventListener('click',function(e){e.stopPropagation();toggleBoard(i);});
     const s=state[i];
     if(s==='left')leftBank.appendChild(el);
     else if(s==='right')rightBank.appendChild(el);
