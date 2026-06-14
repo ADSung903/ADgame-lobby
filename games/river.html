@@ -173,7 +173,7 @@ const LEVELS=[
     diff:'⭐⭐⭐ 困難',
     capacity:2,
     cast:[
-      {e:'👨',name:'夫A',isFarmer:true,couple:0},
+      {e:'👨',name:'夫A',couple:0},
       {e:'👩',name:'妻A',couple:0},
       {e:'🧔',name:'夫B',couple:1},
       {e:'💁‍♀️',name:'妻B',couple:1},
@@ -277,6 +277,10 @@ function toggleBoard(charIdx){
     }
     boatPassengers.push(charIdx);
     state[charIdx]='boat';
+  } else if(lv.isCouples){
+    if(boatPassengers.length>=2){setMsg('船最多載2人！',true);return;}
+    boatPassengers.push(charIdx);
+    state[charIdx]='boat';
   } else {
     const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
     const farmerName=lv.cast[farmerIdx].name;
@@ -302,6 +306,8 @@ function rowBoat(){
   if(lv.isBridge){
     if(boatPassengers.length===0){setMsg('沒有人在橋上！',true);return;}
     if(boatSide==='right'&&boatPassengers.length!==1){setMsg('回程只能1人帶火把！',true);return;}
+  } else if(lv.isCouples){
+    if(boatPassengers.length===0){setMsg('沒有人在船上！',true);return;}
   } else {
     const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
     const farmerName=lv.cast[farmerIdx].name;
