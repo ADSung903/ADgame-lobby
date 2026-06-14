@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-TW"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🌈 彩虹連連看</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
+.app{width:100%;max-width:500px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.topbar h1{font-size:20px;font-weight:500}
+.meta{display:flex;gap:8px;align-items:center}
+.pill{font-size:12px;padding:3px 10px;border-radius:20px;background:#1a1a2e;border:0.5px solid #2a2a4a;color:#9a9ab0}
+.btn{font-size:13px;padding:5px 14px;border-radius:8px;border:0.5px solid #444;background:transparent;color:#eee;cursor:pointer}
+.btn:hover{background:#1a1a2e}.btn:active{transform:scale(.97)}
+.mode-bar{display:flex;gap:8px;justify-content:center;margin-bottom:.75rem}
+.mode-btn{font-size:12px;padding:4px 14px;border-radius:20px;border:0.5px solid #2a2a4a;background:transparent;color:#7788aa;cursor:pointer}
+.mode-btn.active{background:#1a1a3a;border-color:#5555cc;color:#fff}
+.players{display:flex;gap:10px;justify-content:center;margin-bottom:.75rem}
+.pc{flex:1;max-width:150px;padding:8px 10px;border-radius:10px;border:0.5px solid #2a2a4a;background:#1a1a2e;text-align:center}
+.pc.active-p{border:2px solid #378add;background:#0a1a2e}
+.pc.done-p{border:2px solid #22c55e;background:#0a1e0a}
+.pc-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.pc-time{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.pc-status{font-size:11px;color:#7788aa;margin-top:2px}
+.grid-wrap{display:flex;justify-content:center;margin-bottom:.75rem}
+canvas{display:block;border-radius:12px;border:0.5px solid #2a2a4a;background:#0d0d1e;touch-action:none}
+.msg{text-align:center;font-size:14px;color:#7788aa;min-height:22px;margin-bottom:6px}
+.win{display:none;text-align:center;padding:.6rem;background:#0a2a0a;border-radius:12px;color:#4ade80;font-size:15px;font-weight:500;margin-bottom:8px;border:0.5px solid #2a4a2a}
+.scoreboard{display:none;background:#1a1a2e;border-radius:12px;padding:.75rem 1rem;margin-bottom:8px}
+.scoreboard h3{font-size:14px;font-weight:500;text-align:center;margin-bottom:.5rem}
+.sb-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #2a2a3e;font-size:13px;color:#aaa}
+.sb-row:last-child{border:none}
+.sb-row.winner{color:#4ade80;font-weight:500}
+.controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+</style>
+</head><body>
+<div class="app">
+  <div class="topbar">
+    <h1>🌈 彩虹連連看</h1>
+    <div class="meta">
+      <span class="pill" id="lvl-pill">第 1 關</span>
+      <button class="btn" id="undo-btn">↩ 復原</button>
+    </div>
+  </div>
+  <div class="mode-bar">
+    <button class="mode-btn active" id="m-solo" onclick="setMode('solo')">單人</button>
+    <button class="mode-btn" id="m-2p" onclick="setMode('2p')">雙人競速</button>
+    <button class="mode-btn" id="m-3p" onclick="setMode('3p')">三人競速</button>
+  </div>
+  <div class="players" id="players" style="display:none"></div>
+  <div class="grid-wrap"><canvas id="gc"></canvas></div>
+  <div class="msg" id="msg">把相同動物連起來，填滿所有格子！</div>
+  <div class="win" id="win"></div>
+  <div class="scoreboard" id="scoreboard"></div>
+  <div class="controls">
+    <button class="btn" id="retry-btn">重新開始</button>
+    <button class="btn" id="next-btn" style="display:none">下一關 ➜</button>
+  </div>
+</div>
+
+<script>
+const COLORS=['#E24B4A','#378ADD','#3B6D11','#EF9F27','#D4537E','#1D9E75'];
+const EMOJI=['🐱','🐶','🐸','🐰','🦊','🐣'];
+const PNAMES=['玩家 1','玩家 2','玩家 3'];
+
+const LEVELS=[
+  {size:4,paths:[
+    [[0,0],[0,1],[0,2],[0,3],[1,3],[1,2],[1,1],[1,0]],
+    [[2,0],[2,1],[2,2],[2,3],[3,3],[3,2],[3,1],[3,0]],
+  ]},
+  {size:4,paths:[
+    [[0,0],[0,1],[1,1],[1,0]],
+    [[0,2],[0,3],[1,3],[1,2],[2,2],[2,3],[3,3],[3,2]],
+    [[2,0],[2,1],[3,1],[3,0]],
+  ]},
+  {size:4,paths:[
+    [[0,0],[1,0],[2,0],[3,0],[3,1],[2,1],[1,1],[0,1]],
+    [[0,2],[0,3],[1,3],[1,2]],
+    [[2,2],[2,3],[3,3],[3,2]],
+  ]},
+  {size:5,paths:[
+    [[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[1,3],[1,2],[1,1],[1,0]],
+    [[2,0],[2,1],[2,2],[2,3],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[4,0],[3,0]],
+    [[3,1],[3,2],[3,3]],
+  ]},
+  {size:5,paths:[
+    [[0,0],[1,0],[2,0],[3,0],[4,0],[4,1],[3,1],[2,1],[1,1],[0,1]],
+    [[0,2],[1,2],[2,2],[3,2],[4,2],[4,3],[3,3],[2,3],[1,3]],
+    [[0,3],[0,4],[1,4],[2,4],[3,4],[4,4]],
+  ]},
+  {size:5,paths:[
+    [[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[1,3],[1,2],[1,1],[1,0]],
+    [[2,0],[2,1],[2,2],[2,3],[2,4],[3,4],[3,3],[3,2],[3,1],[3,0]],
+    [[4,0],[4,1],[4,2],[4,3],[4,4]],
+  ]},
+  {size:6,paths:[
+    [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[1,5],[1,4],[1,3],[1,2],[1,1],[1,0]],
+    [[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[3,5],[3,4],[3,3],[3,2],[3,1],[3,0]],
+    [[4,0],[4,1],[4,2],[4,3],[4,4],[4,5],[5,5],[5,4],[5,3],[5,2],[5,1],[5,0]],
+  ]},
+  {size:6,paths:[
+    [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[5,1],[4,1],[3,1],[2,1],[1,1],[0,1]],
+    [[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[5,3],[4,3],[3,3],[2,3],[1,3],[0,3]],
+    [[0,4],[1,4],[2,4],[3,4],[4,4],[5,4],[5,5],[4,5],[3,5],[2,5],[1,5],[0,5]],
+  ]},
+];
+
+const CELL=70,PAD=10;
+let lvlIdx=0,N,paths,drawing=false,curColor=-1,curPath=[],history=[],userGrid,epSet;
+let mode='solo',numP=1,curP=0,pTimes=[],pDone=[],t0=0,raf=null;
+
+const cv=document.getElementById('gc');
+const ctx=cv.getContext('2d');
+
+function setMode(m){
+  mode=m;numP=m==='solo'?1:m==='2p'?2:3;
+  ['solo','2p','3p'].forEach(x=>document.getElementById('m-'+x).classList.toggle('active',x===m));
+  loadLevel(lvlIdx);
+}
+
+function fmtTime(ms){
+  if(ms===null)return '--:--';
+  const s=Math.floor(ms/1000),c=Math.floor((ms%1000)/10);
+  return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')+'.'+String(c).padStart(2,'0');
+}
+
+function buildPlayersUI(){
+  const el=document.getElementById('players');
+  if(mode==='solo'){el.style.display='none';return;}
+  el.style.display='flex';el.innerHTML='';
+  for(let i=0;i<numP;i++){
+    const d=document.createElement('div');
+    d.className='pc'+(i===0?' active-p':'');d.id='pc-'+i;
+    d.innerHTML=`<div class="pc-name">${PNAMES[i]}</div><div class="pc-time" id="pt-${i}">00:00</div><div class="pc-status" id="ps-${i}">${i===0?'進行中':'等待中'}</div>`;
+    el.appendChild(d);
+  }
+}
+
+function updateTimer(){
+  if(pDone[curP]||mode==='solo')return;
+  const el=document.getElementById('pt-'+curP);
+  if(el)el.textContent=fmtTime(Date.now()-t0);
+  raf=requestAnimationFrame(updateTimer);
+}
+
+function loadLevel(idx){
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  lvlIdx=idx;
+  const lv=LEVELS[idx%LEVELS.length];
+  N=lv.size;
+  const sz=N*CELL+PAD*2;
+  cv.width=sz;cv.height=sz;
+
+  epSet={};
+  paths=lv.paths.map((cells,ci)=>{
+    const from=cells[0],to=cells[cells.length-1];
+    epSet[from[0]+','+from[1]]=ci;
+    epSet[to[0]+','+to[1]]=ci;
+    return{color:ci,from,to,cells:[]};
+  });
+  userGrid=Array.from({length:N},()=>Array(N).fill(-1));
+  paths.forEach((p,i)=>{
+    userGrid[p.from[0]][p.from[1]]=i;
+    userGrid[p.to[0]][p.to[1]]=i;
+  });
+  history=[];drawing=false;curColor=-1;curPath=[];
+  curP=0;pTimes=Array(numP).fill(null);pDone=Array(numP).fill(false);
+  t0=Date.now();
+
+  document.getElementById('win').style.display='none';
+  document.getElementById('next-btn').style.display='none';
+  document.getElementById('scoreboard').style.display='none';
+  document.getElementById('msg').textContent=mode==='solo'?'把相同動物連起來，填滿所有格子！':PNAMES[0]+' 的回合！';
+  document.getElementById('lvl-pill').textContent='第 '+(idx+1)+' 關';
+
+  buildPlayersUI();
+  if(mode!=='solo')raf=requestAnimationFrame(updateTimer);
+  render();
+}
+
+function isEP(r,c){return(r+','+c)in epSet;}
+function epC(r,c){return epSet[r+','+c]??-1;}
+
+function clearPathColor(ci){
+  paths[ci].cells=[];
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)
+    if(userGrid[r][c]===ci&&!isEP(r,c))userGrid[r][c]=-1;
+}
+
+function cellAt(x,y){
+  const r=Math.floor((y-PAD)/CELL),c=Math.floor((x-PAD)/CELL);
+  if(r<0||r>=N||c<0||c>=N)return null;
+  return[r,c];
+}
+
+function getXY(e){
+  const rect=cv.getBoundingClientRect();
+  const sx=cv.width/rect.width,sy=cv.height/rect.height;
+  if(e.touches)return[(e.touches[0].clientX-rect.left)*sx,(e.touches[0].clientY-rect.top)*sy];
+  return[(e.clientX-rect.left)*sx,(e.clientY-rect.top)*sy];
+}
+
+function saveHistory(){
+  history.push({paths:paths.map(p=>({...p,cells:p.cells.map(x=>[...x])})),grid:userGrid.map(r=>[...r])});
+  if(history.length>40)history.shift();
+}
+
+cv.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(mode!=='solo'&&pDone[curP])return;
+  const[x,y]=getXY(e);
+  const cell=cellAt(x,y);if(!cell)return;
+  const[r,c]=cell;
+  let ci=epC(r,c);if(ci<0)ci=userGrid[r][c];if(ci<0)return;
+  saveHistory();clearPathColor(ci);
+  curColor=ci;curPath=[[r,c]];paths[ci].cells=[[r,c]];userGrid[r][c]=ci;
+  drawing=true;render();
+},{passive:false});
+
+cv.addEventListener('pointermove',e=>{
+  if(!drawing)return;e.preventDefault();
+  const[x,y]=getXY(e);
+  const cell=cellAt(x,y);if(!cell)return;
+  const[r,c]=cell;
+  const[lr,lc]=curPath[curPath.length-1];
+  if(r===lr&&c===lc)return;
+  if(Math.abs(r-lr)+Math.abs(c-lc)!==1)return;
+  if(curPath.length>=2){
+    const[pr,pc]=curPath[curPath.length-2];
+    if(r===pr&&c===pc){
+      const[xr,xc]=curPath.pop();
+      if(!isEP(xr,xc))userGrid[xr][xc]=-1;
+      paths[curColor].cells=[...curPath];render();return;
+    }
+  }
+  const cv2=userGrid[r][c];
+  if(cv2>=0&&cv2!==curColor&&!isEP(r,c))return;
+  if(isEP(r,c)&&epC(r,c)!==curColor)return;
+  if(isEP(r,c)&&epC(r,c)===curColor){
+    const start=curPath[0];const p=paths[curColor];
+    const ok=(start[0]===p.from[0]&&start[1]===p.from[1])||(start[0]===p.to[0]&&start[1]===p.to[1]);
+    const ok2=(r===p.to[0]&&c===p.to[1])||(r===p.from[0]&&c===p.from[1]);
+    if(ok&&ok2&&!(r===start[0]&&c===start[1])){
+      curPath.push([r,c]);userGrid[r][c]=curColor;paths[curColor].cells=[...curPath];
+      drawing=false;render();checkWin();return;
+    }
+    return;
+  }
+  curPath.push([r,c]);userGrid[r][c]=curColor;paths[curColor].cells=[...curPath];render();
+},{passive:false});
+
+cv.addEventListener('pointerup',()=>{drawing=false;checkWin();});
+cv.addEventListener('pointercancel',()=>{drawing=false;});
+
+function isComplete(p){
+  if(p.cells.length<2)return false;
+  const a=p.cells[0],b=p.cells[p.cells.length-1];
+  return((a[0]===p.from[0]&&a[1]===p.from[1])&&(b[0]===p.to[0]&&b[1]===p.to[1]))||
+        ((a[0]===p.to[0]&&a[1]===p.to[1])&&(b[0]===p.from[0]&&b[1]===p.from[1]));
+}
+
+function checkWin(){
+  if(!paths.every(isComplete))return;
+  if(!userGrid.flat().every(v=>v>=0))return;
+
+  if(mode==='solo'){
+    if(raf){cancelAnimationFrame(raf);raf=null;}
+    const elapsed=Math.round((Date.now()-t0)/1000);
+    document.getElementById('win').style.display='block';
+    document.getElementById('win').textContent='🎉 過關！'+elapsed+'秒完成！';
+    document.getElementById('next-btn').style.display='inline-block';
+    document.getElementById('msg').textContent='';
+    window.parent.postMessage({type:'gameScore',game:'rainbow',score:elapsed,detail:'第'+(lvlIdx+1)+'關，'+elapsed+'秒'},'*');
+    return;
+  }
+
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  pTimes[curP]=Date.now()-t0;pDone[curP]=true;
+  const pc=document.getElementById('pc-'+curP);
+  if(pc){pc.classList.remove('active-p');pc.classList.add('done-p');}
+  const pt=document.getElementById('pt-'+curP);if(pt)pt.textContent=fmtTime(pTimes[curP]);
+  const ps=document.getElementById('ps-'+curP);if(ps)ps.textContent='完成！';
+
+  const next=pDone.findIndex(d=>!d);
+  if(next===-1){
+    const results=pTimes.map((t,i)=>({name:PNAMES[i],time:t})).sort((a,b)=>a.time-b.time);
+    const sb=document.getElementById('scoreboard');
+    sb.style.display='block';
+    sb.innerHTML='<h3>🏆 結果</h3>'+results.map((r,i)=>`
+      <div class="sb-row${i===0?' winner':''}">
+        <span>${i===0?'🥇':i===1?'🥈':'🥉'} ${r.name}</span>
+        <span>${fmtTime(r.time)}</span>
+      </div>`).join('');
+    document.getElementById('win').style.display='block';
+    document.getElementById('win').textContent='🎉 '+results[0].name+' 獲勝！';
+    document.getElementById('next-btn').style.display='inline-block';
+    document.getElementById('msg').textContent='';
+    window.parent.postMessage({type:'gameScore',game:'rainbow',score:Math.round(results[0].time/1000),detail:results[0].name+' 獲勝，第'+(lvlIdx+1)+'關'},'*');
+  } else {
+    curP=next;t0=Date.now();
+    paths.forEach(p=>p.cells=[]);
+    userGrid=Array.from({length:N},()=>Array(N).fill(-1));
+    paths.forEach((p,i)=>{userGrid[p.from[0]][p.from[1]]=i;userGrid[p.to[0]][p.to[1]]=i;});
+    history=[];drawing=false;curColor=-1;curPath=[];
+    const np=document.getElementById('pc-'+curP);if(np)np.classList.add('active-p');
+    const nps=document.getElementById('ps-'+curP);if(nps)nps.textContent='進行中';
+    document.getElementById('msg').textContent='換 '+PNAMES[curP]+' 了！';
+    raf=requestAnimationFrame(updateTimer);
+    render();
+  }
+}
+
+function render(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#0d0d1e';ctx.fillRect(0,0,cv.width,cv.height);
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    ctx.fillStyle='rgba(255,255,255,0.03)';
+    ctx.beginPath();ctx.roundRect(PAD+c*CELL+2,PAD+r*CELL+2,CELL-4,CELL-4,5);ctx.fill();
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+  for(let i=0;i<=N;i++){
+    ctx.beginPath();ctx.moveTo(PAD+i*CELL,PAD);ctx.lineTo(PAD+i*CELL,PAD+N*CELL);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(PAD,PAD+i*CELL);ctx.lineTo(PAD+N*CELL,PAD+i*CELL);ctx.stroke();
+  }
+  paths.forEach((p,i)=>{
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      if(userGrid[r][c]===i&&!isEP(r,c)){
+        ctx.fillStyle=COLORS[i]+'28';ctx.fillRect(PAD+c*CELL+1,PAD+r*CELL+1,CELL-2,CELL-2);
+      }
+    }
+  });
+  paths.forEach((p,i)=>{
+    if(p.cells.length<2)return;
+    ctx.strokeStyle=COLORS[i];ctx.lineWidth=CELL*.36;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();
+    p.cells.forEach(([r,c],idx)=>{
+      const x=PAD+c*CELL+CELL/2,y=PAD+r*CELL+CELL/2;
+      idx===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  });
+  paths.forEach((p,i)=>{
+    [p.from,p.to].forEach(([r,c])=>{
+      const x=PAD+c*CELL+CELL/2,y=PAD+r*CELL+CELL/2;
+      ctx.fillStyle=COLORS[i];
+      ctx.beginPath();ctx.arc(x,y,CELL*.33,0,Math.PI*2);ctx.fill();
+      ctx.font=Math.floor(CELL*.28)+'px serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(EMOJI[i],x,y+1);
+    });
+  });
+}
+
+document.getElementById('undo-btn').addEventListener('click',()=>{
+  if(!history.length||(mode!=='solo'&&pDone[curP]))return;
+  const prev=history.pop();
+  paths=prev.paths;userGrid=prev.grid;drawing=false;render();
+});
+document.getElementById('retry-btn').addEventListener('click',()=>loadLevel(lvlIdx));
+document.getElementById('next-btn').addEventListener('click',()=>loadLevel(lvlIdx+1));
+
+loadLevel(0);
+</script>
+</body></html>

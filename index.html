@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh}
+.screen{display:none}.screen.active{display:block}
+
+/* ===== LOBBY ===== */
+#screen-lobby{padding:1rem;max-width:520px;margin:0 auto}
+.lobby-header{text-align:center;margin-bottom:1rem}
+.lobby-header h1{font-size:24px;font-weight:600;margin-bottom:.3rem}
+.lobby-header p{font-size:13px;color:#7788aa}
+.player-bar{display:flex;align-items:center;gap:10px;background:#0d0d22;border:0.5px solid #2a2a4a;border-radius:12px;padding:.6rem .9rem;margin-bottom:1rem}
+.player-bar input{flex:1;background:transparent;border:none;color:#eee;font-size:14px;outline:none}
+.player-bar label{font-size:13px;color:#7788aa;white-space:nowrap}
+.total-score{font-size:13px;color:#f59e0b;font-weight:500;white-space:nowrap}
+.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.game-card{background:#0d0d22;border:1.5px solid #1e1e3a;border-radius:14px;padding:1rem;cursor:pointer;transition:all .15s;position:relative}
+.game-card:hover{border-color:#5555cc;transform:translateY(-2px)}
+.game-card .gc-icon{font-size:32px;margin-bottom:.4rem}
+.game-card .gc-name{font-size:14px;font-weight:600;margin-bottom:.25rem}
+.game-card .gc-desc{font-size:11px;color:#6677aa;line-height:1.4;margin-bottom:.4rem}
+.game-card .gc-best{font-size:11px;color:#f59e0b}
+.game-card .gc-badge{position:absolute;top:8px;right:8px;font-size:10px;padding:2px 7px;border-radius:10px;background:#1a1a3a;color:#7788aa;border:0.5px solid #2a2a4a}
+.lobby-footer{display:flex;gap:8px;justify-content:center}
+.btn{font-size:13px;padding:6px 16px;border-radius:8px;border:0.5px solid #444;background:transparent;color:#eee;cursor:pointer}
+.btn:hover{background:#12122a}.btn:active{transform:scale(0.97)}
+
+/* ===== LEADERBOARD ===== */
+#screen-lb{padding:1rem;max-width:520px;margin:0 auto}
+.lb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.lb-header h2{font-size:18px;font-weight:500}
+.tab-row{display:flex;gap:6px;margin-bottom:.75rem;flex-wrap:wrap}
+.tab{font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid #2a2a4a;background:transparent;color:#7788aa;cursor:pointer}
+.tab.active{background:#1a1a3a;border-color:#5555cc;color:#fff}
+.lb-list{background:#0d0d22;border:0.5px solid #1e1e3a;border-radius:14px;overflow:hidden;margin-bottom:.75rem}
+.lb-row{display:flex;align-items:center;gap:10px;padding:.6rem .9rem;border-bottom:0.5px solid #12122a}
+.lb-row:last-child{border:none}
+.lb-rank{font-size:16px;width:28px;text-align:center}
+.lb-name{flex:1;font-size:14px}
+.lb-score{font-size:14px;font-weight:600;color:#f59e0b}
+.lb-meta{font-size:11px;color:#5566aa;margin-left:4px}
+.lb-empty{text-align:center;padding:2rem;color:#445566;font-size:14px}
+
+/* ===== PROFILE ===== */
+.profile-box{background:#0d0d22;border:0.5px solid #1e1e3a;border-radius:14px;padding:1rem;margin-bottom:.75rem}
+.profile-box h3{font-size:13px;color:#7788aa;margin-bottom:.6rem}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ps-box{background:#06060f;border-radius:10px;padding:.5rem;text-align:center}
+.ps-val{font-size:18px;font-weight:600;color:#eee}
+.ps-lbl{font-size:10px;color:#5566aa;margin-top:2px}
+.game-scores{display:flex;flex-direction:column;gap:6px}
+.gs-row{display:flex;align-items:center;justify-content:space-between;padding:.4rem .6rem;background:#06060f;border-radius:8px}
+.gs-name{font-size:13px;color:#aaa}
+.gs-val{font-size:13px;font-weight:500;color:#f59e0b}
+
+/* ===== GAME FRAME ===== */
+#screen-game{position:relative}
+.game-topbar{display:flex;align-items:center;gap:10px;padding:.6rem 1rem;background:#0a0a1a;border-bottom:0.5px solid #1e1e3a;position:sticky;top:0;z-index:100}
+.game-topbar h2{font-size:15px;font-weight:500;flex:1}
+#game-frame{width:100%;border:none;min-height:calc(100vh - 48px)}
+
+/* ===== RESULT OVERLAY ===== */
+.result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:999;padding:1rem}
+.result-card{background:#0d0d22;border:1.5px solid #2a2a4a;border-radius:20px;padding:1.5rem;max-width:340px;width:100%;text-align:center}
+.result-card h2{font-size:22px;margin-bottom:.3rem}
+.result-card .score-big{font-size:42px;font-weight:700;color:#f59e0b;margin:.4rem 0}
+.result-card p{font-size:14px;color:#7788aa;margin-bottom:.75rem}
+.result-card .inp{width:100%;padding:8px 12px;border-radius:8px;border:0.5px solid #3a3a5a;background:#0a0a1a;color:#eee;font-size:14px;margin-bottom:.6rem}
+.big-btn{width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:.4rem}
+.big-btn:active{transform:scale(0.98)}
+.big-btn.secondary{background:transparent;border:0.5px solid #444;color:#aaa}
+</style></head><body>
+
+<!-- LOBBY -->
+<div class="screen active" id="screen-lobby">
+  <div class="lobby-header">
+    <h1>🎮 歡樂遊戲大廳</h1>
+    <p>選一個遊戲開始玩吧！</p>
+  </div>
+  <div class="player-bar">
+    <label>👤</label>
+    <input id="player-name-inp" placeholder="輸入你的名字" maxlength="12">
+    <div class="total-score">🏆 <span id="total-score-display">0</span> 分</div>
+  </div>
+  <div class="game-grid" id="game-grid"></div>
+  <div class="lobby-footer">
+    <button class="btn" onclick="showLB('all')">🏆 總排行榜</button>
+    <button class="btn" onclick="showProfile()">📊 我的成績</button>
+    <button class="btn" onclick="clearScores()">🗑️ 清除記錄</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="screen" id="screen-lb">
+  <div class="lb-header">
+    <h2 id="lb-title">🏆 排行榜</h2>
+    <button class="btn" onclick="showScreen('screen-lobby')">← 返回</button>
+  </div>
+  <div class="tab-row" id="lb-tabs"></div>
+  <div class="lb-list" id="lb-list"></div>
+  <div class="lobby-footer">
+    <button class="btn" onclick="showProfile()">📊 我的成績</button>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="screen-profile">
+  <div class="lb-header">
+    <h2>📊 我的成績</h2>
+    <button class="btn" onclick="showScreen('screen-lobby')">← 返回</button>
+  </div>
+  <div class="profile-box">
+    <h3>總覽</h3>
+    <div class="profile-stats" id="profile-stats"></div>
+  </div>
+  <div class="profile-box">
+    <h3>各遊戲最佳成績</h3>
+    <div class="game-scores" id="game-scores"></div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="screen-game">
+  <div class="game-topbar">
+    <button class="btn" onclick="exitGame()">← 大廳</button>
+    <h2 id="game-topbar-title"></h2>
+    <button class="btn" onclick="showLB(curGameId)">🏆 排行</button>
+  </div>
+  <iframe id="game-frame" scrolling="yes"></iframe>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card">
+    <h2 id="res-emoji-ol">🎉</h2>
+    <div id="res-game-ol" style="font-size:14px;color:#7788aa;margin-bottom:.3rem"></div>
+    <div class="score-big" id="res-score-ol"></div>
+    <p id="res-detail-ol"></p>
+    <input class="inp" id="res-name-ol" placeholder="你的名字" maxlength="12">
+    <button class="big-btn" id="res-save-btn">💾 儲存成績</button>
+    <button class="big-btn secondary" onclick="closeResult()">不儲存</button>
+  </div>
+</div>
+
+<script>
+// ===== GAME DEFINITIONS =====
+const GAMES=[
+  {id:'rainbow',name:'彩虹連連看',icon:'🌈',desc:'把相同動物連起來，填滿所有格子',scoreLabel:'完成時間',scoreUnit:'秒',lowerBetter:true,badge:'AI關卡'},
+  {id:'fishing',name:'釣魚翻牌',icon:'🐟',desc:'翻開兩張一樣的魚，全部釣走過關',scoreLabel:'翻牌次數',scoreUnit:'次',lowerBetter:true,badge:'記憶力'},
+  {id:'maze',name:'逃出迷宮',icon:'🌀',desc:'找到出口逃出去，挑戰最短時間',scoreLabel:'完成時間',scoreUnit:'秒',lowerBetter:true,badge:'隨機生成'},
+  {id:'witch',name:'女巫毒藥',icon:'🧙‍♀️',desc:'猜出對方藏的毒藥，先猜中就贏',scoreLabel:'勝場數',scoreUnit:'勝',lowerBetter:false,badge:'雙人對戰'},
+  {id:'river',name:'過河難題',icon:'🚣',desc:'怎麼把所有人安全渡河？',scoreLabel:'完成步數',scoreUnit:'步',lowerBetter:true,badge:'邏輯推理'},
+  {id:'quiz',name:'機智問答',icon:'🧠',desc:'100題挑戰，三種求救方式',scoreLabel:'得分',scoreUnit:'分',lowerBetter:false,badge:'AI出題'},
+  {id:'cell',name:'細胞餵食',icon:'🧬',desc:'選一種細胞，餵養到最終型態',scoreLabel:'進化分數',scoreUnit:'分',lowerBetter:false,badge:'化學演化'},
+];
+
+// Game URLs — inline HTML blobs, loaded from sibling artifacts
+// Since we can't cross-load artifacts, we embed minimal launchers that open the real game
+// For demo: show "coming soon" iframe with the game name
+const GAME_HTML={
+  rainbow:`<html><body style="background:#060612;color:#eee;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:1rem"><div style="font-size:48px">🌈</div><h2>彩虹連連看</h2><p style="color:#7788aa;font-size:14px">請在各遊戲頁面遊玩，完成後回到大廳登錄成績</p><button onclick="window.parent.postMessage({type:'score',game:'rainbow',score:120,detail:'第3關，2分鐘'},'*')" style="padding:8px 20px;border-radius:8px;border:0.5px solid #555;background:transparent;color:#eee;cursor:pointer;font-size:14px">模擬過關（示範）</button></body></html>`,
+};
+
+// ===== STORAGE =====
+const LS_KEY='game_lobby_v1';
+function loadData(){
+  try{return JSON.parse(localStorage.getItem(LS_KEY))||{scores:{},playerName:''};}
+  catch{return{scores:{},playerName:''};}
+}
+function saveData(d){localStorage.setItem(LS_KEY,JSON.stringify(d));}
+
+let data=loadData();
+let curGameId=null, pendingResult=null;
+
+// ===== INIT =====
+document.getElementById('player-name-inp').value=data.playerName||'';
+document.getElementById('player-name-inp').addEventListener('input',function(){
+  data.playerName=this.value.trim();
+  saveData(data);
+  updateTotalScore();
+});
+
+function updateTotalScore(){
+  const name=data.playerName;
+  if(!name){document.getElementById('total-score-display').textContent=0;return;}
+  let total=0;
+  GAMES.forEach(g=>{
+    const best=getBest(g.id,name);
+    if(best!==null)total+=g.lowerBetter?Math.max(0,1000-best*10):best;
+  });
+  document.getElementById('total-score-display').textContent=Math.round(total);
+}
+
+function getBest(gameId,playerName){
+  const entries=(data.scores[gameId]||[]).filter(e=>e.name===playerName);
+  if(!entries.length)return null;
+  const g=GAMES.find(x=>x.id===gameId);
+  if(g.lowerBetter)return Math.min(...entries.map(e=>e.score));
+  return Math.max(...entries.map(e=>e.score));
+}
+
+// ===== BUILD LOBBY =====
+function buildLobby(){
+  const grid=document.getElementById('game-grid');
+  grid.innerHTML='';
+  GAMES.forEach(g=>{
+    const best=getBest(g.id,data.playerName);
+    const bestStr=best!==null?(g.lowerBetter?'最佳：'+best+g.scoreUnit:'最高：'+best+g.scoreUnit):'尚未遊玩';
+    const div=document.createElement('div');
+    div.className='game-card';
+    div.innerHTML=`<div class="gc-badge">${g.badge}</div>
+      <div class="gc-icon">${g.icon}</div>
+      <div class="gc-name">${g.name}</div>
+      <div class="gc-desc">${g.desc}</div>
+      <div class="gc-best">${best!==null?'⭐ ':''} ${bestStr}</div>`;
+    div.addEventListener('click',()=>openGame(g));
+    grid.appendChild(div);
+  });
+  updateTotalScore();
+}
+
+// ===== OPEN GAME =====
+function openGame(g){
+  curGameId=g.id;
+  document.getElementById('game-topbar-title').textContent=g.icon+' '+g.name;
+  showScreen('screen-game');
+  // Load inline demo — in real deployment, link to actual game URLs
+  const frame=document.getElementById('game-frame');
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    body{background:#060612;color:#eee;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:1rem;padding:2rem;text-align:center}
+    .icon{font-size:56px;margin-bottom:.5rem}
+    h2{font-size:20px}
+    p{font-size:13px;color:#7788aa;line-height:1.7;max-width:300px}
+    .score-inp{padding:8px 12px;border-radius:8px;border:0.5px solid #3a3a5a;background:#0a0a1a;color:#eee;font-size:14px;width:160px;text-align:center;margin:.5rem 0}
+    .submit-btn{padding:9px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:14px;cursor:pointer}
+    .submit-btn:active{transform:scale(0.97)}
+  </style></head><body>
+    <div class="icon">${g.icon}</div>
+    <h2>${g.name}</h2>
+    <p>在這個示範版大廳中，你可以手動輸入你在各遊戲中取得的成績，系統會自動記錄到排行榜。<br><br>實際部署時，各遊戲會直接把成績傳回大廳！</p>
+    <input class="score-inp" id="sc" type="number" placeholder="${g.scoreLabel}（${g.scoreUnit}）" min="0">
+    <input class="score-inp" id="det" type="text" placeholder="備註（例：第5關）" style="width:200px">
+    <button class="submit-btn" onclick="submit()">✅ 提交成績</button>
+    <script>
+    function submit(){
+      const sc=parseFloat(document.getElementById('sc').value);
+      const det=document.getElementById('det').value;
+      if(isNaN(sc)||sc<0)return;
+      window.parent.postMessage({type:'score',game:'${g.id}',score:sc,detail:det,label:'${g.scoreLabel}',unit:'${g.scoreUnit}',lowerBetter:${g.lowerBetter}},'*');
+    }
+    <\/script>
+  </body></html>`;
+  frame.srcdoc=html;
+}
+
+// Listen for score messages from iframe
+window.addEventListener('message',function(e){
+  if(e.data&&e.data.type==='score'){
+    pendingResult=e.data;
+    showResultOverlay(e.data);
+  }
+});
+
+function showResultOverlay(d){
+  const g=GAMES.find(x=>x.id===d.game)||{name:d.game,icon:'🎮',lowerBetter:false,scoreUnit:''};
+  document.getElementById('res-emoji-ol').textContent=d.score>0?'🎉':'😢';
+  document.getElementById('res-game-ol').textContent=g.icon+' '+g.name;
+  document.getElementById('res-score-ol').textContent=d.score+' '+(d.unit||g.scoreUnit||'');
+  document.getElementById('res-detail-ol').textContent=d.detail||'';
+  document.getElementById('res-name-ol').value=data.playerName||'';
+  document.getElementById('result-overlay').style.display='flex';
+}
+
+document.getElementById('res-save-btn').addEventListener('click',function(){
+  if(!pendingResult)return;
+  const name=document.getElementById('res-name-ol').value.trim()||'匿名';
+  data.playerName=name;
+  document.getElementById('player-name-inp').value=name;
+  if(!data.scores[pendingResult.game])data.scores[pendingResult.game]=[];
+  data.scores[pendingResult.game].push({
+    name,score:pendingResult.score,detail:pendingResult.detail||'',
+    time:new Date().toLocaleDateString('zh-TW')
+  });
+  // keep top 50 per game
+  const g=GAMES.find(x=>x.id===pendingResult.game);
+  if(g){
+    data.scores[pendingResult.game].sort((a,b)=>g.lowerBetter?a.score-b.score:b.score-a.score);
+    data.scores[pendingResult.game]=data.scores[pendingResult.game].slice(0,50);
+  }
+  saveData(data);
+  pendingResult=null;
+  document.getElementById('result-overlay').style.display='none';
+  buildLobby();
+  updateTotalScore();
+  alert('✅ 成績已儲存！');
+});
+
+function closeResult(){
+  pendingResult=null;
+  document.getElementById('result-overlay').style.display='none';
+}
+
+// ===== LEADERBOARD =====
+let lbGame='all';
+function showLB(gameId){
+  lbGame=gameId||'all';
+  showScreen('screen-lb');
+  buildLBTabs();
+  renderLB();
+}
+
+function buildLBTabs(){
+  const row=document.getElementById('lb-tabs');
+  row.innerHTML='';
+  const tabs=[{id:'all',name:'🏆 總排行'},...GAMES.map(g=>({id:g.id,name:g.icon+' '+g.name}))];
+  tabs.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='tab'+(t.id===lbGame?' active':'');
+    b.textContent=t.name;
+    b.addEventListener('click',()=>{lbGame=t.id;buildLBTabs();renderLB();});
+    row.appendChild(b);
+  });
+}
+
+function renderLB(){
+  const list=document.getElementById('lb-list');
+  if(lbGame==='all'){
+    document.getElementById('lb-title').textContent='🏆 總排行榜';
+    // aggregate scores per player
+    const totals={};
+    GAMES.forEach(g=>{
+      const entries=data.scores[g.id]||[];
+      const byPlayer={};
+      entries.forEach(e=>{
+        if(!byPlayer[e.name]||(!g.lowerBetter&&e.score>byPlayer[e.name])||(g.lowerBetter&&e.score<byPlayer[e.name]))
+          byPlayer[e.name]=e.score;
+      });
+      Object.entries(byPlayer).forEach(([name,score])=>{
+        const pts=g.lowerBetter?Math.max(0,1000-score*10):score;
+        totals[name]=(totals[name]||0)+pts;
+      });
+    });
+    const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+    if(!sorted.length){list.innerHTML='<div class="lb-empty">還沒有成績記錄<br>去玩幾款遊戲吧！</div>';return;}
+    list.innerHTML=sorted.slice(0,20).map(([name,pts],i)=>`
+      <div class="lb-row">
+        <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
+        <div class="lb-name">${name}</div>
+        <div class="lb-score">${Math.round(pts)}<span class="lb-meta">分</span></div>
+      </div>`).join('');
+  } else {
+    const g=GAMES.find(x=>x.id===lbGame);
+    if(!g)return;
+    document.getElementById('lb-title').textContent=g.icon+' '+g.name+' 排行榜';
+    const entries=data.scores[g.id]||[];
+    // best per player
+    const byPlayer={};
+    entries.forEach(e=>{
+      if(!byPlayer[e.name]||(!g.lowerBetter&&e.score>byPlayer[e.name].score)||(g.lowerBetter&&e.score<byPlayer[e.name].score))
+        byPlayer[e.name]=e;
+    });
+    const sorted=Object.values(byPlayer).sort((a,b)=>g.lowerBetter?a.score-b.score:b.score-a.score);
+    if(!sorted.length){list.innerHTML='<div class="lb-empty">這個遊戲還沒有成績<br>快去挑戰！</div>';return;}
+    list.innerHTML=sorted.slice(0,20).map((e,i)=>`
+      <div class="lb-row">
+        <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
+        <div class="lb-name">${e.name}</div>
+        <div class="lb-score">${e.score}<span class="lb-meta">${g.scoreUnit}</span></div>
+        <div class="lb-meta">${e.detail||''} ${e.time||''}</div>
+      </div>`).join('');
+  }
+}
+
+// ===== PROFILE =====
+function showProfile(){
+  showScreen('screen-profile');
+  const name=data.playerName||'（未設定名字）';
+  let totalPts=0,gamesPlayed=0,bestStreak=0;
+  GAMES.forEach(g=>{
+    const best=getBest(g.id,data.playerName);
+    if(best!==null){gamesPlayed++;totalPts+=g.lowerBetter?Math.max(0,1000-best*10):best;}
+  });
+  document.getElementById('profile-stats').innerHTML=`
+    <div class="ps-box"><div class="ps-val">${name}</div><div class="ps-lbl">玩家</div></div>
+    <div class="ps-box"><div class="ps-val">${gamesPlayed}</div><div class="ps-lbl">遊玩款數</div></div>
+    <div class="ps-box"><div class="ps-val">${Math.round(totalPts)}</div><div class="ps-lbl">總積分</div></div>`;
+  const gs=document.getElementById('game-scores');
+  gs.innerHTML=GAMES.map(g=>{
+    const best=getBest(g.id,data.playerName);
+    return `<div class="gs-row">
+      <span class="gs-name">${g.icon} ${g.name}</span>
+      <span class="gs-val">${best!==null?best+g.scoreUnit:'尚未遊玩'}</span>
+    </div>`;
+  }).join('');
+}
+
+// ===== UTILS =====
+function exitGame(){
+  document.getElementById('game-frame').srcdoc='';
+  showScreen('screen-lobby');
+  buildLobby();
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function clearScores(){
+  if(!confirm('確定要清除所有成績記錄嗎？'))return;
+  data.scores={};
+  saveData(data);
+  buildLobby();
+  alert('✅ 成績已清除');
+}
+
+// ===== START =====
+buildLobby();
+</script>
+</body></html>

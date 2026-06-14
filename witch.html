@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#0d0d1a;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
+.app{width:100%;max-width:500px}
+h1{font-size:22px;font-weight:500;text-align:center;margin-bottom:1rem}
+.screen{display:none}.screen.active{display:block}
+.box{background:#1a1a2e;border:0.5px solid #333;border-radius:14px;padding:1.2rem;margin-bottom:.75rem}
+.box h2{font-size:14px;font-weight:500;color:#aaa;margin-bottom:.6rem}
+.name-row{display:flex;gap:10px}
+.inp{flex:1;padding:8px 12px;border-radius:8px;border:0.5px solid #444;background:#111;color:#eee;font-size:14px;width:100%}
+.row{display:flex;align-items:center;gap:10px;margin-top:.5rem}
+.row label{font-size:13px;color:#aaa;white-space:nowrap}
+.num-inp{width:70px;padding:6px 10px;border-radius:8px;border:0.5px solid #444;background:#111;color:#eee;font-size:14px;text-align:center}
+.hint-text{font-size:12px;color:#666;margin-top:4px}
+.start-btn{width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#6a3de8,#c44dff);color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-top:.25rem}
+.start-btn:active{transform:scale(0.98)}
+.btn{font-size:13px;padding:6px 16px;border-radius:8px;border:0.5px solid #555;background:transparent;color:#eee;cursor:pointer}
+.btn:hover{background:#222}.btn:active{transform:scale(0.97)}
+.turn-banner{text-align:center;padding:.5rem;border-radius:10px;background:#16213e;border:0.5px solid #2a4080;font-size:13px;color:#7ab;margin-bottom:.6rem}
+.action-msg{text-align:center;font-size:14px;min-height:26px;margin-bottom:.5rem;color:#ddd}
+.player-zone{background:#1a1a2e;border:0.5px solid #333;border-radius:14px;padding:.9rem;margin-bottom:.6rem}
+.p-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.p-name-lbl{font-size:15px;font-weight:500}
+.p-avatar{font-size:24px;transition:transform .3s}
+.p-avatar.dead{animation:fallover .6s forwards}
+@keyframes fallover{0%{transform:rotate(0)}60%{transform:rotate(90deg) translateY(4px)}100%{transform:rotate(90deg) translateY(4px)}}
+.phase-lbl{font-size:11px;padding:2px 8px;border-radius:10px;background:#2a1a3e;color:#c44dff;border:0.5px solid #6a3de8;min-width:40px;text-align:center}
+.bottle-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-height:240px;overflow-y:auto;padding:2px}
+.btl{border-radius:10px;border:1.5px solid #333;background:#111;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:all .15s;user-select:none}
+.btl:hover:not(.disabled):not(.revealed){border-color:#888;background:#1a1a1a;transform:translateY(-2px)}
+.btl.sel-poison{border-color:#c44dff;box-shadow:0 0 10px #c44dff66;background:#1e0a2e}
+.btl.clickable-target:hover:not(.disabled){border-color:#ffaa00;background:#1e1800;transform:translateY(-2px)}
+.btl.disabled{cursor:default;opacity:.4;transform:none!important}
+.btl.revealed.safe{border-color:#4caf50;background:#0a1e0a;animation:pop .3s ease}
+.btl.revealed.poison{border-color:#ff4444;background:#1e0a0a;animation:shake .4s ease}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.btl-num{font-size:10px;color:#666;line-height:1}
+.btl-icon{line-height:1}
+.btl.sel-poison .btl-num,.btl.sel-poison .btl-icon{color:#c44dff}
+.controls{display:flex;gap:8px;justify-content:center;margin-top:.5rem;flex-wrap:wrap}
+.result-box{text-align:center;padding:1.5rem;background:#1a1a2e;border-radius:14px;border:0.5px solid #333}
+.result-box h2{font-size:26px;margin-bottom:.4rem}
+.result-box p{color:#aaa;font-size:14px;margin-bottom:.8rem}
+.score-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid #2a2a3e;font-size:14px}
+.score-row:last-child{border:none}
+.confetti-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}
+</style></head><body>
+<div class="app">
+<h1>🧙‍♀️ 女巫毒藥</h1>
+
+<!-- SETUP -->
+<div class="screen active" id="screen-setup">
+  <div class="box">
+    <h2>玩家名稱</h2>
+    <div class="name-row">
+      <input class="inp" id="n1" placeholder="玩家 1" maxlength="12">
+      <input class="inp" id="n2" placeholder="玩家 2" maxlength="12">
+    </div>
+  </div>
+  <div class="box">
+    <h2>遊戲設定</h2>
+    <div class="row">
+      <label>每人瓶數</label>
+      <input class="num-inp" id="bottle-count" type="number" min="2" max="100" value="5">
+      <span style="font-size:12px;color:#666">（2～100）</span>
+    </div>
+    <div class="row">
+      <label>毒藥瓶數</label>
+      <input class="num-inp" id="poison-count" type="number" min="1" max="10" value="1">
+      <span style="font-size:12px;color:#666">（預設 1）</span>
+    </div>
+    <div class="hint-text">⚠️ 毒藥數不超過瓶數的一半</div>
+  </div>
+  <div class="box">
+    <h2>📜 玩法</h2>
+    <p style="font-size:13px;color:#aaa;line-height:1.8">
+      1. 雙方各自在<b>自己的瓶子</b>裡秘密藏入毒藥<br>
+      2. 輪流從<b>對方的瓶子</b>中選一瓶，讓對方喝下<br>
+      3. 對方喝到毒藥 → 對方倒下，你獲勝！<br>
+      4. 安全藥水喝完還沒中 → 平局
+    </p>
+  </div>
+  <button class="start-btn" id="start-btn">🔮 開始遊戲</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="screen-game">
+  <div class="turn-banner" id="turn-banner"></div>
+
+  <!-- P2 zone at top -->
+  <div class="player-zone" id="zone-p2">
+    <div class="p-header">
+      <span class="p-name-lbl" id="pname2">玩家 2</span>
+      <span class="p-avatar" id="pavatar2">🧙‍♀️</span>
+      <span class="phase-lbl" id="pphase2"></span>
+    </div>
+    <div class="bottle-grid" id="btls2"></div>
+  </div>
+
+  <div class="action-msg" id="action-msg"></div>
+
+  <!-- P1 zone at bottom -->
+  <div class="player-zone" id="zone-p1">
+    <div class="p-header">
+      <span class="p-name-lbl" id="pname1">玩家 1</span>
+      <span class="p-avatar" id="pavatar1">🧙‍♀️</span>
+      <span class="phase-lbl" id="pphase1"></span>
+    </div>
+    <div class="bottle-grid" id="btls1"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="back-btn">↩ 重設</button>
+    <button class="btn" id="next-btn" style="display:none">繼續 ➜</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <div class="result-box">
+    <h2 id="res-title"></h2>
+    <p id="res-sub"></p>
+    <div id="res-scores"></div>
+    <br>
+    <button class="start-btn" id="again-btn">再玩一次 🔮</button>
+  </div>
+</div>
+
+<script>
+const ICONS=['🍵','🧪','💜','🫧','⚗️','🟣','🌿','🔵','🟤','🫙'];
+function icon(i){return ICONS[i%ICONS.length];}
+function btlSize(n){
+  if(n<=6) return{w:64,h:78,fs:26};
+  if(n<=12) return{w:54,h:66,fs:22};
+  if(n<=24) return{w:44,h:54,fs:18};
+  if(n<=50) return{w:36,h:44,fs:14};
+  return{w:28,h:36,fs:11};
+}
+
+let p1name,p2name,numBottles,numPoisons,scores={};
+// p1poisons/p2poisons: Set of bottle indices that are poison for that player
+// p1rem/p2rem: Set of remaining (not yet drunk) bottle indices for that player
+let p1poisons,p2poisons,p1rem,p2rem;
+// phase values:
+// 'p1-hide'   → p1 picks their own poison bottles (hides in own zone)
+// 'p1-hidden' → confirm screen before p2 picks
+// 'p2-hide'   → p2 picks their own poison bottles
+// 'p2-hidden' → confirm screen before battle
+// 'p1-attack' → p1 picks from P2's bottles to make p2 drink
+// 'p2-attack' → p2 picks from P1's bottles to make p1 drink
+let phase, round;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.getElementById('start-btn').addEventListener('click',function(){
+  p1name=document.getElementById('n1').value.trim()||'玩家 1';
+  p2name=document.getElementById('n2').value.trim()||'玩家 2';
+  numBottles=Math.min(100,Math.max(2,parseInt(document.getElementById('bottle-count').value)||5));
+  numPoisons=Math.min(Math.floor(numBottles/2),Math.max(1,parseInt(document.getElementById('poison-count').value)||1));
+  if(!scores[p1name])scores[p1name]=0;
+  if(!scores[p2name])scores[p2name]=0;
+  initRound();
+});
+document.getElementById('again-btn').addEventListener('click',initRound);
+document.getElementById('back-btn').addEventListener('click',()=>showScreen('screen-setup'));
+
+function initRound(){
+  p1poisons=new Set(); p2poisons=new Set();
+  p1rem=new Set(Array.from({length:numBottles},(_,i)=>i));
+  p2rem=new Set(Array.from({length:numBottles},(_,i)=>i));
+  phase='p1-hide'; round=1;
+  showScreen('screen-game');
+  document.getElementById('pname1').textContent=p1name;
+  document.getElementById('pname2').textContent=p2name;
+  document.getElementById('pavatar1').textContent='🧙‍♀️';
+  document.getElementById('pavatar2').textContent='🧙‍♀️';
+  document.getElementById('pavatar1').className='p-avatar';
+  document.getElementById('pavatar2').className='p-avatar';
+  document.getElementById('next-btn').style.display='none';
+  buildBottles(1); buildBottles(2);
+  updateUI();
+}
+
+function buildBottles(p){
+  const el=document.getElementById('btls'+p);
+  el.innerHTML='';
+  const sz=btlSize(numBottles);
+  for(let i=0;i<numBottles;i++){
+    const b=document.createElement('div');
+    b.className='btl disabled';
+    b.id='b'+p+'-'+i;
+    b.style.cssText='width:'+sz.w+'px;height:'+sz.h+'px';
+    b.innerHTML='<div class="btl-icon" style="font-size:'+sz.fs+'px">'+icon(i)+'</div><div class="btl-num">#'+(i+1)+'</div>';
+    const idx=i;
+    b.addEventListener('click',function(){onBottleClick(p,idx);});
+    el.appendChild(b);
+  }
+}
+
+function setZoneClickable(p, enabled, availableSet, isTarget){
+  for(let i=0;i<numBottles;i++){
+    const b=document.getElementById('b'+p+'-'+i);
+    if(!b)continue;
+    const avail=enabled && availableSet.has(i);
+    b.classList.toggle('disabled',!avail);
+    b.classList.toggle('clickable-target', avail && isTarget);
+  }
+}
+
+function showNextBtn(label, cb){
+  const nb=document.getElementById('next-btn');
+  nb.textContent=label;
+  nb.style.display='inline-block';
+  nb.onclick=function(){nb.style.display='none'; cb();};
+}
+
+function updateUI(){
+  // reset phase labels
+  document.getElementById('pphase1').textContent='';
+  document.getElementById('pphase2').textContent='';
+  // disable all by default
+  setZoneClickable(1,false,new Set(),false);
+  setZoneClickable(2,false,new Set(),false);
+
+  const nb=document.getElementById('next-btn');
+  nb.style.display='none';
+
+  if(phase==='p1-hide'){
+    document.getElementById('turn-banner').textContent='🔒 '+p1name+'：請秘密藏入 '+numPoisons+' 瓶毒藥';
+    document.getElementById('action-msg').textContent=p1name+'，點選你自己的瓶子藏毒藥（已選 0/'+numPoisons+'）';
+    document.getElementById('pphase1').textContent='藏毒藥';
+    // p1 clicks own bottles
+    setZoneClickable(1,true,p1rem,false);
+
+  } else if(phase==='p1-hidden'){
+    document.getElementById('action-msg').textContent='記住了嗎？按繼續交給 '+p2name;
+    // clear p1 poison highlights before handing over
+    showNextBtn('記住了 ➜',function(){
+      p1poisons.forEach(i=>{
+        const b=document.getElementById('b1-'+i);
+        if(b)b.classList.remove('sel-poison');
+      });
+      phase='p2-hide'; updateUI();
+    });
+
+  } else if(phase==='p2-hide'){
+    document.getElementById('turn-banner').textContent='🔒 '+p2name+'：請秘密藏入 '+numPoisons+' 瓶毒藥';
+    document.getElementById('action-msg').textContent=p2name+'，點選你自己的瓶子藏毒藥（已選 0/'+numPoisons+'）';
+    document.getElementById('pphase2').textContent='藏毒藥';
+    setZoneClickable(2,true,p2rem,false);
+
+  } else if(phase==='p2-hidden'){
+    document.getElementById('action-msg').textContent='雙方都藏好了！準備開始對戰！';
+    showNextBtn('開始對戰 ⚔️',function(){
+      p2poisons.forEach(i=>{
+        const b=document.getElementById('b2-'+i);
+        if(b)b.classList.remove('sel-poison');
+      });
+      phase='p1-attack'; round=1; updateUI();
+    });
+
+  } else if(phase==='p1-attack'){
+    // p1 attacks: picks from P2's bottles → p2 drinks
+    document.getElementById('turn-banner').textContent='回合 '+round+' — '+p1name+' 攻擊！';
+    document.getElementById('action-msg').textContent=p1name+'，從 '+p2name+' 的瓶子中選一瓶讓他喝！👆';
+    document.getElementById('pphase1').textContent='攻擊';
+    document.getElementById('pphase2').textContent='等待';
+    setZoneClickable(2,true,p2rem,true); // p2's bottles are the target
+
+  } else if(phase==='p2-attack'){
+    // p2 attacks: picks from P1's bottles → p1 drinks
+    document.getElementById('turn-banner').textContent='回合 '+round+' — '+p2name+' 攻擊！';
+    document.getElementById('action-msg').textContent=p2name+'，從 '+p1name+' 的瓶子中選一瓶讓他喝！👇';
+    document.getElementById('pphase2').textContent='攻擊';
+    document.getElementById('pphase1').textContent='等待';
+    setZoneClickable(1,true,p1rem,true); // p1's bottles are the target
+  }
+}
+
+function onBottleClick(p,i){
+  if(phase==='p1-hide' && p===1){
+    // p1 hiding poison in own bottle i
+    const b=document.getElementById('b1-'+i);
+    if(p1poisons.has(i)){
+      p1poisons.delete(i); b.classList.remove('sel-poison');
+    } else if(p1poisons.size<numPoisons){
+      p1poisons.add(i); b.classList.add('sel-poison');
+    }
+    document.getElementById('action-msg').textContent=p1name+'，點選你自己的瓶子藏毒藥（已選 '+p1poisons.size+'/'+numPoisons+'）';
+    if(p1poisons.size===numPoisons){ phase='p1-hidden'; updateUI(); }
+
+  } else if(phase==='p2-hide' && p===2){
+    // p2 hiding poison in own bottle i
+    const b=document.getElementById('b2-'+i);
+    if(p2poisons.has(i)){
+      p2poisons.delete(i); b.classList.remove('sel-poison');
+    } else if(p2poisons.size<numPoisons){
+      p2poisons.add(i); b.classList.add('sel-poison');
+    }
+    document.getElementById('action-msg').textContent=p2name+'，點選你自己的瓶子藏毒藥（已選 '+p2poisons.size+'/'+numPoisons+'）';
+    if(p2poisons.size===numPoisons){ phase='p2-hidden'; updateUI(); }
+
+  } else if(phase==='p1-attack' && p===2){
+    // p1 chose bottle i from p2 → p2 drinks bottle i
+    // is bottle i a poison for p2?
+    const isPoison=p2poisons.has(i);
+    resolveDrink(2, i, isPoison, p1name, p2name);
+
+  } else if(phase==='p2-attack' && p===1){
+    // p2 chose bottle i from p1 → p1 drinks bottle i
+    const isPoison=p1poisons.has(i);
+    resolveDrink(1, i, isPoison, p2name, p1name);
+  }
+}
+
+// drinker: 1 or 2 (who drinks)
+// bottleIdx: which bottle
+// isPoison: was it poison?
+// attackerName / drinkerName for display
+function resolveDrink(drinker, bottleIdx, isPoison, attackerName, drinkerName){
+  const remSet=drinker===1?p1rem:p2rem;
+  remSet.delete(bottleIdx);
+  setZoneClickable(1,false,new Set(),false);
+  setZoneClickable(2,false,new Set(),false);
+
+  const b=document.getElementById('b'+drinker+'-'+bottleIdx);
+  b.classList.remove('disabled','clickable-target');
+  b.classList.add('revealed', isPoison?'poison':'safe');
+
+  if(isPoison){
+    document.getElementById('action-msg').textContent='💀 '+drinkerName+' 喝到毒藥了！';
+    setTimeout(function(){
+      const av=document.getElementById('pavatar'+drinker);
+      av.textContent='💀'; av.classList.add('dead');
+    },350);
+    setTimeout(function(){
+      scores[attackerName]=(scores[attackerName]||0)+1;
+      showResult(attackerName+' 獲勝！🏆','成功找出毒藥！');
+    },1600);
+  } else {
+    document.getElementById('action-msg').textContent='😌 '+drinkerName+' 喝了安全藥水，沒事！';
+    // check if all bottles exhausted
+    if(p1rem.size===0 && p2rem.size===0){
+      setTimeout(function(){showResult('平局 🤝','雙方都沒找到毒藥');},900);
+      return;
+    }
+    // switch attacker
+    setTimeout(function(){
+      round++;
+      phase=(drinker===2)?'p2-attack':'p1-attack';
+      showNextBtn('繼續 ➜',function(){updateUI();});
+    },900);
+  }
+}
+
+function showResult(title,sub){
+  showScreen('screen-result');
+  document.getElementById('res-title').textContent=title;
+  document.getElementById('res-sub').textContent=sub;
+  let html='<div style="margin-top:.5rem">';
+  Object.entries(scores).sort((a,b)=>b[1]-a[1]).forEach(function([name,sc]){
+    html+='<div class="score-row"><span>'+name+'</span><span>'+sc+' 勝</span></div>';
+  });
+  html+='</div>';
+  document.getElementById('res-scores').innerHTML=html;
+  if(title.includes('獲勝'))launchConfetti();
+}
+
+function launchConfetti(){
+  const cv=document.createElement('canvas');
+  cv.className='confetti-canvas';
+  document.body.appendChild(cv);
+  const cx=cv.getContext('2d');
+  cv.width=window.innerWidth; cv.height=window.innerHeight;
+  const ps=Array.from({length:100},function(){
+    return{x:Math.random()*cv.width,y:-20,r:Math.random()*6+3,
+      color:'hsl('+Math.floor(Math.random()*360)+',90%,60%)',
+      vx:(Math.random()-.5)*4,vy:Math.random()*4+2,rot:Math.random()*360};
+  });
+  let f=0;
+  function draw(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(function(p){
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot*Math.PI/180);
+      cx.fillStyle=p.color;cx.fillRect(-p.r/2,-p.r/2,p.r,p.r);
+      cx.restore();
+      p.x+=p.vx;p.y+=p.vy;p.rot+=3;
+    });
+    f++;
+    if(f<140)requestAnimationFrame(draw);
+    else if(cv.parentNode)document.body.removeChild(cv);
+  }
+  draw();
+}
+</script>
+</body></html>

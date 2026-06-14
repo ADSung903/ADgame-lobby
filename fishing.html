@@ -1,0 +1,159 @@
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.app{padding:1rem 0;max-width:520px;margin:0 auto;font-family:var(--font-sans)}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.topbar h1{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.meta{display:flex;gap:8px;align-items:center}
+.pill{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.btn{font-size:13px;padding:5px 14px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer}
+.btn:hover{background:var(--color-background-secondary)}
+.btn:active{transform:scale(0.97)}
+.grid{display:grid;gap:10px;justify-content:center;margin-bottom:1rem}
+.card-wrap{perspective:600px}
+.card{width:80px;height:80px;position:relative;transform-style:preserve-3d;transition:transform .4s ease;cursor:pointer;border-radius:14px}
+.card.flipped{transform:rotateY(180deg)}
+.card.matched{transform:rotateY(180deg);cursor:default}
+.face{position:absolute;inset:0;border-radius:14px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.back{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);font-size:28px}
+.front{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);font-size:36px;transform:rotateY(180deg)}
+.card.matched .front{background:var(--color-background-success);border-color:var(--color-border-tertiary)}
+.msg{text-align:center;font-size:14px;color:var(--color-text-secondary);min-height:22px;margin-bottom:8px}
+.win-banner{display:none;text-align:center;padding:.75rem;background:var(--color-background-success);border-radius:12px;color:var(--color-text-success);font-size:17px;font-weight:500;margin-bottom:8px}
+.controls{display:flex;gap:8px;justify-content:center}
+.stats{display:flex;gap:12px;justify-content:center;margin-bottom:.75rem}
+.stat{font-size:13px;color:var(--color-text-secondary)}
+.stat span{font-weight:500;color:var(--color-text-primary)}
+</style>
+
+<div class="app">
+  <h2 class="sr-only">釣魚翻牌記憶遊戲</h2>
+  <div class="topbar">
+    <h1>🐟 釣魚翻牌記憶</h1>
+    <div class="meta"><span class="pill" id="lvl-badge">第 1 關</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat">翻牌次數：<span id="moves">0</span></div>
+    <div class="stat">找到配對：<span id="found">0</span> / <span id="total">0</span></div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="msg" id="msg">翻開兩張一樣的魚，把它們釣走！</div>
+  <div class="win-banner" id="win-banner">🎉 全部釣走了！太厲害了！</div>
+  <div class="controls">
+    <button class="btn" id="retry-btn">重新開始</button>
+    <button class="btn" id="next-btn" style="display:none">下一關 ➜</button>
+  </div>
+</div>
+
+<script>
+const LEVELS=[
+  {pairs:4, cols:4},
+  {pairs:6, cols:4},
+  {pairs:8, cols:4},
+  {pairs:10,cols:5},
+  {pairs:12,cols:6},
+];
+const ALL_FISH=['🐟','🐠','🐡','🦈','🐬','🐳','🦑','🦐','🦞','🦀','🐙','🦭'];
+
+let levelIdx=0, flipped=[], matchedCount=0, moves=0, lock=false, totalPairs=0;
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function loadLevel(idx){
+  levelIdx=idx;
+  const lv=LEVELS[idx];
+  totalPairs=lv.pairs;
+  moves=0; matchedCount=0; flipped=[]; lock=false;
+
+  document.getElementById('lvl-badge').textContent=`第 ${idx+1} 關`;
+  document.getElementById('moves').textContent=0;
+  document.getElementById('found').textContent=0;
+  document.getElementById('total').textContent=totalPairs;
+  document.getElementById('win-banner').style.display='none';
+  document.getElementById('next-btn').style.display='none';
+  document.getElementById('msg').textContent='翻開兩張一樣的魚，把它們釣走！';
+
+  const fish=ALL_FISH.slice(0,lv.pairs);
+  const deck=shuffle([...fish,...fish]);
+
+  const grid=document.getElementById('grid');
+  grid.style.gridTemplateColumns=`repeat(${lv.cols},80px)`;
+  grid.innerHTML='';
+
+  deck.forEach((emoji,i)=>{
+    const wrap=document.createElement('div');
+    wrap.className='card-wrap';
+    const card=document.createElement('div');
+    card.className='card';
+    card.dataset.emoji=emoji;
+
+    const back=document.createElement('div');
+    back.className='face back';
+    back.textContent='🎣';
+    const front=document.createElement('div');
+    front.className='face front';
+    front.textContent=emoji;
+
+    card.appendChild(back);
+    card.appendChild(front);
+    wrap.appendChild(card);
+    grid.appendChild(wrap);
+
+    card.addEventListener('click',()=>onFlip(card));
+  });
+}
+
+function onFlip(card){
+  if(lock||card.classList.contains('flipped')||card.classList.contains('matched')) return;
+  if(flipped.length>=2) return;
+  card.classList.add('flipped');
+  flipped.push(card);
+  moves++;
+  document.getElementById('moves').textContent=moves;
+  if(flipped.length===2) checkMatch();
+}
+
+function checkMatch(){
+  lock=true;
+  const [a,b]=flipped;
+  if(a.dataset.emoji===b.dataset.emoji){
+    setTimeout(()=>{
+      a.classList.add('matched');
+      b.classList.add('matched');
+      matchedCount++;
+      document.getElementById('found').textContent=matchedCount;
+      flipped=[];
+      lock=false;
+      // ✅ 正確判定：配對數等於總對數才過關
+      if(matchedCount===totalPairs){
+        document.getElementById('win-banner').style.display='block';
+        document.getElementById('next-btn').style.display=levelIdx<LEVELS.length-1?'inline-block':'none';
+        document.getElementById('msg').textContent='';
+      }
+    },400);
+  } else {
+    setTimeout(()=>{
+      a.classList.remove('flipped');
+      b.classList.remove('flipped');
+      flipped=[];
+      lock=false;
+      document.getElementById('msg').textContent='再試一次！';
+      setTimeout(()=>{
+        if(!document.getElementById('win-banner').style.display||document.getElementById('win-banner').style.display==='none')
+          document.getElementById('msg').textContent='翻開兩張一樣的魚，把它們釣走！';
+      },800);
+    },900);
+  }
+}
+
+document.getElementById('retry-btn').onclick=()=>loadLevel(levelIdx);
+document.getElementById('next-btn').onclick=()=>loadLevel(levelIdx+1);
+
+loadLevel(0);
+</script>

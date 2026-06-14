@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#060612;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
+.app{width:100%;max-width:520px}
+h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
+.screen{display:none}.screen.active{display:block}
+.btn{font-size:13px;padding:6px 16px;border-radius:8px;border:0.5px solid #444;background:transparent;color:#eee;cursor:pointer}
+.btn:hover{background:#12122a}.btn:active{transform:scale(0.97)}
+.big-btn{width:100%;padding:11px;border-radius:12px;border:none;color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-top:.4rem}
+.big-btn:active{transform:scale(0.98)}
+
+/* SELECT */
+.cell-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem}
+.cell-card{background:#0d0d22;border:1.5px solid #222244;border-radius:14px;padding:1rem;cursor:pointer;transition:all .15s}
+.cell-card:hover{border-color:#5555cc;transform:translateY(-2px)}
+.cell-card.selected{border-color:#7c3aed;background:#1a0a3a;box-shadow:0 0 12px #7c3aed44}
+.cell-icon{font-size:36px;margin-bottom:.4rem}
+.cell-name{font-size:14px;font-weight:600;margin-bottom:.3rem}
+.cell-desc{font-size:11px;color:#8888aa;line-height:1.5}
+.cell-trait{font-size:11px;margin-top:.4rem;padding:2px 8px;border-radius:10px;display:inline-block}
+.mode-row{display:flex;gap:10px;margin-bottom:.75rem}
+.mode-btn{flex:1;padding:8px;border-radius:10px;border:1.5px solid #222244;background:#0d0d22;color:#aaa;cursor:pointer;font-size:13px;text-align:center}
+.mode-btn.active{border-color:#7c3aed;background:#1a0a3a;color:#fff}
+
+/* GAME */
+.g-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.cell-avatar{font-size:40px;text-align:center;margin-bottom:.2rem}
+.cell-stage{font-size:11px;text-align:center;color:#9a9ab0;margin-bottom:.5rem}
+
+/* params */
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:.75rem}
+.param-box{background:#0d0d22;border:0.5px solid #222244;border-radius:10px;padding:.5rem .6rem}
+.param-name{font-size:11px;color:#7788aa;margin-bottom:3px}
+.param-bar-wrap{height:6px;background:#1a1a2e;border-radius:3px;overflow:hidden;margin-bottom:2px}
+.param-bar{height:100%;border-radius:3px;transition:width .5s ease}
+.param-val{font-size:11px;color:#aaa;text-align:right}
+
+/* map */
+.map-box{background:#0d0d22;border:0.5px solid #222244;border-radius:14px;padding:.75rem;margin-bottom:.6rem}
+.map-box h3{font-size:13px;color:#7788aa;margin-bottom:.5rem}
+.food-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.food-item{font-size:28px;cursor:pointer;padding:6px;border-radius:10px;border:1.5px solid transparent;transition:all .15s;user-select:none}
+.food-item:hover{border-color:#5555cc;background:#12122a;transform:scale(1.1)}
+.food-item:active{transform:scale(0.95)}
+
+/* log */
+.log-box{background:#0d0d22;border:0.5px solid #222244;border-radius:12px;padding:.6rem .75rem;margin-bottom:.6rem;max-height:90px;overflow-y:auto}
+.log-entry{font-size:12px;color:#7788aa;line-height:1.8;border-bottom:0.5px solid #12122a;padding:1px 0}
+.log-entry:last-child{border:none}
+.log-entry.special{color:#c4b5fd}
+.log-entry.danger{color:#f87171}
+.log-entry.evolve{color:#4ade80;font-weight:600}
+
+/* evolution popup */
+.evo-popup{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:999;display:none}
+.evo-card{background:#0d0d22;border:2px solid #7c3aed;border-radius:20px;padding:2rem;text-align:center;max-width:320px;width:90%;animation:popIn .4s ease}
+@keyframes popIn{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.evo-card h2{font-size:20px;margin-bottom:.5rem;color:#a78bfa}
+.evo-card .evo-icon{font-size:56px;margin:.5rem 0}
+.evo-card p{font-size:14px;color:#9a9ab0;line-height:1.6;margin-bottom:1rem}
+
+/* final form */
+.final-popup{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:1000;display:none}
+.final-card{background:linear-gradient(135deg,#0d0d22,#1a0a3a);border:2px solid #f59e0b;border-radius:20px;padding:2rem;text-align:center;max-width:340px;width:90%;animation:popIn .5s ease}
+.final-card h2{font-size:22px;color:#fbbf24;margin-bottom:.3rem}
+.final-card .final-icon{font-size:72px;margin:.5rem 0;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.final-card p{font-size:14px;color:#c4b5fd;line-height:1.7;margin-bottom:.75rem}
+
+.controls-bot{display:flex;gap:8px;justify-content:center;margin-top:.5rem}
+</style></head><body>
+<div class="app">
+<h1>🧬 細胞餵食進化</h1>
+
+<!-- SELECT -->
+<div class="screen active" id="screen-select">
+  <p style="font-size:13px;color:#7788aa;text-align:center;margin-bottom:.75rem">選擇你的細胞，開始餵食進化之旅！</p>
+  <div class="cell-grid" id="cell-grid"></div>
+  <div class="mode-row">
+    <div class="mode-btn active" id="mode-easy" onclick="setMode('easy')">🌸 簡單模式<br><span style="font-size:11px;color:#888">適合小朋友</span></div>
+    <div class="mode-btn" id="mode-hard" onclick="setMode('hard')">🔬 科學模式<br><span style="font-size:11px;color:#888">化學反應完整版</span></div>
+  </div>
+  <button class="big-btn" id="select-btn" style="background:linear-gradient(135deg,#4a1a8a,#7c3aed);opacity:.5;pointer-events:none">選擇細胞後開始</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="screen-game">
+  <div class="g-top">
+    <button class="btn" id="back-btn">← 返回</button>
+    <span style="font-size:13px;color:#7788aa">餵食次數：<span id="feed-count" style="color:#eee">0</span></span>
+  </div>
+  <div class="cell-avatar" id="cell-avatar"></div>
+  <div class="cell-stage" id="cell-stage"></div>
+  <div class="params-grid" id="params-grid"></div>
+  <div class="map-box">
+    <h3>🗺️ 地圖上的食物</h3>
+    <div class="food-grid" id="food-grid"></div>
+  </div>
+  <div class="log-box" id="log-box"></div>
+  <div class="controls-bot">
+    <button class="btn" id="restart-btn">重新開始</button>
+  </div>
+</div>
+
+<!-- EVO POPUP -->
+<div class="evo-popup" id="evo-popup">
+  <div class="evo-card">
+    <h2>⚗️ 進化！</h2>
+    <div class="evo-icon" id="evo-icon"></div>
+    <h3 id="evo-name" style="font-size:16px;color:#eee;margin-bottom:.3rem"></h3>
+    <p id="evo-desc"></p>
+    <button class="big-btn" style="background:linear-gradient(135deg,#4a1a8a,#7c3aed)" onclick="closeEvo()">繼續進化！</button>
+  </div>
+</div>
+
+<!-- FINAL POPUP -->
+<div class="final-popup" id="final-popup">
+  <div class="final-card">
+    <h2>🏆 最終型態解鎖！</h2>
+    <div class="final-icon" id="final-icon"></div>
+    <h3 id="final-name" style="font-size:18px;color:#fbbf24;margin-bottom:.3rem"></h3>
+    <p id="final-desc"></p>
+    <button class="big-btn" style="background:linear-gradient(135deg,#92400e,#f59e0b);color:#000" onclick="closeFinal()">🎉 太強了！</button>
+  </div>
+</div>
+
+<script>
+const CELLS=[
+  {
+    id:'fire',name:'火焰細胞',icon:'🔥',color:'#dc2626',trait:'氧化性強',traitColor:'#fca5a5',bg:'#1a0505',
+    desc:'以氧化反應為核心，遇有機物燃燒，遇金屬氧化，高能量消耗型',
+    params:{oxidation:20,temp:60,energy:40,toxicity:10,conductivity:5,stability:30},
+    stages:[
+      {name:'火苗細胞',icon:'🔥',threshold:0},
+      {name:'火焰細胞',icon:'🌋',threshold:150},
+      {name:'等離子細胞',icon:'🌞',threshold:350},
+      {name:'核融合細胞',icon:'💥',threshold:600},
+    ],
+    finalName:'太陽核細胞',finalIcon:'⭐',
+    finalDesc:'達到恆星核心溫度，可持續核融合反應，成為永恆的能量源泉。所有參數突破極限！',
+  },
+  {
+    id:'metal',name:'金屬細胞',icon:'⚙️',color:'#6b7280',trait:'導電耐壓',traitColor:'#d1d5db',bg:'#0a0a0a',
+    desc:'以金屬鍵結構為基礎，導電性強，遇水生鏽，遇強酸溶解，結構堅固',
+    params:{oxidation:5,temp:40,energy:30,toxicity:5,conductivity:70,stability:80},
+    stages:[
+      {name:'鐵質細胞',icon:'⚙️',threshold:0},
+      {name:'合金細胞',icon:'🔩',threshold:150},
+      {name:'超導細胞',icon:'🔌',threshold:350},
+      {name:'奈米金屬細胞',icon:'🤖',threshold:600},
+    ],
+    finalName:'量子金屬細胞',finalIcon:'🌐',
+    finalDesc:'達到量子導電狀態，電阻為零，可儲存無限能量，成為終極導體生命體！',
+  },
+  {
+    id:'water',name:'水系細胞',icon:'💧',color:'#0ea5e9',trait:'溶解滲透',traitColor:'#7dd3fc',bg:'#020d1a',
+    desc:'以水分子為核心，溶解能力強，可穿透細胞膜，遇冷結晶，遇熱蒸發',
+    params:{oxidation:10,temp:20,energy:25,toxicity:0,conductivity:30,stability:50},
+    stages:[
+      {name:'液態細胞',icon:'💧',threshold:0},
+      {name:'滲透細胞',icon:'🌊',threshold:150},
+      {name:'超臨界細胞',icon:'🫧',threshold:350},
+      {name:'量子水細胞',icon:'🔮',threshold:600},
+    ],
+    finalName:'生命之源細胞',finalIcon:'🌍',
+    finalDesc:'成為所有生命的基礎，可以滲透任何物質，賦予一切生命力！宇宙第一細胞！',
+  },
+  {
+    id:'organic',name:'有機細胞',icon:'🌿',color:'#22c55e',trait:'光合突變',traitColor:'#86efac',bg:'#020d05',
+    desc:'以碳骨架為核心，可光合作用，遇腐敗物突變，DNA不穩定但進化潛力最大',
+    params:{oxidation:15,temp:30,energy:50,toxicity:20,conductivity:10,stability:20},
+    stages:[
+      {name:'葉綠細胞',icon:'🌿',threshold:0},
+      {name:'突變細胞',icon:'🧫',threshold:150},
+      {name:'基因重組細胞',icon:'🧬',threshold:350},
+      {name:'超級有機細胞',icon:'🦠',threshold:600},
+    ],
+    finalName:'創世細胞',finalIcon:'🌱',
+    finalDesc:'擁有所有生命體的基因密碼，可以創造新的生命形式，成為地球的主宰！',
+  },
+  {
+    id:'plasma',name:'電漿細胞',icon:'⚡',color:'#eab308',trait:'高能爆炸',traitColor:'#fde047',bg:'#0d0a00',
+    desc:'以鹼金屬為核心，極度活潑，遇水爆炸，遇金屬放電，能量最高但最不穩定',
+    params:{oxidation:80,temp:70,energy:90,toxicity:30,conductivity:60,stability:5},
+    stages:[
+      {name:'鹼金屬細胞',icon:'⚡',threshold:0},
+      {name:'電弧細胞',icon:'🌩️',threshold:150},
+      {name:'等離子體細胞',icon:'🔱',threshold:350},
+      {name:'閃電細胞',icon:'☄️',threshold:600},
+    ],
+    finalName:'雷神細胞',finalIcon:'🌌',
+    finalDesc:'掌控電磁力，成為宇宙中最活躍的能量體，可以操控閃電和磁場！',
+  },
+  {
+    id:'inert',name:'惰性細胞',icon:'🧊',color:'#38bdf8',trait:'超穩定',traitColor:'#bae6fd',bg:'#000d1a',
+    desc:'以惰性氣體為核心，幾乎不與任何物質反應，但在極端條件下會發生超級進化',
+    params:{oxidation:0,temp:10,energy:10,toxicity:0,conductivity:5,stability:99},
+    stages:[
+      {name:'惰性細胞',icon:'🧊',threshold:0},
+      {name:'穩定細胞',icon:'💎',threshold:200},
+      {name:'超穩定細胞',icon:'🔮',threshold:450},
+      {name:'永恆細胞',icon:'🪐',threshold:700},
+    ],
+    finalName:'永恆細胞',finalIcon:'♾️',
+    finalDesc:'達到完美穩定狀態，永不衰敗，成為宇宙中唯一不滅的存在！需要最多餵食才能解鎖！',
+  },
+  {
+    id:'radio',name:'輻射細胞',icon:'☢️',color:'#84cc16',trait:'緩慢變異',traitColor:'#bef264',bg:'#030d00',
+    desc:'以放射性元素為核心，緩慢輻射所有周遭物質，變異速度慢但最終型態最強大',
+    params:{oxidation:40,temp:50,energy:60,toxicity:90,conductivity:20,stability:40},
+    stages:[
+      {name:'放射細胞',icon:'☢️',threshold:0},
+      {name:'α衰變細胞',icon:'💫',threshold:150},
+      {name:'核分裂細胞',icon:'⚛️',threshold:350},
+      {name:'超重元素細胞',icon:'🌑',threshold:600},
+    ],
+    finalName:'奧米茄細胞',finalIcon:'☣️',
+    finalDesc:'完成所有放射性衰變，成為宇宙中最重的穩定元素，輻射可以改變現實本身！',
+  },
+];
+
+const FOODS_EASY=[
+  {e:'🌳',name:'大樹',desc:'富含有機碳'},
+  {e:'🌸',name:'花朵',desc:'含糖有機物'},
+  {e:'🍎',name:'果實',desc:'有機酸與糖分'},
+  {e:'🌧️',name:'雨水',desc:'純淨H₂O'},
+  {e:'☀️',name:'陽光',desc:'純能量'},
+  {e:'🍄',name:'蘑菇',desc:'腐生有機物'},
+  {e:'🪨',name:'岩石',desc:'礦物質'},
+  {e:'🧊',name:'冰塊',desc:'固態水'},
+  {e:'🌿',name:'草葉',desc:'葉綠素'},
+  {e:'🌰',name:'堅果',desc:'高能量脂肪'},
+  {e:'🫧',name:'氣泡',desc:'氧氣'},
+  {e:'🌙',name:'月光',desc:'弱光能量'},
+];
+
+const FOODS_HARD=[
+  ...FOODS_EASY,
+  {e:'⚡',name:'閃電',desc:'高壓電能'},
+  {e:'🗑️',name:'垃圾',desc:'混合污染物'},
+  {e:'✈️',name:'飛機',desc:'金屬+燃油'},
+  {e:'🧲',name:'磁鐵',desc:'磁場能量'},
+  {e:'☠️',name:'毒素',desc:'高毒性化合物'},
+  {e:'🔥',name:'火焰',desc:'熱能+氧化'},
+  {e:'🧪',name:'試管',desc:'化學試劑'},
+  {e:'💎',name:'鑽石',desc:'純碳結構'},
+];
+
+// Reaction definitions per cell per food
+// Each: {params_delta, log, special (optional evo trigger)}
+function getReaction(cellId, food, mode){
+  const hard=mode==='hard';
+  const reactions={
+    fire:{
+      '🌳':{d:{oxidation:8,energy:12,stability:-5},log:'樹木燃燒！氧化值上升，釋放大量熱能🔥'},
+      '🌸':{d:{oxidation:5,energy:8,toxicity:3},log:'花朵燃燒，有機物氧化殆盡'},
+      '🍎':{d:{oxidation:6,energy:10,toxicity:2},log:'果實燃燒，糖分轉化為能量'},
+      '🌧️':{d:{oxidation:-5,temp:-10,stability:10},log:'雨水澆熄部分火焰！氧化值下降'},
+      '☀️':{d:{oxidation:10,temp:15,energy:20},log:'太陽能補充！溫度和能量大幅提升🌞'},
+      '🍄':{d:{oxidation:7,energy:9,toxicity:5},log:'腐生物燃燒，釋放毒素'},
+      '🪨':{d:{temp:5,stability:8,conductivity:3},log:'岩石加熱，礦物質融入細胞'},
+      '🧊':{d:{oxidation:-8,temp:-15,stability:15},log:'冰塊滅火！溫度驟降，穩定性提升'},
+      '🌿':{d:{oxidation:6,energy:8},log:'草葉燃燒，能量釋放'},
+      '🌰':{d:{oxidation:8,energy:15},log:'高脂肪堅果燃燒，能量爆炸！'},
+      '🫧':{d:{oxidation:15,energy:10,stability:-8},log:'氧氣加入！燃燒更旺盛，穩定性下降⚠️'},
+      '🌙':{d:{energy:5,temp:3},log:'月光微弱，吸收少量能量'},
+      '⚡':{d:{oxidation:12,energy:20,stability:-10},log:'閃電引燃！能量爆增但穩定性大降！'},
+      '🗑️':{d:{toxicity:15,oxidation:10,stability:-15},log:'垃圾燃燒產生毒氣！毒性暴增⚠️'},
+      '✈️':{d:{oxidation:20,energy:25,stability:-20},log:'燃油爆炸！超高能量，穩定性崩潰💥'},
+      '🧲':{d:{conductivity:10,energy:8},log:'磁場干擾，導電性提升'},
+      '☠️':{d:{toxicity:20,oxidation:5,stability:-10},log:'毒素燃燒！劇毒氣體釋放☠️'},
+      '🔥':{d:{oxidation:18,temp:20,energy:22,stability:-12},log:'火上加火！所有火焰屬性暴漲🔥🔥'},
+      '🧪':{d:{oxidation:10,toxicity:8,stability:-5},log:'化學試劑燃燒，複雜反應發生'},
+      '💎':{d:{temp:8,stability:12,energy:6},log:'鑽石純碳燃燒，穩定釋放能量'},
+    },
+    metal:{
+      '🌳':{d:{stability:5,conductivity:3},log:'木質有機物附著，稍微增加穩定性'},
+      '🌸':{d:{oxidation:3,stability:-2},log:'花粉接觸，輕微氧化'},
+      '🍎':{d:{oxidation:5,stability:-3,toxicity:2},log:'果酸腐蝕！氧化值上升，穩定性下降'},
+      '🌧️':{d:{oxidation:12,stability:-10,conductivity:5},log:'雨水接觸！生鏽反應，氧化值大增🦀'},
+      '☀️':{d:{temp:10,energy:8,conductivity:5},log:'太陽能加熱，導電性提升'},
+      '🍄':{d:{oxidation:7,stability:-5},log:'真菌腐蝕，金屬表面氧化'},
+      '🪨':{d:{stability:15,conductivity:8,temp:5},log:'礦物強化！穩定性大幅提升💪'},
+      '🧊':{d:{temp:-10,stability:8,conductivity:-3},log:'急速冷卻，金屬收縮，穩定性提升'},
+      '🌿':{d:{oxidation:4,stability:-2},log:'有機酸輕微腐蝕'},
+      '🌰':{d:{energy:8,stability:3},log:'油脂包覆，防鏽保護'},
+      '🫧':{d:{oxidation:10,stability:-8},log:'氧氣加速氧化！生鏽加劇⚠️'},
+      '🌙':{d:{stability:5,conductivity:3},log:'夜晚冷卻，金屬穩定'},
+      '⚡':{d:{conductivity:20,energy:15,stability:-5},log:'閃電通過！導電性暴增，超導效應⚡'},
+      '🗑️':{d:{oxidation:15,toxicity:10,stability:-12},log:'重金屬污染！有毒氧化物形成⚠️'},
+      '✈️':{d:{stability:20,conductivity:10,energy:8},log:'飛機金屬合金融合！穩定性強化✈️'},
+      '🧲':{d:{conductivity:15,stability:10,energy:12},log:'磁化！導電性和穩定性大幅提升🧲'},
+      '☠️':{d:{toxicity:18,stability:-15,oxidation:8},log:'劇毒腐蝕！金屬結構受損☠️'},
+      '🔥':{d:{temp:20,oxidation:15,stability:-10},log:'高溫熔融！溫度暴升，結構改變🔥'},
+      '🧪':{d:{oxidation:12,conductivity:8,stability:-8},log:'化學試劑反應！電鍍效果產生'},
+      '💎':{d:{stability:18,conductivity:5,temp:3},log:'鑽石鍍層！穩定性極大提升💎'},
+    },
+    water:{
+      '🌳':{d:{energy:8,stability:5,conductivity:5},log:'溶解木質素，吸收有機礦物質'},
+      '🌸':{d:{energy:10,toxicity:2,stability:5},log:'花粉溶入，增加能量與微量毒素'},
+      '🍎':{d:{energy:12,stability:8,toxicity:3},log:'果酸溶解，能量大幅提升🍎'},
+      '🌧️':{d:{energy:15,stability:10,conductivity:8},log:'雨水補充！水系細胞大幅強化💧'},
+      '☀️':{d:{temp:15,energy:20,stability:-5},log:'陽光蒸發！溫度飆升，部分水分散失'},
+      '🍄':{d:{toxicity:10,energy:6,stability:-5},log:'腐生物毒素溶入，毒性提升'},
+      '🪨':{d:{conductivity:8,stability:12,temp:3},log:'礦物質溶解，導電性提升'},
+      '🧊':{d:{temp:-20,stability:20,energy:-5},log:'結晶化！穩定性大幅提升，能量下降🧊'},
+      '🌿':{d:{energy:8,conductivity:5},log:'葉綠素溶解，能量提升'},
+      '🌰':{d:{energy:10,stability:5},log:'油脂乳化，能量增加'},
+      '🫧':{d:{oxidation:8,energy:10,stability:5},log:'氧氣溶解，形成過氧化物'},
+      '🌙':{d:{stability:8,energy:5},log:'月光照射，水分子穩定'},
+      '⚡':{d:{conductivity:20,oxidation:12,stability:-8},log:'電解反應！導電性暴增，水分解為氫氧⚡'},
+      '🗑️':{d:{toxicity:18,stability:-12,oxidation:8},log:'污水滲入！嚴重毒素污染⚠️'},
+      '✈️':{d:{conductivity:10,stability:5,energy:8},log:'燃油水合，形成乳液'},
+      '🧲':{d:{conductivity:12,stability:10,energy:8},log:'磁化水分子！特殊磁性結構形成'},
+      '☠️':{d:{toxicity:25,stability:-15},log:'劇毒溶解！高毒性溶液形成☠️'},
+      '🔥':{d:{temp:25,energy:15,stability:-10},log:'水蒸氣爆發！溫度驟升🔥'},
+      '🧪':{d:{conductivity:15,toxicity:8,stability:-5},log:'化學試劑溶解，形成電解質溶液'},
+      '💎':{d:{stability:15,conductivity:8},log:'鑽石不溶於水，但影響水的結構'},
+    },
+    organic:{
+      '🌳':{d:{energy:15,stability:8,toxicity:2},log:'吸收木質素！有機碳大量補充🌳'},
+      '🌸':{d:{energy:12,toxicity:3,conductivity:3},log:'花粉吸收，有機糖分補充'},
+      '🍎':{d:{energy:18,stability:5,toxicity:2},log:'果糖大量吸收！能量暴增🍎'},
+      '🌧️':{d:{energy:8,stability:10,conductivity:5},log:'雨水滋潤，細胞活性提升'},
+      '☀️':{d:{energy:25,oxidation:5,stability:8},log:'光合作用！能量大幅補充☀️'},
+      '🍄':{d:{toxicity:15,energy:8,stability:-5},log:'腐生菌素吸收，毒性提升，DNA突變'},
+      '🪨':{d:{stability:10,conductivity:5,temp:3},log:'礦物質補充，細胞壁強化'},
+      '🧊':{d:{temp:-10,stability:12,energy:-5},log:'低溫保存，代謝降低'},
+      '🌿':{d:{energy:12,stability:8,oxidation:3},log:'葉綠素合成，光合能力提升'},
+      '🌰':{d:{energy:20,stability:5,toxicity:2},log:'高脂肪吸收！能量最大補充🌰'},
+      '🫧':{d:{oxidation:8,energy:10},log:'氧氣吸收，有氧呼吸加強'},
+      '🌙':{d:{stability:5,energy:3},log:'月光光合，微量能量補充'},
+      '⚡':{d:{oxidation:10,energy:15,stability:-8},log:'電擊突變！DNA改變，進化加速⚡'},
+      '🗑️':{d:{toxicity:20,energy:10,stability:-10},log:'廢棄有機物！毒素吸收，突變機率大增⚠️'},
+      '✈️':{d:{energy:12,toxicity:10,stability:-5},log:'燃油中毒，高能量毒素吸收'},
+      '🧲':{d:{conductivity:8,stability:5,energy:5},log:'磁場刺激細胞，微弱電流產生'},
+      '☠️':{d:{toxicity:30,energy:5,stability:-20},log:'劇毒吸收！超高毒性，可能致命☠️'},
+      '🔥':{d:{oxidation:12,energy:15,temp:10,stability:-8},log:'燃燒反應！有機物氧化，能量爆發🔥'},
+      '🧪':{d:{toxicity:12,oxidation:8,stability:-5},log:'化學試劑干擾DNA複製'},
+      '💎':{d:{stability:20,conductivity:5},log:'碳同素異形體吸收！穩定性大幅提升💎'},
+    },
+    plasma:{
+      '🌳':{d:{oxidation:12,energy:15,stability:-8},log:'電漿燒融木材！高能量釋放'},
+      '🌸':{d:{oxidation:8,energy:10,stability:-5},log:'花朵氣化，能量釋放'},
+      '🍎':{d:{oxidation:10,energy:12,stability:-6},log:'果實電離，有機酸分解'},
+      '🌧️':{d:{oxidation:20,energy:25,stability:-20,toxicity:5},log:'水接觸鹼金屬！爆炸反應！能量暴增💥'},
+      '☀️':{d:{oxidation:15,energy:20,temp:15},log:'太陽能補充，電漿強度提升'},
+      '🍄':{d:{oxidation:10,toxicity:8,energy:8},log:'腐生物電離，毒素擴散'},
+      '🪨':{d:{conductivity:10,stability:8,temp:5},log:'矽酸鹽電離，導電性提升'},
+      '🧊':{d:{oxidation:15,energy:20,stability:-15},log:'冰水接觸！爆炸！能量暴增💥'},
+      '🌿':{d:{oxidation:10,energy:12,stability:-6},log:'有機物電離，能量釋放'},
+      '🌰':{d:{oxidation:12,energy:18,stability:-8},log:'油脂電離，大量能量釋放'},
+      '🫧':{d:{oxidation:20,energy:15,stability:-12},log:'氧氣助燃！電漿強度激增⚡'},
+      '🌙':{d:{energy:8,stability:3},log:'月光微弱補充能量'},
+      '⚡':{d:{conductivity:25,energy:30,oxidation:15,stability:-15},log:'閃電強化！電漿能量最大化⚡⚡'},
+      '🗑️':{d:{toxicity:20,oxidation:15,stability:-20},log:'污染物電離！超高毒性電漿形成⚠️'},
+      '✈️':{d:{oxidation:25,energy:30,stability:-25},log:'燃油點燃！超級爆炸反應💥💥'},
+      '🧲':{d:{conductivity:20,energy:15,stability:5},log:'磁場約束電漿！穩定性難得提升🧲'},
+      '☠️':{d:{toxicity:25,oxidation:10,stability:-15},log:'毒性電漿！最危險的組合☠️'},
+      '🔥':{d:{oxidation:22,energy:28,temp:20,stability:-18},log:'超級燃燒！溫度和能量雙爆炸🔥⚡'},
+      '🧪':{d:{oxidation:15,conductivity:10,stability:-10},log:'化學電漿反應，超高活性物質'},
+      '💎':{d:{stability:15,conductivity:8,temp:5},log:'鑽石被電漿切割，穩定性意外提升'},
+    },
+    inert:{
+      '🌳':{d:{stability:3,energy:1},log:'惰性細胞對木材沒有反應，稍微吸收能量'},
+      '🌸':{d:{stability:2,energy:1},log:'花粉接觸，幾乎無反應'},
+      '🍎':{d:{stability:2,energy:2},log:'果酸接觸，幾乎無反應'},
+      '🌧️':{d:{stability:5,energy:2},log:'雨水接觸，惰性細胞完全不溶'},
+      '☀️':{d:{temp:5,energy:5,stability:3},log:'太陽能微量吸收'},
+      '🍄':{d:{stability:3,energy:1},log:'毒素無法侵入惰性細胞'},
+      '🪨':{d:{stability:8,temp:2},log:'礦物接觸，穩定性微幅提升'},
+      '🧊':{d:{temp:-5,stability:8},log:'低溫環境，惰性細胞更穩定'},
+      '🌿':{d:{stability:3,energy:2},log:'有機物接觸，幾乎無反應'},
+      '🌰':{d:{stability:3,energy:3},log:'油脂接觸，無法滲透'},
+      '🫧':{d:{stability:3,energy:2},log:'氧氣接觸，完全不反應'},
+      '🌙':{d:{stability:5,energy:3},log:'月光照射，惰性細胞吸收微量能量'},
+      '⚡':{d:{stability:10,conductivity:5,energy:8},log:'閃電！惰性細胞罕見被激發，穩定性意外提升⚡'},
+      '🗑️':{d:{stability:5,toxicity:2},log:'污染物無法穿透惰性細胞'},
+      '✈️':{d:{stability:8,energy:5},log:'金屬合金接觸，穩定性略微提升'},
+      '🧲':{d:{stability:10,conductivity:8,energy:5},log:'磁場穿透！惰性細胞罕見被激發🧲'},
+      '☠️':{d:{stability:8,toxicity:3},log:'劇毒對惰性細胞幾乎無效'},
+      '🔥':{d:{temp:3,stability:5},log:'高溫接觸，惰性細胞緩慢升溫'},
+      '🧪':{d:{stability:8,energy:3},log:'化學試劑無法影響惰性細胞'},
+      '💎':{d:{stability:15,conductivity:3},log:'鑽石強化！穩定性大幅提升💎'},
+    },
+    radio:{
+      '🌳':{d:{toxicity:8,energy:10,oxidation:5},log:'輻射照射木材！有機物突變'},
+      '🌸':{d:{toxicity:6,energy:8,oxidation:4},log:'花朵被輻射，突變概率提升'},
+      '🍎':{d:{toxicity:7,energy:12,oxidation:5},log:'果實輻射，基因突變'},
+      '🌧️':{d:{toxicity:10,conductivity:5,oxidation:8},log:'雨水被輻射！放射性水形成☢️'},
+      '☀️':{d:{oxidation:10,energy:15,temp:10},log:'太陽輻射增強，核衰變加速'},
+      '🍄':{d:{toxicity:15,energy:8,stability:-3},log:'放射性菌類形成！超高毒性'},
+      '🪨':{d:{stability:8,conductivity:5,temp:5},log:'岩石吸收輻射，礦物結構改變'},
+      '🧊':{d:{toxicity:5,temp:-8,stability:5},log:'輻射冰！毒性低溫環境形成'},
+      '🌿':{d:{toxicity:8,energy:10,oxidation:5},log:'草葉突變，放射性有機物形成'},
+      '🌰':{d:{energy:15,toxicity:8,oxidation:5},log:'高能量輻射有機物'},
+      '🫧':{d:{oxidation:12,energy:10,toxicity:5},log:'氧氣被輻射，臭氧形成'},
+      '🌙':{d:{stability:5,energy:5,toxicity:3},log:'月光加速α衰變'},
+      '⚡':{d:{oxidation:15,energy:20,conductivity:10,toxicity:8},log:'電磁輻射強化！核能量爆發⚡☢️'},
+      '🗑️':{d:{toxicity:25,oxidation:10,stability:-8},log:'放射性廢料！最高毒性物質形成☠️☢️'},
+      '✈️':{d:{energy:15,toxicity:12,oxidation:10},log:'核動力飛機！能量和毒性大增'},
+      '🧲':{d:{conductivity:12,stability:8,energy:8},log:'電磁場捕捉輻射粒子'},
+      '☠️':{d:{toxicity:30,oxidation:8,stability:-10},log:'超級毒性輻射！極危險組合☠️☢️'},
+      '🔥':{d:{oxidation:15,temp:15,energy:18,toxicity:8},log:'核燃燒！極高溫輻射反應🔥☢️'},
+      '🧪':{d:{toxicity:15,oxidation:12,stability:-5},log:'放射化學反應，超高活性放射物'},
+      '💎':{d:{stability:12,conductivity:5,energy:5},log:'鑽石輻射屏蔽，穩定性提升'},
+    },
+  };
+  const r=reactions[cellId]?.[food.e];
+  if(!r)return {d:{energy:2},log:'細胞嘗試吸收'+food.name+'，但反應很微弱'};
+  return r;
+}
+
+let selCell=null, mode='easy', cellState={}, feedCount=0, logEntries=[], totalScore=0;
+const PARAM_LABELS={oxidation:'氧化值',temp:'溫度耐受',energy:'能量儲存',toxicity:'毒性',conductivity:'導電性',stability:'穩定性'};
+const PARAM_COLORS={oxidation:'#f87171',temp:'#fb923c',energy:'#facc15',toxicity:'#a78bfa',conductivity:'#60a5fa',stability:'#4ade80'};
+
+// build cell select
+const cellGrid=document.getElementById('cell-grid');
+CELLS.forEach((c,i)=>{
+  const div=document.createElement('div');
+  div.className='cell-card';
+  div.style.background=c.bg;
+  div.innerHTML=`<div class="cell-icon">${c.icon}</div><div class="cell-name">${c.name}</div><div class="cell-desc">${c.desc}</div><span class="cell-trait" style="background:${c.color}22;color:${c.traitColor};border:0.5px solid ${c.color}44">${c.trait}</span>`;
+  div.addEventListener('click',function(){
+    document.querySelectorAll('.cell-card').forEach(x=>x.classList.remove('selected'));
+    this.classList.add('selected');
+    selCell=c;
+    const sb=document.getElementById('select-btn');
+    sb.textContent='開始餵食 '+c.icon+' '+c.name;
+    sb.style.background=`linear-gradient(135deg,${c.color}88,${c.color})`;
+    sb.style.opacity='1';
+    sb.style.pointerEvents='auto';
+  });
+  cellGrid.appendChild(div);
+});
+
+function setMode(m){
+  mode=m;
+  document.getElementById('mode-easy').classList.toggle('active',m==='easy');
+  document.getElementById('mode-hard').classList.toggle('active',m==='hard');
+}
+
+document.getElementById('select-btn').addEventListener('click',function(){
+  if(!selCell)return;
+  startGame();
+});
+
+function startGame(){
+  feedCount=0; logEntries=[]; totalScore=0;
+  cellState={...selCell.params};
+  showScreen('screen-game');
+  buildFoodGrid();
+  renderParams();
+  updateAvatar();
+  document.getElementById('log-box').innerHTML='<div class="log-entry">🧬 '+selCell.name+'誕生！開始餵食讓它進化吧！</div>';
+  document.getElementById('feed-count').textContent=0;
+}
+
+function buildFoodGrid(){
+  const foods=mode==='easy'?FOODS_EASY:FOODS_HARD;
+  const fg=document.getElementById('food-grid');
+  fg.innerHTML='';
+  foods.forEach(f=>{
+    const el=document.createElement('div');
+    el.className='food-item';
+    el.textContent=f.e;
+    el.title=f.name+'：'+f.desc;
+    el.addEventListener('click',function(){feedFood(f);});
+    fg.appendChild(el);
+  });
+}
+
+function renderParams(){
+  const pg=document.getElementById('params-grid');
+  pg.innerHTML='';
+  Object.keys(PARAM_LABELS).forEach(k=>{
+    const val=Math.min(100,Math.max(0,Math.round(cellState[k]||0)));
+    const div=document.createElement('div');
+    div.className='param-box';
+    div.innerHTML=`<div class="param-name">${PARAM_LABELS[k]}</div>
+      <div class="param-bar-wrap"><div class="param-bar" style="width:${val}%;background:${PARAM_COLORS[k]}"></div></div>
+      <div class="param-val">${val}/100</div>`;
+    pg.appendChild(div);
+  });
+}
+
+function calcScore(){
+  return Object.values(cellState).reduce((a,b)=>a+Math.max(0,b),0);
+}
+
+function updateAvatar(){
+  const score=calcScore();
+  const stages=selCell.stages;
+  let stage=stages[0];
+  for(const s of stages)if(score>=s.threshold)stage=s;
+  document.getElementById('cell-avatar').textContent=stage.icon;
+  document.getElementById('cell-stage').textContent=stage.name+' (總分：'+Math.round(score)+')';
+}
+
+function feedFood(food){
+  const r=getReaction(selCell.id,food,mode);
+  feedCount++;
+  document.getElementById('feed-count').textContent=feedCount;
+
+  const prevScore=calcScore();
+  Object.keys(r.d).forEach(k=>{
+    if(cellState[k]===undefined)return;
+    cellState[k]=Math.min(100,Math.max(0,cellState[k]+r.d[k]));
+  });
+  const newScore=calcScore();
+  const delta=Math.round(newScore-prevScore);
+
+  // log
+  let cls='log-entry';
+  let txt=food.e+' '+r.log+(delta>0?' (+'+delta+')':delta<0?' ('+delta+')':'');
+  if(Math.abs(delta)>30)cls+=' special';
+  if(r.log.includes('⚠️')||r.log.includes('☠️'))cls+=' danger';
+
+  logEntries.unshift({txt,cls});
+  if(logEntries.length>20)logEntries.pop();
+  const lb=document.getElementById('log-box');
+  lb.innerHTML=logEntries.map(e=>`<div class="${e.cls}">${e.txt}</div>`).join('');
+
+  renderParams();
+  updateAvatar();
+
+  // check evolution
+  const score=calcScore();
+  const stages=selCell.stages;
+  for(let i=1;i<stages.length;i++){
+    if(score>=stages[i].threshold&&prevScore<stages[i].threshold){
+      showEvo(stages[i]);
+      return;
+    }
+  }
+
+  // check final form: all params >= 80
+  const allMax=Object.values(cellState).every(v=>v>=80);
+  if(allMax)showFinal();
+}
+
+function showEvo(stage){
+  document.getElementById('evo-icon').textContent=stage.icon;
+  document.getElementById('evo-name').textContent=stage.name;
+  document.getElementById('evo-desc').textContent='細胞總分達到 '+stage.threshold+'！成功進化為 '+stage.name+'！繼續餵食邁向最終型態！';
+  document.getElementById('evo-popup').style.display='flex';
+  const entry={txt:'⭐ 進化！→ '+stage.name+' ！',cls:'log-entry evolve'};
+  logEntries.unshift(entry);
+  document.getElementById('log-box').innerHTML=logEntries.map(e=>`<div class="${e.cls}">${e.txt}</div>`).join('');
+}
+function closeEvo(){document.getElementById('evo-popup').style.display='none';}
+
+function showFinal(){
+  document.getElementById('final-icon').textContent=selCell.finalIcon;
+  document.getElementById('final-name').textContent=selCell.finalName;
+  document.getElementById('final-desc').textContent=selCell.finalDesc;
+  document.getElementById('final-popup').style.display='flex';
+}
+function closeFinal(){document.getElementById('final-popup').style.display='none';}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.getElementById('back-btn').addEventListener('click',()=>showScreen('screen-select'));
+document.getElementById('restart-btn').addEventListener('click',startGame);
+</script>
+</body></html>

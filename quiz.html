@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
+.app{width:100%;max-width:500px}
+h1{font-size:22px;font-weight:500;text-align:center;margin-bottom:1rem}
+.screen{display:none}.screen.active{display:block}
+.btn{font-size:13px;padding:6px 16px;border-radius:8px;border:0.5px solid #555;background:transparent;color:#eee;cursor:pointer}
+.btn:hover{background:#1a1a2e}.btn:active{transform:scale(0.97)}
+.big-btn{width:100%;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem}
+.big-btn:active{transform:scale(0.98)}
+
+/* setup */
+.box{background:#12122a;border:0.5px solid #2a2a4a;border-radius:14px;padding:1.1rem;margin-bottom:.75rem}
+.box h2{font-size:13px;color:#9a9ab0;margin-bottom:.6rem}
+.opt-row{display:flex;gap:8px;flex-wrap:wrap}
+.opt-btn{font-size:13px;padding:5px 14px;border-radius:20px;border:0.5px solid #3a3a5a;background:transparent;color:#ccc;cursor:pointer}
+.opt-btn.active{background:#3a1a6a;border-color:#a855f7;color:#fff}
+.inp{width:100%;padding:8px 12px;border-radius:8px;border:0.5px solid #3a3a5a;background:#0a0a1a;color:#eee;font-size:14px;margin-top:.4rem}
+
+/* game header */
+.g-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.score-pill{font-size:13px;padding:4px 12px;border-radius:20px;background:#12122a;border:0.5px solid #2a2a4a;color:#a78bfa}
+.q-counter{font-size:13px;color:#6b6b8a}
+
+/* timer bar */
+.timer-wrap{height:6px;background:#1a1a2e;border-radius:3px;margin-bottom:.75rem;overflow:hidden}
+.timer-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c3aed,#a855f7);transition:width .95s linear}
+.timer-bar.urgent{background:linear-gradient(90deg,#dc2626,#f87171)}
+
+/* question card */
+.q-card{background:#12122a;border:0.5px solid #2a2a4a;border-radius:14px;padding:1.2rem;margin-bottom:.75rem;text-align:center}
+.q-emoji{font-size:36px;margin-bottom:.5rem}
+.q-text{font-size:16px;font-weight:500;line-height:1.5;color:#eee}
+
+/* answer buttons */
+.ans-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem}
+.ans-btn{padding:14px 10px;border-radius:12px;border:1.5px solid #2a2a4a;background:#12122a;color:#ddd;font-size:14px;cursor:pointer;transition:all .15s;line-height:1.4;text-align:center}
+.ans-btn:hover:not(.disabled){border-color:#7c3aed;background:#1e1a3a;transform:translateY(-1px)}
+.ans-btn.correct{border-color:#22c55e;background:#0a2a0a;color:#4ade80;animation:pop .3s}
+.ans-btn.wrong{border-color:#ef4444;background:#2a0a0a;color:#f87171;animation:shake2 .3s}
+.ans-btn.disabled{cursor:default;opacity:.5}
+.ans-btn.eliminated{opacity:.2;cursor:default}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes shake2{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+/* lifelines */
+.lifelines{display:flex;gap:8px;justify-content:center;margin-bottom:.75rem}
+.ll-btn{padding:6px 14px;border-radius:20px;border:0.5px solid #3a3a5a;background:#12122a;color:#ccc;cursor:pointer;font-size:13px;transition:all .15s}
+.ll-btn:hover:not(.used){border-color:#a855f7;color:#fff}
+.ll-btn.used{opacity:.3;cursor:default;text-decoration:line-through}
+
+/* audience chart */
+.audience{background:#12122a;border:0.5px solid #2a2a4a;border-radius:12px;padding:1rem;margin-bottom:.75rem;display:none}
+.audience h3{font-size:13px;color:#9a9ab0;margin-bottom:.6rem;text-align:center}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.bar-label{width:20px;font-size:13px;text-align:center}
+.bar-track{flex:1;height:20px;background:#1a1a2e;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#7c3aed,#a855f7);transition:width .6s ease}
+.bar-pct{font-size:12px;color:#9a9ab0;width:32px;text-align:right}
+
+/* phone hint */
+.phone-box{background:#12122a;border:0.5px solid #2a2a4a;border-radius:12px;padding:1rem;margin-bottom:.75rem;display:none}
+.phone-box h3{font-size:13px;color:#9a9ab0;margin-bottom:.5rem}
+.phone-msg{font-size:14px;color:#c4b5fd;line-height:1.6}
+
+/* feedback */
+.feedback{text-align:center;font-size:15px;min-height:24px;margin-bottom:.5rem;font-weight:500}
+.feedback.correct{color:#4ade80}
+.feedback.wrong{color:#f87171}
+
+/* streak */
+.streak{text-align:center;font-size:13px;color:#f59e0b;min-height:20px;margin-bottom:.4rem}
+
+/* result */
+.result-box{background:#12122a;border:0.5px solid #2a2a4a;border-radius:16px;padding:1.5rem;text-align:center}
+.result-box h2{font-size:28px;margin-bottom:.4rem}
+.result-score{font-size:42px;font-weight:700;color:#a855f7;margin:.5rem 0}
+.result-sub{font-size:14px;color:#9a9ab0;margin-bottom:1rem}
+.result-stats{display:flex;gap:12px;justify-content:center;margin-bottom:1rem}
+.stat-box{background:#0a0a1a;border-radius:10px;padding:.6rem .9rem;text-align:center}
+.stat-val{font-size:20px;font-weight:600;color:#eee}
+.stat-lbl{font-size:11px;color:#6b6b8a;margin-top:2px}
+.controls-bot{display:flex;gap:8px;justify-content:center;margin-top:.6rem}
+</style></head><body>
+<div class="app">
+<h1>🧠 機智問答</h1>
+
+<!-- SETUP -->
+<div class="screen active" id="screen-setup">
+  <div class="box">
+    <h2>你的名字</h2>
+    <input class="inp" id="player-name" placeholder="輸入名字" maxlength="12">
+  </div>
+  <div class="box">
+    <h2>題目數量</h2>
+    <div class="opt-row">
+      <button class="opt-btn active" data-q="10">10題</button>
+      <button class="opt-btn" data-q="20">20題</button>
+      <button class="opt-btn" data-q="50">50題</button>
+      <button class="opt-btn" data-q="100">100題</button>
+    </div>
+  </div>
+  <div class="box">
+    <h2>主題</h2>
+    <div class="opt-row" id="topic-row">
+      <button class="opt-btn active" data-topic="all">全部</button>
+      <button class="opt-btn" data-topic="animal">🐾 動物</button>
+      <button class="opt-btn" data-topic="nature">🌿 自然</button>
+      <button class="opt-btn" data-topic="food">🍎 食物</button>
+      <button class="opt-btn" data-topic="number">🔢 數字</button>
+      <button class="opt-btn" data-topic="life">🏠 生活</button>
+      <button class="opt-btn" data-topic="body">🧍 身體</button>
+      <button class="opt-btn" data-topic="space">🌙 宇宙</button>
+    </div>
+  </div>
+  <button class="big-btn" id="start-btn">🎯 開始挑戰</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="screen-game">
+  <div class="g-header">
+    <span class="q-counter" id="q-counter">題 1 / 10</span>
+    <span class="score-pill">分數：<span id="score">0</span></span>
+  </div>
+  <div class="timer-wrap"><div class="timer-bar" id="timer-bar"></div></div>
+  <div class="q-card">
+    <div class="q-emoji" id="q-emoji"></div>
+    <div class="q-text" id="q-text"></div>
+  </div>
+  <div class="ans-grid" id="ans-grid"></div>
+  <div class="lifelines" id="lifelines">
+    <button class="ll-btn" id="ll-5050">✂️ 50/50</button>
+    <button class="ll-btn" id="ll-audience">👥 問觀眾</button>
+    <button class="ll-btn" id="ll-phone">📞 打電話</button>
+  </div>
+  <div class="audience" id="audience-box">
+    <h3>👥 觀眾投票結果</h3>
+    <div id="audience-bars"></div>
+  </div>
+  <div class="phone-box" id="phone-box">
+    <h3>📞 朋友說…</h3>
+    <div class="phone-msg" id="phone-msg"></div>
+  </div>
+  <div class="streak" id="streak"></div>
+  <div class="feedback" id="feedback"></div>
+  <div class="controls-bot">
+    <button class="btn" id="quit-btn">退出</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <div class="result-box">
+    <h2 id="res-emoji"></h2>
+    <div class="result-score" id="res-score"></div>
+    <div class="result-sub" id="res-sub"></div>
+    <div class="result-stats">
+      <div class="stat-box"><div class="stat-val" id="res-correct"></div><div class="stat-lbl">答對</div></div>
+      <div class="stat-box"><div class="stat-val" id="res-streak"></div><div class="stat-lbl">最長連答</div></div>
+      <div class="stat-box"><div class="stat-val" id="res-time"></div><div class="stat-lbl">平均秒/題</div></div>
+    </div>
+    <button class="big-btn" id="again-btn">再玩一次 🎯</button>
+    <div class="controls-bot" style="margin-top:.5rem">
+      <button class="btn" id="change-btn">更換設定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ALL_QS=[
+  // 動物
+  {t:'animal',e:'🐘',q:'大象用什麼喝水？',a:['鼻子','嘴巴','耳朵','腳'],c:0},
+  {t:'animal',e:'🦒',q:'哪種動物脖子最長？',a:['駱駝','長頸鹿','鴕鳥','馬'],c:1},
+  {t:'animal',e:'🐧',q:'企鵝住在哪裡？',a:['北極','沙漠','南極','森林'],c:2},
+  {t:'animal',e:'🦁',q:'獅子的叫聲是什麼？',a:['汪汪','喵喵','吼吼','嗯嗯'],c:2},
+  {t:'animal',e:'🐢',q:'烏龜的殼有什麼用？',a:['裝食物','保護身體','吸引朋友','游泳'],c:1},
+  {t:'animal',e:'🦋',q:'毛毛蟲變成什麼？',a:['蜜蜂','蝴蝶','螢火蟲','蚱蜢'],c:1},
+  {t:'animal',e:'🐬',q:'海豚是什麼動物？',a:['魚類','爬蟲類','哺乳類','鳥類'],c:2},
+  {t:'animal',e:'🦉',q:'貓頭鷹在什麼時候活動？',a:['早上','下午','晚上','中午'],c:2},
+  {t:'animal',e:'🐝',q:'蜜蜂做什麼食物？',a:['果醬','蜂蜜','牛奶','糖'],c:1},
+  {t:'animal',e:'🦊',q:'狐狸是什麼顏色？',a:['藍色','綠色','橘紅色','白色'],c:2},
+  {t:'animal',e:'🐸',q:'青蛙小時候叫什麼？',a:['小青蛙','蝌蚪','幼蟲','魚苗'],c:1},
+  {t:'animal',e:'🦆',q:'鴨子會做什麼？',a:['爬樹','游泳','挖洞','飛很高'],c:1},
+  {t:'animal',e:'🐼',q:'熊貓最愛吃什麼？',a:['蘋果','竹子','魚','蜂蜜'],c:1},
+  {t:'animal',e:'🦓',q:'斑馬身上有什麼花紋？',a:['圓點','條紋','格子','波浪'],c:1},
+  {t:'animal',e:'🐙',q:'章魚有幾隻腳？',a:['4隻','6隻','8隻','10隻'],c:2},
+  // 自然
+  {t:'nature',e:'🌈',q:'彩虹有幾種顏色？',a:['5','6','7','8'],c:2},
+  {t:'nature',e:'☀️',q:'太陽在哪個方向升起？',a:['西方','南方','東方','北方'],c:2},
+  {t:'nature',e:'🌊',q:'海水是什麼味道？',a:['甜的','鹹的','酸的','苦的'],c:1},
+  {t:'nature',e:'🌸',q:'春天有什麼花開？',a:['菊花','玫瑰','櫻花','向日葵'],c:2},
+  {t:'nature',e:'❄️',q:'雪是什麼顏色？',a:['藍色','黃色','白色','灰色'],c:2},
+  {t:'nature',e:'🌙',q:'月亮自己會發光嗎？',a:['會','不會','有時會','只在晚上'],c:1},
+  {t:'nature',e:'🌍',q:'地球上最多的是什麼？',a:['陸地','山','水','沙漠'],c:2},
+  {t:'nature',e:'⚡',q:'打雷之前先看到什麼？',a:['雨','彩虹','閃電','彩雲'],c:2},
+  {t:'nature',e:'🌿',q:'植物需要什麼才能長大？',a:['只要水','陽光和水','只要土','只要空氣'],c:1},
+  {t:'nature',e:'🍂',q:'秋天樹葉會變成什麼顏色？',a:['綠色','藍色','紅橙色','白色'],c:2},
+  // 食物
+  {t:'food',e:'🍎',q:'蘋果是什麼顏色？',a:['藍色','紫色','紅色','黑色'],c:2},
+  {t:'food',e:'🥕',q:'胡蘿蔔是什麼顏色？',a:['紅色','橘色','黃色','綠色'],c:1},
+  {t:'food',e:'🍌',q:'香蕉成熟是什麼顏色？',a:['紅色','綠色','黃色','橘色'],c:2},
+  {t:'food',e:'🥦',q:'花椰菜是什麼顏色？',a:['紅色','紫色','藍色','綠色'],c:3},
+  {t:'food',e:'🍓',q:'草莓是什麼顏色？',a:['黃色','紫色','紅色','橘色'],c:2},
+  {t:'food',e:'🥚',q:'雞蛋外面的殼是什麼做的？',a:['塑膠','鈣質','木頭','金屬'],c:1},
+  {t:'food',e:'🧀',q:'起司是用什麼做的？',a:['豆漿','牛奶','果汁','椰奶'],c:1},
+  {t:'food',e:'🍞',q:'麵包是用什麼烤的？',a:['水果','麵粉','蔬菜','肉'],c:1},
+  {t:'food',e:'🍯',q:'蜂蜜是誰製造的？',a:['螞蟻','蜜蜂','蝴蝶','蚱蜢'],c:1},
+  {t:'food',e:'🥛',q:'牛奶是白色的，那巧克力牛奶呢？',a:['紅色','藍色','棕色','黑色'],c:2},
+  // 數字
+  {t:'number',e:'🔢',q:'1加1等於幾？',a:['1','2','3','4'],c:1},
+  {t:'number',e:'🔢',q:'10減3等於幾？',a:['5','6','7','8'],c:2},
+  {t:'number',e:'🔢',q:'2乘以5等於幾？',a:['7','8','9','10'],c:3},
+  {t:'number',e:'🔢',q:'一個星期有幾天？',a:['5天','6天','7天','8天'],c:2},
+  {t:'number',e:'🔢',q:'一年有幾個月？',a:['10個月','11個月','12個月','13個月'],c:2},
+  {t:'number',e:'🔢',q:'一天有幾小時？',a:['12小時','20小時','24小時','48小時'],c:2},
+  {t:'number',e:'🔢',q:'三角形有幾個角？',a:['2個','3個','4個','5個'],c:1},
+  {t:'number',e:'🔢',q:'正方形有幾條邊？',a:['3條','4條','5條','6條'],c:1},
+  {t:'number',e:'🔢',q:'5加5加5等於幾？',a:['10','12','15','20'],c:2},
+  {t:'number',e:'🔢',q:'100除以10等於幾？',a:['5','8','10','20'],c:2},
+  // 生活
+  {t:'life',e:'🏠',q:'我們睡覺的地方叫什麼？',a:['廚房','廁所','臥室','客廳'],c:2},
+  {t:'life',e:'🚦',q:'紅綠燈紅燈代表什麼？',a:['加速','停止','轉彎','倒車'],c:1},
+  {t:'life',e:'☔',q:'下雨天要帶什麼出門？',a:['扇子','帽子','雨傘','手套'],c:2},
+  {t:'life',e:'📚',q:'我們去哪裡借書？',a:['超市','醫院','圖書館','公園'],c:2},
+  {t:'life',e:'🚒',q:'火災要打什麼電話？',a:['110','119','112','118'],c:1},
+  {t:'life',e:'🎂',q:'生日時吹什麼？',a:['氣球','泡泡','蠟燭','彩帶'],c:2},
+  {t:'life',e:'🦷',q:'早上起床要做什麼保護牙齒？',a:['洗臉','刷牙','梳頭','換衣服'],c:1},
+  {t:'life',e:'🛁',q:'洗澡時用什麼把身體洗乾淨？',a:['牙膏','洗髮精','肥皂','洗碗精'],c:2},
+  {t:'life',e:'🌡️',q:'發燒時要量什麼？',a:['血壓','體重','體溫','身高'],c:2},
+  {t:'life',e:'✉️',q:'把信放在哪裡寄出去？',a:['垃圾桶','信箱','書包','抽屜'],c:1},
+  // 身體
+  {t:'body',e:'👁️',q:'眼睛是用來做什麼的？',a:['聽聲音','看東西','聞氣味','說話'],c:1},
+  {t:'body',e:'👂',q:'耳朵是用來做什麼的？',a:['看東西','說話','聽聲音','聞氣味'],c:2},
+  {t:'body',e:'👃',q:'鼻子是用來做什麼的？',a:['聽音樂','聞味道','看東西','嘗味道'],c:1},
+  {t:'body',e:'🦷',q:'人有幾顆乳牙？',a:['10顆','16顆','20顆','24顆'],c:2},
+  {t:'body',e:'🫀',q:'心臟在身體哪裡？',a:['肚子','頭部','胸部','背部'],c:2},
+  {t:'body',e:'🦴',q:'人體最長的骨頭在哪裡？',a:['手臂','大腿','背部','腳踝'],c:1},
+  {t:'body',e:'🧠',q:'腦袋在身體哪個部位？',a:['胸部','肚子','頭部','背部'],c:2},
+  {t:'body',e:'🫁',q:'用來呼吸的器官叫什麼？',a:['胃','腸','肺','肝'],c:2},
+  {t:'body',e:'💪',q:'手臂上的肌肉叫什麼？',a:['骨骼','二頭肌','神經','血管'],c:1},
+  {t:'body',e:'👣',q:'人有幾根腳趾？',a:['8根','9根','10根','12根'],c:2},
+  // 宇宙
+  {t:'space',e:'🌙',q:'月亮繞著什麼轉？',a:['太陽','地球','火星','木星'],c:1},
+  {t:'space',e:'⭐',q:'晚上天空看到的光點是什麼？',a:['衛星','飛機','星星','燈泡'],c:2},
+  {t:'space',e:'🚀',q:'人坐什麼去太空？',a:['飛機','直升機','火箭','熱氣球'],c:2},
+  {t:'space',e:'🪐',q:'哪個星球有美麗的環？',a:['地球','火星','土星','木星'],c:2},
+  {t:'space',e:'☀️',q:'太陽系中最大的是什麼？',a:['月亮','地球','木星','太陽'],c:3},
+  {t:'space',e:'🌍',q:'地球是什麼形狀？',a:['正方形','平的','球形','三角形'],c:2},
+  {t:'space',e:'🌑',q:'月亮不見了叫什麼？',a:['滿月','半月','新月','弦月'],c:2},
+  {t:'space',e:'🌠',q:'流星是什麼？',a:['墜落的衛星','隕石燃燒','飛機噴氣','燈光反射'],c:1},
+  {t:'space',e:'🔭',q:'研究天空的科學家用什麼工具？',a:['顯微鏡','望遠鏡','計算機','溫度計'],c:1},
+  {t:'space',e:'👨‍🚀',q:'去過太空的人叫什麼？',a:['飛行員','太空人','水手','探險家'],c:1},
+];
+
+let playerName='', numQ=10, topic='all', questions=[], curQ=0, score=0, streak=0, maxStreak=0;
+let llUsed={5050:false,audience:false,phone:false};
+let timer=null, timeLeft=15, totalTime=0, answered=false;
+let correctCount=0;
+
+// Setup interactions
+document.querySelectorAll('[data-q]').forEach(b=>{
+  b.addEventListener('click',function(){
+    document.querySelectorAll('[data-q]').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+document.querySelectorAll('[data-topic]').forEach(b=>{
+  b.addEventListener('click',function(){
+    document.querySelectorAll('[data-topic]').forEach(x=>x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+document.getElementById('start-btn').addEventListener('click',function(){
+  playerName=document.getElementById('player-name').value.trim()||'玩家';
+  numQ=parseInt(document.querySelector('[data-q].active').dataset.q);
+  topic=document.querySelector('[data-topic].active').dataset.topic;
+  startGame();
+});
+
+function startGame(){
+  let pool=topic==='all'?[...ALL_QS]:ALL_QS.filter(q=>q.t===topic);
+  // shuffle and pick numQ
+  pool.sort(()=>Math.random()-.5);
+  questions=pool.slice(0,Math.min(numQ,pool.length));
+  // if not enough, repeat
+  while(questions.length<numQ){
+    const extra=[...pool].sort(()=>Math.random()-.5);
+    questions=[...questions,...extra];
+  }
+  questions=questions.slice(0,numQ);
+
+  curQ=0;score=0;streak=0;maxStreak=0;correctCount=0;totalTime=0;
+  llUsed={5050:false,audience:false,phone:false};
+  showScreen('screen-game');
+  resetLifelines();
+  loadQuestion();
+}
+
+function loadQuestion(){
+  if(curQ>=questions.length){showResult();return;}
+  answered=false;
+  const q=questions[curQ];
+  document.getElementById('q-counter').textContent='題 '+(curQ+1)+' / '+questions.length;
+  document.getElementById('q-emoji').textContent=q.e;
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('score').textContent=score;
+  document.getElementById('feedback').textContent='';
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('streak').textContent=streak>=3?'🔥 連答 '+streak+' 題！':'';
+  document.getElementById('audience-box').style.display='none';
+  document.getElementById('phone-box').style.display='none';
+
+  // build answer buttons
+  const grid=document.getElementById('ans-grid');
+  grid.innerHTML='';
+  const labels=['A','B','C','D'];
+  q.a.forEach((ans,i)=>{
+    const b=document.createElement('button');
+    b.className='ans-btn';
+    b.id='ans-'+i;
+    b.innerHTML='<b>'+labels[i]+'</b>　'+ans;
+    b.addEventListener('click',function(){selectAnswer(i);});
+    grid.appendChild(b);
+  });
+
+  startTimer();
+}
+
+function startTimer(){
+  clearInterval(timer);
+  timeLeft=15;
+  const bar=document.getElementById('timer-bar');
+  bar.style.transition='none';
+  bar.style.width='100%';
+  bar.className='timer-bar';
+  setTimeout(()=>{
+    bar.style.transition='width 15s linear';
+    bar.style.width='0%';
+  },50);
+  timer=setInterval(()=>{
+    timeLeft--;
+    if(timeLeft<=5)bar.className='timer-bar urgent';
+    if(timeLeft<=0){
+      clearInterval(timer);
+      if(!answered)timeUp();
+    }
+  },1000);
+}
+
+function timeUp(){
+  answered=true;
+  totalTime+=15;
+  const q=questions[curQ];
+  document.getElementById('ans-'+q.c).classList.add('correct');
+  document.querySelectorAll('.ans-btn').forEach(b=>b.classList.add('disabled'));
+  streak=0;
+  document.getElementById('feedback').textContent='⏰ 時間到！';
+  document.getElementById('feedback').className='feedback wrong';
+  setTimeout(()=>{curQ++;loadQuestion();},1500);
+}
+
+function selectAnswer(idx){
+  if(answered)return;
+  answered=true;
+  clearInterval(timer);
+  totalTime+=(15-timeLeft);
+  const q=questions[curQ];
+  const correct=idx===q.c;
+  document.querySelectorAll('.ans-btn').forEach(b=>b.classList.add('disabled'));
+  document.getElementById('ans-'+idx).classList.add(correct?'correct':'wrong');
+  if(!correct)document.getElementById('ans-'+q.c).classList.add('correct');
+
+  if(correct){
+    const bonus=Math.ceil(timeLeft/3);
+    const pts=10+bonus+(streak>=3?5:0);
+    score+=pts;
+    correctCount++;
+    streak++;
+    if(streak>maxStreak)maxStreak=streak;
+    document.getElementById('feedback').textContent='✅ 答對了！+'+pts+'分';
+    document.getElementById('feedback').className='feedback correct';
+    document.getElementById('streak').textContent=streak>=3?'🔥 連答 '+streak+' 題！':'';
+  } else {
+    streak=0;
+    document.getElementById('feedback').textContent='❌ 答錯了！';
+    document.getElementById('feedback').className='feedback wrong';
+    document.getElementById('streak').textContent='';
+  }
+  document.getElementById('score').textContent=score;
+  setTimeout(()=>{curQ++;loadQuestion();},1400);
+}
+
+function resetLifelines(){
+  llUsed={5050:false,audience:false,phone:false};
+  ['5050','audience','phone'].forEach(ll=>{
+    const b=document.getElementById('ll-'+ll);
+    b.classList.remove('used');
+  });
+}
+
+document.getElementById('ll-5050').addEventListener('click',function(){
+  if(llUsed['5050']||answered)return;
+  llUsed['5050']=true;
+  this.classList.add('used');
+  const q=questions[curQ];
+  const wrong=[];
+  for(let i=0;i<4;i++)if(i!==q.c)wrong.push(i);
+  wrong.sort(()=>Math.random()-.5);
+  wrong.slice(0,2).forEach(i=>{
+    const b=document.getElementById('ans-'+i);
+    b.classList.add('eliminated','disabled');
+  });
+});
+
+document.getElementById('ll-audience').addEventListener('click',function(){
+  if(llUsed['audience']||answered)return;
+  llUsed['audience']=true;
+  this.classList.add('used');
+  const q=questions[curQ];
+  // generate fake but biased votes
+  const votes=[0,0,0,0];
+  const correctVotes=50+Math.floor(Math.random()*30); // 50-80% for correct
+  votes[q.c]=correctVotes;
+  let rem=100-correctVotes;
+  for(let i=0;i<4;i++){
+    if(i===q.c)continue;
+    const v=i===3?rem:Math.floor(Math.random()*rem*.7);
+    votes[i]=v; rem-=v;
+  }
+  const labels=['A','B','C','D'];
+  const box=document.getElementById('audience-box');
+  const bars=document.getElementById('audience-bars');
+  bars.innerHTML='';
+  votes.forEach((v,i)=>{
+    bars.innerHTML+=`<div class="bar-row">
+      <div class="bar-label">${labels[i]}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:0%" id="bar-${i}"></div></div>
+      <div class="bar-pct">${v}%</div>
+    </div>`;
+  });
+  box.style.display='block';
+  setTimeout(()=>{
+    votes.forEach((v,i)=>{document.getElementById('bar-'+i).style.width=v+'%';});
+  },100);
+});
+
+document.getElementById('ll-phone').addEventListener('click',function(){
+  if(llUsed['phone']||answered)return;
+  llUsed['phone']=true;
+  this.classList.add('used');
+  const q=questions[curQ];
+  const ans=q.a[q.c];
+  const phrases=[
+    '我覺得應該是「'+ans+'」，不過你自己再想想看！',
+    '嗯…我比較確定是「'+ans+'」這個答案喔！',
+    '「'+ans+'」！我剛好查過這個，應該沒錯！',
+    '這題我知道！是「'+ans+'」！',
+  ];
+  document.getElementById('phone-msg').textContent=phrases[Math.floor(Math.random()*phrases.length)];
+  document.getElementById('phone-box').style.display='block';
+});
+
+document.getElementById('quit-btn').addEventListener('click',function(){
+  clearInterval(timer);
+  showResult();
+});
+
+function showResult(){
+  clearInterval(timer);
+  showScreen('screen-result');
+  const pct=Math.round(correctCount/questions.length*100);
+  let emoji='😢',msg='繼續加油！';
+  if(pct>=90){emoji='🏆';msg='超級厲害！'}
+  else if(pct>=70){emoji='🌟';msg='答得很好！'}
+  else if(pct>=50){emoji='👍';msg='不錯喔！'}
+  document.getElementById('res-emoji').textContent=emoji;
+  document.getElementById('res-score').textContent=score+' 分';
+  document.getElementById('res-sub').textContent=playerName+'，'+msg+' 答對 '+correctCount+'/'+questions.length+' 題（'+pct+'%）';
+  document.getElementById('res-correct').textContent=correctCount;
+  document.getElementById('res-streak').textContent=maxStreak;
+  const avg=questions.length>0?Math.round(totalTime/Math.max(correctCount+1,1)):0;
+  document.getElementById('res-time').textContent=avg+'秒';
+}
+
+document.getElementById('again-btn').addEventListener('click',startGame);
+document.getElementById('change-btn').addEventListener('click',()=>showScreen('screen-setup'));
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body></html>
