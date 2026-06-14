@@ -37,6 +37,7 @@ canvas{display:block;border-radius:12px;border:0.5px solid #2a2a4a;background:#0
 </head><body>
 <div class="app">
   <div class="topbar">
+    <button class="btn" onclick="window.location.href='/'">← 大廳</button>
     <h1>🌈 彩虹連連看</h1>
     <div class="meta">
       <span class="pill" id="lvl-pill">第 1 關</span>
@@ -271,7 +272,7 @@ function checkWin(){
     document.getElementById('win').textContent='🎉 過關！'+elapsed+'秒完成！';
     document.getElementById('next-btn').style.display='inline-block';
     document.getElementById('msg').textContent='';
-    window.parent.postMessage({type:'gameScore',game:'rainbow',score:elapsed,detail:'第'+(lvlIdx+1)+'關，'+elapsed+'秒'},'*');
+    localStorage.setItem('game_pending_score',JSON.stringify({game:'rainbow',score:elapsed,detail:'第'+(lvlIdx+1)+'關，'+elapsed+'秒'}));
     return;
   }
 
@@ -296,7 +297,7 @@ function checkWin(){
     document.getElementById('win').textContent='🎉 '+results[0].name+' 獲勝！';
     document.getElementById('next-btn').style.display='inline-block';
     document.getElementById('msg').textContent='';
-    window.parent.postMessage({type:'gameScore',game:'rainbow',score:Math.round(results[0].time/1000),detail:results[0].name+' 獲勝，第'+(lvlIdx+1)+'關'},'*');
+    localStorage.setItem('game_pending_score',JSON.stringify({game:'rainbow',score:Math.round(results[0].time/1000),detail:results[0].name+' 獲勝，第'+(lvlIdx+1)+'關'}));
   } else {
     curP=next;t0=Date.now();
     paths.forEach(p=>p.cells=[]);
