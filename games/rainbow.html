@@ -107,7 +107,7 @@ const LEVELS=[
   ]},
 ];
 
-const CELL=70,PAD=10;
+const PAD=10;let CELL=70;
 let lvlIdx=0,N,paths,drawing=false,curColor=-1,curPath=[],history=[],userGrid,epSet;
 let mode='solo',numP=1,curP=0,pTimes=[],pDone=[],t0=0,raf=null;
 
@@ -150,6 +150,7 @@ function loadLevel(idx){
   lvlIdx=idx;
   const lv=LEVELS[idx%LEVELS.length];
   N=lv.size;
+  CELL=Math.floor((Math.min(window.innerWidth-32,460)-PAD*2)/N);
   const sz=N*CELL+PAD*2;
   cv.width=sz;cv.height=sz;
 
