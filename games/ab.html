@@ -225,7 +225,16 @@ function submitGuess() {
   const { a, b } = calcAB(guess);
   addHistory(guess, a, b);
 
-  if (a === 4) { over = true; setTimeout(showWin, 350); }
+  if (a === 4) {
+    over = true;
+    try {
+      const lobby = JSON.parse(localStorage.getItem('game_lobby_v2') || '{}');
+      if (lobby.name) localStorage.setItem('game_pending_score', JSON.stringify({
+        game: 'ab', score: attempts, detail: `${attempts}次猜中`
+      }));
+    } catch(e) {}
+    setTimeout(showWin, 350);
+  }
   clearInputs(true);
 }
 
