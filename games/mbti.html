@@ -89,6 +89,13 @@ body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-c
 /* section body */
 .section-body{display:none}.section-body.active{display:block}
 
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>

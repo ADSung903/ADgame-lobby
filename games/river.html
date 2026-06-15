@@ -47,6 +47,13 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
 .controls-bot{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .history{max-height:80px;overflow-y:auto;font-size:11px;color:#567;line-height:1.8;text-align:center;margin-bottom:.5rem}
 
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>

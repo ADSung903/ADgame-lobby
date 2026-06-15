@@ -22,6 +22,13 @@ canvas{display:block;border-radius:10px;border:0.5px solid #444;touch-action:non
 .db:active{background:#3a3a3a;transform:scale(0.93)}
 .empty{width:48px;height:48px}
 
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 </style></head><body>
 <div class="app">
   <div class="topbar">
