@@ -8,7 +8,7 @@
 body{font-family:sans-serif;background:#0d0a14;color:#eee;display:flex;justify-content:center;align-items:flex-start;min-height:100dvh;overflow:hidden}
 .app{width:100%;max-width:400px;display:flex;flex-direction:column;height:100dvh;height:100vh;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
 
-.topbar{display:flex;align-items:center;padding:calc(.5rem .75rem; + env(safe-area-inset-top,0px));gap:.5rem;flex-shrink:0}
+.topbar{display:flex;align-items:center;padding-top:calc(.5rem + env(safe-area-inset-top,0px));padding-right:.75rem;padding-bottom:.5rem;padding-left:.75rem;gap:.5rem;flex-shrink:0}
 .back-btn{font-size:12px;padding:4px 10px;border-radius:8px;border:.5px solid #333;background:transparent;color:#aaa;cursor:pointer}
 h1{font-size:17px;font-weight:700;color:#f9a825;flex:1;text-align:center}
 
@@ -126,8 +126,12 @@ const dropLine = document.getElementById('drop-line');
 // ── 尺寸 ──────────────────────────────────────────────
 let W, H;
 function getSize(){
-  W = gameArea.clientWidth;
-  H = gameArea.clientHeight;
+  // 讀 canvas 自身的 BoundingRect（CSS 已排版後的真實尺寸）
+  const rect = canvas.getBoundingClientRect();
+  W = Math.round(rect.width)  || gameArea.clientWidth;
+  H = Math.round(rect.height) || gameArea.clientHeight;
+  canvas.width  = W;
+  canvas.height = H;
   return {W, H};
 }
 
@@ -160,6 +164,14 @@ function initEngine(){
 let animId;
 function gameLoop(){
   if(!gameOver) Engine.update(engine, 1000/60);
+  // 清除掉出世界的水果（落超過底牆 200px 就移除）
+  bodies = bodies.filter(({body})=>{
+    if(body.position.y > H + 200){
+      try{ World.remove(world, body); }catch(e){}
+      return false;
+    }
+    return true;
+  });
   draw();
   animId = requestAnimationFrame(gameLoop);
 }
@@ -438,7 +450,25 @@ bestScore = parseInt(localStorage.getItem(LS_BEST)||'0');
 document.getElementById('best').textContent = bestScore.toLocaleString();
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
-// 等 layout 穩定再初始化
-setTimeout(newGame, 100);
+// 等 layout + CSS 排版完成後再初始化
+const _ro = new ResizeObserver(entries => {
+  const {width, height} = entries[0].contentRect;
+  if(width > 0 && height > 0){
+    _ro.disconnect();
+    newGame();
+  }
+});
+_ro.observe(gameArea);
+
+// 螢幕旋轉 / resize 時重啟
+let _resizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(()=>{
+    const rect = canvas.getBoundingClientRect();
+    const nW = Math.round(rect.width), nH = Math.round(rect.height);
+    if(Math.abs(nW-W)>10 || Math.abs(nH-H)>10) newGame();
+  }, 300);
+});
 </script>
 </body></html>
