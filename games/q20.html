@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤔 20 個問題</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#05050f; font-family:'Segoe UI',system-ui,sans-serif; }
+  @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes popIn   { 0%{opacity:0;transform:scale(.7)} 70%{transform:scale(1.05)} 100%{opacity:1;transform:scale(1)} }
+  .fade-up { animation:fadeUp .32s ease-out; }
+  .pop-in  { animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
+  .btn-yes { background:linear-gradient(135deg,#065f46,#059669); }
+  .btn-no  { background:linear-gradient(135deg,#7f1d1d,#dc2626); }
+  .btn-yes:hover{ background:linear-gradient(135deg,#047857,#10b981); }
+  .btn-no:hover { background:linear-gradient(135deg,#991b1b,#ef4444); }
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-6 px-4">
+
+<!-- START -->
+<div id="s-start" class="w-full max-w-sm flex flex-col items-center text-center">
+  <div class="text-6xl mb-4 mt-4">🤔</div>
+  <h1 class="text-2xl font-black text-white mb-2">20 個問題</h1>
+  <p class="text-gray-500 text-sm leading-relaxed mb-5">
+    心裡默默想好一個
+    <span class="text-green-400 font-semibold">動物</span> 或
+    <span class="text-blue-400 font-semibold">日常用品</span><br>
+    電腦用「是 / 否」問題來猜猜看！
+  </p>
+  <div class="w-full bg-[#0a0a1a] border border-[#1e1e3a] rounded-2xl p-4 mb-5 text-left">
+    <p class="text-xs text-gray-600 uppercase tracking-widest mb-3">可以猜什麼？（40+ 種）</p>
+    <div class="grid grid-cols-2 gap-y-1 text-xs text-gray-400">
+      <span>🐱 貓　🐶 狗　🐘 大象</span><span>📱 手機　💻 電腦</span>
+      <span>🦈 鯊魚　🦋 蝴蝶</span><span>🛏️ 床　🪑 椅子</span>
+      <span>🐧 企鵝　🦁 獅子</span><span>✏️ 鉛筆　📚 書</span>
+    </div>
+  </div>
+  <div id="start-record" class="text-xs text-yellow-500 mb-4 min-h-[18px]"></div>
+  <button onclick="startGame()"
+    class="w-full py-4 rounded-2xl font-black text-lg bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white">
+    想好了，開始！
+  </button>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="hidden w-full max-w-sm flex flex-col" style="min-height:calc(100dvh - 3rem)">
+  <div class="flex items-center gap-3 mb-5">
+    <div class="flex-1 bg-[#1e1e3a] rounded-full h-1.5 overflow-hidden">
+      <div id="prog" class="h-full bg-violet-500 rounded-full transition-all duration-300" style="width:0%"></div>
+    </div>
+    <span id="q-num" class="text-xs text-gray-500 shrink-0 w-12 text-right">第 1 題</span>
+  </div>
+  <div class="flex-1 flex flex-col justify-center">
+    <div id="q-card" class="bg-[#0a0a1a] border border-[#1e1e3a] rounded-2xl p-6 text-center">
+      <p id="q-branch" class="text-xs text-gray-600 mb-3 h-4"></p>
+      <p id="q-text" class="text-lg font-semibold text-white leading-relaxed"></p>
+    </div>
+  </div>
+  <div class="mt-6 flex gap-3">
+    <button onclick="ans('no')"  class="btn-no  flex-1 py-5 rounded-2xl font-black text-2xl text-white active:scale-95 transition-all">✗ 否</button>
+    <button onclick="ans('yes')" class="btn-yes flex-1 py-5 rounded-2xl font-black text-2xl text-white active:scale-95 transition-all">✓ 是</button>
+  </div>
+  <p class="text-center text-xs text-gray-700 mt-3 mb-2">請誠實回答，電腦才能正確猜出答案</p>
+</div>
+
+<!-- GUESS -->
+<div id="s-guess" class="hidden w-full max-w-sm flex flex-col items-center text-center mt-6">
+  <div class="text-5xl mb-3">🎯</div>
+  <p class="text-gray-400 text-sm mb-1">問了 <span id="g-cnt" class="text-violet-400 font-black text-xl">0</span> 個問題後…</p>
+  <p class="text-gray-500 text-xs mb-4">我猜你心裡想的是</p>
+  <div class="pop-in w-full bg-[#0a0a1a] border border-violet-600 rounded-2xl p-6 mb-6">
+    <p id="g-text" class="text-3xl font-black text-white"></p>
+  </div>
+  <p class="text-gray-300 text-sm mb-4 font-semibold">電腦猜對了嗎？</p>
+  <div class="flex gap-3 w-full">
+    <button onclick="onResult(false)" class="btn-no  flex-1 py-4 rounded-2xl font-bold text-white active:scale-95 transition-all">✗ 猜錯了</button>
+    <button onclick="onResult(true)"  class="btn-yes flex-1 py-4 rounded-2xl font-bold text-white active:scale-95 transition-all">✓ 猜對了！</button>
+  </div>
+</div>
+
+<!-- COMPUTER WINS -->
+<div id="s-win" class="hidden w-full max-w-sm flex flex-col items-center text-center mt-6">
+  <div class="text-5xl mb-3">🤖</div>
+  <h2 class="text-xl font-black text-white mb-2">電腦猜對了！</h2>
+  <p id="w-msg" class="text-gray-400 text-sm mb-6 leading-relaxed"></p>
+  <button onclick="startGame()" class="w-full py-4 rounded-2xl font-black bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white mb-3">🔄 再玩一次</button>
+  <button onclick="goBack()"   class="w-full py-3 rounded-xl text-gray-600 text-sm hover:text-gray-300 transition-colors">← 回大廳</button>
+</div>
+
+<!-- PLAYER WINS -->
+<div id="s-stump" class="hidden w-full max-w-sm flex flex-col items-center text-center mt-6">
+  <div class="text-5xl mb-3">🏆</div>
+  <h2 class="text-xl font-black text-white mb-2">你難倒電腦了！</h2>
+  <p class="text-gray-400 text-sm mb-4">恭喜！電腦這次猜不到你想的東西</p>
+  <div class="w-full bg-[#0a0a1a] border border-yellow-700 rounded-2xl p-4 mb-5">
+    <p class="text-xs text-gray-500 mb-1">累計難倒電腦</p>
+    <p id="stump-total" class="text-3xl font-black text-yellow-400"></p>
+    <p class="text-xs text-gray-600 mt-1">次</p>
+  </div>
+  <button onclick="startGame()" class="w-full py-4 rounded-2xl font-black bg-yellow-600 hover:bg-yellow-500 active:scale-95 transition-all text-white mb-3">🔄 再挑戰</button>
+  <button onclick="goBack()"   class="w-full py-3 rounded-xl text-gray-600 text-sm hover:text-gray-300 transition-colors">← 回大廳</button>
+</div>
+
+<script>
+// ── 決策樹 ────────────────────────────────────────────────
+const T = {
+  q_root:       {type:"question",text:"你心裡想的是一種動物嗎？（包含昆蟲、魚類等所有動物）",                     yes:"q_vert",      no:"q_elec"},
+  q_vert:       {type:"question",text:"它是脊椎動物嗎？（有脊椎骨，例如魚、鳥、貓、狗）",                        yes:"q_mammal",    no:"q_insect"},
+  q_mammal:     {type:"question",text:"它是哺乳動物嗎？（恆溫、用乳汁哺育幼兒）",                                yes:"q_pet",       no:"q_bird"},
+  q_pet:        {type:"question",text:"它是常見的家庭寵物嗎？",                                                   yes:"q_cat",       no:"q_big"},
+  q_cat:        {type:"question",text:"它個性獨立、愛乾淨，而且會喵喵叫嗎？",                                    yes:"a_cat",       no:"q_small_pet"},
+  q_small_pet:  {type:"question",text:"它體型非常小，大約可以放在手掌上嗎？",                                     yes:"a_hamster",   no:"a_dog"},
+  q_big:        {type:"question",text:"它的體重超過 500 公斤嗎？（比一輛小轎車還重）",                           yes:"q_ocean",     no:"q_carn"},
+  q_ocean:      {type:"question",text:"它主要生活在海洋裡嗎？",                                                   yes:"a_whale",     no:"q_trunk"},
+  q_trunk:      {type:"question",text:"它有一條長長的、可自由伸縮的鼻子嗎？",                                    yes:"a_elephant",  no:"a_hippo"},
+  q_carn:       {type:"question",text:"它是肉食動物嗎？（主要靠獵捕其他動物維生）",                              yes:"q_stripe",    no:"q_farm"},
+  q_stripe:     {type:"question",text:"它身上有明顯的黑色條紋嗎？",                                               yes:"a_tiger",     no:"q_mane"},
+  q_mane:       {type:"question",text:"雄性的它有威武的濃密鬃毛嗎？",                                             yes:"a_lion",      no:"a_bear"},
+  q_farm:       {type:"question",text:"它是農場或牧場裡常見的家畜嗎？",                                           yes:"q_milk",      no:"a_rabbit"},
+  q_milk:       {type:"question",text:"它主要用來提供牛奶或乳製品嗎？",                                           yes:"a_cow",       no:"a_horse"},
+  q_bird:       {type:"question",text:"它是鳥類嗎？（身上有羽毛）",                                               yes:"q_fly",       no:"q_water"},
+  q_fly:        {type:"question",text:"它有翅膀，而且能夠飛行嗎？",                                               yes:"q_prey",      no:"q_polar"},
+  q_prey:       {type:"question",text:"它是猛禽嗎？（靠獵捕其他動物為食的大型鳥類）",                            yes:"a_eagle",     no:"q_talk"},
+  q_talk:       {type:"question",text:"它能模仿人類說話，常被當作寵物飼養嗎？",                                   yes:"a_parrot",    no:"a_pigeon"},
+  q_polar:      {type:"question",text:"它生活在南極，站起來像小人，但完全不會飛嗎？",                            yes:"a_penguin",   no:"a_chicken"},
+  q_water:      {type:"question",text:"它大部分時間生活在水裡嗎？",                                               yes:"q_fin",       no:"q_legs"},
+  q_fin:        {type:"question",text:"它有鰭嗎？（是魚類嗎？）",                                                 yes:"q_danger",    no:"a_frog"},
+  q_danger:     {type:"question",text:"它是令人聞風喪膽的海洋頂端掠食者，體型超過 2 公尺嗎？",                  yes:"a_shark",     no:"a_goldfish"},
+  q_legs:       {type:"question",text:"它有四條腿嗎？",                                                           yes:"a_lizard",    no:"a_snake"},
+  q_insect:     {type:"question",text:"它是昆蟲嗎？（有六條腿的節肢動物）",                                       yes:"q_ins_fly",   no:"q_web"},
+  q_ins_fly:    {type:"question",text:"它有翅膀，可以在空中飛行嗎？",                                             yes:"q_sting",     no:"a_ant"},
+  q_sting:      {type:"question",text:"它有螫針，被牠叮到會很痛嗎？",                                             yes:"a_bee",       no:"q_pattern"},
+  q_pattern:    {type:"question",text:"它的翅膀上有美麗、色彩繽紛的花紋嗎？",                                    yes:"a_butterfly", no:"a_mosquito"},
+  q_web:        {type:"question",text:"它會吐絲結網，靜靜等待獵物上門嗎？",                                      yes:"a_spider",    no:"a_crab"},
+
+  q_elec:       {type:"question",text:"它是電子產品嗎？（需要插電或充電才能使用）",                              yes:"q_comm",      no:"q_furniture"},
+  q_comm:       {type:"question",text:"它的主要功能是讓人與人之間溝通、通話或傳訊嗎？",                          yes:"q_portable",  no:"q_screen"},
+  q_portable:   {type:"question",text:"它小巧輕薄，可以放入口袋隨身攜帶嗎？",                                    yes:"a_phone",     no:"a_computer"},
+  q_screen:     {type:"question",text:"它有大螢幕，通常擺在客廳或房間裡看影片嗎？",                              yes:"a_tv",        no:"a_microwave"},
+  q_furniture:  {type:"question",text:"它是家中常見的傢俱嗎？（體積較大的室內擺設）",                            yes:"q_sleep",     no:"q_write"},
+  q_sleep:      {type:"question",text:"它主要是用來躺上去睡覺或休息的嗎？",                                      yes:"a_bed",       no:"q_sit"},
+  q_sit:        {type:"question",text:"你可以坐在它上面嗎？",                                                     yes:"a_chair",     no:"a_table"},
+  q_write:      {type:"question",text:"它是用來書寫的文具嗎？",                                                   yes:"q_ink",       no:"q_kitchen"},
+  q_ink:        {type:"question",text:"它裡面裝有墨水嗎？",                                                       yes:"a_pen",       no:"a_pencil"},
+  q_kitchen:    {type:"question",text:"它是廚房或餐桌上的常見用品嗎？",                                           yes:"q_container", no:"q_wear"},
+  q_container:  {type:"question",text:"它主要用來盛裝飲料或液體嗎？",                                             yes:"a_cup",       no:"a_chopsticks"},
+  q_wear:       {type:"question",text:"它是穿戴在腳上的嗎？",                                                     yes:"a_shoes",     no:"a_book"},
+
+  a_cat:        {type:"answer", text:"🐱 貓咪"},
+  a_hamster:    {type:"answer", text:"🐹 倉鼠"},
+  a_dog:        {type:"answer", text:"🐶 狗狗"},
+  a_whale:      {type:"answer", text:"🐋 鯨魚"},
+  a_elephant:   {type:"answer", text:"🐘 大象"},
+  a_hippo:      {type:"answer", text:"🦛 河馬"},
+  a_tiger:      {type:"answer", text:"🐯 老虎"},
+  a_lion:       {type:"answer", text:"🦁 獅子"},
+  a_bear:       {type:"answer", text:"🐻 熊"},
+  a_cow:        {type:"answer", text:"🐄 牛"},
+  a_horse:      {type:"answer", text:"🐴 馬"},
+  a_rabbit:     {type:"answer", text:"🐰 兔子"},
+  a_eagle:      {type:"answer", text:"🦅 老鷹"},
+  a_parrot:     {type:"answer", text:"🦜 鸚鵡"},
+  a_pigeon:     {type:"answer", text:"🕊️ 鴿子"},
+  a_penguin:    {type:"answer", text:"🐧 企鵝"},
+  a_chicken:    {type:"answer", text:"🐔 雞"},
+  a_shark:      {type:"answer", text:"🦈 鯊魚"},
+  a_goldfish:   {type:"answer", text:"🐟 金魚"},
+  a_frog:       {type:"answer", text:"🐸 青蛙"},
+  a_lizard:     {type:"answer", text:"🦎 蜥蜴"},
+  a_snake:      {type:"answer", text:"🐍 蛇"},
+  a_bee:        {type:"answer", text:"🐝 蜜蜂"},
+  a_butterfly:  {type:"answer", text:"🦋 蝴蝶"},
+  a_mosquito:   {type:"answer", text:"🦟 蚊子"},
+  a_ant:        {type:"answer", text:"🐜 螞蟻"},
+  a_spider:     {type:"answer", text:"🕷️ 蜘蛛"},
+  a_crab:       {type:"answer", text:"🦀 螃蟹"},
+  a_phone:      {type:"answer", text:"📱 手機"},
+  a_computer:   {type:"answer", text:"💻 電腦"},
+  a_tv:         {type:"answer", text:"📺 電視"},
+  a_microwave:  {type:"answer", text:"♨️ 微波爐"},
+  a_bed:        {type:"answer", text:"🛏️ 床"},
+  a_chair:      {type:"answer", text:"🪑 椅子"},
+  a_table:      {type:"answer", text:"🍽️ 桌子"},
+  a_pen:        {type:"answer", text:"🖊️ 原子筆"},
+  a_pencil:     {type:"answer", text:"✏️ 鉛筆"},
+  a_cup:        {type:"answer", text:"☕ 杯子"},
+  a_chopsticks: {type:"answer", text:"🥢 筷子"},
+  a_shoes:      {type:"answer", text:"👟 鞋子"},
+  a_book:       {type:"answer", text:"📚 書"}
+};
+
+// ── 狀態 ──────────────────────────────────────────────────
+let node, qCount, branch, stumpCount;
+const LS = 'q20_save';
+
+function load() {
+  try { stumpCount = JSON.parse(localStorage.getItem(LS) || '0'); } catch(e) { stumpCount = 0; }
+}
+
+function saveStump() {
+  localStorage.setItem(LS, JSON.stringify(stumpCount));
+}
+
+// ── 畫面切換 ──────────────────────────────────────────────
+const SCREENS = ['s-start','s-game','s-guess','s-win','s-stump'];
+function show(id) {
+  SCREENS.forEach(s => document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+// ── 遊戲流程 ──────────────────────────────────────────────
+function startGame() {
+  node = T['q_root'];
+  qCount = 0;
+  branch = null;
+  renderQ();
+  show('s-game');
+}
+
+function renderQ() {
+  const card = document.getElementById('q-card');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.classList.add('fade-up');
+
+  document.getElementById('q-text').textContent = node.text;
+  document.getElementById('q-num').textContent = `第 ${qCount + 1} 題`;
+  document.getElementById('prog').style.width = `${Math.min(100, (qCount / 20) * 100)}%`;
+
+  const b = document.getElementById('q-branch');
+  if (!branch)           b.textContent = '🎯 開始縮小範圍';
+  else if (branch === 'a') b.textContent = '🐾 範圍：動物';
+  else                   b.textContent = '🏠 範圍：日常用品';
+}
+
+function ans(choice) {
+  qCount++;
+  if (node.id === 'q_root' || !branch) {
+    branch = choice === 'yes' ? 'a' : 'o';
+  }
+  const next = node[choice];
+  node = T[next];
+
+  if (!node) { show('s-start'); return; }
+
+  if (node.type === 'answer') {
+    document.getElementById('g-text').textContent = node.text;
+    document.getElementById('g-cnt').textContent = qCount;
+    show('s-guess');
+  } else {
+    renderQ();
+  }
+}
+
+function onResult(correct) {
+  if (correct) {
+    const msgs = [
+      `只花了 ${qCount} 個問題就猜到了！`,
+      `哈哈，難不倒我 😎 換個更難的吧！`,
+      `邏輯樹大法無敵，${qCount} 題搞定！`
+    ];
+    document.getElementById('w-msg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    show('s-win');
+    submitScore(false);
+  } else {
+    stumpCount++;
+    saveStump();
+    document.getElementById('stump-total').textContent = stumpCount;
+    show('s-stump');
+    submitScore(true);
+  }
+}
+
+function submitScore(stumped) {
+  try {
+    const lobby = JSON.parse(localStorage.getItem('game_lobby_v2') || '{}');
+    if (!lobby.name) return;
+    localStorage.setItem('game_pending_score', JSON.stringify({
+      game: 'q20',
+      score: stumpCount,
+      detail: stumped ? `難倒電腦！(${qCount}題)` : `電腦猜中 (${qCount}題)`
+    }));
+  } catch(e) {}
+}
+
+function goBack() { window.location.href = '../'; }
+
+// ── 初始化 ────────────────────────────────────────────────
+load();
+const rec = document.getElementById('start-record');
+if (stumpCount > 0) rec.textContent = `🏆 你已累計難倒電腦 ${stumpCount} 次！`;
+show('s-start');
+</script>
+</body>
+</html>
