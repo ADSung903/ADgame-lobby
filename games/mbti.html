@@ -281,6 +281,14 @@ function showResult(){
   document.getElementById('str-tags').innerHTML=t.str.map(s=>`<span class="tag good">${s}</span>`).join('');
   document.getElementById('weak-tags').innerHTML=t.weak.map(s=>`<span class="tag weak">${s}</span>`).join('');
   document.getElementById('result-famous').textContent=t.famous;
+
+// 儲存到 localStorage（僅本機，不上傳）
+try {
+  const d = JSON.parse(localStorage.getItem('game_lobby_v2') || '{}');
+  if (!d.self) d.self = {};
+  d.self.mbti = { type, name: t.name, icon: t.icon, date: new Date().toLocaleDateString('zh-TW') };
+  localStorage.setItem('game_lobby_v2', JSON.stringify(d));
+} catch(e) {}
 }
 
 function shareResult(){
