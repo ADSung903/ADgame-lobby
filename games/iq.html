@@ -405,15 +405,14 @@ function showResult(){
         <span style="font-size:10px;color:#4a6a8a">${r.cat.split(' ')[0]}</span>
       </div>`).join('');
 
-  // 儲存成績
-  try{
-    const d = JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
-    if(d.name){
-      localStorage.setItem('game_pending_score', JSON.stringify({
-        game:'iq', score:correctCount, detail:m+'分'+s+'秒，'+correctCount+'/20題'
-      }));
-    }
-  }catch(e){}
+
+// 儲存 IQ 結果到 localStorage（僅本機，不上傳）
+try {
+  const d = JSON.parse(localStorage.getItem('game_lobby_v2') || '{}');
+  if (!d.self) d.self = {};
+  d.self.iq = { score: correctCount, total: questions.length, date: new Date().toLocaleDateString('zh-TW') };
+  localStorage.setItem('game_lobby_v2', JSON.stringify(d));
+} catch(e) {}
 }
 
 function showScreen(id){
