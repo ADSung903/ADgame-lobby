@@ -5,10 +5,11 @@
 <title>🎮 歡樂遊戲大廳</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
-<meta name="theme-color" content="#7c3aed">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ADgame">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7c3aed">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;padding:1rem}
@@ -115,6 +116,14 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .cl-fix{background:#1a0a0a;color:#fca5a5;border-left:2px solid #ef4444}
 .cl-item code{background:#0d0d22;padding:1px 5px;border-radius:3px;font-size:11px;color:#c4b5fd}
 
+
+  /* 防長按選單（只套非互動元素，不影響點擊）*/
+  canvas, img, .game-card, .gc-icon, .gc-badge, .gc-name, .gc-desc, .gc-best, .gc-unplayed,
+  .result-card, .dim-bars, .lb-row, .catch-row, .cl-item, .cl-version {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 </style>
 </head><body>
 
@@ -196,7 +205,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
         </div>
         <div class="cl-items">
           <div class="cl-item cl-new">🚀 部署至 Vercel — <code>a-dgame-lobby.vercel.app</code> 正式上線</div>
-          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung/ADgame-lobby</code></div>
+          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung903/ADgame-lobby</code></div>
           <div class="cl-item cl-new">⚙️ vercel.json 路由設定</div>
           <div class="cl-item cl-improve">🔧 修正所有遊戲返回大廳按鈕</div>
           <div class="cl-item cl-improve">🔧 成績回傳改用 localStorage（postMessage → localStorage）</div>
@@ -233,6 +242,21 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
           <div class="cl-item cl-new">🔍 「探索自我」獨立分區 — 不計入總分，僅本機儲存</div>
           <div class="cl-item cl-new">📊 個人成績頁顯示 MBTI / IQ 結果，標註「僅自己可見」</div>
           <div class="cl-item cl-improve">🎨 大廳分類重整：益智遊戲 / 探索自我 兩區</div>
+        </div>
+      </div>
+
+      <!-- v1.4 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.5</span>
+          <span class="cl-ver-title">新遊戲 · 益智擴充</span>
+          <span class="cl-ver-date">本次更新</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🔢 2048 — 合併數字益智經典，支援滑動/鍵盤/WASD，悔一步功能，Firebase 排行榜</div>
+          <div class="cl-item cl-fix">🎣 深海釣魚 HUD 避開 iOS 狀態列，海面比例調整，稀有魚深度上移</div>
+          <div class="cl-item cl-fix">📱 全遊戲加入 viewport-fit=cover 和 safe-area，修正 iPhone 遮蔽問題</div>
+          <div class="cl-item cl-fix">🐛 iOS Safari 點擊失效修正（a→div+onclick）</div>
         </div>
       </div>
 
@@ -352,6 +376,7 @@ const GAMES = [
   {id:'quiz',       name:'機智問答',   icon:'🧠', badge:'知識',   desc:'兒童題庫 + 三種求救方式！',             file:'games/quiz.html',       unit:'分',  lower:false, category:'game'},
   {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',         file:'games/cell.html',       unit:'分',  lower:false, category:'game'},
   {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',   file:'games/mine.html',       unit:'秒',  lower:true,  category:'game'},
+  {id:'2048',       name:'2048',       icon:'🔢', badge:'益智',   desc:'合併數字拼出 2048，停不下來的益智經典！', file:'games/2048.html',       unit:'分',  lower:false, category:'game'},
   {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',     file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
   {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',   file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
 ];
@@ -684,5 +709,14 @@ if(!DB.name){
 </script>
 <script>
   document.addEventListener('contextmenu', e => e.preventDefault());
+
+  // 註冊 Service Worker（PWA 離線支援）
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      console.log('SW registered:', reg.scope);
+    }).catch(err => {
+      console.log('SW failed:', err);
+    });
+  }
 </script>
 </body></html>
