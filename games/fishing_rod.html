@@ -8,7 +8,7 @@ body{font-family:sans-serif;background:#000a14;color:#eee;display:flex;justify-c
 .screen{visibility:hidden;position:absolute;inset:0;pointer-events:none}
 .screen.active{visibility:visible;pointer-events:auto}
 
-#screen-title{background:linear-gradient(180deg,#000a14 0%,#001428 60%,#002040 100%);display:flex;align-items:center;justify-content:center;flex-direction:column}
+#screen-title{background:linear-gradient(180deg,#000a14 0%,#001428 60%,#002040 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;padding-top:env(safe-area-inset-top,44px)}
 .title-card{background:rgba(0,15,30,.9);border:1px solid #1e4a7a;border-radius:20px;padding:2rem 1.5rem;text-align:center;z-index:10;width:88%;max-width:340px}
 .title-card h1{font-size:26px;font-weight:700;margin-bottom:.3rem}
 .title-card p{font-size:13px;color:#7ab;line-height:1.7;margin-bottom:1.2rem}
