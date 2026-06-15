@@ -6,7 +6,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:sans-serif;background:#0d0a14;color:#eee;display:flex;justify-content:center;align-items:flex-start;min-height:100dvh;overflow:hidden}
-.app{width:100%;max-width:400px;display:flex;flex-direction:column;height:100dvh;height:100vh;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.app{width:100%;max-width:400px;display:flex;flex-direction:column;height:100vh;height:100dvh;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
 
 .topbar{display:flex;align-items:center;padding-top:calc(.5rem + env(safe-area-inset-top,0px));padding-right:.75rem;padding-bottom:.5rem;padding-left:.75rem;gap:.5rem;flex-shrink:0}
 .back-btn{font-size:12px;padding:4px 10px;border-radius:8px;border:.5px solid #333;background:transparent;color:#aaa;cursor:pointer}
@@ -150,7 +150,7 @@ function initEngine(){
   World.add(world, [
     Bodies.rectangle(-5, H/2, 10, H*2, wallOpts),
     Bodies.rectangle(W+5, H/2, 10, H*2, wallOpts),
-    Bodies.rectangle(W/2, H+5, W*2, 10, wallOpts),
+    Bodies.rectangle(W/2, H-18, W*2, 14, wallOpts),
   ]);
 
   bodies = [];
