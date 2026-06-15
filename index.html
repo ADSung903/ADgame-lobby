@@ -205,7 +205,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
         </div>
         <div class="cl-items">
           <div class="cl-item cl-new">🚀 部署至 Vercel — <code>a-dgame-lobby.vercel.app</code> 正式上線</div>
-          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung903/ADgame-lobby</code></div>
+          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung/ADgame-lobby</code></div>
           <div class="cl-item cl-new">⚙️ vercel.json 路由設定</div>
           <div class="cl-item cl-improve">🔧 修正所有遊戲返回大廳按鈕</div>
           <div class="cl-item cl-improve">🔧 成績回傳改用 localStorage（postMessage → localStorage）</div>
@@ -254,6 +254,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
         </div>
         <div class="cl-items">
           <div class="cl-item cl-new">🔢 2048 — 合併數字益智經典，支援滑動/鍵盤/WASD，悔一步功能，Firebase 排行榜</div>
+          <div class="cl-item cl-new">🍉 西瓜合成 — Matter.js 物理引擎，11種水果掉落合成，連擊加分系統</div>
           <div class="cl-item cl-fix">🎣 深海釣魚 HUD 避開 iOS 狀態列，海面比例調整，稀有魚深度上移</div>
           <div class="cl-item cl-fix">📱 全遊戲加入 viewport-fit=cover 和 safe-area，修正 iPhone 遮蔽問題</div>
           <div class="cl-item cl-fix">🐛 iOS Safari 點擊失效修正（a→div+onclick）</div>
@@ -377,6 +378,7 @@ const GAMES = [
   {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',         file:'games/cell.html',       unit:'分',  lower:false, category:'game'},
   {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',   file:'games/mine.html',       unit:'秒',  lower:true,  category:'game'},
   {id:'2048',       name:'2048',       icon:'🔢', badge:'益智',   desc:'合併數字拼出 2048，停不下來的益智經典！', file:'games/2048.html',       unit:'分',  lower:false, category:'game'},
+  {id:'suika',      name:'西瓜合成',   icon:'🍉', badge:'物理',   desc:'水果掉落合成，越合越大直到西瓜！',       file:'games/suika.html',      unit:'分',  lower:false, category:'game'},
   {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',     file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
   {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',   file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
 ];
