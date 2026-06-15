@@ -114,6 +114,10 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .cl-improve{background:#0a1020;color:#93c5fd;border-left:2px solid #3b82f6}
 .cl-fix{background:#1a0a0a;color:#fca5a5;border-left:2px solid #ef4444}
 .cl-item code{background:#0d0d22;padding:1px 5px;border-radius:3px;font-size:11px;color:#c4b5fd}
+
+  /* 防止長按選取 */
+  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style>
 </head><body>
 
@@ -680,5 +684,12 @@ if(!DB.name){
   setTimeout(()=>document.getElementById('welcome-name-inp').focus(), 100);
   document.getElementById('welcome-name-inp').addEventListener('keydown', e=>{ if(e.key==='Enter') window.confirmWelcome(); });
 }
+</script>
+<script>
+  /* 鎖右鍵與長按 */
+  document.addEventListener("contextmenu", e => e.preventDefault());
+  document.addEventListener("touchstart", e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
+  document.addEventListener("touchend", e => e.preventDefault(), {passive:false});
+  document.addEventListener("selectstart", e => e.preventDefault());
 </script>
 </body></html>
