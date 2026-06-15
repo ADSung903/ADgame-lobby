@@ -89,9 +89,6 @@ body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-c
 /* section body */
 .section-body{display:none}.section-body.active{display:block}
 
-  /* 防止長按選取 */
-  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
@@ -653,10 +650,6 @@ function clearAndStart(){
 })();
 </script>
 <script>
-  /* 鎖右鍵與長按 */
   document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('touchstart', e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
-  document.addEventListener('touchend', e => e.preventDefault(), {passive:false});
-  document.addEventListener('selectstart', e => e.preventDefault());
 </script>
 </body></html>

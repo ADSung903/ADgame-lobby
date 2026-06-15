@@ -22,9 +22,6 @@ canvas{display:block;border-radius:10px;border:0.5px solid #444;touch-action:non
 .db:active{background:#3a3a3a;transform:scale(0.93)}
 .empty{width:48px;height:48px}
 
-  /* 防止長按選取 */
-  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style></head><body>
 <div class="app">
   <div class="topbar">
@@ -235,10 +232,6 @@ document.getElementById('next-btn').onclick=()=>load(lvl+1,true);
 load(0);
 </script>
 <script>
-  /* 鎖右鍵與長按 */
   document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('touchstart', e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
-  document.addEventListener('touchend', e => e.preventDefault(), {passive:false});
-  document.addEventListener('selectstart', e => e.preventDefault());
 </script>
 </body></html>

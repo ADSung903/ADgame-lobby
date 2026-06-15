@@ -34,9 +34,6 @@ canvas{display:block;border-radius:12px;border:0.5px solid #2a2a4a;background:#0
 .sb-row.winner{color:#4ade80;font-weight:500}
 .controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 
-  /* 防止長按選取 */
-  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style>
 </head><body>
 <div class="app">
@@ -369,10 +366,6 @@ document.getElementById('next-btn').addEventListener('click',()=>loadLevel(lvlId
 loadLevel(0);
 </script>
 <script>
-  /* 鎖右鍵與長按 */
   document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('touchstart', e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
-  document.addEventListener('touchend', e => e.preventDefault(), {passive:false});
-  document.addEventListener('selectstart', e => e.preventDefault());
 </script>
 </body></html>

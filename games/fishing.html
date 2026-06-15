@@ -28,9 +28,6 @@ body{background:#060612;color:#eee;font-family:sans-serif;display:flex;justify-c
 .stat{font-size:13px;color:#aaa}
 .stat span{font-weight:500;color:#eee}
 
-  /* 防止長按選取 */
-  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style>
 </head><body>
 <div class="app">
@@ -174,10 +171,6 @@ document.getElementById('next-btn').onclick=()=>loadLevel(levelIdx+1);
 loadLevel(0);
 </script>
 <script>
-  /* 鎖右鍵與長按 */
   document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('touchstart', e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
-  document.addEventListener('touchend', e => e.preventDefault(), {passive:false});
-  document.addEventListener('selectstart', e => e.preventDefault());
 </script>
 </body></html>
