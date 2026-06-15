@@ -9,21 +9,16 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
 .btn:hover{background:#1a2a3a}.btn:active{transform:scale(0.97)}
 .big-btn{width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#1565c0,#1e88e5);color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-top:.5rem}
 .big-btn:active{transform:scale(0.98)}
-
-/* level select */
 .lvl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem}
 .lvl-card{background:#0d1f35;border:0.5px solid #1e3a5a;border-radius:12px;padding:.9rem;cursor:pointer;transition:all .15s}
 .lvl-card:hover{border-color:#1e88e5;background:#0f2540}
 .lvl-card h3{font-size:14px;font-weight:500;margin-bottom:4px}
 .lvl-card p{font-size:12px;color:#7ab;line-height:1.5}
 .lvl-card .diff{font-size:11px;margin-top:6px;color:#f90}
-
-/* game */
+.lvl-card .best{font-size:11px;margin-top:2px;color:#4ade80}
 .info-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
 .info-bar h2{font-size:15px;font-weight:500}
 .steps-pill{font-size:12px;padding:3px 10px;border-radius:20px;background:#0d1f35;border:0.5px solid #1e3a5a;color:#7ab}
-
-/* river scene */
 .scene{position:relative;height:200px;border-radius:14px;overflow:hidden;margin-bottom:.75rem;border:0.5px solid #1e3a5a}
 .bank{position:absolute;top:0;bottom:0;width:38%;background:#1a3a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
 .bank-left{left:0;border-right:2px solid #0a1628}
@@ -34,212 +29,167 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
 .wave:nth-child(2){top:55%;animation-delay:.7s}
 .wave:nth-child(3){top:75%;animation-delay:1.4s}
 @keyframes wave{0%{transform:translateX(-10px)}50%{transform:translateX(10px)}100%{transform:translateX(-10px)}}
-
-.boat{position:absolute;bottom:18%;width:60px;height:36px;background:#8b5e3c;border-radius:6px 6px 14px 14px;display:flex;align-items:center;justify-content:center;transition:left .6s ease;font-size:11px;color:#ffd;border:1.5px solid #5a3a1a}
-.boat-left{left:calc(38% - 30px)}
-.boat-right{left:calc(62% - 30px)}
-.boat-label{font-size:9px;color:#ffd;position:absolute;bottom:-18px;width:60px;text-align:center}
-
-.character{font-size:28px;cursor:pointer;transition:all .2s;user-select:none;line-height:1}
+.boat{position:absolute;bottom:18%;width:64px;height:38px;background:#8b5e3c;border-radius:6px 6px 14px 14px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:1px;transition:left .6s ease;border:1.5px solid #5a3a1a}
+.boat-left{left:calc(38% - 32px)}
+.boat-right{left:calc(62% - 32px)}
+.character{font-size:24px;cursor:pointer;transition:all .2s;user-select:none;line-height:1}
 .character:hover{transform:scale(1.15)}
-.character.on-boat{font-size:22px}
-.character.selected{filter:drop-shadow(0 0 6px #f90)}
-
+.character.on-boat{font-size:18px}
 .bank-label{font-size:10px;color:#4a8;position:absolute;top:6px}
-
-/* controls */
 .ctrl-panel{background:#0d1f35;border:0.5px solid #1e3a5a;border-radius:12px;padding:.9rem;margin-bottom:.6rem}
 .ctrl-panel h3{font-size:13px;color:#7ab;margin-bottom:.6rem}
 .ctrl-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-
 .msg-box{text-align:center;font-size:14px;min-height:24px;margin-bottom:.5rem;color:#ddd}
 .err-msg{color:#f66;animation:shake .3s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-
 .win-box{display:none;text-align:center;padding:.75rem;background:#0a2a0a;border:0.5px solid #2a6a2a;border-radius:12px;color:#6c6;font-size:15px;font-weight:500;margin-bottom:.6rem}
-.controls-bot{display:flex;gap:8px;justify-content:center}
-
-/* history */
+.hint-box{background:#0d2a1a;border:0.5px solid #1e5a3a;border-radius:10px;padding:.6rem .8rem;margin-bottom:.5rem;font-size:12px;color:#5ab;display:none;line-height:1.8}
+.controls-bot{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .history{max-height:80px;overflow-y:auto;font-size:11px;color:#567;line-height:1.8;text-align:center;margin-bottom:.5rem}
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
 <h1>🚣 過河難題</h1>
 
-<!-- LEVEL SELECT -->
 <div class="screen active" id="screen-levels">
   <div class="lvl-grid" id="lvl-grid"></div>
 </div>
 
-<!-- GAME -->
 <div class="screen" id="screen-game">
   <div class="info-bar">
     <h2 id="game-title"></h2>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;align-items:center">
       <span class="steps-pill">步數：<span id="step-count">0</span></span>
-      <span class="steps-pill" id="time-display" style="display:none">⏱️ <span id="time-used">0</span>/<span id="time-limit">15</span>分</span>
+      <span class="steps-pill" id="time-display" style="display:none">⏱ <span id="time-used">0</span>/<span id="time-limit">15</span>分</span>
     </div>
   </div>
-
-  <div class="scene" id="scene">
-    <div class="bank bank-left" id="bank-left">
-      <span class="bank-label">出發岸</span>
-    </div>
-    <div class="river">
-      <div class="wave"></div><div class="wave"></div><div class="wave"></div>
-    </div>
-    <div class="bank bank-right" id="bank-right">
-      <span class="bank-label">目標岸</span>
-    </div>
-    <div class="boat boat-left" id="boat">
-      <span id="boat-content"></span>
-    </div>
+  <div class="scene">
+    <div class="bank bank-left" id="bank-left"><span class="bank-label">出發岸</span></div>
+    <div class="river"><div class="wave"></div><div class="wave"></div><div class="wave"></div></div>
+    <div class="bank bank-right" id="bank-right"><span class="bank-label">目標岸</span></div>
+    <div class="boat boat-left" id="boat"></div>
   </div>
-
-  <div class="msg-box" id="msg-box">選擇要上船的角色，然後點船划過去！</div>
+  <div class="msg-box" id="msg-box"></div>
+  <div class="hint-box" id="hint-box"></div>
   <div class="win-box" id="win-box"></div>
-  <button class="big-btn" id="row-btn" onclick="rowBoat()">🚣 划過去！</button>
-
+  <button class="big-btn" onclick="rowBoat()">🚣 划過去！</button>
   <div class="ctrl-panel" style="margin-top:.6rem">
-    <h3>🎮 操作</h3>
+    <h3>🎮 點角色上下船</h3>
     <div class="ctrl-row" id="ctrl-row"></div>
   </div>
-
   <div class="history" id="history"></div>
-
   <div class="controls-bot">
     <button class="btn" id="back-lvl-btn">← 關卡選擇</button>
     <button class="btn" id="restart-btn">重新開始</button>
+    <button class="btn" id="hint-btn">💡 提示</button>
     <button class="btn" id="next-lvl-btn" style="display:none">下一關 ➜</button>
   </div>
 </div>
 
 <script>
-// Each level: title, cast (emoji+name), boat capacity, forbidden pairs (can't be left alone without farmer)
-// State: each character is on 'left', 'right', or 'boat'
-// farmer is always index 0 and must be on boat to row
-
 const LEVELS=[
   {
     title:'🌾 農夫渡河',
     desc:'狼、羊、白菜要渡河，船只能載一樣',
-    diff:'⭐ 入門',
-    capacity:1, // besides farmer
-    cast:[
-      {e:'👨‍🌾',name:'農夫',isFarmer:true},
-      {e:'🐺',name:'狼'},
-      {e:'🐑',name:'羊'},
-      {e:'🥬',name:'白菜'},
-    ],
-    // forbidden: pairs that eat each other when farmer not present
-    forbidden:[[1,2],[2,3]], // wolf+sheep, sheep+cabbage
+    diff:'⭐ 入門',capacity:1,
+    cast:[{e:'👨‍🌾',name:'農夫',isFarmer:true},{e:'🐺',name:'狼'},{e:'🐑',name:'羊'},{e:'🥬',name:'白菜'}],
+    forbidden:[[1,2],[2,3]], // 岸上不能單獨相處
     minSteps:7,
+    hint:'先把羊送過去，再送狼（或白菜），記得把羊帶回來！',
   },
   {
     title:'👨‍👩‍👧 三口之家',
     desc:'爸媽和兩個孩子，大人船才能划，每次載一人',
-    diff:'⭐⭐ 簡單',
-    capacity:1,
+    diff:'⭐⭐ 簡單',capacity:1,
     cast:[
       {e:'👨',name:'爸爸',isFarmer:true},
       {e:'👩',name:'媽媽'},
       {e:'👧',name:'女兒'},
       {e:'👦',name:'兒子'},
     ],
-    forbidden:[], // no eating, but need adult to row
-    minSteps:7,
-    note:'提示：大人才能划船',
+    forbidden:[],minSteps:7,
+    note:'大人才能划船！',
+    hint:'爸爸先送孩子，再回來接媽媽，輪流運送即可。',
   },
   {
     title:'🕯️ 夜渡橋',
-    desc:'四人過橋，只有一支火把，橋最多2人，需在時限內通過',
-    diff:'⭐⭐ 中等',
-    capacity:2,
+    desc:'四人過橋，只有一支火把，橋最多2人，需在15分鐘內通過',
+    diff:'⭐⭐ 中等',capacity:2,
     cast:[
       {e:'🏃',name:'快(1分)',speed:1},
       {e:'🚶',name:'速(2分)',speed:2},
       {e:'🧓',name:'慢(5分)',speed:5},
       {e:'🐢',name:'最慢(8分)',speed:8},
     ],
-    forbidden:[],
-    minSteps:5,
-    isBridge:true,
-    timeLimit:15,
+    forbidden:[],minSteps:5,isBridge:true,timeLimit:15,
     note:'過橋速度取最慢者，回程必須1人帶火把',
+    hint:'最佳解：快+速→(2分)、快回(1分)、慢+最慢→(8分)、速回(2分)、快+速→(2分)，共15分！',
   },
   {
     title:'⚔️ 三對夫妻',
     desc:'三對夫妻過河，船載2人，妻子不能在丈夫不在時與其他男人同岸',
-    diff:'⭐⭐⭐ 困難',
-    capacity:2,
+    diff:'⭐⭐⭐ 困難',capacity:2,
     cast:[
-      {e:'👨',name:'夫A',couple:0},
+      {e:'👨',name:'夫A',couple:0,isFarmer:true},
       {e:'👩',name:'妻A',couple:0},
       {e:'🧔',name:'夫B',couple:1},
       {e:'💁‍♀️',name:'妻B',couple:1},
       {e:'👴',name:'夫C',couple:2},
       {e:'👵',name:'妻C',couple:2},
     ],
-    forbidden:[],
-    isCouples:true,
-    minSteps:11,
+    forbidden:[],isCouples:true,minSteps:11,
+    hint:'先送兩位妻子過去，一位妻子回來帶船，再送兩位丈夫...',
   },
   {
     title:'🏺 五寶渡河',
-    desc:'法師帶5樣寶物，船載3樣，特定組合會起衝突',
-    diff:'⭐⭐⭐ 困難',
-    capacity:3,
+    desc:'法師帶5樣寶物，每次最多帶2樣，同船的組合不能衝突',
+    diff:'⭐⭐⭐ 困難',capacity:2,
     cast:[
       {e:'🧙',name:'法師',isFarmer:true},
-      {e:'🔥',name:'火'},
-      {e:'💧',name:'水'},
-      {e:'⚡',name:'雷'},
-      {e:'🌿',name:'草'},
-      {e:'🪨',name:'石'},
+      {e:'🔥',name:'火'},{e:'💧',name:'水'},
+      {e:'⚡',name:'雷'},{e:'🌿',name:'草'},{e:'🪨',name:'石'},
     ],
+    // ✅ 關鍵：boatForbiddenOnly=true 表示只檢查「同船」衝突，不檢查岸上
     forbidden:[[1,2],[2,3],[3,4],[4,5],[5,1]],
+    boatForbiddenOnly:true,
     minSteps:5,
+    hint:'帶火+石→、法師回←、帶水+草→、法師回←、帶雷→，共5步！',
   },
 ];
 
-let curLvl=0, state={}, steps=0, boatSide='left', boatPassengers=[], won=false, historyLog=[], timeUsed=0;
+const LS_KEY='river_best_v2';
+function loadBest(){try{return JSON.parse(localStorage.getItem(LS_KEY))||{};}catch{return{};}}
+function saveBest(d){localStorage.setItem(LS_KEY,JSON.stringify(d));}
+let bestScores=loadBest();
 
-// Build level select
-const grid=document.getElementById('lvl-grid');
+let curLvl=0,state={},steps=0,boatSide='left',boatPass=[],won=false,histLog=[],timeUsed=0;
+
+// build level select
+const lgrid=document.getElementById('lvl-grid');
 LEVELS.forEach((lv,i)=>{
-  const c=document.createElement('div');
-  c.className='lvl-card';
-  c.innerHTML='<h3>'+lv.title+'</h3><p>'+lv.desc+'</p><div class="diff">'+lv.diff+(lv.minSteps?' · 最少'+lv.minSteps+'步':'')+'</div>';
-  c.addEventListener('click',function(){loadLevel(i);});
-  grid.appendChild(c);
+  const best=bestScores[i];
+  const c=document.createElement('div');c.className='lvl-card';
+  c.innerHTML='<h3>'+lv.title+'</h3><p>'+lv.desc+'</p><div class="diff">'+lv.diff+' · 最少'+lv.minSteps+'步</div>'+(best?'<div class="best">✅ 最佳：'+best+'步</div>':'');
+  c.addEventListener('click',()=>loadLevel(i));
+  lgrid.appendChild(c);
 });
 
 function loadLevel(idx){
-  curLvl=idx;
-  const lv=LEVELS[idx];
-  steps=0; boatSide='left'; boatPassengers=[]; won=false; historyLog=[];
-  // init state: all on left
-  state={};
-  lv.cast.forEach((_,i)=>state[i]='left');
+  curLvl=idx;const lv=LEVELS[idx];
+  steps=0;boatSide='left';boatPass=[];won=false;histLog=[];timeUsed=0;
+  state={};lv.cast.forEach((_,i)=>state[i]='left');
   showScreen('screen-game');
   document.getElementById('game-title').textContent=lv.title;
   document.getElementById('step-count').textContent=0;
   document.getElementById('win-box').style.display='none';
   document.getElementById('next-lvl-btn').style.display='none';
-  document.getElementById('msg-box').textContent=lv.note||'選擇要上船的角色，然後點船划過去！';
+  document.getElementById('hint-box').style.display='none';
+  setMsg(lv.note||'選擇要上船的角色，然後點船划過去！');
   document.getElementById('history').textContent='';
-  timeUsed=0;
-  const timeDisp=document.getElementById('time-display');
-  if(lv.isBridge){
-    timeDisp.style.display='inline-block';
-    document.getElementById('time-used').textContent=0;
-    document.getElementById('time-limit').textContent=lv.timeLimit;
-  } else {
-    timeDisp.style.display='none';
-  }
-  updateBoatPos();
-  buildControls();
-  renderScene();
+  const td=document.getElementById('time-display');
+  if(lv.isBridge){td.style.display='inline-block';document.getElementById('time-used').textContent=0;document.getElementById('time-limit').textContent=lv.timeLimit;}
+  else td.style.display='none';
+  updateBoat();buildControls();renderScene();
 }
 
 function showScreen(id){
@@ -248,52 +198,47 @@ function showScreen(id){
 }
 
 function buildControls(){
-  const lv=LEVELS[curLvl];
-  const row=document.getElementById('ctrl-row');
-  row.innerHTML='';
+  const lv=LEVELS[curLvl],row=document.getElementById('ctrl-row');row.innerHTML='';
   lv.cast.forEach((c,i)=>{
-    const b=document.createElement('button');
-    b.className='btn';
-    b.id='ctrl-'+i;
+    const b=document.createElement('button');b.className='btn';b.id='ctrl-'+i;
     b.textContent=c.e+' '+c.name;
-    b.addEventListener('click',function(){toggleBoard(i);});
+    b.addEventListener('click',()=>toggleBoard(i));
     row.appendChild(b);
   });
 }
 
-function toggleBoard(charIdx){
+function toggleBoard(ci){
   if(won)return;
-  const lv=LEVELS[curLvl];
-  const charSide=state[charIdx];
-  if(charSide!==boatSide && charSide!=='boat') return;
-
-  if(charSide==='boat'){
-    boatPassengers=boatPassengers.filter(x=>x!==charIdx);
-    state[charIdx]=boatSide;
+  const lv=LEVELS[curLvl];const side=state[ci];
+  if(side!==boatSide&&side!=='boat')return;
+  if(side==='boat'){
+    boatPass=boatPass.filter(x=>x!==ci);state[ci]=boatSide;
   } else if(lv.isBridge){
-    const maxOnBoat=boatSide==='right'?1:2;
-    if(boatPassengers.length>=maxOnBoat){
-      setMsg(boatSide==='right'?'回程只能1人帶火把！':'橋上最多2人！',true);return;
-    }
-    boatPassengers.push(charIdx);
-    state[charIdx]='boat';
+    const max=boatSide==='right'?1:2;
+    if(boatPass.length>=max){setMsg(boatSide==='right'?'回程只能1人帶火把！':'橋上最多2人！',true);return;}
+    boatPass.push(ci);state[ci]='boat';
   } else if(lv.isCouples){
-    if(boatPassengers.length>=2){setMsg('船最多載2人！',true);return;}
-    boatPassengers.push(charIdx);
-    state[charIdx]='boat';
+    if(boatPass.length>=2){setMsg('船最多載2人！',true);return;}
+    boatPass.push(ci);state[ci]='boat';
   } else {
-    const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
-    const farmerName=lv.cast[farmerIdx].name;
-    const farmerOnBoat=boatPassengers.includes(farmerIdx);
-    if(charIdx===farmerIdx){
-      if(boatPassengers.includes(charIdx)) return;
-      boatPassengers.push(charIdx);
-      state[charIdx]='boat';
+    const fi=lv.cast.findIndex(c=>c.isFarmer);
+    const fob=boatPass.includes(fi);
+    if(ci===fi){
+      if(boatPass.includes(ci))return;
+      boatPass.push(ci);state[ci]='boat';
     } else {
-      if(!farmerOnBoat){setMsg(farmerName+'必須先上船！',true);return;}
-      if(boatPassengers.length-1>=lv.capacity){setMsg('船已滿！',true);return;}
-      boatPassengers.push(charIdx);
-      state[charIdx]='boat';
+      if(!fob){setMsg(lv.cast[fi].name+'必須先上船！',true);return;}
+      if(boatPass.length-1>=lv.capacity){setMsg('船已滿！',true);return;}
+      // ✅ 五寶：檢查同船衝突
+      if(lv.boatForbiddenOnly){
+        const others=boatPass.filter(x=>x!==fi); // 已在船上的寶物
+        for(const[a,b]of lv.forbidden){
+          if((a===ci&&others.includes(b))||(b===ci&&others.includes(a))){
+            setMsg(lv.cast[a].name+'和'+lv.cast[b].name+'不能同船！',true);return;
+          }
+        }
+      }
+      boatPass.push(ci);state[ci]='boat';
     }
   }
   renderScene();
@@ -302,70 +247,63 @@ function toggleBoard(charIdx){
 function rowBoat(){
   if(won)return;
   const lv=LEVELS[curLvl];
-
   if(lv.isBridge){
-    if(boatPassengers.length===0){setMsg('沒有人在橋上！',true);return;}
-    if(boatSide==='right'&&boatPassengers.length!==1){setMsg('回程只能1人帶火把！',true);return;}
+    if(boatPass.length===0){setMsg('沒有人在橋上！',true);return;}
+    if(boatSide==='right'&&boatPass.length!==1){setMsg('回程只能1人帶火把！',true);return;}
   } else if(lv.isCouples){
-    if(boatPassengers.length===0){setMsg('沒有人在船上！',true);return;}
+    if(boatPass.length===0){setMsg('沒有人在船上！',true);return;}
   } else {
-    const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
-    const farmerName=lv.cast[farmerIdx].name;
-    if(!boatPassengers.includes(farmerIdx)){setMsg(farmerName+'不在船上，無法划船！',true);return;}
+    const fi=lv.cast.findIndex(c=>c.isFarmer);
+    if(!boatPass.includes(fi)){setMsg(lv.cast[fi].name+'不在船上！',true);return;}
   }
 
-  const fromSide=boatSide;
+  const from=boatSide;
   boatSide=boatSide==='left'?'right':'left';
-  steps++;
-  document.getElementById('step-count').textContent=steps;
+  steps++;document.getElementById('step-count').textContent=steps;
 
-  const names=boatPassengers.map(i=>lv.cast[i].e+lv.cast[i].name);
-
+  const names=boatPass.map(i=>lv.cast[i].e+lv.cast[i].name);
   let logSuffix='';
   if(lv.isBridge){
-    const crossTime=Math.max(...boatPassengers.map(i=>lv.cast[i].speed));
-    timeUsed+=crossTime;
-    document.getElementById('time-used').textContent=timeUsed;
-    logSuffix=' ('+crossTime+'分)';
+    const t=Math.max(...boatPass.map(i=>lv.cast[i].speed));
+    timeUsed+=t;document.getElementById('time-used').textContent=timeUsed;logSuffix=' ('+t+'分)';
   }
-
-  boatPassengers.forEach(i=>state[i]=boatSide);
-  boatPassengers=[];
-
-  const arrow=fromSide==='left'?'→':'←';
-  historyLog.push('步'+steps+' '+arrow+' '+names.join('＋')+logSuffix);
-  document.getElementById('history').textContent=historyLog.join('　');
-
-  updateBoatPos();
+  boatPass.forEach(i=>state[i]=boatSide);boatPass=[];
+  histLog.push('步'+steps+(from==='left'?' → ':' ← ')+names.join('+')+logSuffix);
+  document.getElementById('history').textContent=histLog.join('　');
+  updateBoat();
 
   if(lv.isBridge&&timeUsed>lv.timeLimit){
-    renderScene();
-    setMsg('⏰ 超時！共用 '+timeUsed+' 分，限制 '+lv.timeLimit+' 分！',true);
-    setTimeout(()=>loadLevel(curLvl),1800);
-    return;
+    renderScene();setMsg('⏰ 超時！共'+timeUsed+'分，限'+lv.timeLimit+'分！',true);
+    setTimeout(()=>loadLevel(curLvl),1800);return;
   }
 
-  const violation=checkForbidden();
-  if(violation){
-    setMsg('❌ '+violation+'！重來！',true);
-    setTimeout(()=>loadLevel(curLvl),1200);
-    return;
-  }
+  // ✅ 五寶只檢查船上，其他關卡檢查岸上
+  const viol=checkForbidden();
+  if(viol){setMsg('❌ '+viol+'！重來！',true);setTimeout(()=>loadLevel(curLvl),1300);return;}
 
   renderScene();
-
   const allRight=lv.cast.every((_,i)=>state[i]==='right');
   if(allRight){
     won=true;
-    const wb=document.getElementById('win-box');
-    wb.style.display='block';
-    const best=lv.minSteps;
-    let winMsg='🎉 全部渡河成功！共 '+steps+' 步';
-    if(lv.isBridge) winMsg+=' · 用時 '+timeUsed+' 分'+(timeUsed<=lv.timeLimit?' ✅ 達標！':'');
-    else winMsg+=(steps<=best?' 🏆 最佳解！':'（最少'+best+'步）');
-    wb.textContent=winMsg;
+    if(!bestScores[curLvl]||steps<bestScores[curLvl]){bestScores[curLvl]=steps;saveBest(bestScores);}
+    const wb=document.getElementById('win-box');wb.style.display='block';
+    let msg='🎉 全部渡河成功！共'+steps+'步';
+    if(lv.isBridge)msg+=' · 用時'+timeUsed+'分'+(timeUsed<=lv.timeLimit?' ✅':'');
+    else msg+=steps<=lv.minSteps?' 🏆 最佳解！':'（最少'+lv.minSteps+'步）';
+    wb.textContent=msg;
     document.getElementById('next-lvl-btn').style.display=curLvl<LEVELS.length-1?'inline-block':'none';
     setMsg('');
+    // 更新關卡卡片
+    const cards=lgrid.children;
+    if(cards[curLvl]){
+      let el=cards[curLvl].querySelector('.best');
+      if(!el){el=document.createElement('div');el.className='best';cards[curLvl].appendChild(el);}
+      el.textContent='✅ 最佳：'+bestScores[curLvl]+'步';
+    }
+    try{
+      const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+      if(d.name)localStorage.setItem('game_pending_score',JSON.stringify({game:'river',score:steps,detail:lv.title+'，'+steps+'步'}));
+    }catch(e){}
   } else {
     setMsg(lv.note||'繼續！');
   }
@@ -373,94 +311,78 @@ function rowBoat(){
 
 function checkForbidden(){
   const lv=LEVELS[curLvl];
-  const farmerIdx=lv.cast.findIndex(c=>c.isFarmer);
+  // boatForbiddenOnly：只在上船時檢查（toggleBoard已處理），渡河後不檢查岸上
+  if(lv.boatForbiddenOnly) return null;
 
   if(lv.isCouples){
-    // wives can't be with other husbands without own husband
-    const husbands=lv.cast.map((c,i)=>c.couple!==undefined&&lv.cast.filter(x=>x.couple===c.couple).indexOf(c)===0?i:-1).filter(x=>x>=0);
     for(const side of['left','right']){
       const here=Object.keys(state).map(Number).filter(i=>state[i]===side);
-      const husbHere=here.filter(i=>lv.cast[i].couple!==undefined&&here.indexOf(i)===here.findIndex(x=>lv.cast[x].couple===lv.cast[i].couple));
-      // for each wife here, check
       for(const wi of here){
-        const wc=lv.cast[wi];
-        if(!wc.couple&&wc.couple!==0)continue;
-        const isWife=lv.cast.filter(c=>c.couple===wc.couple).indexOf(wc)===1;
-        if(!isWife)continue;
-        const husbIdx=lv.cast.findIndex((c,i)=>c.couple===wc.couple&&i<wi);
-        if(state[husbIdx]!==side){
-          // husband not here, check if other husbands are here
-          const otherHub=here.find(i=>{
-            const c=lv.cast[i];
-            return c.couple!==undefined && lv.cast.filter(x=>x.couple===c.couple).indexOf(c)===0 && c.couple!==wc.couple;
-          });
-          if(otherHub!==undefined)return wc.name+'不能和其他男人同岸';
-        }
+        const wc=lv.cast[wi];if(wc.couple===undefined)continue;
+        const cm=lv.cast.map((c,i)=>({...c,i})).filter(c=>c.couple===wc.couple);
+        if(cm[0].i===wi)continue; // 是丈夫，跳過
+        const husbI=cm[0].i;
+        if(state[husbI]===side)continue;
+        const otherHub=here.find(i=>{
+          const c=lv.cast[i];if(c.couple===undefined)return false;
+          const m=lv.cast.map((x,j)=>({...x,j})).filter(x=>x.couple===c.couple);
+          return m[0].j===i&&c.couple!==wc.couple;
+        });
+        if(otherHub!==undefined)return wc.name+'不能和其他男人同岸';
       }
     }
     return null;
   }
 
+  const fi=lv.cast.findIndex(c=>c.isFarmer);
   for(const side of['left','right']){
     const here=Object.keys(state).map(Number).filter(i=>state[i]===side);
-    const farmerHere=here.includes(farmerIdx);
-    if(farmerHere)continue;
-    for(const [a,b] of lv.forbidden){
-      if(here.includes(a)&&here.includes(b)){
-        return lv.cast[a].name+'和'+lv.cast[b].name+'不能單獨在一起';
-      }
+    if(here.includes(fi))continue;
+    for(const[a,b]of lv.forbidden){
+      if(here.includes(a)&&here.includes(b))return lv.cast[a].name+'和'+lv.cast[b].name+'不能單獨在一起';
     }
   }
   return null;
 }
 
-function updateBoatPos(){
-  const boat=document.getElementById('boat');
-  boat.className='boat '+(boatSide==='left'?'boat-left':'boat-right');
+function updateBoat(){
+  document.getElementById('boat').className='boat '+(boatSide==='left'?'boat-left':'boat-right');
 }
 
 function renderScene(){
   const lv=LEVELS[curLvl];
-  const leftBank=document.getElementById('bank-left');
-  const rightBank=document.getElementById('bank-right');
-  const boatEl=document.getElementById('boat');
-
-  // clear characters from banks (keep label)
-  leftBank.querySelectorAll('.character').forEach(e=>e.remove());
-  rightBank.querySelectorAll('.character').forEach(e=>e.remove());
-  boatEl.querySelectorAll('.character').forEach(e=>e.remove());
-
+  const lb=document.getElementById('bank-left'),rb=document.getElementById('bank-right'),be=document.getElementById('boat');
+  lb.querySelectorAll('.character').forEach(e=>e.remove());
+  rb.querySelectorAll('.character').forEach(e=>e.remove());
+  be.querySelectorAll('.character').forEach(e=>e.remove());
   lv.cast.forEach((c,i)=>{
-    const el=document.createElement('div');
-    el.className='character';
-    el.title=c.name;
-    el.textContent=c.e;
-    el.addEventListener('click',function(e){e.stopPropagation();toggleBoard(i);});
+    const el=document.createElement('div');el.className='character';el.title=c.name;el.textContent=c.e;
+    el.addEventListener('click',e=>{e.stopPropagation();toggleBoard(i);});
     const s=state[i];
-    if(s==='left')leftBank.appendChild(el);
-    else if(s==='right')rightBank.appendChild(el);
-    else{el.classList.add('on-boat');boatEl.appendChild(el);}
+    if(s==='left')lb.appendChild(el);
+    else if(s==='right')rb.appendChild(el);
+    else{el.classList.add('on-boat');be.appendChild(el);}
   });
-
-  // highlight ctrl buttons
-  lv.cast.forEach((c,i)=>{
-    const b=document.getElementById('ctrl-'+i);
-    if(!b)return;
+  lv.cast.forEach((_,i)=>{
+    const b=document.getElementById('ctrl-'+i);if(!b)return;
     const s=state[i];
-    b.style.borderColor=s==='boat'?'#f90':(s===boatSide?'#555':'#2a2a2a');
-    b.style.opacity=s===boatSide||s==='boat'?'1':'0.4';
+    b.style.borderColor=s==='boat'?'#f90':s===boatSide?'#555':'#1a2a3a';
+    b.style.opacity=s===boatSide||s==='boat'?'1':'0.38';
   });
 }
 
 function setMsg(txt,isErr=false){
   const el=document.getElementById('msg-box');
-  el.textContent=txt;
-  el.className='msg-box'+(isErr?' err-msg':'');
+  el.textContent=txt;el.className='msg-box'+(isErr?' err-msg':'');
   if(isErr)setTimeout(()=>el.classList.remove('err-msg'),400);
 }
 
 document.getElementById('back-lvl-btn').addEventListener('click',()=>showScreen('screen-levels'));
 document.getElementById('restart-btn').addEventListener('click',()=>loadLevel(curLvl));
 document.getElementById('next-lvl-btn').addEventListener('click',()=>loadLevel(curLvl+1));
+document.getElementById('hint-btn').addEventListener('click',()=>{
+  const h=document.getElementById('hint-box'),lv=LEVELS[curLvl];
+  if(lv.hint){h.textContent='💡 '+lv.hint;h.style.display=h.style.display==='block'?'none':'block';}
+});
 </script>
 </body></html>
