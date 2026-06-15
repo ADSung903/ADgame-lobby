@@ -79,6 +79,10 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 .cancel-btn{border:.5px solid #333;background:transparent;color:#aaa}
 .confirm-buy{border:none;background:linear-gradient(135deg,#065f46,#059669);color:#fff}
 .confirm-sell{border:none;background:linear-gradient(135deg,#7f1d1d,#dc2626);color:#fff}
+.rec-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:.4rem .75rem .5rem}
+.rec-item{background:var(--bg2);border:.5px solid var(--border);border-radius:8px;padding:.4rem .5rem;text-align:center}
+.rec-val{font-size:14px;font-weight:700}
+.rec-lbl{font-size:10px;color:var(--sub);margin-top:2px}
 </style>
 </head><body><div class="app">
 
@@ -101,7 +105,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
   <div class="tb-shop">🎲 店鋪餘額 <span id="shop-bal">NT$0</span></div>
   <input id="transfer-amt" type="number" min="1" placeholder="M">
   <button class="tb-btn tb-in" onclick="transferIn()">← 匯入</button>
-  <button class="tb-btn tb-out" onclick="transferOut()">匯回 →</button>
+  <button class="tb-btn tb-out" onclick="transferOut()" title="手續費 30%">匯回(−30%) →</button>
 </div>
 
 <div class="update-bar" id="update-bar">點 🔄 取得即時行情</div>
@@ -117,6 +121,11 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 <div id="port-section" class="port-section" style="display:none">
   <div class="section-hdr">📊 我的持倉</div>
   <div id="port-list"></div>
+</div>
+<div id="record-section" class="port-section" style="display:none">
+  <div class="section-hdr">🏆 我的戰績</div>
+  <div id="record-stats"></div>
+  <div id="record-list"></div>
 </div>
 
 <!-- Buy Modal -->
@@ -189,13 +198,16 @@ const LS_STOCK='shop24h_stock', LS_SHOP='shop24h_save';
 function getLS(k,fb={}){try{return JSON.parse(localStorage.getItem(k)||'null')||fb;}catch(e){return fb;}}
 function setLS(k,v){localStorage.setItem(k,JSON.stringify(v));}
 
-let state={cash:0,positions:{},lastPrices:{},lastFetch:0};
+let state={cash:0,positions:{},lastPrices:{},lastFetch:0,totalInvested:0,realizedPnl:0,trades:[]};
 function loadState(){
   const s=getLS(LS_STOCK);
   state.cash=s.cash||0;
   state.positions=s.positions||{};
   state.lastPrices=s.lastPrices||{};
   state.lastFetch=s.lastFetch||0;
+  state.totalInvested=s.totalInvested||0;
+  state.realizedPnl=s.realizedPnl||0;
+  state.trades=s.trades||[];
 }
 function save(){setLS(LS_STOCK,state);}
 
@@ -254,7 +266,7 @@ function totalPosVal(){return MARKETS.reduce((s,m)=>s+posVal(m.id),0);}
 function totalCost(){return MARKETS.reduce((s,m)=>s+(state.positions[m.id]?.cost||0),0);}
 
 // ── 渲染 ──────────────────────────────────────────────
-function render(){renderHero();renderMarkets();renderPort();renderShopBal();}
+function render(){renderHero();renderMarkets();renderPort();renderRecord();renderShopBal();}
 
 function renderHero(){
   const pv=totalPosVal(),cost=totalCost(),total=state.cash+pv,pnl=pv-cost;
@@ -316,6 +328,33 @@ function renderPort(){
   }).join('');
 }
 
+function renderRecord(){
+  const sec=document.getElementById('record-section');
+  if(!state.trades.length&&state.realizedPnl===0){sec.style.display='none';return;}
+  sec.style.display='block';
+  const roi=state.totalInvested>0?state.realizedPnl/state.totalInvested*100:0;
+  const best=state.trades.reduce((b,t)=>t.roi>b?t.roi:b,-Infinity);
+  const bestStr=best===-Infinity?'--':(best>=0?'+':'')+best.toFixed(2)+'%';
+  document.getElementById('record-stats').innerHTML=`<div class="rec-grid">
+    <div class="rec-item"><div class="rec-val">NT$${fmt(state.totalInvested)}</div><div class="rec-lbl">累計投入</div></div>
+    <div class="rec-item"><div class="rec-val ${state.realizedPnl>=0?'up':'dn'}">${state.realizedPnl>=0?'+':'−'}NT$${fmt(Math.abs(state.realizedPnl))}</div><div class="rec-lbl">已實現損益</div></div>
+    <div class="rec-item"><div class="rec-val ${roi>=0?'up':'dn'}">${roi>=0?'+':''}${roi.toFixed(2)}%</div><div class="rec-lbl">整體投報率</div></div>
+    <div class="rec-item"><div class="rec-val ${best>=0?'up':'dn'}">${bestStr}</div><div class="rec-lbl">最佳單筆</div></div>
+  </div>`;
+  document.getElementById('record-list').innerHTML=state.trades.map(t=>`
+    <div class="port-row">
+      <div class="port-flag">${t.flag}</div>
+      <div class="port-info">
+        <div class="port-name">${t.name}</div>
+        <div class="port-detail">${t.date}・成本 NT$${fmt(t.cost)}</div>
+      </div>
+      <div class="port-right">
+        <div class="port-val ${t.pnl>=0?'up':'dn'}">${t.pnl>=0?'+':'−'}NT$${fmt(Math.abs(t.pnl))}</div>
+        <div class="port-pnl ${t.roi>=0?'up':'dn'}">${t.roi>=0?'+':''}${t.roi.toFixed(2)}%</div>
+      </div>
+    </div>`).join('');
+}
+
 function renderShopBal(){
   const s=getLS(LS_SHOP);
   document.getElementById('shop-bal').textContent='NT$'+fmt(s.money||0);
@@ -337,14 +376,15 @@ function transferIn(){
 
 function transferOut(){
   if(!(state.cash>0)){toast('⚠️ 現金帳戶為零');return;}
-  if(!confirm(`確定將 NT$${fmt(state.cash)} 全額匯回店鋪？`))return;
+  const fee=Math.floor(state.cash*0.3);
+  const receive=state.cash-fee;
+  if(!confirm(`匯回店鋪確認\n\n股市現金：NT$${fmt(state.cash)}\n手續費（30%）：-NT$${fmt(fee)}\n實際到帳：NT$${fmt(receive)}\n\n確定要匯回嗎？`))return;
   const s=getLS(LS_SHOP);
-  const amt=state.cash;
-  s.money=(s.money||0)+amt;
-  s.allTime=(s.allTime||0)+amt;
+  s.money=(s.money||0)+receive;
+  s.allTime=(s.allTime||0)+receive;
   setLS(LS_SHOP,s);
   state.cash=0;save();
-  render();toast(`✅ 已匯回 NT$${fmt(amt)} 到店鋪`);
+  render();toast(`✅ 已匯回 NT$${fmt(receive)}（手續費 NT$${fmt(fee)}）`);
 }
 
 // ── 買入 ──────────────────────────────────────────────
@@ -370,7 +410,7 @@ function executeBuy(){
   const newUnits=amt/p,newCost=pos.cost+amt;
   pos.avgEntry=newCost/(pos.units+newUnits);
   pos.units+=newUnits;pos.cost=newCost;
-  state.positions[_buyId]=pos;state.cash-=amt;save();
+  state.positions[_buyId]=pos;state.cash-=amt;state.totalInvested+=amt;save();
   closeBuy();render();
   toast(`✅ 買入 ${MARKETS.find(x=>x.id===_buyId).flag} NT$${fmt(amt)}`);
 }
@@ -398,11 +438,18 @@ function executeSell(){
   const pos=state.positions[_sellId];
   if(!pos||!pos.units)return;
   const sellVal=Math.floor(posVal(_sellId)*pct);
+  const costBasis=Math.floor((pos.cost||0)*pct);
+  const pnl=sellVal-costBasis;
+  const roi=costBasis>0?pnl/costBasis*100:0;
   pos.units*=(1-pct);pos.cost*=(1-pct);
   if(pos.units<1e-8){pos.units=0;pos.cost=0;}
-  state.cash+=sellVal;state.positions[_sellId]=pos;save();
+  state.cash+=sellVal;state.realizedPnl+=pnl;
+  const m=MARKETS.find(x=>x.id===_sellId);
+  state.trades.unshift({flag:m.flag,name:m.name,cost:costBasis,sellVal,pnl,roi,date:new Date().toLocaleDateString('zh-TW')});
+  if(state.trades.length>20)state.trades.length=20;
+  state.positions[_sellId]=pos;save();
   closeSell();render();
-  toast(`✅ 賣出 ${MARKETS.find(x=>x.id===_sellId).flag} NT$${fmt(sellVal)}`);
+  toast(`✅ 賣出 ${m.flag} NT$${fmt(sellVal)}（${roi>=0?'+':''}${roi.toFixed(1)}%）`);
 }
 
 function goBack(){window.location.href='../';}
