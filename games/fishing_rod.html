@@ -5,7 +5,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:sans-serif;background:#000a14;color:#eee;display:flex;justify-content:center;overflow:hidden;height:100vh}
 .app{width:100%;max-width:480px;position:relative;height:100vh;overflow:hidden}
-.screen{display:none;position:absolute;inset:0}.screen.active{display:block}
+.screen{visibility:hidden;position:absolute;inset:0;pointer-events:none}.screen.active{visibility:visible;pointer-events:auto}
 
 /* TITLE */
 #screen-title{background:linear-gradient(180deg,#000a14 0%,#001428 60%,#002040 100%);display:flex;align-items:center;justify-content:center;flex-direction:column}
@@ -70,7 +70,7 @@ canvas{display:block;width:100%;height:100%}
   <canvas id="gc"></canvas>
   <div class="hud">
     <div>
-      <div class="cast-info">下竿 <span id="cast-num">0</span>/10</div>
+      <div class="cast-info">下竿 <span id="cast-num">0</span>/20</div>
       <div class="weather-tag" id="wtag">☀️ 晴朗</div>
     </div>
     <div class="score-info">🏆 <span id="score-disp">0</span></div>
@@ -148,17 +148,20 @@ const BOUNDARY_PAD=20;   // 魚線邊界距畫布邊緣
 let fish=[], castCount=0, score=0, catches=[];
 let curWeather=WEATHERS[0];
 let sinceLastWeather=0, nextCheck=3;
+let lastWeatherTime=0; // 時間觸發
+const WEATHER_INTERVAL=45000; // 45秒
 let casting=false, lineActive=false;
-let lineX=0,lineY=0,lineTargetX=0,lineTargetY=0,lineProgress=0; // 魚線動畫
-let hookX=0,hookY=0; // 目前鉤子位置
+let lineX=0,lineY=0,lineTargetX=0,lineTargetY=0,lineProgress=0;
+let hookX=0,hookY=0;
 let maxScore=0;
 let animId=null;
 let rainDrops=[];
 let waveOffset=0;
 
-// canvas
+// DOM refs
 const cv=document.getElementById('gc');
 const ctx=cv.getContext('2d');
+// 不在頂層抓 castBtn，改在函式內動態取
 
 // ── 字型載入 ──────────────────────────────────────────────────
 const fontReady=(async()=>{try{await document.fonts.load('16px sans-serif');}catch(e){}})();
@@ -170,8 +173,38 @@ function saveBest(s){localStorage.setItem(LS,String(s));}
 
 maxScore=loadBest();
 document.getElementById('title-best').textContent=maxScore?'🏆 個人最高：'+maxScore+'分':'';
-document.getElementById('start-btn').addEventListener('click',startGame);
-document.getElementById('again-btn').addEventListener('click',startGame);
+window.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+
+document.getElementById('start-btn').addEventListener('click',()=>{
+  showScreen('screen-game');
+  resize();
+  castCount=0;score=0;catches=[];casting=false;lineActive=false;
+  sinceLastWeather=0;nextCheck=3;lastWeatherTime=Date.now();
+  document.getElementById('cast-num').textContent=0;
+  document.getElementById('score-disp').textContent=0;
+  rainDrops=[];
+  spawnAllFish();
+  setWeather(WEATHERS[0],false);
+  setupCastClick();
+  showCastHint(true);
+  if(animId)cancelAnimationFrame(animId);
+  loop();
+});
+document.getElementById('again-btn').addEventListener('click',()=>{
+  showScreen('screen-game');
+  resize();
+  castCount=0;score=0;catches=[];casting=false;lineActive=false;
+  sinceLastWeather=0;nextCheck=3;lastWeatherTime=Date.now();
+  document.getElementById('cast-num').textContent=0;
+  document.getElementById('score-disp').textContent=0;
+  rainDrops=[];
+  spawnAllFish();
+  setWeather(WEATHERS[0],false);
+  setupCastClick();
+  showCastHint(true);
+  if(animId)cancelAnimationFrame(animId);
+  loop();
+});
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -189,21 +222,19 @@ window.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();}
 
 // ── START ────────────────────────────────────────────────────
 function startGame(){
-  showScreen('screen-game');
-  setTimeout(()=>{
-    resize();
-    castCount=0;score=0;catches=[];casting=false;lineActive=false;
-    sinceLastWeather=0;nextCheck=3;
-    document.getElementById('cast-num').textContent=0;
-    document.getElementById('score-disp').textContent=0;
-    rainDrops=[];
-    spawnAllFish();
-    setWeather(WEATHERS[0],false);
-    setupCastClick();
-    showCastHint(true);
-    if(animId)cancelAnimationFrame(animId);
-    loop();
-  },50);
+  // 由按鈕直接呼叫初始化，不在這裡 showScreen
+  resize();
+  castCount=0;score=0;catches=[];casting=false;lineActive=false;
+  sinceLastWeather=0;nextCheck=3;
+  document.getElementById('cast-num').textContent=0;
+  document.getElementById('score-disp').textContent=0;
+  rainDrops=[];
+  spawnAllFish();
+  setWeather(WEATHERS[0],false);
+  setupCastClick();
+  showCastHint(true);
+  if(animId)cancelAnimationFrame(animId);
+  loop();
 }
 
 // ── FISH SPAWN ────────────────────────────────────────────────
@@ -230,11 +261,30 @@ function spawnOneFish(pool){
     opacity:Math.min(1,0.4+curWeather.visibility*0.65)};
 }
 
+// 稀有魚保底：特定天氣確保場上有稀有魚
+function ensureRareFish(){
+  const rareMap={
+    storm:['oarfish','angler'],
+    wavy:['oarfish','whale'],
+    foggy:['angler','jellyfish'],
+  };
+  const targets=rareMap[curWeather.id];
+  if(!targets)return;
+  targets.forEach(rid=>{
+    const already=fish.some(f=>!f.caught&&f.data.id===rid);
+    if(!already){
+      const data=FISH_TYPES.find(f=>f.id===rid);
+      if(data)fish.push(spawnOneFish([data]));
+    }
+  });
+}
+
 function spawnAllFish(){
   fish=[];
   const pool=getPool();
-  const n=9+Math.floor(Math.random()*5);
+  const n=10+Math.floor(Math.random()*5);
   for(let i=0;i<n;i++)fish.push(spawnOneFish(pool));
+  ensureRareFish(); // 保底稀有魚
 }
 
 function repositionFish(){
@@ -246,11 +296,12 @@ function repositionFish(){
 }
 
 // ── WEATHER ───────────────────────────────────────────────────
-function setWeather(w,alert=true){
+function setWeather(w, alert_=true){
   curWeather=w;
   document.getElementById('wtag').textContent=w.label;
-  // update fish
+  // 天氣：更新魚速＋稀有魚保底
   fish.forEach(f=>{f.spd=f.baseSpd*w.speedMult;f.opacity=Math.min(1,0.4+w.visibility*0.65);});
+  if(alert_) ensureRareFish(); // 天氣切換時立即保底
   // rain
   rainDrops=[];
   if(w.rainAmt>0){
@@ -259,7 +310,7 @@ function setWeather(w,alert=true){
         len:8+Math.random()*12,spd:8+Math.random()*8,angle:.18});
     }
   }
-  if(alert){
+  if(alert_){
     const el=document.getElementById('w-alert');
     el.textContent=w.alert;el.classList.add('show');
     setTimeout(()=>el.classList.remove('show'),3600);
@@ -267,11 +318,18 @@ function setWeather(w,alert=true){
 }
 
 function tryWeatherChange(){
+  // 1) 時間觸發（每45秒）
+  const now=Date.now();
+  const timeTriggered=now-lastWeatherTime>=WEATHER_INTERVAL;
+  // 2) 次數觸發（每3次）
   sinceLastWeather++;
-  if(sinceLastWeather>=nextCheck){
-    if(Math.random()<0.65){
+  const castTriggered=sinceLastWeather>=nextCheck;
+
+  if(timeTriggered||castTriggered){
+    if(Math.random()<0.7||timeTriggered){
       const opts=WEATHERS.filter(w=>w.id!==curWeather.id);
       setWeather(opts[Math.floor(Math.random()*opts.length)]);
+      lastWeatherTime=now;
       sinceLastWeather=0;nextCheck=3;
     } else {
       nextCheck=1;
@@ -281,10 +339,12 @@ function tryWeatherChange(){
 
 // ── CAST ─────────────────────────────────────────────────────
 let clickHandler=null;
+function getCastBtn(){ return document.getElementById('cast-btn'); }
+
 function setupCastClick(){
   if(clickHandler)cv.removeEventListener('click',clickHandler);
   clickHandler=function(e){
-    if(casting||castCount>=10)return;
+    if(casting||castCount>=20)return;
     const rect=cv.getBoundingClientRect();
     const cx=(e.clientX-rect.left)*(W/rect.width);
     const cy=(e.clientY-rect.top)*(H/rect.height);
@@ -317,6 +377,8 @@ function startCast(tx,ty){
 
   castCount++;
   document.getElementById('cast-num').textContent=castCount;
+  // 每隔一段時間也檢查保底稀有魚
+  if(castCount%3===0) ensureRareFish();
 }
 
 // ── MAIN LOOP ─────────────────────────────────────────────────
@@ -327,6 +389,14 @@ function loop(){
 
 let lastCaughtCheck=0;
 function update(){
+  // 時間觸發天氣（不依賴釣魚次數）
+  if(Date.now()-lastWeatherTime>=WEATHER_INTERVAL){
+    const opts=WEATHERS.filter(w=>w.id!==curWeather.id);
+    setWeather(opts[Math.floor(Math.random()*opts.length)]);
+    lastWeatherTime=Date.now();
+    sinceLastWeather=0;nextCheck=3;
+  }
+
   waveOffset+=0.4;
 
   // fish movement
@@ -418,11 +488,12 @@ function doCatch(f){
 function reelIn(){
   lineActive=false;casting=false;
   hookX=getRodTip().x;hookY=getRodTip().y;
-  if(castCount>=10){
+  if(castCount>=20){
     setTimeout(showResult,600);
-  } else {
-    showCastHint(true);
+    return;
   }
+  castBtn.disabled=false;
+  castBtn.textContent='🎣 下竿！（'+(20-castCount)+'次）';
 }
 
 function showCastHint(show){
@@ -598,8 +669,7 @@ function showResult(){
   if(animId){cancelAnimationFrame(animId);animId=null;}
   showScreen('screen-result');
   document.getElementById('res-score').textContent=score;
-  const isNew=score>maxScore&&catches.length>0;
-  if(isNew){maxScore=score;saveBest(score);document.getElementById('title-best').textContent='🏆 個人最高：'+maxScore+'分';}
+  const isNew=score>maxScore&&catches.length>0;  if(isNew){maxScore=score;saveBest(score);document.getElementById('title-best').textContent='🏆 個人最高：'+maxScore+'分';}
   document.getElementById('res-best').textContent=isNew?'🏆 新紀錄！':'個人最高：'+maxScore+'分';
   const title=score>=1000?'傳奇漁夫！🏆':score>=400?'好手！🌟':score>=150?'不錯喔！😊':'繼續練習！💪';
   document.getElementById('res-title').textContent=title;
