@@ -95,13 +95,24 @@ body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-c
 
 <!-- INTRO -->
 <div class="screen active" id="screen-intro">
-  <div class="intro-card">
-    <div class="intro-icon">🧩</div>
-    <h2>探索你的人格類型</h2>
-    <p>共 20 道情境題，誠實選擇最符合你的答案。<br>沒有對錯，只有最真實的你。</p>
-    <div class="disclaimer">⚠️ 純屬娛樂參考，結果不可作為任何心理診斷、學術研究或人事判斷之依據。正式 MBTI 測驗請洽專業機構。</div>
+  <div id="prev-result-banner" style="display:none;background:#1a1030;border:1px solid #4a2a8a;border-radius:14px;padding:1rem;margin-bottom:.75rem;text-align:center">
+    <div style="font-size:11px;color:#7c5aad;margin-bottom:.4rem">📌 上次測驗結果</div>
+    <div id="prev-type-icon" style="font-size:36px;margin-bottom:2px"></div>
+    <div id="prev-type-code" style="font-size:26px;font-weight:800;letter-spacing:3px;margin-bottom:2px"></div>
+    <div id="prev-type-name" style="font-size:13px;color:#9a9ab0;margin-bottom:.5rem"></div>
+    <div id="prev-type-date" style="font-size:11px;color:#555;margin-bottom:.75rem"></div>
+    <button class="big-btn" onclick="loadPrevResult()" style="margin-bottom:.4rem">查看完整結果 →</button>
+    <button class="btn" onclick="clearAndStart()" style="width:100%;padding:8px;margin-top:4px">重新測驗</button>
   </div>
-  <button class="big-btn" onclick="startTest()">開始測驗 →</button>
+  <div id="fresh-intro">
+    <div class="intro-card">
+      <div class="intro-icon">🧩</div>
+      <h2>探索你的人格類型</h2>
+      <p>共 20 道情境題，誠實選擇最符合你的答案。<br>沒有對錯，只有最真實的你。</p>
+      <div class="disclaimer">⚠️ 純屬娛樂參考，結果不可作為任何心理診斷、學術研究或人事判斷之依據。正式 MBTI 測驗請洽專業機構。</div>
+    </div>
+    <button class="big-btn" onclick="startTest()">開始測驗 →</button>
+  </div>
 </div>
 
 <!-- QUESTION -->
@@ -585,7 +596,7 @@ function showResult(){
   try{
     const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
     if(!d.self)d.self={};
-    d.self.mbti={type,name:t.name,icon:t.icon,date:new Date().toLocaleDateString('zh-TW')};
+    d.self.mbti={type,name:t.name,icon:t.icon,date:new Date().toLocaleDateString('zh-TW'),scores:{...scores}};
     localStorage.setItem('game_lobby_v2',JSON.stringify(d));
   }catch(e){}
 }
@@ -601,5 +612,40 @@ function restartTest(){
   document.getElementById('screen-intro').classList.add('active');
   showSection('overview');
 }
+
+function loadPrevResult(){
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    const m=d.self&&d.self.mbti;
+    if(m&&m.scores){
+      scores=m.scores;
+      showResult();
+      document.getElementById('screen-intro').classList.remove('active');
+    }
+  }catch(e){}
+}
+
+function clearAndStart(){
+  document.getElementById('prev-result-banner').style.display='none';
+  document.getElementById('fresh-intro').style.display='block';
+}
+
+// 頁面載入：檢查是否有舊結果
+(function initPage(){
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    const m=d.self&&d.self.mbti;
+    if(m&&m.type&&m.scores){
+      const t=TYPES[m.type];
+      document.getElementById('prev-type-icon').textContent=m.icon;
+      document.getElementById('prev-type-code').textContent=m.type;
+      document.getElementById('prev-type-code').style.color=t?t.color:'#a78bfa';
+      document.getElementById('prev-type-name').textContent=m.name;
+      document.getElementById('prev-type-date').textContent='測驗日期：'+m.date;
+      document.getElementById('prev-result-banner').style.display='block';
+      document.getElementById('fresh-intro').style.display='none';
+    }
+  }catch(e){}
+})();
 </script>
 </body></html>
