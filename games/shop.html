@@ -390,11 +390,15 @@ function doPrestige(){
   const nextP=state.prestige+1;
   const hints={3:'\n🏝️ 旗艦升級將解鎖！',15:'\n🛰️ 全球帝國升級將解鎖！',50:'\n⭐ 太空征服升級將解鎖！',100:'\n🌌 宇宙霸主模式將解鎖！'};
   const unlockMsg=hints[nextP]||'';
-  if(!confirm(`確定第 ${nextP} 次轉生？\n所有資產歸零，換取黃金代幣！\n永久 +200% 收益加成！${unlockMsg}`))return;
+  const stockSave=getStockAccount();
+  const stockCash=stockSave.cash||0;
+  const stockWarn=stockCash>0?`\n⚠️ 股市現金 NT$${fmt(stockCash)} 也將歸零！`:'';
+  if(!confirm(`確定第 ${nextP} 次轉生？\n所有資產歸零，換取黃金代幣！\n永久 +200% 收益加成！${unlockMsg}${stockWarn}`))return;
   submitToLB(false);
   state.prestige++; state.goldTokens=state.prestige;
   state.money=0; state.totalEarned=0; state.peakCps=0; msIdx=0;
   allUpgrades().forEach(u=>state.counts[u.id]=0);
+  if(stockCash>0){stockSave.cash=0;saveStockAccount(stockSave);}
   save(); renderShop(); updateUI();
   const unlocks={3:'✨ 旗艦升級已解鎖！',15:'🛰️ 全球商業帝國已解鎖！',50:'⭐ 太空征服時代已解鎖！',100:'🌌 宇宙霸主模式已解鎖！'};
   showMS({
@@ -763,7 +767,18 @@ function toast(msg){
   clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2200);
 }
 
-function goBack(){submitToLB(false);save();window.location.href='../';}
+function goBack(){
+  submitToLB(false);save();
+  const name=playerName();
+  if(name){
+    localStorage.setItem('game_pending_score',JSON.stringify({
+      game:'shop',
+      score:state.prestige,
+      detail:`身家 $${fmt(state.allTime)}・${industryTag()}`
+    }));
+  }
+  window.location.href='../';
+}
 
 setInterval(()=>{
   const cps=totalCps();
