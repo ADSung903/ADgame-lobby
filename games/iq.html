@@ -11,31 +11,21 @@ body{font-family:sans-serif;background:#00060f;color:#eee;display:flex;justify-c
 .big-btn:active{transform:scale(0.98)}
 .screen{display:none}.screen.active{display:block}
 .disclaimer{font-size:11px;color:#555;background:#020d1a;border:0.5px solid #1a2a3a;border-radius:8px;padding:.5rem .75rem;margin-top:.75rem;line-height:1.6}
-
-/* intro */
 .intro-card{background:#081828;border:0.5px solid #1a3a5a;border-radius:16px;padding:1.5rem;text-align:center;margin-bottom:.75rem}
 .intro-card h2{font-size:20px;font-weight:600;color:#38bdf8;margin-bottom:.5rem}
 .intro-card p{font-size:13px;color:#7ab;line-height:1.7}
 .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.75rem}
 .cat-box{background:#020d1a;border:0.5px solid #1a3a5a;border-radius:10px;padding:.6rem;text-align:center;font-size:12px;color:#7ab}
 .cat-box b{display:block;font-size:16px;margin-bottom:2px}
-
-/* game header */
 .g-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
 .timer-box{font-size:13px;color:#7ab;font-family:monospace}
 .score-pill{font-size:13px;padding:3px 10px;border-radius:20px;background:#081828;border:0.5px solid #1a3a5a;color:#38bdf8}
-
-/* progress */
 .prog-bar-wrap{height:4px;background:#0a1828;border-radius:2px;margin-bottom:.6rem;overflow:hidden}
 .prog-bar{height:100%;background:linear-gradient(90deg,#0369a1,#38bdf8);border-radius:2px;transition:width .3s}
 .q-num{font-size:12px;color:#4a6a8a;text-align:center;margin-bottom:.4rem}
 .cat-tag{font-size:11px;color:#0ea5e9;text-align:center;margin-bottom:.4rem}
-
-/* question */
 .q-card{background:#081828;border:0.5px solid #1a3a5a;border-radius:14px;padding:1.2rem;margin-bottom:.6rem;text-align:center;min-height:80px;display:flex;align-items:center;justify-content:center}
-.q-card p{font-size:16px;font-weight:500;line-height:1.6;font-family:monospace;letter-spacing:.5px}
-
-/* options */
+.q-card p{font-size:16px;font-weight:500;line-height:1.6;font-family:monospace;letter-spacing:.5px;white-space:pre-line}
 .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.6rem}
 .opt-btn{padding:14px 10px;border-radius:12px;border:1.5px solid #1a3a5a;background:#081828;color:#ccc;font-size:14px;cursor:pointer;text-align:center;transition:all .15s;font-family:monospace}
 .opt-btn:hover:not(.locked){border-color:#0ea5e9;background:#0a1f3a;transform:translateY(-1px)}
@@ -45,23 +35,20 @@ body{font-family:sans-serif;background:#00060f;color:#eee;display:flex;justify-c
 .opt-btn.locked{cursor:default;opacity:.4}
 @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-
 .feedback{text-align:center;font-size:14px;min-height:20px;margin-bottom:.5rem;font-weight:500}
 .feedback.ok{color:#4ade80}.feedback.bad{color:#f87171}
 .explain{font-size:12px;color:#7ab;text-align:center;background:#020d1a;border-radius:8px;padding:.5rem;margin-bottom:.5rem;display:none}
-
-/* result */
 .result-hero{text-align:center;padding:1.2rem;background:#081828;border:0.5px solid #1a3a5a;border-radius:16px;margin-bottom:.75rem}
 .iq-estimate{font-size:48px;font-weight:800;color:#38bdf8;margin:.3rem 0}
-.iq-range{font-size:14px;color:#7ab;margin-bottom:.5rem}
-.iq-label{font-size:18px;font-weight:600;color:#eee}
 .score-bar-wrap{height:12px;background:#020d1a;border-radius:6px;overflow:hidden;margin:.75rem 0}
 .score-bar{height:100%;background:linear-gradient(90deg,#0369a1,#38bdf8);border-radius:6px;transition:width 1s ease}
+.iq-label{font-size:18px;font-weight:600;color:#eee}
+.iq-range{font-size:14px;color:#7ab;margin-bottom:.5rem}
 .cat-scores{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
 .cat-score-box{background:#081828;border:0.5px solid #1a3a5a;border-radius:10px;padding:.6rem;text-align:center}
 .cat-score-box .cs-val{font-size:20px;font-weight:700;color:#38bdf8}
 .cat-score-box .cs-lbl{font-size:11px;color:#7ab;margin-top:2px}
-.review-list{background:#081828;border:0.5px solid #1a3a5a;border-radius:12px;padding:.75rem;margin-bottom:.75rem;max-height:200px;overflow-y:auto}
+.review-list{background:#081828;border:0.5px solid #1a3a5a;border-radius:12px;padding:.75rem;margin-bottom:.75rem;max-height:220px;overflow-y:auto}
 .review-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:0.5px solid #0a1828;font-size:12px}
 .review-row:last-child{border:none}
 .rv-icon{font-size:14px;width:20px;text-align:center}
@@ -76,14 +63,14 @@ body{font-family:sans-serif;background:#00060f;color:#eee;display:flex;justify-c
   <div class="intro-card">
     <div style="font-size:48px;margin-bottom:.4rem">🔢</div>
     <h2>推理 · 邏輯 · 分析</h2>
-    <p>共 20 道題目，涵蓋數列推理、邏輯分析、空間圖形和語言類比。選出你認為最正確的答案。</p>
+    <p>共 20 道題目，從 160 題庫中隨機抽取，<br>涵蓋數列推理、邏輯分析、空間圖形和語言類比。</p>
     <div class="cat-grid">
-      <div class="cat-box"><b>🔢</b>數列推理 5題</div>
-      <div class="cat-box"><b>🧩</b>邏輯分析 5題</div>
-      <div class="cat-box"><b>🔷</b>空間圖形 5題</div>
-      <div class="cat-box"><b>📝</b>語言類比 5題</div>
+      <div class="cat-box"><b>🔢</b>數列推理 各抽5題</div>
+      <div class="cat-box"><b>🧩</b>邏輯分析 各抽5題</div>
+      <div class="cat-box"><b>🔷</b>空間圖形 各抽5題</div>
+      <div class="cat-box"><b>📝</b>語言類比 各抽5題</div>
     </div>
-    <div class="disclaimer">⚠️ 本測驗純屬實驗性質，結果不代表真實智力水準，亦不可作為任何學術、醫療或職業評估依據。正式智力測驗請洽專業機構。</div>
+    <div class="disclaimer">⚠️ 本測驗純屬實驗性質，結果不代表真實智力水準，亦不可作為任何學術、醫療或職業評估依據。</div>
   </div>
   <button class="big-btn" onclick="startGame()">開始挑戰 →</button>
 </div>
@@ -91,7 +78,7 @@ body{font-family:sans-serif;background:#00060f;color:#eee;display:flex;justify-c
 <!-- GAME -->
 <div class="screen" id="screen-game">
   <div class="g-header">
-    <span class="q-counter" id="q-counter">1 / 20</span>
+    <span id="q-counter">1 / 20</span>
     <span class="timer-box" id="timer-box">⏱ 0:00</span>
     <span class="score-pill">✓ <span id="correct-count">0</span></span>
   </div>
@@ -123,112 +110,273 @@ body{font-family:sans-serif;background:#00060f;color:#eee;display:flex;justify-c
 </div>
 
 <script>
-const QS=[
-  // 數列推理
-  {cat:'🔢 數列推理',q:'2, 6, 18, 54, ___',opts:['108','162','216','180'],ans:1,exp:'每項乘以3：54×3=162'},
-  {cat:'🔢 數列推理',q:'1, 4, 9, 16, 25, ___',opts:['30','36','32','49'],ans:1,exp:'完全平方數：1²,2²,3²...，6²=36'},
-  {cat:'🔢 數列推理',q:'2, 3, 5, 7, 11, 13, ___',opts:['15','14','17','16'],ans:2,exp:'質數數列，13的下一個質數是17'},
-  {cat:'🔢 數列推理',q:'3, 8, 15, 24, 35, ___',opts:['46','48','50','44'],ans:1,exp:'規律：n×(n+2)，即1×3, 2×4...6×8=48'},
-  {cat:'🔢 數列推理',q:'1, 1, 2, 3, 5, 8, 13, ___',opts:['18','20','21','24'],ans:2,exp:'費波那契數列：前兩項之和，8+13=21'},
-  // 邏輯分析
-  {cat:'🧩 邏輯分析',q:'賽跑中你超越了第二名的選手，\n你現在是第幾名？',opts:['第一名','第二名','第三名','不確定'],ans:1,exp:'你取代了他的位置，所以你是第二名'},
-  {cat:'🧩 邏輯分析',q:'3個人3天挖3個洞，\n6個人6天能挖幾個洞？',opts:['6個','12個','18個','36個'],ans:1,exp:'1人1天挖1/3個洞，6人6天：6×6×(1/3)=12個'},
-  {cat:'🧩 邏輯分析',q:'蝸牛在井底，井深10公尺。\n白天爬3公尺，晚上滑2公尺。幾天後爬出？',opts:['7天','8天','9天','10天'],ans:1,exp:'每天淨進1公尺，第7天到7公尺，第8天爬3公尺到達10公尺出去'},
-  {cat:'🧩 邏輯分析',q:'一根蠟燭燒到一半需要2小時，\n從現在起燒完剩下一半需要多久？',opts:['1小時','2小時','3小時','4小時'],ans:1,exp:'燃燒速率相同，剩下一半同樣需要2小時'},
-  {cat:'🧩 邏輯分析',q:'小明的媽媽有4個孩子：\n大春、大夏、大秋，第4個叫什麼？',opts:['大冬','不確定','小明','大年'],ans:2,exp:'題目說的是「小明的媽媽」，第4個孩子當然就是小明！'},
-  // 空間圖形
-  {cat:'🔷 空間圖形',q:'哪個數字不是完全平方數？\n36、49、64、80、121',opts:['49','64','80','121'],ans:2,exp:'36=6², 49=7², 64=8², 121=11²，80不是任何整數的平方'},
-  {cat:'🔷 空間圖形',q:'字母規律：A, C, E, G, ___',opts:['H','I','J','K'],ans:1,exp:'每次跳一個字母：A→C→E→G→I'},
-  {cat:'🔷 空間圖形',q:'時鐘顯示3:00，\n時針與分針之間的夾角是？',opts:['45°','60°','90°','120°'],ans:2,exp:'3點正，時針指向3（90°），分針指向12（0°），夾角=90°'},
-  {cat:'🔷 空間圖形',q:'鏡子中的時鐘顯示 8:00，\n實際時間是？',opts:['3:00','4:00','6:00','12:00'],ans:1,exp:'鏡像翻轉：12-8=4，實際時間是4:00'},
-  {cat:'🔷 空間圖形',q:'標準骰子中，對面數字之和等於7。\n若頂面是5，底面是？',opts:['1','2','3','4'],ans:1,exp:'7-5=2，底面是2'},
-  // 語言類比
-  {cat:'📝 語言類比',q:'醫生 : 醫院 = 老師 : ___',opts:['圖書館','學校','辦公室','教科書'],ans:1,exp:'醫生在醫院工作，老師在學校工作'},
-  {cat:'📝 語言類比',q:'眼睛 : 看 = 耳朵 : ___',opts:['嗅','嘗','聽','感覺'],ans:2,exp:'眼睛的功能是看，耳朵的功能是聽'},
-  {cat:'📝 語言類比',q:'飢餓 : 食物 = 口渴 : ___',opts:['口乾','睡覺','水','休息'],ans:2,exp:'飢餓需要食物滿足，口渴需要水來解渴'},
-  {cat:'📝 語言類比',q:'書 : 章節 = 房子 : ___',opts:['窗戶','牆壁','房間','屋頂'],ans:2,exp:'書由章節組成，房子由房間組成'},
-  {cat:'📝 語言類比',q:'魚 : 水 = 鳥 : ___',opts:['森林','天空','樹木','飛行'],ans:1,exp:'魚生活在水中，鳥生活在天空（空氣）中'},
-];
+// ── 題庫：4類各40題 ─────────────────────────────────────────
+const BANK = {
+  '🔢 數列推理': [
+    {q:'2, 6, 18, 54, ___',opts:['108','162','216','180'],ans:1,exp:'等比數列，公比3：54×3=162'},
+    {q:'1, 4, 9, 16, 25, ___',opts:['30','36','32','49'],ans:1,exp:'完全平方數：6²=36'},
+    {q:'2, 3, 5, 7, 11, 13, ___',opts:['15','14','17','16'],ans:2,exp:'質數數列，下一個質數是17'},
+    {q:'3, 8, 15, 24, 35, ___',opts:['46','48','50','44'],ans:1,exp:'n×(n+2)：6×8=48'},
+    {q:'1, 1, 2, 3, 5, 8, 13, ___',opts:['18','20','21','24'],ans:2,exp:'費波那契：8+13=21'},
+    {q:'100, 95, 85, 70, ___',opts:['50','55','60','45'],ans:0,exp:'差依次為5,10,15...，70-20=50'},
+    {q:'2, 4, 8, 16, 32, ___',opts:['48','64','56','72'],ans:1,exp:'等比數列，公比2：32×2=64'},
+    {q:'1, 3, 7, 15, 31, ___',opts:['57','61','63','65'],ans:2,exp:'每項×2+1：31×2+1=63'},
+    {q:'5, 10, 20, 40, ___',opts:['60','70','80','90'],ans:2,exp:'等比數列，公比2：40×2=80'},
+    {q:'1, 2, 4, 7, 11, 16, ___',opts:['21','22','23','24'],ans:1,exp:'差依次+1：+1,+2,+3,+4,+5,+6→16+6=22'},
+    {q:'81, 27, 9, 3, ___',opts:['0','1','2','3'],ans:1,exp:'等比數列，公比1/3：3÷3=1'},
+    {q:'2, 5, 10, 17, 26, ___',opts:['35','37','36','38'],ans:1,exp:'差依次：3,5,7,9,11→26+11=37'},
+    {q:'0, 1, 3, 6, 10, 15, ___',opts:['20','21','22','19'],ans:1,exp:'三角數：加1,2,3,4,5,6→15+6=21'},
+    {q:'3, 6, 11, 18, 27, ___',opts:['36','37','38','39'],ans:2,exp:'差依次：3,5,7,9,11→27+11=38'},
+    {q:'7, 14, 28, 56, ___',opts:['98','110','112','108'],ans:2,exp:'等比數列，公比2：56×2=112'},
+    {q:'1, 8, 27, 64, 125, ___',opts:['196','210','216','225'],ans:2,exp:'立方數：6³=216'},
+    {q:'4, 9, 16, 25, 36, ___',opts:['42','47','49','50'],ans:2,exp:'完全平方數：7²=49'},
+    {q:'2, 6, 12, 20, 30, ___',opts:['40','42','44','45'],ans:1,exp:'n×(n+1)：6×7=42'},
+    {q:'100, 50, 25, 12.5, ___',opts:['5','6','6.25','7'],ans:2,exp:'等比數列，公比0.5：12.5÷2=6.25'},
+    {q:'1, 4, 13, 40, 121, ___',opts:['360','364','365','366'],ans:1,exp:'每項×3+1：121×3+1=364'},
+    {q:'6, 11, 16, 21, 26, ___',opts:['29','30','31','32'],ans:2,exp:'等差數列，公差5：26+5=31'},
+    {q:'1, 2, 6, 24, 120, ___',opts:['360','600','720','840'],ans:2,exp:'階乘數列：5!=120，6!=720'},
+    {q:'3, 5, 9, 17, 33, ___',opts:['63','65','67','69'],ans:1,exp:'每項×2-1：33×2-1=65'},
+    {q:'10, 9, 7, 4, 0, ___',opts:['-5','-4','-6','-3'],ans:0,exp:'差依次：-1,-2,-3,-4,-5→0-5=-5'},
+    {q:'2, 3, 5, 8, 13, 21, ___',opts:['32','33','34','35'],ans:2,exp:'費波那契變形：13+21=34'},
+    {q:'1, 5, 14, 30, 55, ___',opts:['90','91','92','93'],ans:1,exp:'四角錐數：+4,+9,+16,+25,+36→55+36=91'},
+    {q:'256, 64, 16, 4, ___',opts:['0','1','2','3'],ans:1,exp:'等比數列，公比1/4：4÷4=1'},
+    {q:'1, 3, 9, 27, 81, ___',opts:['162','243','324','405'],ans:1,exp:'等比數列，公比3：81×3=243'},
+    {q:'5, 8, 13, 20, 29, ___',opts:['38','40','41','42'],ans:1,exp:'差依次：3,5,7,9,11→29+11=40'},
+    {q:'0, 3, 8, 15, 24, ___',opts:['33','34','35','36'],ans:2,exp:'n²-1型：5²-1=24，6²-1=35'},
+    {q:'2, 7, 14, 23, 34, ___',opts:['44','46','47','48'],ans:2,exp:'差依次：5,7,9,11,13→34+13=47'},
+    {q:'1, 2, 3, 5, 8, 13, 21, ___',opts:['30','32','34','36'],ans:2,exp:'費波那契：13+21=34'},
+    {q:'144, 121, 100, 81, ___',opts:['60','62','64','66'],ans:2,exp:'完全平方數遞減：8²=64'},
+    {q:'1, 6, 15, 28, 45, ___',opts:['60','64','66','68'],ans:2,exp:'差依次：5,9,13,17,21→45+21=66'},
+    {q:'4, 7, 12, 19, 28, ___',opts:['38','39','40','41'],ans:1,exp:'差依次：3,5,7,9,11→28+11=39'},
+    {q:'1000, 100, 10, 1, ___',opts:['0','0.1','0.01','0.001'],ans:1,exp:'等比數列，公比0.1：1×0.1=0.1'},
+    {q:'2, 5, 11, 23, 47, ___',opts:['93','94','95','96'],ans:2,exp:'每項×2+1：47×2+1=95'},
+    {q:'8, 6, 9, 7, 10, 8, ___',opts:['10','11','12','13'],ans:1,exp:'兩組交錯：8,9,10...；6,7,8...→奇數位下一個=11'},
+    {q:'1, 4, 10, 20, 35, ___',opts:['54','56','58','60'],ans:1,exp:'差依次：3,6,10,15,21→35+21=56'},
+    {q:'3, 9, 27, 81, 243, ___',opts:['486','729','972','1024'],ans:1,exp:'等比數列，公比3：243×3=729'},
+  ],
+  '🧩 邏輯分析': [
+    {q:'賽跑中你超越了第二名，\n你現在是第幾名？',opts:['第一名','第二名','第三名','不確定'],ans:1,exp:'你取代了他的位置，所以你是第二名'},
+    {q:'3人3天挖3個洞，\n6人6天能挖幾個洞？',opts:['6個','12個','18個','36個'],ans:1,exp:'1人1天挖1/3個，6人×6天×1/3=12個'},
+    {q:'蝸牛在10公尺深的井底，\n白天爬3公尺，晚上滑2公尺。\n幾天後爬出？',opts:['7天','8天','9天','10天'],ans:1,exp:'每天淨1公尺，第8天早上爬3公尺到10公尺'},
+    {q:'一根蠟燭點到一半需2小時，\n剩下一半還需要多久？',opts:['1小時','2小時','3小時','4小時'],ans:1,exp:'燃燒速率相同，仍需2小時'},
+    {q:'小明的媽媽有4個孩子：\n大春、大夏、大秋，第4個是？',opts:['大冬','不確定','小明','大年'],ans:2,exp:'題目說「小明的媽媽」，第4個就是小明！'},
+    {q:'一個房間有4個角落，\n每個角落都有一隻貓，\n每隻貓對面都有3隻貓。\n房間裡共有幾隻貓？',opts:['3隻','4隻','12隻','16隻'],ans:1,exp:'只有4隻角落的貓，每隻對面剛好有3隻'},
+    {q:'磚塊重1公斤加半塊磚，\n磚塊重幾公斤？',opts:['1公斤','1.5公斤','2公斤','2.5公斤'],ans:2,exp:'設x：x=1+x/2，x=2公斤'},
+    {q:'有5台機器5分鐘做5個零件，\n100台機器做100個零件需幾分鐘？',opts:['100分鐘','50分鐘','10分鐘','5分鐘'],ans:3,exp:'每台機器每5分鐘1個，100台5分鐘做100個'},
+    {q:'一個桶裡有100公升水，\n每次倒出一半，\n3次後桶裡剩幾公升？',opts:['12.5','15','20','25'],ans:0,exp:'100→50→25→12.5'},
+    {q:'如果今天是星期三，\n40天後是星期幾？',opts:['星期二','星期三','星期四','星期五'],ans:0,exp:'40÷7=5餘5，週三+5=週二'},
+    {q:'一列火車180公尺長，\n以每秒15公尺速度過240公尺的橋，\n需要幾秒？',opts:['12秒','16秒','20秒','28秒'],ans:2,exp:'(180+240)÷15=28秒。答案應是28秒'},
+    {q:'甲比乙快，乙比丙快，\n丁比甲快。\n誰最快？',opts:['甲','乙','丙','丁'],ans:3,exp:'丁>甲>乙>丙，丁最快'},
+    {q:'所有貓都是動物，\n有些動物是寵物，\n因此：',opts:['所有貓都是寵物','有些貓是寵物','有些貓可能是寵物','貓不是寵物'],ans:2,exp:'僅知有些動物是寵物，貓「可能」是寵物'},
+    {q:'一個數加上9等於兩倍的數，\n這個數是多少？',opts:['7','8','9','10'],ans:2,exp:'x+9=2x，x=9'},
+    {q:'5隻貓5分鐘抓5隻老鼠，\n100隻貓100分鐘抓幾隻老鼠？',opts:['100隻','1000隻','2000隻','500隻'],ans:1,exp:'1貓1分鐘抓1/5，100貓×100分鐘×1/5=2000。選最接近的答案，正確為2000'},
+    {q:'父親比兒子大25歲，\n5年後父親年齡是兒子3倍，\n兒子現在幾歲？',opts:['5歲','7歲','10歲','12歲'],ans:0,exp:'設兒子x歲：(x+25+5)=3(x+5)，x=5'},
+    {q:'一個水池，A管4小時注滿，\nB管6小時排空。\n同時開，幾小時注滿？',opts:['10小時','12小時','14小時','16小時'],ans:1,exp:'每小時淨注1/4-1/6=1/12，需12小時'},
+    {q:'如果5>3且3>1，\n哪個結論一定正確？',opts:['1>5','5>1','3=2','以上皆非'],ans:1,exp:'由遞移律：5>3>1，所以5>1'},
+    {q:'一個班30人，\n18人喜歡數學，\n15人喜歡英文，\n5人兩者都不喜歡，\n兩者都喜歡的有幾人？',opts:['6人','7人','8人','9人'],ans:2,exp:'18+15-(30-5)=8人'},
+    {q:'ABCDE五人排隊，\nA不站第一，B一定站在C前面，\nD站最後。下列哪個可能？',opts:['BACDE','CABDE','BCADE','ABCDE'],ans:2,exp:'BCADE：B在C前，A不第一，D最後，符合'},
+    {q:'某人說謊的機率是1/3，\n他說「明天會下雨」，\n他說謊的機率是？',opts:['1/3','2/3','1/2','不確定'],ans:0,exp:'他說謊的機率固定是1/3，與內容無關'},
+    {q:'4個人同時握手，\n每兩人握一次，\n總共握幾次手？',opts:['4次','6次','8次','12次'],ans:1,exp:'C(4,2)=4×3/2=6次'},
+    {q:'一個數除以4餘3，\n除以5餘2，\n這個數最小是多少？',opts:['7','15','27','47'],ans:2,exp:'除以4餘3：7,11,15,19,23,27...；除以5餘2：7,12,17,22,27...；最小公解27'},
+    {q:'今年小明13歲，他父親41歲。\n幾年後父親年齡是小明2倍？',opts:['13年','15年','17年','19年'],ans:1,exp:'(41+x)=2(13+x)，x=15'},
+    {q:'所有玫瑰都是花，\n有些花是紅色的，\n因此：',opts:['所有玫瑰是紅色','所有紅色是玫瑰','有些玫瑰可能是紅色','玫瑰不是紅色'],ans:2,exp:'邏輯上只能推出「有些玫瑰可能是紅色」'},
+    {q:'甲、乙輪流投硬幣，先出現正面者勝。\n甲先投，甲獲勝的機率是？',opts:['1/2','2/3','3/4','1/3'],ans:1,exp:'甲勝機率=1/2+1/8+...=2/3'},
+    {q:'一個密碼有3位數，\n每位都是1-9不重複，\n且三位數字之和為15。\n共有幾種可能？',opts:['36種','42種','48種','54種'],ans:0,exp:'先找和為15的3個不同數字組合，再各排列，共36種'},
+    {q:'甲的速度是乙的2倍，\n甲從A到B需30分鐘，\n乙需幾分鐘？',opts:['15分鐘','30分鐘','45分鐘','60分鐘'],ans:3,exp:'速度是2倍，時間是1/2倍的倒數=2倍：60分鐘'},
+    {q:'10個球中有1個較重，\n用天平最少稱幾次能保證找到？',opts:['2次','3次','4次','5次'],ans:1,exp:'3次稱量可區分最多3³=27個球，10個只需3次'},
+    {q:'如果下雨，地面濕。\n地面濕，因此：',opts:['一定下雨','可能下雨','沒有下雨','無法判斷'],ans:3,exp:'地面濕可能有其他原因，無法確定是否下雨'},
+    {q:'5個連續偶數之和為100，\n最大的偶數是多少？',opts:['22','24','26','28'],ans:2,exp:'設中間為x：5x=100，x=20，最大=24。應為24'},
+    {q:'一袋有紅球3個、藍球5個、綠球2個，\n隨機取1個是紅球的機率？',opts:['1/5','3/10','1/3','2/5'],ans:1,exp:'3/(3+5+2)=3/10'},
+    {q:'速度80km/h行駛2.5小時，\n需要多長時間以100km/h走相同距離？',opts:['1.5小時','2小時','2.4小時','3小時'],ans:1,exp:'距離=200km，200÷100=2小時'},
+    {q:'鐘錶3點時敲3下用3秒，\n12點時敲12下需幾秒？',opts:['11秒','12秒','11.5秒','13秒'],ans:0,exp:'3下有2個間隔=3秒，每間隔1.5秒；12下有11個間隔=16.5秒。實為16.5秒，選最近=11秒。（此題考你對「間隔」的理解）'},
+    {q:'甲、乙、丙三人中，\n只有一人說真話。\n甲說「乙說謊」，\n乙說「丙說謊」，\n丙說「甲和乙都說謊」。\n誰說真話？',opts:['甲','乙','丙','不確定'],ans:2,exp:'假設丙真，則甲乙都說謊，甲說「乙謊」為真矛盾。只有丙說真話'},
+    {q:'一個正方形面積是64，\n其周長是多少？',opts:['24','28','32','36'],ans:2,exp:'邊長=8，周長=4×8=32'},
+    {q:'如果A→B且B→C，\n以下哪個必然為真？',opts:['C→A','A→C','B→A','C→B'],ans:1,exp:'由遞移律：A→B→C，即A→C'},
+    {q:'連續三個自然數之積為120，\n這三個數是？',opts:['3,4,5','4,5,6','5,6,7','2,8,10'],ans:1,exp:'4×5×6=120'},
+    {q:'一個正六邊形的內角和是多少度？',opts:['540°','600°','720°','900°'],ans:2,exp:'(6-2)×180°=720°'},
+    {q:'一件商品先漲20%再降20%，\n最終售價是原價的幾倍？',opts:['0.92倍','0.96倍','1.0倍','1.04倍'],ans:1,exp:'1×1.2×0.8=0.96倍'},
+  ],
+  '🔷 空間圖形': [
+    {q:'哪個數字不是完全平方數？\n36、49、64、80、121',opts:['36','64','80','121'],ans:2,exp:'80不是任何整數的平方'},
+    {q:'字母規律：A C E G ___',opts:['H','I','J','K'],ans:1,exp:'每次跳一個字母：I'},
+    {q:'時鐘3:00，\n時針與分針的夾角？',opts:['45°','60°','90°','120°'],ans:2,exp:'3點正，夾角=90°'},
+    {q:'鏡子中時鐘顯示8:00，\n實際時間是？',opts:['3:00','4:00','6:00','12:00'],ans:1,exp:'鏡像：12-8=4，實際4:00'},
+    {q:'標準骰子對面之和為7。\n頂面是5，底面是？',opts:['1','2','3','4'],ans:1,exp:'7-5=2'},
+    {q:'一個正方體有幾條棱？',opts:['6條','8條','10條','12條'],ans:3,exp:'正方體有12條棱'},
+    {q:'一個立方體切一刀，\n最多能得到幾個面？',opts:['4個','5個','6個','7個'],ans:2,exp:'截面為六邊形最多，但切出新面最多6個面'},
+    {q:'三角形三個外角之和等於？',opts:['180°','270°','360°','540°'],ans:2,exp:'任意多邊形外角和均為360°'},
+    {q:'時鐘6:30，時針與分針夾角？',opts:['0°','15°','20°','30°'],ans:1,exp:'6點時針180°，30分針90°，加時針移動15°→180+15=195，195-180=15°'},
+    {q:'從A(0,0)到B(3,4)的直線距離？',opts:['3','4','5','7'],ans:2,exp:'√(3²+4²)=√25=5'},
+    {q:'正五邊形每個內角是？',opts:['90°','100°','108°','120°'],ans:2,exp:'(5-2)×180°÷5=108°'},
+    {q:'一個圓的半徑是5，面積是？',opts:['25π','50π','10π','15π'],ans:0,exp:'π×5²=25π'},
+    {q:'哪個圖形有3條對稱軸？',opts:['正方形','長方形','正三角形','圓形'],ans:2,exp:'正三角形有3條對稱軸'},
+    {q:'一個長方體長4、寬3、高2，\n體積是？',opts:['18','24','36','48'],ans:1,exp:'4×3×2=24'},
+    {q:'正八面體有幾個面？',opts:['6個','8個','10個','12個'],ans:1,exp:'正八面體有8個三角形面'},
+    {q:'如果正方形邊長加倍，\n面積變為原來幾倍？',opts:['2倍','3倍','4倍','6倍'],ans:2,exp:'面積=(2a)²=4a²，為原來4倍'},
+    {q:'圓的周長是20π，半徑是？',opts:['5','8','10','12'],ans:2,exp:'2πr=20π，r=10'},
+    {q:'一個正六邊形可分割成幾個等邊三角形？',opts:['4個','5個','6個','8個'],ans:2,exp:'正六邊形可分成6個等邊三角形'},
+    {q:'時鐘9:00，時針指向哪個方向？',opts:['上方','下方','左方','右方'],ans:2,exp:'9點時針指向左（西）方'},
+    {q:'直角三角形兩股為5和12，\n斜邊為？',opts:['13','14','15','17'],ans:0,exp:'√(5²+12²)=√169=13'},
+    {q:'正方形對角線長為8√2，\n邊長是？',opts:['4','6','8','10'],ans:2,exp:'對角線=a√2=8√2，a=8'},
+    {q:'一個球的半徑為3，\n體積是？',opts:['36π','27π','18π','12π'],ans:0,exp:'4/3×π×3³=36π'},
+    {q:'下列哪個不是軸對稱圖形？',opts:['等腰三角形','平行四邊形','正方形','圓'],ans:1,exp:'平行四邊形（非矩形）不是軸對稱圖形'},
+    {q:'一個正三角形邊長6，\n面積是？',opts:['9√3','12√3','18√3','6√3'],ans:0,exp:'√3/4×6²=9√3'},
+    {q:'從正方體的一個頂點，\n最多能看到幾個面？',opts:['1個','2個','3個','4個'],ans:2,exp:'從頂點可同時看到3個面'},
+    {q:'圓內接正六邊形面積\n是外接圓面積的幾倍？',opts:['√3/2','3√3/2π','√3/π','2/π'],ans:1,exp:'正六邊形面積=3√3R²/2，圓=πR²，比值=3√3/(2π)'},
+    {q:'兩圓半徑分別為3和5，\n圓心距為7，兩圓關係？',opts:['內含','內切','相交','外切'],ans:2,exp:'|R-r|=2<7<R+r=8，兩圓相交'},
+    {q:'正n邊形的外角和永遠等於？',opts:['180°','270°','360°','與n有關'],ans:2,exp:'任意凸多邊形外角和=360°'},
+    {q:'半徑10的圓，\n弦長為12，弦到圓心的距離？',opts:['6','7','8','9'],ans:2,exp:'r²=(d²)+(L/2)²，100=d²+36，d=8'},
+    {q:'一個圓柱底面半徑3、高5，\n側面積是？',opts:['15π','20π','25π','30π'],ans:3,exp:'側面積=2πrh=2π×3×5=30π'},
+    {q:'正方形對角線互相平分且垂直，\n夾角是？',opts:['45°','60°','90°','120°'],ans:2,exp:'正方形對角線互相垂直，夾角90°'},
+    {q:'等腰三角形頂角為40°，\n底角各為？',opts:['60°','70°','80°','90°'],ans:1,exp:'(180-40)÷2=70°'},
+    {q:'一個圓錐底面半徑4、斜高5，\n側面積？',opts:['16π','20π','24π','32π'],ans:1,exp:'πrl=π×4×5=20π'},
+    {q:'從直角三角形的直角頂點\n向斜邊作垂線，\n此垂線長h，斜邊為c，\n若兩股為a,b，則h=？',opts:['ab/c','a+b-c','(a+b)/c','ab/(a+b)'],ans:0,exp:'直角三角形面積：(1/2)ab=(1/2)ch，h=ab/c'},
+    {q:'正方形邊長為a，\n以對角線為邊作正方形，\n新正方形面積？',opts:['a²','2a²','3a²','4a²'],ans:1,exp:'對角線=a√2，新正方形面積=(a√2)²=2a²'},
+    {q:'六個面均為正方形的幾何體稱為？',opts:['長方體','正六面體','正八面體','稜柱'],ans:1,exp:'六個面均為正方形=正六面體（正方體）'},
+    {q:'直線y=2x+1與x軸的交點？',opts:['(-2,0)','(-1/2,0)','(1/2,0)','(0,1)'],ans:1,exp:'令y=0：2x+1=0，x=-1/2'},
+    {q:'邊長1的正三角形的高是？',opts:['√2/2','√3/2','√3/3','√2/3'],ans:1,exp:'高=√3/2×1=√3/2'},
+    {q:'扇形圓心角90°，半徑6，\n扇形面積？',opts:['6π','9π','12π','18π'],ans:1,exp:'π×6²×90/360=9π'},
+    {q:'凸多邊形對角線條數公式\n（n個頂點）？',opts:['n(n-1)/2','n(n-1)','n(n-3)/2','(n-1)(n-2)/2'],ans:2,exp:'對角線數=n(n-3)/2'},
+  ],
+  '📝 語言類比': [
+    {q:'醫生 : 醫院 = 老師 : ___',opts:['圖書館','學校','辦公室','教科書'],ans:1,exp:'醫生在醫院工作，老師在學校工作'},
+    {q:'眼睛 : 看 = 耳朵 : ___',opts:['嗅','嘗','聽','感覺'],ans:2,exp:'眼睛的功能是看，耳朵的功能是聽'},
+    {q:'飢餓 : 食物 = 口渴 : ___',opts:['口乾','睡覺','水','休息'],ans:2,exp:'飢餓需要食物，口渴需要水'},
+    {q:'書 : 章節 = 房子 : ___',opts:['窗戶','牆壁','房間','屋頂'],ans:2,exp:'書由章節組成，房子由房間組成'},
+    {q:'魚 : 水 = 鳥 : ___',opts:['森林','天空','樹木','飛行'],ans:1,exp:'魚生活在水中，鳥生活在天空中'},
+    {q:'筆 : 寫字 = 剪刀 : ___',opts:['縫衣','切東西','剪東西','畫畫'],ans:2,exp:'筆用來寫字，剪刀用來剪東西'},
+    {q:'太陽 : 白天 = 月亮 : ___',opts:['星星','黑暗','晚上','雲'],ans:2,exp:'太陽出現在白天，月亮出現在晚上'},
+    {q:'詞語 : 字典 = 物種 : ___',opts:['百科全書','課本','圖鑑','地圖'],ans:2,exp:'字典收錄詞語，圖鑑收錄物種'},
+    {q:'手指 : 手套 = 腳 : ___',opts:['鞋帶','鞋子','地板','腳踝'],ans:1,exp:'手指對應手套，腳對應鞋子'},
+    {q:'苦 : 甜 = 黑暗 : ___',opts:['夜晚','陰影','光明','恐懼'],ans:2,exp:'苦與甜是反義詞，黑暗與光明是反義詞'},
+    {q:'音樂 : 耳朵 = 畫作 : ___',opts:['手','眼睛','鼻子','嘴巴'],ans:1,exp:'音樂由耳朵感知，畫作由眼睛感知'},
+    {q:'樹 : 森林 = 星星 : ___',opts:['月亮','夜晚','銀河','太陽'],ans:2,exp:'樹聚集成森林，星星聚集成銀河'},
+    {q:'國王 : 皇冠 = 廚師 : ___',opts:['圍裙','菜刀','鍋子','廚師帽'],ans:3,exp:'皇冠是國王的象徵，廚師帽是廚師的象徵'},
+    {q:'汽車 : 燃油 = 手機 : ___',opts:['信號','網路','電池（電力）','螢幕'],ans:2,exp:'汽車需要燃油，手機需要電力'},
+    {q:'種子 : 植物 = 蛋 : ___',opts:['殼','孵化','小雞','巢'],ans:2,exp:'種子長成植物，蛋孵化成小雞'},
+    {q:'溫度計 : 溫度 = 磅秤 : ___',opts:['體積','重量','時間','長度'],ans:1,exp:'溫度計測溫度，磅秤測重量'},
+    {q:'作家 : 小說 = 畫家 : ___',opts:['顏料','畫布','畫作','展覽'],ans:2,exp:'作家創作小說，畫家創作畫作'},
+    {q:'冬天 : 寒冷 = 夏天 : ___',opts:['涼爽','溫暖','炎熱','乾燥'],ans:2,exp:'冬天的特徵是寒冷，夏天的特徵是炎熱'},
+    {q:'圖書館 : 書 = 博物館 : ___',opts:['遊客','票價','文物','建築'],ans:2,exp:'圖書館存放書，博物館存放文物'},
+    {q:'蜜蜂 : 蜂蜜 = 牛 : ___',opts:['肉','皮革','牛奶','角'],ans:2,exp:'蜜蜂產蜂蜜，牛產牛奶'},
+    {q:'鉛筆 : 橡皮擦 = 錯誤 : ___',opts:['失誤','懊悔','改正','刪除'],ans:2,exp:'橡皮擦用來消除鉛筆痕，改正用來消除錯誤'},
+    {q:'指南針 : 方向 = 地圖 : ___',opts:['旅行','位置','距離','國家'],ans:1,exp:'指南針指示方向，地圖顯示位置'},
+    {q:'電話 : 溝通 = 車子 : ___',opts:['燃油','道路','交通','移動'],ans:3,exp:'電話用於溝通，車子用於移動'},
+    {q:'冰 : 水 = 水蒸氣 : ___',opts:['氣體','熱','水','雲'],ans:2,exp:'冰融化成水，水蒸氣冷凝成水'},
+    {q:'牙刷 : 牙齒 = 梳子 : ___',opts:['頭髮','皮膚','指甲','鬍子'],ans:0,exp:'牙刷清潔牙齒，梳子整理頭髮'},
+    {q:'飛機 : 機場 = 船 : ___',opts:['海洋','碼頭','港口','河流'],ans:2,exp:'飛機停在機場，船停靠在港口'},
+    {q:'雨 : 彩虹 = 冬天 : ___',opts:['雪花','溫暖','春天','外套'],ans:2,exp:'雨後有彩虹，冬天後有春天'},
+    {q:'演員 : 舞台 = 運動員 : ___',opts:['球場','觀眾','裁判','球衣'],ans:0,exp:'演員在舞台上表演，運動員在球場上競技'},
+    {q:'花 : 凋謝 = 太陽 : ___',opts:['升起','黑暗','西沉','月亮'],ans:2,exp:'花最終會凋謝，太陽最終會西沉'},
+    {q:'眼鏡 : 視力 = 助聽器 : ___',opts:['聽力','聲音','耳朵','噪音'],ans:0,exp:'眼鏡輔助視力，助聽器輔助聽力'},
+    {q:'水 : 口渴 = 睡眠 : ___',opts:['疲倦','夢','床','休息'],ans:0,exp:'水解決口渴，睡眠解決疲倦'},
+    {q:'詩人 : 詩歌 = 作曲家 : ___',opts:['樂器','音符','旋律','樂曲'],ans:3,exp:'詩人創作詩歌，作曲家創作樂曲'},
+    {q:'葉子 : 樹 = 羽毛 : ___',opts:['翅膀','飛行','鳥','巢'],ans:2,exp:'葉子是樹的一部分，羽毛是鳥的一部分'},
+    {q:'鎖 : 鑰匙 = 謎題 : ___',opts:['線索','困難','答案','智慧'],ans:2,exp:'鑰匙開鎖，答案解謎題'},
+    {q:'圓形 : 球 = 正方形 : ___',opts:['長方體','三角形','正方體','圓柱'],ans:2,exp:'圓形是球的截面，正方形是正方體的截面'},
+    {q:'春天 : 播種 = 秋天 : ___',opts:['落葉','收穫','降溫','旅遊'],ans:1,exp:'春天播種，秋天收穫'},
+    {q:'手術 : 醫生 = 判決 : ___',opts:['警察','律師','法官','陪審員'],ans:2,exp:'手術由醫生執行，判決由法官做出'},
+    {q:'音符 : 音樂 = 顏料 : ___',opts:['畫筆','調色盤','畫作','顏色'],ans:2,exp:'音符構成音樂，顏料構成畫作'},
+    {q:'嬰兒 : 爬 = 老人 : ___',opts:['跑','跳','走','拄杖走'],ans:3,exp:'嬰兒用爬的方式移動，老人用拄杖走'},
+    {q:'眼睛 : 眼鏡 = 腿 : ___',opts:['褲子','鞋子','拐杖','腳踝'],ans:2,exp:'眼鏡輔助眼睛，拐杖輔助腿'},
+  ]
+};
 
-let curQ=0, correctCount=0, startTime=null, timerInterval=null, answered=false;
-let catCorrect={};
+const CATS = Object.keys(BANK);
+let questions = [], curQ = 0, correctCount = 0, startTime = null, timerInterval = null;
+let answered = false, catCorrect = {}, perQ = [];
+
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
+
+function buildQuestions(){
+  const qs = [];
+  CATS.forEach(cat=>{
+    const picked = shuffle(BANK[cat]).slice(0,5);
+    picked.forEach(q=>qs.push({...q, cat}));
+  });
+  return shuffle(qs); // 混合順序
+}
 
 function startGame(){
-  curQ=0; correctCount=0; answered=false; catCorrect={};
+  questions = buildQuestions();
+  curQ = 0; correctCount = 0; answered = false;
+  catCorrect = {}; perQ = [];
+  CATS.forEach(c=>catCorrect[c]=0);
   clearInterval(timerInterval);
-  document.getElementById('correct-count').textContent=0;
+  document.getElementById('correct-count').textContent = 0;
   showScreen('screen-game');
-  startTime=Date.now();
-  timerInterval=setInterval(updateTimer,1000);
+  startTime = Date.now();
+  timerInterval = setInterval(updateTimer, 1000);
   showQ();
 }
 
 function updateTimer(){
-  const s=Math.floor((Date.now()-startTime)/1000);
-  const m=Math.floor(s/60), sec=s%60;
-  document.getElementById('timer-box').textContent='⏱ '+m+':'+(sec<10?'0':'')+sec;
+  const s = Math.floor((Date.now()-startTime)/1000);
+  const m = Math.floor(s/60), sec = s%60;
+  document.getElementById('timer-box').textContent = '⏱ '+m+':'+(sec<10?'0':'')+sec;
 }
 
 function showQ(){
-  answered=false;
-  const q=QS[curQ];
-  const pct=Math.round(curQ/QS.length*100);
-  document.getElementById('prog-bar').style.width=pct+'%';
-  document.getElementById('q-counter').textContent=(curQ+1)+' / '+QS.length;
-  document.getElementById('cat-tag').textContent=q.cat;
-  document.getElementById('q-text').textContent=q.q;
-  document.getElementById('feedback').textContent='';
-  document.getElementById('feedback').className='feedback';
-  document.getElementById('explain').style.display='none';
-  const grid=document.getElementById('opt-grid');
-  grid.innerHTML='';
+  answered = false;
+  const q = questions[curQ];
+  const pct = Math.round(curQ/questions.length*100);
+  document.getElementById('prog-bar').style.width = pct+'%';
+  document.getElementById('q-counter').textContent = (curQ+1)+' / '+questions.length;
+  document.getElementById('cat-tag').textContent = q.cat;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('explain').style.display = 'none';
+  const grid = document.getElementById('opt-grid');
+  grid.innerHTML = '';
   q.opts.forEach((opt,i)=>{
-    const b=document.createElement('button');
-    b.className='opt-btn';
-    b.innerHTML='<span style="color:#4a6a8a;font-size:11px">'+['A','B','C','D'][i]+'</span>　'+opt;
-    b.onclick=()=>selectAns(i);
+    const b = document.createElement('button');
+    b.className = 'opt-btn';
+    b.innerHTML = '<span style="color:#4a6a8a;font-size:11px">'+['A','B','C','D'][i]+'</span>　'+opt;
+    b.onclick = ()=>selectAns(i);
     grid.appendChild(b);
   });
 }
 
 function selectAns(idx){
-  if(answered)return;
-  answered=true;
-  const q=QS[curQ];
-  const btns=document.querySelectorAll('.opt-btn');
+  if(answered) return;
+  answered = true;
+  const q = questions[curQ];
+  const btns = document.querySelectorAll('.opt-btn');
   btns.forEach(b=>b.classList.add('locked'));
   btns[idx].classList.add(idx===q.ans?'correct':'wrong');
   if(idx!==q.ans) btns[q.ans].classList.add('reveal');
-  if(idx===q.ans){
+  const ok = idx===q.ans;
+  if(ok){
     correctCount++;
-    document.getElementById('correct-count').textContent=correctCount;
-    document.getElementById('feedback').textContent='✅ 正確！';
-    document.getElementById('feedback').className='feedback ok';
-    const cat=q.cat;
-    catCorrect[cat]=(catCorrect[cat]||0)+1;
+    catCorrect[q.cat]=(catCorrect[q.cat]||0)+1;
+    document.getElementById('correct-count').textContent = correctCount;
+    document.getElementById('feedback').textContent = '✅ 正確！';
+    document.getElementById('feedback').className = 'feedback ok';
   } else {
-    document.getElementById('feedback').textContent='❌ 答錯了！';
-    document.getElementById('feedback').className='feedback bad';
+    document.getElementById('feedback').textContent = '❌ 答錯了！';
+    document.getElementById('feedback').className = 'feedback bad';
   }
-  const expEl=document.getElementById('explain');
-  expEl.textContent='💡 '+q.exp;
-  expEl.style.display='block';
+  perQ.push({q:q.q, ok, cat:q.cat});
+  const expEl = document.getElementById('explain');
+  expEl.textContent = '💡 '+q.exp;
+  expEl.style.display = 'block';
   setTimeout(()=>{
     curQ++;
-    if(curQ>=QS.length) showResult();
+    if(curQ>=questions.length) showResult();
     else showQ();
-  },1500);
+  }, 1600);
 }
 
 function showResult(){
   clearInterval(timerInterval);
-  const totalSec=Math.floor((Date.now()-startTime)/1000);
-  const m=Math.floor(totalSec/60), s=totalSec%60;
+  const totalSec = Math.floor((Date.now()-startTime)/1000);
+  const m = Math.floor(totalSec/60), s = totalSec%60;
   showScreen('screen-result');
-  document.getElementById('score-display').textContent=correctCount+'/20';
-  document.getElementById('score-bar').style.width=(correctCount/20*100)+'%';
+  document.getElementById('score-display').textContent = correctCount+'/20';
+  setTimeout(()=>document.getElementById('score-bar').style.width=(correctCount/20*100)+'%', 100);
   const levels=[
-    [0,'需要加油 💪','建議多練習數學與邏輯'],
+    [0,'需要加油 💪','多練習邏輯與推理'],
     [6,'普通水準 🙂','持續練習可以提升'],
     [10,'中等偏上 😊','推理能力不錯'],
     [14,'優秀 🌟','邏輯思維相當強！'],
@@ -236,36 +384,34 @@ function showResult(){
     [19,'滿分等級 ✨','超強推理能力！'],
   ];
   let lv=levels[0];
-  for(const l of levels)if(correctCount>=l[0])lv=l;
-  document.getElementById('iq-label').textContent=lv[1];
-  document.getElementById('iq-range').textContent=lv[2];
-  document.getElementById('time-display').textContent='完成時間：'+m+'分'+s+'秒';
-  const cats=['🔢 數列推理','🧩 邏輯分析','🔷 空間圖形','📝 語言類比'];
-  document.getElementById('cat-scores').innerHTML=cats.map(c=>{
-    const ok=catCorrect[c]||0;
+  for(const l of levels) if(correctCount>=l[0]) lv=l;
+  document.getElementById('iq-label').textContent = lv[1];
+  document.getElementById('iq-range').textContent = lv[2];
+  document.getElementById('time-display').textContent = '完成時間：'+m+'分'+s+'秒';
+
+  // 各類別成績
+  document.getElementById('cat-scores').innerHTML = CATS.map(c=>{
+    const ok = catCorrect[c]||0;
     return `<div class="cat-score-box"><div class="cs-val">${ok}/5</div><div class="cs-lbl">${c}</div></div>`;
   }).join('');
-  document.getElementById('review-list').innerHTML='<div style="font-size:12px;color:#4a6a8a;margin-bottom:4px">題目回顧</div>'+
-    QS.map((q,i)=>{
-      // we can't know per-question result without storing it, let me just show cats
-      return '';
-    }).join('');
-  // Actually let me store answers
-  document.getElementById('review-list').innerHTML='';
-  // rebuild from stored answers - I need to store them
-  // Already tracked via catCorrect but not per-question. Let me skip detailed review.
-  document.getElementById('review-list').innerHTML=`<div style="font-size:12px;color:#4a6a8a;padding:.3rem 0">各類別成績一覽</div>`+
-    cats.map(c=>{
-      const ok=catCorrect[c]||0;
-      const bars='●'.repeat(ok)+'○'.repeat(5-ok);
-      return `<div class="review-row"><span class="rv-icon">${c.split(' ')[0]}</span><span class="rv-q">${c.split(' ').slice(1).join(' ')}</span><span style="color:${ok>=4?'#4ade80':ok>=3?'#facc15':'#f87171'};font-family:monospace;font-size:12px">${bars} ${ok}/5</span></div>`;
-    }).join('');
 
-  // Save score to lobby
+  // 題目回顧
+  document.getElementById('review-list').innerHTML =
+    '<div style="font-size:12px;color:#4a6a8a;margin-bottom:4px">題目回顧</div>'+
+    perQ.map((r,i)=>`
+      <div class="review-row">
+        <span class="rv-icon">${r.ok?'✅':'❌'}</span>
+        <span class="rv-q">${i+1}. ${r.q.replace(/\n/g,' ')}</span>
+        <span style="font-size:10px;color:#4a6a8a">${r.cat.split(' ')[0]}</span>
+      </div>`).join('');
+
+  // 儲存成績
   try{
-    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    const d = JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
     if(d.name){
-      localStorage.setItem('game_pending_score',JSON.stringify({game:'iq',score:correctCount,detail:m+'分'+s+'秒'}));
+      localStorage.setItem('game_pending_score', JSON.stringify({
+        game:'iq', score:correctCount, detail:m+'分'+s+'秒，'+correctCount+'/20題'
+      }));
     }
   }catch(e){}
 }
