@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>🌈 彩虹連連看</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -40,6 +40,12 @@ canvas{display:block;border-radius:12px;border:0.5px solid #2a2a4a;background:#0
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  /* iOS 安全區域：避免被工具列或 Home 條遮住 */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    min-height: 100dvh;
   }
 </style>
 </head><body>

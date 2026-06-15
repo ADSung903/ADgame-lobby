@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>💣 踩地雷</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -58,6 +58,12 @@ body{font-family:sans-serif;background:#0a0e14;color:#eee;display:flex;justify-c
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+  }
+
+  /* iOS 安全區域：避免被工具列或 Home 條遮住 */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    min-height: 100dvh;
   }
 </style></head><body>
 <div class="app">
