@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎣 深海釣魚</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#000a14;color:#eee;display:flex;justify-content:center;overflow:hidden;height:100vh}
+.app{width:100%;max-width:480px;position:relative;height:100vh;overflow:hidden}
+.screen{display:none;position:absolute;inset:0}.screen.active{display:block}
+
+/* TITLE */
+#screen-title{background:linear-gradient(180deg,#000a14 0%,#001428 60%,#002040 100%);display:flex;align-items:center;justify-content:center;flex-direction:column}
+.title-card{background:rgba(0,15,30,.9);border:1px solid #1e4a7a;border-radius:20px;padding:2rem 1.5rem;text-align:center;z-index:10;width:88%;max-width:340px}
+.title-card h1{font-size:26px;font-weight:700;margin-bottom:.3rem}
+.title-card p{font-size:13px;color:#7ab;line-height:1.7;margin-bottom:1.2rem}
+.big-btn{width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#0c4a6e,#0ea5e9);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.big-btn:active{transform:scale(.98)}
+.best-lbl{font-size:12px;color:#4a7a9a;margin-top:.5rem}
+
+/* GAME */
+#screen-game{background:#000a14}
+canvas{display:block;width:100%;height:100%}
+
+/* HUD overlay */
+.hud{position:absolute;top:0;left:0;right:0;z-index:20;padding:.5rem .75rem;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;background:linear-gradient(180deg,rgba(0,5,15,.85) 0%,transparent 100%)}
+.cast-info{font-size:13px;color:#7ab}
+.score-info{font-size:16px;font-weight:700;color:#ffd700;text-shadow:0 0 8px #f90}
+.weather-tag{font-size:11px;padding:2px 9px;border-radius:12px;background:rgba(0,20,40,.75);border:0.5px solid #1e4a6a;color:#7ab;margin-top:3px}
+
+/* weather alert */
+.w-alert{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(0,10,25,.93);border:1px solid #1e5a7a;border-radius:12px;padding:.55rem .9rem;font-size:12px;color:#7de;text-align:center;max-width:88%;opacity:0;transition:opacity .4s;pointer-events:none;line-height:1.6;white-space:pre-line}
+.w-alert.show{opacity:1}
+
+/* cast hint */
+.cast-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;font-size:13px;color:rgba(100,180,255,.7);pointer-events:none;text-align:center;transition:opacity .3s}
+
+/* catch popup */
+.catch-pop{position:absolute;z-index:30;font-size:15px;font-weight:700;color:#ffd700;pointer-events:none;text-shadow:0 0 8px #f90;animation:floatUp .9s ease forwards}
+@keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-50px);opacity:0}}
+
+/* RESULT */
+#screen-result{background:linear-gradient(180deg,#000a14,#001428);display:flex;align-items:center;justify-content:center}
+.result-card{background:rgba(0,15,30,.95);border:1px solid #1e4a7a;border-radius:20px;padding:1.5rem;width:88%;max-width:340px;text-align:center;max-height:90vh;overflow-y:auto}
+.result-card h2{font-size:20px;margin-bottom:.3rem}
+.final-score{font-size:52px;font-weight:800;color:#ffd700;margin:.3rem 0}
+.best-badge{font-size:12px;color:#4ade80;margin-bottom:.75rem}
+.catch-list{text-align:left;margin:.75rem 0;max-height:200px;overflow-y:auto}
+.catch-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:.5px solid #0a2030;font-size:13px}
+.catch-row:last-child{border:none}
+.cr-fish{font-size:20px;width:28px}
+.cr-name{flex:1;color:#9ab}
+.cr-pts{font-weight:600;color:#ffd700}
+.btn-sm{font-size:13px;padding:7px 16px;border-radius:8px;border:.5px solid #444;background:transparent;color:#eee;cursor:pointer;width:100%;margin-top:.4rem}
+.btn-sm:hover{background:#0a1a2a}
+</style></head><body>
+<div class="app">
+
+<!-- TITLE -->
+<div class="screen active" id="screen-title">
+  <div class="title-card">
+    <div style="font-size:52px;margin-bottom:.3rem">🎣</div>
+    <h1>深海釣魚</h1>
+    <p>點擊海面下方決定下竿位置<br>勾到魚才算釣獲！共10次機會<br>天氣影響魚群與能見度</p>
+    <button class="big-btn" id="start-btn">開始釣魚 🚢</button>
+    <div class="best-lbl" id="title-best"></div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="screen-game">
+  <canvas id="gc"></canvas>
+  <div class="hud">
+    <div>
+      <div class="cast-info">下竿 <span id="cast-num">0</span>/10</div>
+      <div class="weather-tag" id="wtag">☀️ 晴朗</div>
+    </div>
+    <div class="score-info">🏆 <span id="score-disp">0</span></div>
+  </div>
+  <div class="w-alert" id="w-alert"></div>
+  <div class="cast-hint" id="cast-hint">👆 點擊海面任意位置下竿</div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <div class="result-card">
+    <h2 id="res-title"></h2>
+    <div class="final-score" id="res-score"></div>
+    <div class="best-badge" id="res-best"></div>
+    <div class="catch-list" id="catch-list"></div>
+    <button class="big-btn" id="again-btn">再釣一次 🎣</button>
+    <button class="btn-sm" onclick="window.location.href='/'">← 大廳</button>
+  </div>
+</div>
+
+<script>
+// ── 魚種 ─────────────────────────────────────────────────────
+// depth: 0=海面, 1=海底(畫布底)
+const FISH_TYPES=[
+  {id:'sardine',  name:'沙丁魚',  e:'🐟',pts:10, sz:18,spd:1.4,depthMin:.04,depthMax:.35,rarity:1.0, weather:null},
+  {id:'mackerel', name:'鯖魚',    e:'🐠',pts:15, sz:20,spd:1.1,depthMin:.05,depthMax:.42,rarity:0.95,weather:null},
+  {id:'herring',  name:'鯡魚',    e:'🐡',pts:20, sz:18,spd:1.0,depthMin:.08,depthMax:.45,rarity:0.9, weather:null},
+  {id:'carp',     name:'鯉魚',    e:'🎏',pts:25, sz:22,spd:0.8,depthMin:.05,depthMax:.35,rarity:0.85,weather:null},
+  {id:'bass',     name:'鱸魚',    e:'🐟',pts:30, sz:24,spd:0.9,depthMin:.10,depthMax:.50,rarity:0.8, weather:null},
+  {id:'squid',    name:'魷魚',    e:'🦑',pts:40, sz:22,spd:1.3,depthMin:.30,depthMax:.62,rarity:0.7, weather:null},
+  {id:'octopus',  name:'章魚',    e:'🐙',pts:50, sz:26,spd:0.5,depthMin:.35,depthMax:.68,rarity:0.65,weather:null},
+  {id:'shrimp',   name:'大蝦',    e:'🦐',pts:35, sz:14,spd:1.5,depthMin:.25,depthMax:.55,rarity:0.7, weather:null},
+  {id:'crab',     name:'螃蟹',    e:'🦀',pts:45, sz:22,spd:0.4,depthMin:.40,depthMax:.72,rarity:0.65,weather:null},
+  {id:'lobster',  name:'龍蝦',    e:'🦞',pts:80, sz:26,spd:0.6,depthMin:.45,depthMax:.75,rarity:0.45,weather:null},
+  {id:'blowfish', name:'河豚',    e:'🐡',pts:60, sz:24,spd:0.7,depthMin:.50,depthMax:.78,rarity:0.5, weather:null},
+  {id:'shark',    name:'鯊魚',    e:'🦈',pts:100,sz:34,spd:1.6,depthMin:.40,depthMax:.82,rarity:0.28,weather:null},
+  {id:'dolphin',  name:'海豚',    e:'🐬',pts:120,sz:32,spd:2.2,depthMin:.18,depthMax:.60,rarity:0.22,weather:null},
+  {id:'turtle',   name:'海龜',    e:'🐢',pts:90, sz:28,spd:0.5,depthMin:.50,depthMax:.82,rarity:0.33,weather:null},
+  {id:'seal',     name:'海豹',    e:'🦭',pts:85, sz:28,spd:0.85,depthMin:.30,depthMax:.65,rarity:0.38,weather:null},
+  {id:'jellyfish',name:'水母',    e:'🪼',pts:70, sz:22,spd:0.25,depthMin:.28,depthMax:.70,rarity:0.4, weather:['foggy','rainy']},
+  {id:'seahorse', name:'海馬',    e:'🐠',pts:150,sz:14,spd:0.18,depthMin:.18,depthMax:.50,rarity:0.14,weather:['sunny','cloudy']},
+  {id:'whale',    name:'鯨魚',    e:'🐳',pts:200,sz:46,spd:0.55,depthMin:.60,depthMax:.88,rarity:0.09,weather:['wavy','storm']},
+  {id:'oarfish',  name:'皇帶魚',  e:'🐍',pts:500,sz:16,spd:0.28,depthMin:.72,depthMax:.94,rarity:0.035,weather:['storm','wavy'],glow:true,glowColor:'#ffd700'},
+  {id:'angler',   name:'燈籠魚',  e:'🫧',pts:400,sz:18,spd:1.9,depthMin:.75,depthMax:.96,rarity:0.04, weather:['storm','foggy'],glow:true,glowColor:'#00ffff'},
+];
+
+// ── 天氣 ─────────────────────────────────────────────────────
+const WEATHERS=[
+  {id:'sunny', label:'☀️ 晴朗',   skyTop:'#001020',skyBot:'#002848',seaTop:'#003a6a',seaBot:'#001a3a',
+   speedMult:1.0,visibility:1.0,  rainAmt:0,  fog:false,
+   alert:'🌙 夜空晴朗，海面平靜，魚群正常活動，好釣魚的夜晚！'},
+  {id:'cloudy',label:'🌥️ 多雲',   skyTop:'#080e18',skyBot:'#121c28',seaTop:'#002858',seaBot:'#001230',
+   speedMult:0.82,visibility:0.75,rainAmt:0,  fog:false,
+   alert:'☁️ 雲層遮月，光線減弱，魚兒游速變慢，更容易瞄準！'},
+  {id:'rainy', label:'🌧️ 下雨',   skyTop:'#040810',skyBot:'#080e18',seaTop:'#001e3a',seaBot:'#000c1e',
+   speedMult:0.68,visibility:0.52,rainAmt:50, fog:false,
+   alert:'🌧️ 雨點打在海面！魚兒潛入深處，注意深層區域！'},
+  {id:'storm', label:'⛈️ 雷雨',   skyTop:'#020408',skyBot:'#040810',seaTop:'#000e1e',seaBot:'#000508',
+   speedMult:1.85,visibility:0.28,rainAmt:90, fog:false,
+   alert:'⛈️ 雷雨來襲！魚兒四散逃竄\n但皇帶魚和燈籠魚可能出沒！'},
+  {id:'foggy', label:'🌫️ 大霧',   skyTop:'#101820',skyBot:'#182030',seaTop:'#001e3a',seaBot:'#000e20',
+   speedMult:0.9, visibility:0.30,rainAmt:0,  fog:true,
+   alert:'🌫️ 大霧瀰漫！能見度極低\n燈籠魚最愛霧天，考驗你的直覺！'},
+  {id:'wavy',  label:'🌊 大浪',   skyTop:'#000c1e',skyBot:'#001830',seaTop:'#002050',seaBot:'#000e28',
+   speedMult:1.32,visibility:0.80,rainAmt:18, fog:false,
+   alert:'🌊 湧浪警報！深海魚被推到淺層\n這是釣到皇帶魚與鯨魚的好機會！'},
+];
+
+// ── 狀態 ─────────────────────────────────────────────────────
+let W=0,H=0,SEA_TOP=0; // canvas dims, sea start Y
+const BOAT_Y_RATIO=0.28; // 船在畫布28%處
+const SEA_RATIO=0.30;    // 海面從30%開始
+const BOUNDARY_PAD=20;   // 魚線邊界距畫布邊緣
+
+let fish=[], castCount=0, score=0, catches=[];
+let curWeather=WEATHERS[0];
+let sinceLastWeather=0, nextCheck=3;
+let casting=false, lineActive=false;
+let lineX=0,lineY=0,lineTargetX=0,lineTargetY=0,lineProgress=0; // 魚線動畫
+let hookX=0,hookY=0; // 目前鉤子位置
+let maxScore=0;
+let animId=null;
+let rainDrops=[];
+let waveOffset=0;
+
+// canvas
+const cv=document.getElementById('gc');
+const ctx=cv.getContext('2d');
+
+// ── 字型載入 ──────────────────────────────────────────────────
+const fontReady=(async()=>{try{await document.fonts.load('16px sans-serif');}catch(e){}})();
+
+// ── localStorage ─────────────────────────────────────────────
+const LS='fishing_rod_best2';
+function loadBest(){try{return parseInt(localStorage.getItem(LS))||0;}catch{return 0;}}
+function saveBest(s){localStorage.setItem(LS,String(s));}
+
+maxScore=loadBest();
+document.getElementById('title-best').textContent=maxScore?'🏆 個人最高：'+maxScore+'分':'';
+document.getElementById('start-btn').addEventListener('click',startGame);
+document.getElementById('again-btn').addEventListener('click',startGame);
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── RESIZE ───────────────────────────────────────────────────
+function resize(){
+  cv.width=cv.offsetWidth;
+  cv.height=cv.offsetHeight;
+  W=cv.width;H=cv.height;
+  SEA_TOP=H*SEA_RATIO;
+}
+window.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+
+// ── START ────────────────────────────────────────────────────
+function startGame(){
+  showScreen('screen-game');
+  setTimeout(()=>{
+    resize();
+    castCount=0;score=0;catches=[];casting=false;lineActive=false;
+    sinceLastWeather=0;nextCheck=3;
+    document.getElementById('cast-num').textContent=0;
+    document.getElementById('score-disp').textContent=0;
+    rainDrops=[];
+    spawnAllFish();
+    setWeather(WEATHERS[0],false);
+    setupCastClick();
+    showCastHint(true);
+    if(animId)cancelAnimationFrame(animId);
+    loop();
+  },50);
+}
+
+// ── FISH SPAWN ────────────────────────────────────────────────
+function getPool(){
+  return FISH_TYPES.filter(f=>!f.weather||f.weather.includes(curWeather.id));
+}
+
+function pickFish(pool){
+  const tot=pool.reduce((a,b)=>a+b.rarity,0);
+  let r=Math.random()*tot;
+  for(const f of pool){r-=f.rarity;if(r<=0)return f;}
+  return pool[0];
+}
+
+function spawnOneFish(pool){
+  const data=pickFish(pool);
+  const seaH=H-SEA_TOP;
+  const y=SEA_TOP+data.depthMin*seaH+Math.random()*(data.depthMax-data.depthMin)*seaH;
+  const goRight=Math.random()<.5;
+  const x=goRight?-data.sz:W+data.sz;
+  const baseSpd=(0.4+Math.random()*0.6)*data.spd;
+  return{data,x,y,dir:goRight?1:-1,baseSpd,spd:baseSpd*curWeather.speedMult,
+    driftPhase:Math.random()*Math.PI*2,caught:false,
+    opacity:Math.min(1,0.4+curWeather.visibility*0.65)};
+}
+
+function spawnAllFish(){
+  fish=[];
+  const pool=getPool();
+  const n=9+Math.floor(Math.random()*5);
+  for(let i=0;i<n;i++)fish.push(spawnOneFish(pool));
+}
+
+function repositionFish(){
+  const seaH=H-SEA_TOP;
+  fish.forEach(f=>{
+    const rel=(f.y-SEA_TOP)/(H*0.7||1);
+    f.y=SEA_TOP+rel*seaH;
+  });
+}
+
+// ── WEATHER ───────────────────────────────────────────────────
+function setWeather(w,alert=true){
+  curWeather=w;
+  document.getElementById('wtag').textContent=w.label;
+  // update fish
+  fish.forEach(f=>{f.spd=f.baseSpd*w.speedMult;f.opacity=Math.min(1,0.4+w.visibility*0.65);});
+  // rain
+  rainDrops=[];
+  if(w.rainAmt>0){
+    for(let i=0;i<w.rainAmt;i++){
+      rainDrops.push({x:Math.random()*W,y:Math.random()*H,
+        len:8+Math.random()*12,spd:8+Math.random()*8,angle:.18});
+    }
+  }
+  if(alert){
+    const el=document.getElementById('w-alert');
+    el.textContent=w.alert;el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),3600);
+  }
+}
+
+function tryWeatherChange(){
+  sinceLastWeather++;
+  if(sinceLastWeather>=nextCheck){
+    if(Math.random()<0.65){
+      const opts=WEATHERS.filter(w=>w.id!==curWeather.id);
+      setWeather(opts[Math.floor(Math.random()*opts.length)]);
+      sinceLastWeather=0;nextCheck=3;
+    } else {
+      nextCheck=1;
+    }
+  }
+}
+
+// ── CAST ─────────────────────────────────────────────────────
+let clickHandler=null;
+function setupCastClick(){
+  if(clickHandler)cv.removeEventListener('click',clickHandler);
+  clickHandler=function(e){
+    if(casting||castCount>=10)return;
+    const rect=cv.getBoundingClientRect();
+    const cx=(e.clientX-rect.left)*(W/rect.width);
+    const cy=(e.clientY-rect.top)*(H/rect.height);
+    // 只允許點擊海面以下
+    if(cy<SEA_TOP+5)return;
+    startCast(cx,cy);
+  };
+  cv.addEventListener('click',clickHandler);
+}
+
+// 魚線從船桿尖端出發
+function getRodTip(){
+  const bx=W*.5+28; // 船右側桿子
+  const by=H*BOAT_Y_RATIO-10;
+  return{x:bx,y:by};
+}
+
+function startCast(tx,ty){
+  if(casting)return;
+  casting=true;lineActive=true;
+  showCastHint(false);
+  tryWeatherChange();
+
+  const tip=getRodTip();
+  lineX=tip.x;lineY=tip.y;
+  lineTargetX=Math.max(BOUNDARY_PAD,Math.min(W-BOUNDARY_PAD,tx));
+  lineTargetY=Math.min(H-BOUNDARY_PAD,Math.max(SEA_TOP,ty));
+  lineProgress=0;
+  hookX=lineX;hookY=lineY;
+
+  castCount++;
+  document.getElementById('cast-num').textContent=castCount;
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────
+function loop(){
+  update();draw();
+  animId=requestAnimationFrame(loop);
+}
+
+let lastCaughtCheck=0;
+function update(){
+  waveOffset+=0.4;
+
+  // fish movement
+  const pool=getPool();
+  fish.forEach(f=>{
+    if(f.caught)return;
+    f.x+=f.spd*f.dir;
+    f.y+=Math.sin(Date.now()/1800+f.driftPhase)*0.25;
+    // bounce walls
+    if(f.x>W+60){f.x=-f.data.sz;f.dir=1;}
+    if(f.x<-60){f.x=W+f.data.sz;f.dir=-1;}
+    // boundary depth
+    const seaH=H-SEA_TOP;
+    const yMin=SEA_TOP+f.data.depthMin*seaH;
+    const yMax=SEA_TOP+f.data.depthMax*seaH;
+    if(f.y<yMin)f.y=yMin;
+    if(f.y>yMax)f.y=yMax;
+  });
+
+  // remove caught
+  fish=fish.filter(f=>!f.caught||Date.now()-f.caughtAt<400);
+
+  // refill
+  while(fish.filter(f=>!f.caught).length<7){
+    fish.push(spawnOneFish(pool));
+  }
+
+  // line animation
+  if(lineActive&&casting){
+    lineProgress+=0.045; // speed of line going down
+    if(lineProgress>=1){lineProgress=1;}
+    hookX=lineX+(lineTargetX-lineX)*lineProgress;
+    hookY=lineY+(lineTargetY-lineY)*lineProgress;
+
+    // check boundary hit
+    const atTarget=lineProgress>=1;
+    const oob=hookX<BOUNDARY_PAD||hookX>W-BOUNDARY_PAD||hookY>H-BOUNDARY_PAD;
+    if(atTarget||oob){
+      // check fish collision at final pos
+      const hit=checkHookFish();
+      if(hit){
+        doCatch(hit);
+      } else {
+        setTimeout(reelIn,300);
+      }
+    } else {
+      // check fish collision during travel
+      if(Date.now()-lastCaughtCheck>50){
+        lastCaughtCheck=Date.now();
+        const hit=checkHookFish();
+        if(hit)doCatch(hit);
+      }
+    }
+  }
+
+  // rain
+  rainDrops.forEach(d=>{
+    d.y+=d.spd;
+    if(d.y>H){d.y=-20;d.x=Math.random()*W;}
+  });
+}
+
+function checkHookFish(){
+  let best=null,bestDist=999;
+  fish.forEach(f=>{
+    if(f.caught)return;
+    const dx=hookX-f.x,dy=hookY-f.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const threshold=f.data.sz*.85;
+    if(dist<threshold&&dist<bestDist){bestDist=dist;best=f;}
+  });
+  return best;
+}
+
+function doCatch(f){
+  f.caught=true;f.caughtAt=Date.now();
+  score+=f.data.pts;
+  catches.push({...f.data});
+  document.getElementById('score-disp').textContent=score;
+  // popup
+  const pop=document.createElement('div');pop.className='catch-pop';
+  pop.style.cssText='left:'+(hookX)+'px;top:'+(hookY-20)+'px;position:absolute;z-index:30;';
+  pop.textContent=f.data.e+' +'+f.data.pts;
+  document.getElementById('screen-game').appendChild(pop);
+  setTimeout(()=>pop.remove(),950);
+  reelIn();
+}
+
+function reelIn(){
+  lineActive=false;casting=false;
+  hookX=getRodTip().x;hookY=getRodTip().y;
+  if(castCount>=10){
+    setTimeout(showResult,600);
+  } else {
+    showCastHint(true);
+  }
+}
+
+function showCastHint(show){
+  document.getElementById('cast-hint').style.opacity=show?'1':'0';
+}
+
+// ── DRAW ─────────────────────────────────────────────────────
+function draw(){
+  const w=curWeather;
+  ctx.clearRect(0,0,W,H);
+
+  // sky gradient
+  const skyGrd=ctx.createLinearGradient(0,0,0,SEA_TOP);
+  skyGrd.addColorStop(0,w.skyTop);skyGrd.addColorStop(1,w.skyBot);
+  ctx.fillStyle=skyGrd;ctx.fillRect(0,0,W,SEA_TOP);
+
+  // stars (sunny only)
+  if(w.id==='sunny'){
+    ctx.fillStyle='rgba(255,255,255,.5)';
+    for(let i=0;i<30;i++){
+      const sx=(i*137.5)%W,sy=(i*73.1)%(SEA_TOP*.9);
+      ctx.beginPath();ctx.arc(sx,sy,0.8,0,Math.PI*2);ctx.fill();
+    }
+  }
+
+  // moon
+  if(w.id!=='storm'){
+    ctx.fillStyle='rgba(255,255,220,.9)';
+    ctx.beginPath();ctx.arc(W*.82,SEA_TOP*.25,12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=w.skyTop;
+    ctx.beginPath();ctx.arc(W*.82+7,SEA_TOP*.25,10,0,Math.PI*2);ctx.fill();
+  }
+  // lightning flash
+  if(w.id==='storm'&&Math.random()<.003){
+    ctx.fillStyle='rgba(200,200,255,.12)';ctx.fillRect(0,0,W,SEA_TOP);
+  }
+
+  // sea gradient
+  const seaGrd=ctx.createLinearGradient(0,SEA_TOP,0,H);
+  seaGrd.addColorStop(0,w.seaTop);seaGrd.addColorStop(1,w.seaBot);
+  ctx.fillStyle=seaGrd;ctx.fillRect(0,SEA_TOP,W,H-SEA_TOP);
+
+  // depth layers (subtle)
+  const seaH=H-SEA_TOP;
+  for(let i=1;i<=3;i++){
+    ctx.fillStyle='rgba(0,0,0,'+(.06*i)+')';
+    ctx.fillRect(0,SEA_TOP+seaH*(i*.25),W,seaH*.25);
+  }
+
+  // depth text
+  ctx.fillStyle='rgba(80,140,200,.22)';ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('—淺層',4,SEA_TOP+seaH*.08);
+  ctx.fillText('—中層',4,SEA_TOP+seaH*.42);
+  ctx.fillText('—深層',4,SEA_TOP+seaH*.75);
+
+  // fog
+  if(w.fog){
+    const fogGrd=ctx.createLinearGradient(0,0,0,H*.7);
+    fogGrd.addColorStop(0,'rgba(140,160,180,.22)');
+    fogGrd.addColorStop(1,'transparent');
+    ctx.fillStyle=fogGrd;ctx.fillRect(0,0,W,H*.7);
+  }
+
+  // rain
+  ctx.strokeStyle='rgba(140,190,255,.5)';ctx.lineWidth=1;
+  rainDrops.forEach(d=>{
+    ctx.beginPath();
+    ctx.moveTo(d.x,d.y);
+    ctx.lineTo(d.x+Math.sin(d.angle)*d.len,d.y+d.len);
+    ctx.stroke();
+  });
+
+  // waves
+  drawWaves();
+
+  // fish
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  fish.forEach(f=>{
+    if(f.caught)return;
+    ctx.save();
+    ctx.globalAlpha=f.opacity;
+    if(f.data.glow){
+      ctx.shadowColor=f.data.glowColor||'gold';
+      ctx.shadowBlur=12+Math.sin(Date.now()/500)*5;
+    }
+    ctx.font=f.data.sz+'px sans-serif';
+    ctx.scale(f.dir>0?-1:1,1);
+    ctx.fillText(f.data.e,f.dir>0?-f.x:f.x,f.y);
+    ctx.restore();
+  });
+
+  // visibility overlay
+  if(w.visibility<1){
+    ctx.fillStyle='rgba(0,5,12,'+(1-w.visibility)*.8+')';
+    ctx.fillRect(0,SEA_TOP,W,H-SEA_TOP);
+  }
+
+  // boat
+  drawBoat();
+
+  // fishing line & hook
+  if(lineActive){
+    const tip=getRodTip();
+    ctx.strokeStyle='rgba(255,255,180,.65)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(tip.x,tip.y);ctx.lineTo(hookX,hookY);ctx.stroke();
+    // hook emoji
+    ctx.save();ctx.font='14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.globalAlpha=.9;ctx.fillText('🪝',hookX,hookY);ctx.restore();
+    // ripple at hook
+    ctx.strokeStyle='rgba(100,200,255,.3)';ctx.lineWidth=1;
+    const r=4+Math.sin(Date.now()/200)*2;
+    ctx.beginPath();ctx.arc(hookX,hookY,r,0,Math.PI*2);ctx.stroke();
+  }
+}
+
+function drawWaves(){
+  const wAmp=curWeather.id==='storm'?8:curWeather.id==='wavy'?5:2;
+  ctx.fillStyle='rgba(0,100,180,.45)';
+  ctx.beginPath();ctx.moveTo(0,SEA_TOP);
+  for(let x=0;x<=W;x+=4){
+    const y=SEA_TOP+Math.sin((x*.018)+waveOffset*.06)*wAmp+Math.sin((x*.03)+waveOffset*.04)*wAmp*.5;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(W,SEA_TOP-10);ctx.lineTo(0,SEA_TOP-10);ctx.closePath();ctx.fill();
+
+  // foam
+  ctx.strokeStyle='rgba(180,220,255,.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,SEA_TOP);
+  for(let x=0;x<=W;x+=4){
+    const y=SEA_TOP+Math.sin((x*.018)+waveOffset*.06)*wAmp+Math.sin((x*.03)+waveOffset*.04)*wAmp*.5;
+    ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+}
+
+function drawBoat(){
+  const bx=W*.5,by=H*BOAT_Y_RATIO;
+  const wave=Math.sin(Date.now()/1200)*2;
+  ctx.save();ctx.translate(bx,by+wave);
+
+  // hull
+  ctx.fillStyle='#5a3010';
+  ctx.beginPath();ctx.ellipse(0,18,46,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#7a4820';
+  ctx.beginPath();ctx.roundRect(-42,4,84,18,4);ctx.fill();
+  ctx.fillStyle='#8a5828';
+  ctx.beginPath();ctx.roundRect(-32,-6,64,14,3);ctx.fill();
+  ctx.fillStyle='#6a3810';
+  ctx.beginPath();ctx.roundRect(-22,-14,44,12,2);ctx.fill();
+
+  // cabin
+  ctx.fillStyle='#4a3820';
+  ctx.beginPath();ctx.roundRect(-14,-26,28,15,3);ctx.fill();
+  ctx.fillStyle='rgba(100,170,210,.4)';
+  ctx.fillRect(-11,-23,9,8);ctx.fillRect(2,-23,9,8);
+
+  // chimney
+  ctx.fillStyle='#3a2810';
+  ctx.fillRect(-2,-34,5,10);
+  // smoke
+  ctx.fillStyle='rgba(180,180,180,.15)';
+  ctx.beginPath();ctx.arc(0,-38,4,0,Math.PI*2);ctx.fill();
+
+  // fishing rod (right side)
+  ctx.strokeStyle='#c8a060';ctx.lineWidth=2;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(28,-8);ctx.lineTo(44,-22);ctx.stroke();
+
+  ctx.restore();
+}
+
+// ── RESULT ───────────────────────────────────────────────────
+function showResult(){
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  showScreen('screen-result');
+  document.getElementById('res-score').textContent=score;
+  const isNew=score>maxScore&&catches.length>0;
+  if(isNew){maxScore=score;saveBest(score);document.getElementById('title-best').textContent='🏆 個人最高：'+maxScore+'分';}
+  document.getElementById('res-best').textContent=isNew?'🏆 新紀錄！':'個人最高：'+maxScore+'分';
+  const title=score>=1000?'傳奇漁夫！🏆':score>=400?'好手！🌟':score>=150?'不錯喔！😊':'繼續練習！💪';
+  document.getElementById('res-title').textContent=title;
+  const cl=document.getElementById('catch-list');
+  if(!catches.length){cl.innerHTML='<div style="text-align:center;color:#446;padding:1rem">一條都沒釣到...😢</div>';return;}
+  const sorted=[...catches].sort((a,b)=>b.pts-a.pts);
+  cl.innerHTML='<div style="font-size:11px;color:#446;margin-bottom:4px">釣獲清單</div>'+
+    sorted.map(f=>`<div class="catch-row">
+      <span class="cr-fish">${f.e}</span>
+      <span class="cr-name">${f.name}${f.glow?' ✨':''}</span>
+      <span class="cr-pts">+${f.pts}</span>
+    </div>`).join('');
+  // save
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    if(d.name)localStorage.setItem('game_pending_score',JSON.stringify({game:'fishing_rod',score,detail:catches.length+'隻，最高'+score+'分'}));
+  }catch(e){}
+}
+</script>
+</body></html>
