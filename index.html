@@ -378,7 +378,7 @@ function openLB(tabId){
 function buildLBTabs(){
   const row = document.getElementById('lb-tabs');
   row.innerHTML = '';
-  [{id:'all',label:'🏆 總榜'}, ...GAMES.map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
+  [{id:'all',label:'🏆 總榜'}, ...GAMES.filter(g=>g.category==='game').map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
     const b = document.createElement('button');
     b.className = 'tab' + (t.id===lbTab?' active':'');
     b.textContent = t.label;
