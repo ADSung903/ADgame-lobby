@@ -3,7 +3,7 @@
 <title>🔢 2048</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;background:#0a0a14;color:#eee;display:flex;justify-content:center;min-height:100dvh;min-height:100vh;padding-bottom:env(safe-area-inset-bottom,16px)}
+body{font-family:'Segoe UI',sans-serif;background:#0a0a14;color:#eee;display:flex;justify-content:center;min-height:100dvh;min-height:100vh;padding-bottom:env(safe-area-inset-bottom,16px);overflow:hidden;touch-action:none}
 .app{width:100%;max-width:420px;padding:1rem;display:flex;flex-direction:column;min-height:100dvh;min-height:100vh}
 
 /* topbar */
@@ -20,7 +20,7 @@ h1{font-size:20px;font-weight:700;color:#f5c842;flex:1;text-align:center}
 
 /* board */
 .board-wrap{background:#1a1a2e;border-radius:16px;padding:8px;margin-bottom:.75rem;position:relative}
-.board{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;touch-action:none}
 .cell{border-radius:8px;background:#0d0d20;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(14px,5vw,26px);font-weight:800;transition:transform .08s ease;position:relative}
 .cell.pop{animation:pop .12s ease}
 @keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
@@ -312,15 +312,17 @@ document.addEventListener('keydown', e=>{
 let tx=0, ty=0;
 const board = document.getElementById('board');
 board.addEventListener('touchstart', e=>{
+  e.preventDefault(); // 阻止頁面拖曳
   tx=e.touches[0].clientX; ty=e.touches[0].clientY;
-},{passive:true});
+},{passive:false});
 board.addEventListener('touchend', e=>{
+  e.preventDefault(); // 阻止頁面拖曳
   const dx=e.changedTouches[0].clientX-tx;
   const dy=e.changedTouches[0].clientY-ty;
   if(Math.max(Math.abs(dx),Math.abs(dy))<20) return;
   if(Math.abs(dx)>Math.abs(dy)) doMove(dx<0?0:1);
   else doMove(dy<0?2:3);
-},{passive:true});
+},{passive:false});
 
 // ── 啟動 ──────────────────────────────────────────────
 bestScore = parseInt(localStorage.getItem(LS_BEST)||'0');
