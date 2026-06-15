@@ -687,9 +687,8 @@ if(!DB.name){
 </script>
 <script>
   /* 鎖右鍵與長按 */
-  document.addEventListener("contextmenu", e => e.preventDefault());
-  document.addEventListener("touchstart", e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
-  document.addEventListener("touchend", e => e.preventDefault(), {passive:false});
-  document.addEventListener("selectstart", e => e.preventDefault());
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('touchstart', e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
+  document.addEventListener('selectstart', e => e.preventDefault());
 </script>
 </body></html>
