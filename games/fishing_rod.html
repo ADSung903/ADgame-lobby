@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>🎣 深海釣魚</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:sans-serif;background:#000a14;color:#eee;display:flex;justify-content:center;overflow:hidden;height:100vh}
-.app{width:100%;max-width:480px;position:relative;height:100vh;overflow:hidden}
+body{font-family:sans-serif;background:#000a14;color:#eee;display:flex;justify-content:center;overflow:hidden;height:100vh;height:100dvh}
+.app{width:100%;max-width:480px;position:relative;height:100vh;height:100dvh;overflow:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
 .screen{visibility:hidden;position:absolute;inset:0;pointer-events:none}
 .screen.active{visibility:visible;pointer-events:auto}
 
@@ -27,7 +27,7 @@ canvas{display:block;width:100%;height:100%}
 .w-alert{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(0,10,25,.93);border:1px solid #1e5a7a;border-radius:12px;padding:.55rem .9rem;font-size:12px;color:#7de;text-align:center;max-width:88%;opacity:0;transition:opacity .4s;pointer-events:none;line-height:1.6;white-space:pre-line}
 .w-alert.show{opacity:1}
 
-.cast-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;font-size:13px;color:rgba(100,180,255,.7);pointer-events:none;text-align:center;transition:opacity .3s;white-space:nowrap}
+.cast-hint{position:absolute;bottom:max(16px,calc(16px + env(safe-area-inset-bottom,0px)));left:50%;transform:translateX(-50%);z-index:20;font-size:13px;color:rgba(100,180,255,.7);pointer-events:none;text-align:center;transition:opacity .3s;white-space:nowrap}
 
 .cast-area{position:absolute;top:0;right:0;z-index:20;padding:.4rem .5rem}
 #cast-btn{padding:7px 14px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:rgba(12,110,158,.85);color:#fff;backdrop-filter:blur(4px);border:0.5px solid rgba(14,165,233,.5)}
@@ -58,6 +58,10 @@ canvas{display:block;width:100%;height:100%}
     -webkit-user-select: none;
     user-select: none;
   }
+
+  /* iOS safe-area：避免被工具列遮住 */
+  :root { --sat: env(safe-area-inset-top,0px); --sab: env(safe-area-inset-bottom,0px); }
+  @supports (height: 100dvh){ body,.app{ height:100dvh; } }
 </style></head><body>
 <div class="app">
 
@@ -180,11 +184,15 @@ function getBtn(){return document.getElementById('cast-btn');}
 function resize(){
   const app=document.querySelector('.app');
   W=app.offsetWidth||window.innerWidth;
-  H=app.offsetHeight||window.innerHeight;
+  // 用 visualViewport 取得不含瀏覽器工具列的真實高度
+  H=window.visualViewport ? window.visualViewport.height : (app.offsetHeight||window.innerHeight);
   cv.width=W;cv.height=H;
   SEA_TOP=H*SEA_RATIO;
 }
 window.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+}
 
 // ── INIT ──────────────────────────────────────────────────────
 function initGame(){
