@@ -146,11 +146,11 @@ function initEngine(){
   world = engine.world;
 
   const wallOpts = {isStatic:true, friction:.5, restitution:.2, render:{fillStyle:'transparent'}};
-  // 左右牆、底部
+  // 左右牆加厚（50px），底牆加厚（100px）防止高速水果穿牆
   World.add(world, [
-    Bodies.rectangle(-5, H/2, 10, H*2, wallOpts),
-    Bodies.rectangle(W+5, H/2, 10, H*2, wallOpts),
-    Bodies.rectangle(W/2, H-18, W*2, 14, wallOpts),
+    Bodies.rectangle(-25,  H/2,   50,  H*2, wallOpts),
+    Bodies.rectangle(W+25, H/2,   50,  H*2, wallOpts),
+    Bodies.rectangle(W/2,  H+30, W*2, 100,  wallOpts),  // top surface at H-20
   ]);
 
   bodies = [];
