@@ -51,6 +51,10 @@ body{font-family:sans-serif;background:#0a0e14;color:#eee;display:flex;justify-c
 .big-btn{width:100%;padding:11px;border-radius:12px;border:none;color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:.4rem}
 
 .hint{font-size:11px;color:#4a6a8a;text-align:center;margin-bottom:.5rem}
+
+  /* 防止長按選取 */
+  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>

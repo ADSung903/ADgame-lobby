@@ -82,6 +82,10 @@ h1{font-size:22px;font-weight:500;text-align:center;margin-bottom:1rem}
 .stat-val{font-size:20px;font-weight:600;color:#eee}
 .stat-lbl{font-size:11px;color:#6b6b8a;margin-top:2px}
 .controls-bot{display:flex;gap:8px;justify-content:center;margin-top:.6rem}
+
+  /* 防止長按選取 */
+  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
@@ -597,5 +601,12 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
+</script>
+<script>
+  /* 鎖右鍵與長按 */
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('touchstart', e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchend', e => e.preventDefault(), {passive:false});
+  document.addEventListener('selectstart', e => e.preventDefault());
 </script>
 </body></html>
