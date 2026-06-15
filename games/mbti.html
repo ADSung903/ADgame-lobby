@@ -51,6 +51,43 @@ body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-c
 .dim-label{font-size:11px;color:#9a9ab0;margin-bottom:4px;display:flex;justify-content:space-between}
 .dim-track{height:8px;background:#1a1a2e;border-radius:4px;overflow:hidden}
 .dim-fill{height:100%;border-radius:4px;transition:width .8s ease}
+
+/* section tabs */
+.section-tabs{display:flex;gap:6px;margin-bottom:.75rem;flex-wrap:wrap}
+.section-tab{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #2a2a4a;background:#0d0d22;color:#9a9ab0;cursor:pointer;transition:all .15s}
+.section-tab.active{border-color:#7c3aed;background:#1a0a3a;color:#c4b5fd}
+
+/* 深度解析 */
+.deep-card{background:#0d0d1e;border:0.5px solid #2a2a4a;border-radius:12px;padding:1rem;margin-bottom:.6rem}
+.deep-card h4{font-size:12px;color:#7c3aed;margin-bottom:.4rem;letter-spacing:1px;text-transform:uppercase}
+.deep-dim{display:flex;align-items:flex-start;gap:.75rem;margin-bottom:.6rem;padding:.6rem;background:#12122a;border-radius:8px}
+.deep-dim-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.deep-dim-body h5{font-size:13px;font-weight:600;color:#eee;margin-bottom:2px}
+.deep-dim-body p{font-size:12px;color:#9a9ab0;line-height:1.6}
+
+/* 相容性 */
+.compat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem}
+.compat-card{border-radius:10px;padding:.75rem;text-align:center}
+.compat-card.best{background:#0a1a0a;border:1px solid #22c55e44}
+.compat-card.good{background:#0a1220;border:1px solid #3b82f644}
+.compat-card.clash{background:#1a0808;border:1px solid #ef444444}
+.compat-card .c-icon{font-size:22px;margin-bottom:2px}
+.compat-card .c-type{font-size:14px;font-weight:700;letter-spacing:2px}
+.compat-card .c-name{font-size:11px;color:#9a9ab0;margin-bottom:2px}
+.compat-card .c-label{font-size:11px;padding:2px 8px;border-radius:10px;display:inline-block;margin-top:2px}
+.compat-card.best .c-label{background:#14532d;color:#4ade80}
+.compat-card.good .c-label{background:#1e3a5f;color:#60a5fa}
+.compat-card.clash .c-label{background:#450a0a;color:#f87171}
+.compat-card .c-desc{font-size:11px;color:#9a9ab0;margin-top:4px;line-height:1.5}
+
+/* 職業 */
+.career-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem}
+.career-item{background:#12122a;border:0.5px solid #2a2a4a;border-radius:8px;padding:.6rem;display:flex;align-items:center;gap:.5rem;font-size:13px}
+.career-item .c-ico{font-size:18px}
+.career-warn{background:#1a1200;border:0.5px solid #44330044;border-radius:8px;padding:.6rem .8rem;font-size:12px;color:#a16207;margin-bottom:.75rem}
+
+/* section body */
+.section-body{display:none}.section-body.active{display:block}
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
@@ -83,22 +120,81 @@ body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-c
   <div id="type-code" class="type-code"></div>
   <div id="type-name" class="type-name"></div>
   <div class="dim-bars" id="dim-bars"></div>
-  <div class="result-card" id="result-desc-card" style="background:#12122a;border:0.5px solid #2a2a4a">
-    <h3>人格特質</h3>
-    <p id="result-desc"></p>
+
+  <!-- Section Tabs -->
+  <div class="section-tabs">
+    <button class="section-tab active" onclick="showSection('overview')">📊 總覽</button>
+    <button class="section-tab" onclick="showSection('deep')">🔍 深度解析</button>
+    <button class="section-tab" onclick="showSection('compat')">💞 相容性</button>
+    <button class="section-tab" onclick="showSection('career')">💼 職業建議</button>
   </div>
-  <div class="result-card" id="result-str-card" style="background:#0a1a0a;border:0.5px solid #1a3a1a">
-    <h3>✅ 優勢</h3>
-    <div class="tag-row" id="str-tags"></div>
+
+  <!-- 總覽 -->
+  <div class="section-body active" id="section-overview">
+    <div class="result-card" id="result-desc-card" style="background:#12122a;border:0.5px solid #2a2a4a">
+      <h3>人格特質</h3>
+      <p id="result-desc"></p>
+    </div>
+    <div class="result-card" id="result-str-card" style="background:#0a1a0a;border:0.5px solid #1a3a1a">
+      <h3>✅ 優勢</h3>
+      <div class="tag-row" id="str-tags"></div>
+    </div>
+    <div class="result-card" id="result-weak-card" style="background:#1a0a0a;border:0.5px solid #3a1a1a">
+      <h3>⚠️ 成長空間</h3>
+      <div class="tag-row" id="weak-tags"></div>
+    </div>
+    <div class="result-card" style="background:#0d0d22;border:0.5px solid #222">
+      <h3>代表人物</h3>
+      <p id="result-famous" style="font-size:13px;color:#9a9ab0"></p>
+    </div>
   </div>
-  <div class="result-card" id="result-weak-card" style="background:#1a0a0a;border:0.5px solid #3a1a1a">
-    <h3>⚠️ 成長空間</h3>
-    <div class="tag-row" id="weak-tags"></div>
+
+  <!-- 深度解析 -->
+  <div class="section-body" id="section-deep">
+    <div class="deep-card">
+      <h4>各維度深度解析</h4>
+      <div id="deep-dims"></div>
+    </div>
+    <div class="deep-card">
+      <h4>人格核心</h4>
+      <p id="deep-core" style="font-size:13px;color:#c4b5fd;line-height:1.8"></p>
+    </div>
+    <div class="deep-card">
+      <h4>日常行為模式</h4>
+      <p id="deep-behavior" style="font-size:13px;color:#9a9ab0;line-height:1.8"></p>
+    </div>
   </div>
-  <div class="result-card" style="background:#0d0d22;border:0.5px solid #222">
-    <h3>代表人物</h3>
-    <p id="result-famous" style="font-size:13px;color:#9a9ab0"></p>
+
+  <!-- 相容性 -->
+  <div class="section-body" id="section-compat">
+    <p style="font-size:12px;color:#555;margin-bottom:.75rem;line-height:1.6">⚠️ 人際關係受到個人成長、溝通方式、共同價值觀等多重因素影響，以下僅供趣味參考。</p>
+    <div id="compat-best" style="margin-bottom:.5rem">
+      <p style="font-size:12px;color:#4ade80;margin-bottom:.4rem">💚 最佳拍檔</p>
+      <div class="compat-grid" id="compat-best-grid"></div>
+    </div>
+    <div id="compat-good" style="margin-bottom:.5rem">
+      <p style="font-size:12px;color:#60a5fa;margin-bottom:.4rem">💙 相處融洽</p>
+      <div class="compat-grid" id="compat-good-grid"></div>
+    </div>
+    <div id="compat-clash">
+      <p style="font-size:12px;color:#f87171;margin-bottom:.4rem">❤️‍🔥 最大反差（需要更多溝通）</p>
+      <div class="compat-grid" id="compat-clash-grid"></div>
+    </div>
   </div>
+
+  <!-- 職業建議 -->
+  <div class="section-body" id="section-career">
+    <div id="career-grid-wrap" style="margin-bottom:.75rem">
+      <p style="font-size:12px;color:#9a9ab0;margin-bottom:.5rem">🌟 最適合的職業方向</p>
+      <div class="career-grid" id="career-grid"></div>
+    </div>
+    <div class="career-warn" id="career-warn"></div>
+    <div class="deep-card">
+      <h4>工作風格</h4>
+      <p id="career-style" style="font-size:13px;color:#9a9ab0;line-height:1.8"></p>
+    </div>
+  </div>
+
   <div class="disclaimer" style="margin-bottom:.75rem">⚠️ 本測驗純屬娛樂，不可作為任何診斷、評估或人事依據。</div>
   <button class="big-btn" onclick="restartTest()">再測一次</button>
   <div style="display:flex;gap:8px;justify-content:center;margin-top:.5rem">
@@ -109,25 +205,21 @@ body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-c
 
 <script>
 const QUESTIONS=[
-  // E vs I
   {dim:'EI',q:'在社交場合中，你通常覺得？',a:['越聊越開心，精力充沛','有點消耗，需要獨處恢復']},
   {dim:'EI',q:'你更享受哪種週末？',a:['與朋友聚會、出去玩','獨自在家讀書或放鬆']},
   {dim:'EI',q:'你有煩惱時，通常會？',a:['找朋友聊聊，說出來比較好','自己靜靜消化，不喜歡打擾別人']},
   {dim:'EI',q:'在陌生人群中，你通常？',a:['主動認識新朋友','等別人先來搭話']},
   {dim:'EI',q:'你更偏好哪種工作方式？',a:['多人討論、頭腦風暴','獨立作業、安靜專注']},
-  // S vs N
   {dim:'SN',q:'你更傾向相信？',a:['已被事實或經驗證實的事','直覺和隱約的預感']},
   {dim:'SN',q:'做計畫時，你更注重？',a:['具體細節和執行步驟','整體方向和未來可能性']},
   {dim:'SN',q:'你描述一件事情時，傾向？',a:['按順序、有憑據、精確陳述','用比喻、連結、跳躍式表達']},
   {dim:'SN',q:'你更被哪種人吸引？',a:['腳踏實地、務實可靠的人','富有想像力、有遠見的人']},
   {dim:'SN',q:'遇到問題，你優先想到？',a:['過去曾用過的有效方法','有沒有從未試過的新方法']},
-  // T vs F
   {dim:'TF',q:'做重要決定時，你優先考慮？',a:['邏輯分析和客觀原則','對人的影響和情感需求']},
   {dim:'TF',q:'朋友向你傾訴問題，你傾向？',a:['分析問題，給予具體建議','先理解感受，給予情感支持']},
   {dim:'TF',q:'你認為「公平」意味著？',a:['相同的規則適用於所有人','根據每個人的情況個別考量']},
   {dim:'TF',q:'別人批評你時，你通常？',a:['先思考批評是否有道理','先感到難過，再慢慢思考']},
   {dim:'TF',q:'你更欣賞哪種特質？',a:['能力出眾、思維清晰','善解人意、情感豐富']},
-  // J vs P
   {dim:'JP',q:'你更喜歡哪種生活方式？',a:['有計畫、有規律，喜歡確定感','彈性隨興、保持開放，什麼都有可能']},
   {dim:'JP',q:'面對截止日期，你通常？',a:['提前完成，不喜歡最後衝刺','靠近才開始，壓力反而有動力']},
   {dim:'JP',q:'你的空間（桌面、房間）通常？',a:['整齊有序，東西有固定位置','看似亂但自己知道在哪裡']},
@@ -140,86 +232,225 @@ const TYPES={
     desc:'獨立自主的完美主義者。具備強大的長遠規劃能力，善於將複雜的理論轉化為具體行動。對自己的判斷充滿自信，不輕易妥協。',
     str:['邏輯清晰','長遠規劃','高效自律','洞察力強'],
     weak:['難以表達情感','可能過度批判','社交疏離','標準太高'],
-    famous:'伊隆·馬斯克、霍金、尼采'},
+    famous:'伊隆·馬斯克、霍金、尼采',
+    core:'你是一個以「系統」看世界的人。每件事背後都有規律可循，你的大腦永遠在建構模型、預測未來。你對自己的直覺充滿信心，也對他人的智識誠實要求很高。',
+    behavior:'在團隊中通常是默默制定策略的那個人。不喜歡無意義的社交，喜歡深度交流。做事前會先想清楚，不輕易開始但一旦開始就全力以赴。',
+    compat:{best:['ENFP','ENTP'],good:['INFJ','INFP','ENTJ','INTJ'],clash:['ESFP','ESFJ']},
+    compatDesc:{ENFP:'互補的靈魂：你給他們架構，他們給你溫度',ENTP:'智識上的火花碰撞，相互激發思考',ESFP:'生活方式差異極大，需要大量包容',ESFJ:'你的邏輯 vs 他們的情感，容易誤解'},
+    careers:['🔬 科學研究員','💻 軟體架構師','📊 數據分析師','🏛️ 律師','🎯 策略顧問','📐 工程師','🔐 資安專家','📚 學術研究'],
+    careerWarn:'你適合需要深度思考的工作，但要注意高度重複的行政工作可能讓你感到窒息。',
+    careerStyle:'你在高度自主、能獨立決策的環境下發揮最好。你不喜歡被微觀管理，需要看到工作的長期意義才能持續投入。'},
+
   INTP:{name:'邏輯學家',icon:'🔬',color:'#8b5cf6',
     desc:'充滿好奇心的思想者。對理論和抽象概念有無限熱情，不斷質疑與分析，追求知識的深度與廣度，邏輯是他們的語言。',
     str:['分析力強','思維靈活','創意豐富','客觀中立'],
     weak:['容易拖延','忽視實務細節','情感表達少','優柔寡斷'],
-    famous:'愛因斯坦、達爾文、比爾·蓋茲'},
+    famous:'愛因斯坦、達爾文、比爾·蓋茲',
+    core:'你的大腦是一台永不停止的思考機器。你活在概念和可能性的世界裡，對任何理論都想找到底層邏輯。你重視正確性遠超過讓人舒服。',
+    behavior:'喜歡在腦海中把所有情況都想過一遍才行動，所以決策有時很慢。喜歡一個人安靜鑽研，忘記吃飯或睡覺都有可能。',
+    compat:{best:['ENTJ','ENFJ'],good:['INFJ','INTJ','ENTP','INTP'],clash:['ESFJ','ESTJ']},
+    compatDesc:{ENTJ:'他們推動你行動，你給他們深度思考',ENFJ:'他們的溫暖讓你慢慢打開心扉',ESFJ:'你的純邏輯讓他們覺得冷漠',ESTJ:'你們對規則的態度南轅北轍'},
+    careers:['💻 程式開發','🔬 科學研究','📐 數學/統計','🎮 遊戲設計','🏛️ 哲學/學術','🔧 系統工程','📡 AI 研究','✍️ 技術寫作'],
+    careerWarn:'要注意容易「想太多做太少」的傾向，完美主義可能讓你一直停在計畫階段。',
+    careerStyle:'你需要能深入研究某個問題的工作。不適合需要頻繁切換任務、大量情感溝通的環境。一旦找到真正感興趣的領域，你的產出質量會遠超平均。'},
+
   ENTJ:{name:'指揮官',icon:'👑',color:'#dc2626',
     desc:'天生的領導者。自信果斷，目標明確，善於組織資源和帶領他人，對低效率有強烈的不耐受，永遠向前衝。',
     str:['領導力強','高效決斷','策略眼光','目標導向'],
     weak:['不耐煩','過度強勢','忽略情感','難以接受失敗'],
-    famous:'賈伯斯、拿破崙、傑克·威爾許'},
+    famous:'賈伯斯、拿破崙、傑克·威爾許',
+    core:'你把世界看成一個可以被優化的系統。你天生知道如何組織人和資源達成目標，不喜歡浪費，包括時間、精力和潛力。',
+    behavior:'在任何群體中都容易自然成為主導者。你說話直接、要求清晰，有時讓人感到有壓力。你對自己的標準很高，對別人也是。',
+    compat:{best:['INTP','INFP'],good:['ENTJ','INTJ','ENTP','ENFP'],clash:['ISFP','ISFJ']},
+    compatDesc:{INTP:'你給他們方向，他們給你深度分析',INFP:'你看到他們的潛力，他們讓你感受情感面',ISFP:'你的快節奏讓他們很有壓力',ISFJ:'衝突在於你重效率，他們重過程和感受'},
+    careers:['🏢 企業管理','💼 創業/CEO','⚖️ 法律/訴訟','📈 投資銀行','🎯 顧問','🏛️ 政治','🏗️ 專案管理','🌐 國際商務'],
+    careerWarn:'你在高壓、競爭環境下反而更有活力，但要注意不要把同事當棋子，情商和智商同樣重要。',
+    careerStyle:'你需要有影響力、能做決策的位置。給你一個目標和足夠的自主權，你會找到最有效率的方法達成。無聊和停滯對你來說是最大的折磨。'},
+
   ENTP:{name:'辯論家',icon:'💡',color:'#f59e0b',
     desc:'靈活機智的挑戰者。熱愛辯論與新想法，善於看到各種可能性，喜歡打破常規，天生的創新者和點子製造機。',
     str:['思維發散','創意無限','說服力強','適應力高'],
     weak:['難以專注','好辯不合作','忽視細節','無法堅持到底'],
-    famous:'愛迪生、班傑明·富蘭克林、薩特'},
+    famous:'愛迪生、班傑明·富蘭克林、薩特',
+    core:'你的腦子像是永遠開著的辯論室。你喜歡從各種角度切入問題，挑戰現有假設，光是「批評現狀」就能讓你獲得樂趣。',
+    behavior:'對新想法超級興奮，但執行細節容易讓你失去興趣。可以同時進行十個計畫，但完成的可能不多。辯論對你來說是一種樂趣，不是攻擊。',
+    compat:{best:['INFJ','INTJ'],good:['ENTJ','ENTP','ENFP','INTP'],clash:['ISFJ','ISTJ']},
+    compatDesc:{INFJ:'他們的深度和你的廣度完美互補',INTJ:'兩個挑戰者的高水平對話',ISFJ:'他們重視穩定，你喜歡打破，容易衝突',ISTJ:'你的靈活 vs 他們的規則，常有摩擦'},
+    careers:['🚀 創業家','🎨 創意總監','📢 行銷策略','⚖️ 律師','🎙️ 媒體主持','💡 產品設計','🔬 研發創新','📝 內容創作'],
+    careerWarn:'你的最大敵人是「中途放棄」。選擇一個真正有深度的領域長期投入，你的成就會遠超過四處試探。',
+    careerStyle:'你需要能不斷接觸新挑戰、有創意空間的工作。重複性高的行政工作是你的剋星。最好的工作是每天都有新問題要解決。'},
+
   INFJ:{name:'提倡者',icon:'🌟',color:'#7c3aed',
     desc:'最罕見的人格之一。有強烈的道德感和理想主義，能深刻洞察他人，致力於讓世界變得更美好，是安靜的先知。',
     str:['洞察人心','富有遠見','理想主義','同理心強'],
     weak:['過度完美','自我封閉','過於敏感','容易燃燒殆盡'],
-    famous:'甘地、尼爾森·曼德拉、特蕾莎修女'},
+    famous:'甘地、尼爾森·曼德拉、特蕾莎修女',
+    core:'你同時擁有深刻的直覺和強烈的道德感，這是很罕見的組合。你能感受到別人說不出口的情緒，也能看到別人還沒看到的未來。',
+    behavior:'外表安靜，內心其實相當豐富複雜。你傾向少說話多觀察，但一旦開口通常讓人印象深刻。你對不公義的事情非常敏感。',
+    compat:{best:['ENTP','ENFP'],good:['INFJ','INFP','INTJ','ENFJ'],clash:['ESTP','ISTP']},
+    compatDesc:{ENTP:'他們的活力和你的深度擦出精彩火花',ENFP:'兩個理想主義者一起想讓世界更好',ESTP:'你的深思熟慮 vs 他們的即興行動，頻率不同',ISTP:'情感需求的差異讓你們難以理解彼此'},
+    careers:['🧠 心理諮詢師','✍️ 作家','🎓 教育工作者','👨‍⚕️ 醫療/護理','🌿 社會工作','🎨 藝術創作','🏛️ 非營利組織','🔬 人類學研究'],
+    careerWarn:'你容易為了幫助他人而忽略自己的需求，設立健康的界限是你職涯成功的關鍵。',
+    careerStyle:'你需要工作有意義、能對他人產生正面影響。高壓的商業競爭環境通常不適合你，更適合強調使命感和人文關懷的領域。'},
+
   INFP:{name:'調停者',icon:'🌸',color:'#ec4899',
     desc:'充滿理想主義的詩人。以情感和個人價值觀為核心，追求真實與深度，富有創造力，對他人有天然的同理心。',
     str:['創造力高','同理心強','開放包容','忠於自我'],
     weak:['過度理想化','情緒起伏','自我懷疑','逃避衝突'],
-    famous:'J.K.羅琳、強尼·戴普、奧黛麗·赫本'},
+    famous:'J.K.羅琳、強尼·戴普、奧黛麗·赫本',
+    core:'你活在感受和可能性的世界裡。你對自己的內心世界認識很深，也對他人的情感有本能的感知。你最重視「真實」——包括對自己誠實。',
+    behavior:'表面平和，內心其實有很強烈的感受。你不喜歡衝突，有時候委屈自己也要維持和諧。創作是你最自然的表達方式。',
+    compat:{best:['ENFJ','ENTJ'],good:['INFJ','INFP','ENFP','ISFP'],clash:['ESTJ','ENTJ']},
+    compatDesc:{ENFJ:'他們的支持讓你感到被完全理解',ENTJ:'他們幫你把想法化為行動（雖然方式有點強勢）',ESTJ:'他們重規則效率，你重感受價值，難以交集',ENTJ:'你的敏感 vs 他們的強勢，需要很多調適'},
+    careers:['✍️ 作家/詩人','🎨 設計師','🎬 導演/編劇','🧠 心理師','🌿 社會工作','📸 攝影師','🎵 音樂創作','🏛️ 人文學科'],
+    careerWarn:'找到工作的意義比薪水更能讓你持續投入。一份沒有靈魂的工作對你來說比失業更難忍受。',
+    careerStyle:'你在有創意空間、能獨立工作的環境下最能發揮。你需要工作與你的價值觀一致，否則你會快速失去動力。'},
+
   ENFJ:{name:'主人公',icon:'🌈',color:'#10b981',
     desc:'魅力四射的引路人。天生善於激勵和影響他人，關懷備至，熱衷於幫助每個人發揮潛力，是溫暖的引導者。',
     str:['領袖魅力','深厚同理心','善於溝通','激勵他人'],
     weak:['過於敏感批評','難以拒絕','自我犧牲','情緒承擔過多'],
-    famous:'歐普拉、歐巴馬、甘地'},
+    famous:'歐普拉、歐巴馬、甘地',
+    core:'你天生有一種能讓別人感覺「被看見」的能力。你對人的需求和感受異常敏感，總是想把身邊的人帶向更好的狀態。',
+    behavior:'在群體中自然成為凝聚者。你擅長找到共識、化解衝突，但有時候太在意讓所有人都高興，忘了自己也有需求。',
+    compat:{best:['INFP','INTP'],good:['ENFJ','INFJ','ENFP','ISFJ'],clash:['ISTP','ESTP']},
+    compatDesc:{INFP:'你帶他們走出殼，他們讓你接觸內心深處',INTP:'你的溫度融化他們的理性，相互學習',ISTP:'你重情感連結，他們覺得沒必要，頻率不合',ESTP:'他們的衝動讓你擔憂，你的關心讓他們窒息'},
+    careers:['🎓 教師/教授','🧠 諮詢師','🏢 人力資源','🎙️ 演講/培訓','📢 公關/行銷','👨‍⚕️ 醫療照護','🌿 社會工作','🏛️ 非營利領導'],
+    careerWarn:'你非常容易過度付出而耗盡自己。學習拒絕是你職業發展最重要的一課。',
+    careerStyle:'你在能直接幫助他人成長的工作中最有活力。你是天生的教育者和激勵者，在有明確人際影響力的職位上表現最佳。'},
+
   ENFP:{name:'競選者',icon:'✨',color:'#f97316',
     desc:'充滿熱情的自由靈魂。精力充沛，想像力豐富，善於找到各種可能性，能輕易感染周圍的人，讓生活充滿色彩。',
     str:['熱情感染力','創意豐富','好奇探索','善於連結人際'],
     weak:['難以聚焦','過度樂觀','衝動行動','情緒起伏大'],
-    famous:'羅賓·威廉斯、安妮·法蘭克、馬克·吐溫'},
+    famous:'羅賓·威廉斯、安妮·法蘭克、馬克·吐溫',
+    core:'你是活生生的靈感泡泡。你能在任何地方找到可能性、在任何人身上找到亮點。你的熱情是真實的，也是你最強的超能力。',
+    behavior:'在陌生環境也能快速交朋友。你的話題跳很快，但每個都充滿真誠。你容易被新的想法沖昏頭，難以長期維持一個方向。',
+    compat:{best:['INTJ','INFJ'],good:['ENFP','INFP','ENTJ','ENFJ'],clash:['ISTJ','ISFJ']},
+    compatDesc:{INTJ:'你的熱情 + 他們的策略 = 無敵組合',INFJ:'兩個理想主義者的深度靈魂連結',ISTJ:'你的隨興 vs 他們的規則，容易讓彼此抓狂',ISFJ:'你的開放 vs 他們的保守，觀念常有落差'},
+    careers:['🎨 創意設計','🎭 表演藝術','📢 行銷/公關','🎙️ 主持/媒體','🧠 諮詢師','✍️ 寫作/內容','🚀 創業家','🌿 社會創新'],
+    careerWarn:'你的挑戰是完成你開始的事。把你的熱情集中在一件事上，你的成就會讓人驚豔。',
+    careerStyle:'你需要多樣化、能接觸不同人和想法的工作。單調的辦公室行政工作是你的噩夢。你在有自由度、能創意發揮的環境下才能長期維持熱情。'},
+
   ISTJ:{name:'物流師',icon:'📋',color:'#475569',
     desc:'可靠的傳統守護者。重視責任、誠信和規則，腳踏實地，注重細節，是任何組織不可或缺的穩固基石。',
     str:['責任心強','可靠穩定','注重細節','邏輯條理'],
     weak:['守舊固執','不擅彈性','情感內斂','過度謹慎'],
-    famous:'安格拉·梅克爾、喬治·華盛頓、孔子'},
+    famous:'安格拉·梅克爾、喬治·華盛頓、孔子',
+    core:'你相信規則和傳統是有原因存在的。你用過去的經驗和既定的規範來做決定，這讓你在混亂中成為穩定的力量。',
+    behavior:'做事有條理、有計畫，不喜歡臨時變動。承諾了就一定會做到。情感上比較含蓄，用行動而非語言表達關心。',
+    compat:{best:['ESFP','ESTP'],good:['ISTJ','ISFJ','ESTJ','ESFJ'],clash:['ENFP','ENTP']},
+    compatDesc:{ESFP:'他們帶你放鬆享樂，你幫他們穩下來',ESTP:'務實的行動派，目標一致容易合作',ENFP:'他們的隨興讓你焦慮，你的規則讓他們窒息',ENTP:'你重傳統，他們愛挑戰，基本觀念常有衝突'},
+    careers:['⚖️ 法律/司法','🏦 財務/會計','🏥 醫療行政','🔬 品質管控','📊 資料管理','🏛️ 政府機關','🔧 工程技術','📦 供應鏈管理'],
+    careerWarn:'你在穩定的環境中如魚得水，但要注意不要因為害怕風險而錯過真正值得的機會。',
+    careerStyle:'你在明確規則、長期穩定的工作環境中表現最好。你不需要掌聲，只需要知道自己做了正確的事。'},
+
   ISFJ:{name:'守衛者',icon:'🛡️',color:'#0ea5e9',
     desc:'溫暖的默默付出者。以關懷他人為使命，記憶力好，忠誠可靠，總是默默在背後支撐著家庭和社群。',
     str:['溫暖體貼','忠誠可靠','默默付出','記憶力強'],
     weak:['難以拒絕','壓抑自我','過於謙遜','抗拒改變'],
-    famous:'比雅尼·斯特勞斯特魯普、茱蒂·丹契'},
+    famous:'茱蒂·丹契、凱特·米德爾頓',
+    core:'你把關懷他人視為一種義務。你記得每個重要的人的偏好和生日，你的愛是通過細緻的照料表達出來的。',
+    behavior:'在群體中是那個默默把事情都安排好的人。你不喜歡衝突，寧願自己退一步也要維持和諧。你的記憶力特別強，尤其是和人相關的細節。',
+    compat:{best:['ESTP','ESFP'],good:['ISFJ','ISTJ','ESFJ','ENFJ'],clash:['ENTJ','ENTP']},
+    compatDesc:{ESTP:'他們的活力幫你走出舒適圈',ESFP:'同樣關心他人，一起照顧世界',ENTJ:'他們的強勢讓你壓力很大',ENTP:'他們的挑戰式溝通讓你很不舒服'},
+    careers:['👨‍⚕️ 護理/醫療','🎓 幼教/小學教師','🏠 社區服務','🧑‍💼 行政助理','🌿 諮商/輔導','📚 圖書館員','🍳 餐飲/接待','🏛️ 非營利工作'],
+    careerWarn:'你的付出往往比獲得的認可多，學習讓人看見你的貢獻，同時設立自我保護的界線。',
+    careerStyle:'你在需要細心和關懷的工作中最有成就感。你需要感覺自己的付出是有意義、有人感激的。'},
+
   ESTJ:{name:'總經理',icon:'⚖️',color:'#b45309',
     desc:'嚴格的規則執行者。重視秩序、效率和傳統，善於管理與組織，果斷決策，是社群和組織的強力支柱。',
     str:['組織能力強','果斷高效','值得信賴','重視傳統'],
     weak:['缺乏彈性','過度強勢','忽視情感','難接受新觀念'],
-    famous:'亨利·福特、法蘭克·西納特拉'},
+    famous:'亨利·福特、法蘭克·西納特拉',
+    core:'你是天生的組織者和管理者。你知道一個系統要有效運作需要什麼，包括明確的角色、清晰的規則和嚴格的執行。',
+    behavior:'在任何情況下都會自然接管並開始組織事情。你做事有條不紊，說到做到。你不喜歡例外，認為規則就是要被遵守的。',
+    compat:{best:['ISFP','ISTP'],good:['ESTJ','ISTJ','ESFJ','ISFJ'],clash:['INFP','ENFP']},
+    compatDesc:{ISFP:'他們的藝術感和你的務實形成有趣互補',ISTP:'同樣重視效率和結果，合作順暢',INFP:'你的規則 vs 他們的感受，很難找到共同語言',ENFP:'他們的隨興讓你抓狂，你的嚴格讓他們逃跑'},
+    careers:['🏢 企業管理','⚖️ 法律/合規','🏦 金融/銀行','🏗️ 建設/工程','🚔 執法機關','🏛️ 政府行政','📊 專案管理','🔧 製造業管理'],
+    careerWarn:'你的優勢在執行力，但要注意有時候你的方式會讓人感到被命令而非被領導，適度的溫柔會讓你的影響力加倍。',
+    careerStyle:'你在有明確層級、需要強力執行的組織中如魚得水。你適合扮演讓事情動起來的關鍵角色。'},
+
   ESFJ:{name:'執政官',icon:'🤝',color:'#0891b2',
     desc:'熱心的社群守護者。天生熱愛關懷他人，重視和諧與歸屬感，善於讓每個人都感到被重視和溫暖。',
     str:['熱心助人','善於社交','責任感強','關懷備至'],
     weak:['過度在意評價','難以面對衝突','依賴認可','過度付出'],
-    famous:'泰勒絲、比爾·柯林頓、艾爾頓·約翰'},
+    famous:'泰勒絲、比爾·柯林頓、艾爾頓·約翰',
+    core:'你的存在就像是社群的黏合劑。你天生在意每個人的感受，你最大的滿足感來自看到身邊的人都好好的。',
+    behavior:'記得每個人的重要日子，總是最先問候、最後離開的那個人。你的家或辦公室通常是大家最想聚集的地方。',
+    compat:{best:['ISTP','ISFP'],good:['ESFJ','ISFJ','ESTJ','ENFJ'],clash:['INTP','INTJ']},
+    compatDesc:{ISTP:'他們的冷靜讓你感到神秘又吸引',ISFP:'同樣重視感受和和諧，相處很舒服',INTP:'他們的純邏輯讓你覺得冷漠無情',INTJ:'你重社交和感受，他們覺得這些都是雜訊'},
+    careers:['👨‍⚕️ 護理/醫療','🎓 教師','🍳 餐飲/服務','📢 公關/活動','🏠 家庭諮詢','🌿 社工','🧑‍💼 人力資源','🎉 活動規劃'],
+    careerWarn:'你太在意別人的看法可能讓你做了不適合自己的選擇。試著在取悅別人和忠於自己之間找到平衡。',
+    careerStyle:'你在能直接幫助人、感受到即時感謝的工作中最快樂。你需要溫暖、人性化的工作環境。'},
+
   ISTP:{name:'鑑賞家',icon:'🔧',color:'#64748b',
     desc:'冷靜的技術大師。以旁觀者角度洞察世界，動手能力出色，善於在危機中保持冷靜，用最少動作解決問題。',
     str:['動手能力強','冷靜分析','靈活應變','獨立自主'],
     weak:['情感疏離','衝動冒險','難以承諾','不重長遠'],
-    famous:'克林特·伊斯特伍德、布魯斯·李'},
+    famous:'克林特·伊斯特伍德、布魯斯·李',
+    core:'你是活在當下的問題解決者。你對機械和系統的運作有直覺式的理解，能在高壓狀態下保持清醒，找到最有效的解法。',
+    behavior:'話不多但觀察力強。你不喜歡假設或過度規劃，更喜歡直接動手試試看。在危機中是最冷靜的那個人。',
+    compat:{best:['ESFJ','ESTJ'],good:['ISTP','ISFP','ESTP','ISTJ'],clash:['ENFJ','ENTJ']},
+    compatDesc:{ESFJ:'他們的溫暖讓你慢慢卸下心防',ESTJ:'同樣務實，一個策略一個執行，配合得好',ENFJ:'他們需要深度情感連結，你給不了那麼多',ENTJ:'兩個都要掌控，方向不同容易衝突'},
+    careers:['🔧 工程師','🚗 機械/汽車','💻 技術支援','🚒 消防/急救','⚡ 電子技術','🎮 遊戲開發','🔬 實驗室技術','🏗️ 現場施工'],
+    careerWarn:'你的動手能力是天賦，但職涯發展需要長期規劃。找到一個能不斷學習新技術的領域，讓你的技術持續升級。',
+    careerStyle:'你需要能動手做事、看到立即結果的工作。純粹坐辦公室開會對你來說是一種折磨。你在實際操作的環境中最有存在感。'},
+
   ISFP:{name:'探險家',icon:'🎨',color:'#84cc16',
     desc:'溫柔的藝術靈魂。活在當下，感官敏銳，熱愛美感與和諧，以行動而非語言表達自我，享受每個當下的美好。',
     str:['藝術感強','溫和體貼','活在當下','隨和包容'],
     weak:['難以長遠規劃','迴避衝突','低調被動','過度敏感'],
-    famous:'麥可·傑克遜、碧昂絲'},
+    famous:'麥可·傑克遜、碧昂絲',
+    core:'你通過感官感受世界。美麗的事物讓你感到被滋養，醜陋和衝突讓你感到痛苦。你用創作或行動表達那些說不出口的感受。',
+    behavior:'你通常安靜，但在自己喜愛的事情上會閃閃發光。你活在當下，不太想被長期計畫束縛。你的善良是真誠而沒有目的的。',
+    compat:{best:['ESTJ','ESFJ'],good:['ISFP','ISTP','ENFP','INFP'],clash:['ENTJ','ESTJ']},
+    compatDesc:{ESTJ:'他們幫你安排好一切，你讓他們感受生活的美',ESFJ:'兩個都重視感受，相處很自然溫暖',ENTJ:'他們的強勢讓你縮起來，不敢表達真實想法',ENTJ:'壓力太大，你需要更溫柔的對待方式'},
+    careers:['🎨 藝術創作','✂️ 時尚設計','🍳 廚師/烘焙','🎵 音樂','📸 攝影','🌿 自然/環境','👶 幼兒教育','🐾 動物照護'],
+    careerWarn:'你的感受力是天賦，但要學著在職場上適當地展現自己，不要因為太謙遜而讓才華被埋沒。',
+    careerStyle:'你在有創作空間、節奏不會太快的工作中最快樂。你不適合高壓、競爭激烈的環境，需要能感受到美和意義的工作。'},
+
   ESTP:{name:'企業家',icon:'🚀',color:'#ef4444',
     desc:'精力充沛的行動派。善於察言觀色，在當下果斷行動，享受冒險與刺激，能瞬間讀懂環境並做出反應。',
     str:['行動力強','社交靈活','危機處理','適應力強'],
     weak:['缺乏耐心','衝動冒險','忽視長遠','難遵守規則'],
-    famous:'川普、麥可·喬丹、海明威'},
+    famous:'川普、麥可·喬丹、海明威',
+    core:'你是當下的王者。你不需要計畫，你靠直覺和快速判斷就能解決大多數問題。你享受高速、高風險的生活節奏。',
+    behavior:'話多、動作快、決策快。你能在幾秒內讀懂一個人。你喜歡可以立刻看到結果的事情，不喜歡等待和計畫。',
+    compat:{best:['ISFJ','ISTJ'],good:['ESTP','ISTP','ESFP','ESTJ'],clash:['INFJ','INFP']},
+    compatDesc:{ISFJ:'他們的穩定讓你有了安全感的港口',ISTJ:'同樣務實，一起行動效率很高',INFJ:'你的快節奏讓他們來不及，你覺得他們太慢',INFP:'你的衝動讓他們受傷，頻率很難對上'},
+    careers:['💼 業務銷售','🚒 急救/消防','🎮 職業運動','📈 交易員','🚁 飛行員','🎬 表演/特技','🏗️ 現場指揮','🚀 創業'],
+    careerWarn:'你的最大風險是為了眼前的刺激而忽略長期後果。適度規劃未來，讓你的行動力有更穩固的基礎。',
+    careerStyle:'你需要快節奏、有即時反饋的工作。坐在辦公室看試算表是你的噩夢，你在現場、在行動中最有活力。'},
+
   ESFP:{name:'表演者',icon:'🎭',color:'#f59e0b',
     desc:'天生的娛樂高手。充滿活力與熱情，享受當下，喜歡帶動現場氣氛，讓身邊的人都開心起來。',
     str:['活潑外向','樂觀積極','感染力強','隨機應變'],
     weak:['難以聚焦長遠','衝動消費','迴避困難話題','過度敏感'],
-    famous:'瑪麗蓮·夢露、麥莉·希拉'},
+    famous:'瑪麗蓮·夢露、麥莉·希拉',
+    core:'你是天生的娛樂者。你感受到快樂就想分享，你的存在讓任何聚會都更有活力。你活在感官和當下的美好裡。',
+    behavior:'你通常是房間裡最開心、最活躍的人。你能讓陌生人馬上放鬆，能在任何地方找到樂趣。你不喜歡被規劃束縛，想到就做。',
+    compat:{best:['ISTJ','ISFJ'],good:['ESFP','ISFP','ESTP','ESFJ'],clash:['INTJ','INFJ']},
+    compatDesc:{ISTJ:'他們的穩定讓你感到安心，你讓他們更享受生活',ISFJ:'兩個都在乎人，一起讓大家都快樂',INTJ:'你的隨興 vs 他們的計畫，難以同頻',INFJ:'他們需要深度和意義，你享受輕鬆當下，需要調適'},
+    careers:['🎭 表演藝術','🎵 音樂/歌手','🎙️ 主持人','🍳 餐飲/服務','📢 活動規劃','💄 美容造型','🏋️ 健身教練','📸 攝影師'],
+    careerWarn:'你的魅力是最強的資產，但要注意長期職涯規劃。在享受當下的同時，也為未來留一些底氣。',
+    careerStyle:'你需要能和人互動、充滿活力的工作環境。一個人悶在辦公室對你來說是一種懲罰。你在有即時觀眾和反饋的環境中最閃耀。'},
 };
 
 const DIM_NAMES={E:'外向',I:'內向',S:'實感',N:'直覺',T:'思考',F:'情感',J:'判斷',P:'感知'};
+const DIM_DESC={
+  E:{title:'外向 (E)',desc:'從外部世界獲取能量，喜歡與人互動，透過表達想法來思考。傾向先行動後反思。'},
+  I:{title:'內向 (I)',desc:'從內心世界獲取能量，需要獨處充電，先思考再行動。偏好深度而非廣度的社交。'},
+  S:{title:'實感 (S)',desc:'注重現實和具體事實，相信眼見為憑，重視已被驗證的方法，注重當下而非未來。'},
+  N:{title:'直覺 (N)',desc:'傾向抽象思維和未來可能性，善用隱喻和聯想，享受探索新概念，喜歡問「如果…會怎樣？」'},
+  T:{title:'思考 (T)',desc:'以邏輯和客觀原則做決定，重視真實更勝於和諧，在批評他人時比較直接，重視能力和效率。'},
+  F:{title:'情感 (F)',desc:'以人和感受為決策核心，重視和諧與共識，善於體察他人情緒，在乎關係的維護。'},
+  J:{title:'判斷 (J)',desc:'喜歡計畫和確定性，工作前先規劃，喜歡做決定而非保持開放，生活有條有理。'},
+  P:{title:'感知 (P)',desc:'偏好彈性和自發性，享受過程更勝結果，保持選項開放，適應力強但有時難以做決定。'},
+};
+
 let curQ=0, answers=[], scores={E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
+let currentType='';
 
 function startTest(){
   curQ=0; answers=[]; scores={E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
@@ -255,15 +486,29 @@ function pick(choice){
   },300);
 }
 
+function showSection(name){
+  document.querySelectorAll('.section-tab').forEach((b,i)=>{
+    const names=['overview','deep','compat','career'];
+    b.classList.toggle('active', names[i]===name);
+  });
+  document.querySelectorAll('.section-body').forEach(el=>{
+    el.classList.toggle('active', el.id==='section-'+name);
+  });
+}
+
 function showResult(){
   document.getElementById('screen-q').classList.remove('active');
   document.getElementById('screen-result').classList.add('active');
+
   const type=(scores.E>=scores.I?'E':'I')+(scores.S>=scores.N?'S':'N')+(scores.T>=scores.F?'T':'F')+(scores.J>=scores.P?'J':'P');
+  currentType=type;
   const t=TYPES[type];
+
   document.getElementById('type-badge').textContent=t.icon;
   document.getElementById('type-code').textContent=type;
   document.getElementById('type-code').style.color=t.color;
   document.getElementById('type-name').textContent=t.name;
+
   // dim bars
   const dims=[['EI','E','I'],['SN','S','N'],['TF','T','F'],['JP','J','P']];
   const barColors=['#7c3aed','#0ea5e9','#10b981','#f59e0b'];
@@ -277,30 +522,84 @@ function showResult(){
       <div class="dim-track"><div class="dim-fill" style="width:${pct}%;background:${barColors[i]}"></div></div>
     </div>`;
   }).join('');
+
+  // 總覽
   document.getElementById('result-desc').textContent=t.desc;
   document.getElementById('str-tags').innerHTML=t.str.map(s=>`<span class="tag good">${s}</span>`).join('');
   document.getElementById('weak-tags').innerHTML=t.weak.map(s=>`<span class="tag weak">${s}</span>`).join('');
   document.getElementById('result-famous').textContent=t.famous;
 
-// 儲存到 localStorage（僅本機，不上傳）
-try {
-  const d = JSON.parse(localStorage.getItem('game_lobby_v2') || '{}');
-  if (!d.self) d.self = {};
-  d.self.mbti = { type, name: t.name, icon: t.icon, date: new Date().toLocaleDateString('zh-TW') };
-  localStorage.setItem('game_lobby_v2', JSON.stringify(d));
-} catch(e) {}
+  // 深度解析
+  document.getElementById('deep-core').textContent=t.core;
+  document.getElementById('deep-behavior').textContent=t.behavior;
+  const dimWinners=[(scores.E>=scores.I?'E':'I'),(scores.S>=scores.N?'S':'N'),(scores.T>=scores.F?'T':'F'),(scores.J>=scores.P?'J':'P')];
+  const dimIcons=['🔋','👁️','⚖️','📅'];
+  document.getElementById('deep-dims').innerHTML=dimWinners.map((d,i)=>{
+    const dd=DIM_DESC[d];
+    return `<div class="deep-dim">
+      <div class="deep-dim-icon">${dimIcons[i]}</div>
+      <div class="deep-dim-body"><h5>${dd.title}</h5><p>${dd.desc}</p></div>
+    </div>`;
+  }).join('');
+
+  // 相容性
+  const c=t.compat;
+  document.getElementById('compat-best-grid').innerHTML=c.best.map(tp=>{
+    const ct=TYPES[tp];
+    return `<div class="compat-card best">
+      <div class="c-icon">${ct.icon}</div>
+      <div class="c-type" style="color:${ct.color}">${tp}</div>
+      <div class="c-name">${ct.name}</div>
+      <div class="c-label">最合</div>
+      <div class="c-desc">${t.compatDesc[tp]||''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('compat-good-grid').innerHTML=c.good.slice(0,4).map(tp=>{
+    const ct=TYPES[tp];
+    return `<div class="compat-card good">
+      <div class="c-icon">${ct.icon}</div>
+      <div class="c-type" style="color:${ct.color}">${tp}</div>
+      <div class="c-name">${ct.name}</div>
+      <div class="c-label">融洽</div>
+    </div>`;
+  }).join('');
+  document.getElementById('compat-clash-grid').innerHTML=c.clash.map(tp=>{
+    const ct=TYPES[tp];
+    return `<div class="compat-card clash">
+      <div class="c-icon">${ct.icon}</div>
+      <div class="c-type" style="color:${ct.color}">${tp}</div>
+      <div class="c-name">${ct.name}</div>
+      <div class="c-label">反差大</div>
+      <div class="c-desc">${t.compatDesc[tp]||''}</div>
+    </div>`;
+  }).join('');
+
+  // 職業
+  document.getElementById('career-grid').innerHTML=t.careers.map(c=>`
+    <div class="career-item"><span class="c-ico">${c.split(' ')[0]}</span><span>${c.split(' ').slice(1).join(' ')}</span></div>
+  `).join('');
+  document.getElementById('career-warn').textContent='💡 '+t.careerWarn;
+  document.getElementById('career-style').textContent=t.careerStyle;
+
+  // 儲存到 localStorage
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    if(!d.self)d.self={};
+    d.self.mbti={type,name:t.name,icon:t.icon,date:new Date().toLocaleDateString('zh-TW')};
+    localStorage.setItem('game_lobby_v2',JSON.stringify(d));
+  }catch(e){}
 }
 
 function shareResult(){
-  const type=(scores.E>=scores.I?'E':'I')+(scores.S>=scores.N?'S':'N')+(scores.T>=scores.F?'T':'F')+(scores.J>=scores.P?'J':'P');
-  const t=TYPES[type];
-  const txt=`我的 MBTI 人格類型是 ${type} ${t.name} ${t.icon}\n測出來的分析：${t.desc.slice(0,40)}...\n快來測測你的！`;
+  const t=TYPES[currentType];
+  const txt=`我的 MBTI 是 ${currentType} ${t.name} ${t.icon}\n${t.desc.slice(0,50)}...\n最合類型：${t.compat.best.join('、')}\n快來測測你的！`;
   if(navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>alert('已複製到剪貼簿！'));}
 }
 
 function restartTest(){
   document.getElementById('screen-result').classList.remove('active');
   document.getElementById('screen-intro').classList.add('active');
+  showSection('overview');
 }
 </script>
 </body></html>
