@@ -28,10 +28,16 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 .pb-token{background:#1a1200;border:.5px solid var(--gold);color:var(--gold)}
 .pb-mult{background:#0a1a0a;border:.5px solid #4ade80;color:#4ade80}
 
-/* prestige button */
+/* prestige button + progress */
 .prestige-area{padding:.35rem .75rem;flex-shrink:0}
+.pp-wrap{margin-bottom:.3rem}
+.pp-bar{height:5px;background:#0d0d1e;border:.5px solid var(--border);border-radius:3px;overflow:hidden;margin-bottom:.22rem}
+.pp-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:3px;transition:width .6s;width:0%}
+.pp-txt{font-size:10px;color:var(--sub);text-align:center}
 .prestige-btn{display:none;width:100%;padding:.65rem;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,var(--gold));color:#fff;font-size:13px;font-weight:700;cursor:pointer;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 0 8px rgba(245,158,11,0)}}
+.shop-section-hdr{font-size:11px;color:var(--gold);letter-spacing:.5px;padding:.55rem .2rem .2rem;margin-top:.25rem;border-top:.5px solid var(--border)}
+.shop-locked{font-size:12px;color:var(--sub);text-align:center;padding:.9rem;background:var(--bg3);border:.5px solid var(--border);border-radius:10px;margin-top:.3rem;line-height:1.7}
 
 /* click */
 .click-area{padding:.35rem .75rem;flex-shrink:0}
@@ -138,6 +144,10 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 </div>
 
 <div class="prestige-area">
+  <div class="pp-wrap">
+    <div class="pp-bar"><div class="pp-fill" id="pp-fill"></div></div>
+    <div class="pp-txt" id="pp-txt">轉生進度 $0 / $100M · 0%</div>
+  </div>
   <button class="prestige-btn" id="prestige-btn" onclick="doPrestige()">
     ✨ 開設旗艦店（轉生）— 歸零換取黃金代幣，永久 +200% 收益
   </button>
@@ -222,11 +232,28 @@ const UPGRADES=[
   {id:'empire', name:'桌遊帝國',   icon:'🏰',desc:'稱霸全台！終極形態',  base_cost:800000,click_boost:0,cps:12000,max:10,color:'#f5c842'},
 ];
 
+// 轉生3次後解鎖的旗艦升級
+const UPGRADES_P3=[
+  {id:'resort',    name:'海外旗艦館', icon:'🏝️',desc:'全球連鎖旗艦，收益驚人',base_cost:5e6,  click_boost:0,cps:80000,  max:8,color:'#06b6d4'},
+  {id:'franchise', name:'品牌授權金', icon:'💎', desc:'品牌價值化為被動收益', base_cost:3e7,  click_boost:0,cps:300000, max:5,color:'#f59e0b'},
+  {id:'metaverse', name:'元宇宙桌遊', icon:'🪐', desc:'虛擬世界桌遊無限擴張', base_cost:1.5e8,click_boost:0,cps:1200000,max:3,color:'#8b5cf6'},
+];
+
 const INDUSTRY_TAGS={
   click:'口才大師',intern:'人力王',table:'自動先鋒',
   cafe:'餐飲帝國',vip:'尊榮館主',branch:'多點布局',
-  chain:'加盟大亨',empire:'桌遊帝王'
+  chain:'加盟大亨',empire:'桌遊帝王',
+  resort:'旗艦館主',franchise:'授權大亨',metaverse:'元宇宙王'
 };
+
+// 轉生門檻：1st $100M, 2nd $500M, 3rd $2B, 4th+ ×5
+const PRESTIGE_THRESHOLDS=[1e8,5e8,2e9];
+function prestigeThreshold(){
+  if(state.prestige<PRESTIGE_THRESHOLDS.length)return PRESTIGE_THRESHOLDS[state.prestige];
+  return PRESTIGE_THRESHOLDS[PRESTIGE_THRESHOLDS.length-1]*Math.pow(5,state.prestige-PRESTIGE_THRESHOLDS.length+1);
+}
+
+function allUpgrades(){return[...UPGRADES,...UPGRADES_P3];}
 
 const MILESTONES=[
   {v:1000,    title:'🎉 首批客人！',  body:'達成 $1,000！小店開始有人氣了！'},
@@ -237,7 +264,7 @@ const MILESTONES=[
   {v:1e8,     title:'✨ 旗艦店解鎖！',body:'$100,000,000！\n可以開設旗艦店（轉生）了！'},
 ];
 
-const LS_KEY='shop24h_save', LS_LB='shop24h_lb_v1', RATE=1.15, PT=1e8;
+const LS_KEY='shop24h_save', LS_LB='shop24h_lb_v1', RATE=1.15;
 
 let state={
   money:0, totalEarned:0, allTime:0, weekly:0, weekKey:'',
@@ -245,7 +272,7 @@ let state={
   prestige:0, goldTokens:0, counts:{}, lastSave:Date.now(),
 };
 let msIdx=0, lbTab='weekly';
-UPGRADES.forEach(u=>state.counts[u.id]=0);
+allUpgrades().forEach(u=>state.counts[u.id]=0);
 
 function weekKey(){
   const d=new Date(),j=new Date(d.getFullYear(),0,4);
@@ -253,15 +280,16 @@ function weekKey(){
 }
 function daysToSun(){const d=new Date().getDay();return d===0?7:7-d;}
 
-function upgradeCost(u){return Math.floor(u.base_cost*Math.pow(RATE,state.counts[u.id]));}
+function upgradeCost(u){return Math.floor(u.base_cost*Math.pow(RATE,state.counts[u.id]||0));}
 function mult(){return 1+2*state.prestige;}
-function totalCps(){return UPGRADES.reduce((s,u)=>s+u.cps*state.counts[u.id],0)*mult();}
-function clickPow(){const u=UPGRADES[0];return(1+u.click_boost*state.counts[u.id])*mult();}
+function totalCps(){return allUpgrades().reduce((s,u)=>s+u.cps*(state.counts[u.id]||0),0)*mult();}
+function clickPow(){const u=UPGRADES[0];return(1+u.click_boost*(state.counts[u.id]||0))*mult();}
 
 function industryTag(){
-  let top=UPGRADES[0];
-  UPGRADES.forEach(u=>{if(state.counts[u.id]>state.counts[top.id])top=u;});
-  return state.counts[top.id]>0?INDUSTRY_TAGS[top.id]:'新晉店長';
+  const all=allUpgrades();
+  let top=all[0];
+  all.forEach(u=>{if((state.counts[u.id]||0)>(state.counts[top.id]||0))top=u;});
+  return (state.counts[top.id]||0)>0?INDUSTRY_TAGS[top.id]:'新晉店長';
 }
 
 function playerName(){
@@ -279,24 +307,33 @@ function doClick(e){
 }
 
 function buyUpgrade(id){
-  const u=UPGRADES.find(x=>x.id===id);
-  if(!u||state.counts[u.id]>=u.max)return;
+  const u=allUpgrades().find(x=>x.id===id);
+  if(!u)return;
+  if(UPGRADES_P3.includes(u)&&state.prestige<3)return;
+  if((state.counts[u.id]||0)>=u.max)return;
   const cost=upgradeCost(u);
   if(state.money<cost)return;
-  state.money-=cost; state.counts[u.id]++;
+  state.money-=cost; state.counts[u.id]=(state.counts[u.id]||0)+1;
   updateUI(); renderShop();
   toast(`✅ ${u.icon} ${u.name} Lv.${state.counts[u.id]}`);
 }
 
 function doPrestige(){
-  if(state.money<PT)return;
-  if(!confirm('確定要開設旗艦店？\n所有資產與升級歸零，換取黃金桌遊代幣！\n永久 +200% 收益加成！'))return;
+  const threshold=prestigeThreshold();
+  if(state.money<threshold)return;
+  const nextP=state.prestige+1;
+  const unlockMsg=nextP===3?'\n🏝️ 旗艦升級將在下一局解鎖！':'';
+  if(!confirm(`確定要開設旗艦店？（第 ${nextP} 次轉生）\n所有資產與升級歸零，換取黃金桌遊代幣！\n永久 +200% 收益加成！${unlockMsg}`))return;
   submitToLB(false);
   state.prestige++; state.goldTokens=state.prestige;
-  state.money=0; state.totalEarned=0; state.peakCps=0;
-  UPGRADES.forEach(u=>state.counts[u.id]=0);
+  state.money=0; state.totalEarned=0; state.peakCps=0; msIdx=0;
+  allUpgrades().forEach(u=>state.counts[u.id]=0);
   save(); renderShop(); updateUI();
-  showMS({title:`🏆 第 ${state.prestige} 次轉生！`,body:`獲得黃金桌遊代幣 🏅\n永久收益倍率：×${mult()}`});
+  const isP3=state.prestige===3;
+  showMS({
+    title:`🏆 第 ${state.prestige} 次轉生！`,
+    body:`獲得黃金桌遊代幣 🏅\n永久收益倍率：×${mult()}${isP3?'\n\n✨ 旗艦升級已解鎖！':''}`
+  });
 }
 
 function spawnFloat(text,x,y){
@@ -333,12 +370,20 @@ function updateUI(){
   document.getElementById('pb-prestige').textContent='🔄 轉生 '+state.prestige+' 次';
   document.getElementById('pb-token').textContent='🏅 '+state.goldTokens+' 枚代幣';
   document.getElementById('pb-mult').textContent='×'+m+' 收益';
-  document.getElementById('prestige-btn').style.display=state.money>=PT?'block':'none';
+
+  const threshold=prestigeThreshold();
+  const pct=Math.min(100,state.money/threshold*100);
+  document.getElementById('pp-fill').style.width=pct.toFixed(1)+'%';
+  document.getElementById('pp-txt').textContent=`轉生進度 $${fmt(state.money)} / $${fmt(threshold)} · ${pct.toFixed(0)}%`;
+  const pb=document.getElementById('prestige-btn');
+  pb.style.display=state.money>=threshold?'block':'none';
+  pb.textContent=`✨ 第 ${state.prestige+1} 次轉生 — 歸零換取黃金代幣，永久 +200% 收益`;
 
   document.querySelectorAll('.upgrade-card').forEach(card=>{
-    const u=UPGRADES.find(x=>x.id===card.dataset.id);if(!u)return;
-    const cnt=state.counts[u.id],cost=upgradeCost(u);
-    const can=state.money>=cost&&cnt<u.max,maxed=cnt>=u.max;
+    const u=allUpgrades().find(x=>x.id===card.dataset.id);if(!u)return;
+    const cnt=state.counts[u.id]||0,cost=upgradeCost(u);
+    const p3locked=UPGRADES_P3.includes(u)&&state.prestige<3;
+    const can=state.money>=cost&&cnt<u.max&&!p3locked,maxed=cnt>=u.max;
     card.className='upgrade-card'+(can?' affordable':'')+(maxed?' maxed':'');
     const ce=card.querySelector('.uc-cost'),be=card.querySelector('.buy-btn'),pe=card.querySelector('.progress-fill');
     if(ce)ce.textContent=maxed?'滿級！':'$'+fmt(cost);
@@ -347,25 +392,38 @@ function updateUI(){
   });
 }
 
+function cardHTML(u){
+  const cnt=state.counts[u.id]||0,cost=upgradeCost(u);
+  const p3locked=UPGRADES_P3.includes(u)&&state.prestige<3;
+  const can=state.money>=cost&&cnt<u.max&&!p3locked,maxed=cnt>=u.max;
+  const d2=u.cps>0?`+$${u.cps}/秒`:`+$${u.click_boost}/點擊`;
+  return`<div class="upgrade-card${can?' affordable':''}${maxed?' maxed':''}" data-id="${u.id}" onclick="buyUpgrade('${u.id}')">
+    <div class="uc-icon">${u.icon}</div>
+    <div class="uc-body">
+      <div class="uc-name">${u.name}<span class="uc-lvl">Lv.${cnt}/${u.max}</span></div>
+      <div class="uc-desc">${u.desc}｜${d2}（每級）</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${cnt/u.max*100}%;background:${u.color}"></div></div>
+    </div>
+    <div class="uc-right">
+      <div class="uc-cost">${maxed?'滿級！':'$'+fmt(cost)}</div>
+      <div class="uc-cps">${u.cps>0?'+$'+fmt(u.cps*cnt)+'/s':'+$'+fmt(u.click_boost*cnt)+'/點'}</div>
+      <button class="buy-btn" ${(!can||maxed)?'disabled':''}>${maxed?'MAX':'購買'}</button>
+    </div>
+  </div>`;
+}
+
 function renderShop(){
-  document.getElementById('tab-shop').innerHTML=UPGRADES.map(u=>{
-    const cnt=state.counts[u.id],cost=upgradeCost(u);
-    const can=state.money>=cost&&cnt<u.max,maxed=cnt>=u.max;
-    const d2=u.cps>0?`+$${u.cps}/秒`:`+$${u.click_boost}/點擊`;
-    return`<div class="upgrade-card${can?' affordable':''}${maxed?' maxed':''}" data-id="${u.id}" onclick="buyUpgrade('${u.id}')">
-      <div class="uc-icon">${u.icon}</div>
-      <div class="uc-body">
-        <div class="uc-name">${u.name}<span class="uc-lvl">Lv.${cnt}/${u.max}</span></div>
-        <div class="uc-desc">${u.desc}｜${d2}（每級）</div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${cnt/u.max*100}%;background:${u.color}"></div></div>
-      </div>
-      <div class="uc-right">
-        <div class="uc-cost">${maxed?'滿級！':'$'+fmt(cost)}</div>
-        <div class="uc-cps">${u.cps>0?'+$'+fmt(u.cps*cnt)+'/s':'+$'+fmt(u.click_boost*cnt)+'/點'}</div>
-        <button class="buy-btn" ${(!can||maxed)?'disabled':''}>${maxed?'MAX':'購買'}</button>
-      </div>
-    </div>`;
-  }).join('');
+  const baseHTML=UPGRADES.map(cardHTML).join('');
+  let p3HTML;
+  if(state.prestige>=3){
+    p3HTML=`<div class="shop-section-hdr">🏝️ 旗艦升級（轉生 3 次解鎖）</div>`+
+      UPGRADES_P3.map(cardHTML).join('');
+  } else {
+    const need=3-state.prestige;
+    p3HTML=`<div class="shop-section-hdr">🏝️ 旗艦升級</div>
+      <div class="shop-locked">🔒 再轉生 <b>${need}</b> 次即可解鎖<br>海外旗艦館 · 品牌授權金 · 元宇宙桌遊<br><small style="font-size:10px">旗艦升級每秒最高達 $1.2M</small></div>`;
+  }
+  document.getElementById('tab-shop').innerHTML=baseHTML+p3HTML;
 }
 
 function renderStats(){
@@ -378,9 +436,12 @@ function renderStats(){
   document.getElementById('st-prestige').textContent=state.prestige;
   document.getElementById('st-tokens').textContent=state.goldTokens;
   document.getElementById('st-tag').textContent=industryTag();
+  const p3rows=state.prestige>=3?UPGRADES_P3.map(u=>
+    `<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${state.counts[u.id]||0}/${u.max}</span></div>`
+  ).join(''):`<div class="stat-row"><span class="sn" style="color:var(--sub)">🔒 旗艦升級（轉生3次後解鎖）</span><span class="sv" style="color:var(--sub)">${3-state.prestige}次</span></div>`;
   document.getElementById('st-upgrades').innerHTML=UPGRADES.map(u=>
-    `<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${state.counts[u.id]}/${u.max}</span></div>`
-  ).join('');
+    `<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${state.counts[u.id]||0}/${u.max}</span></div>`
+  ).join('')+p3rows;
 }
 
 // ── Forbes ────────────────────────────────────────────
@@ -511,6 +572,8 @@ function load(){
     if(!state.peakCpsEver)state.peakCpsEver=state.peakCps||0;
     if(!state.weekly)state.weekly=0;
     if(!state.weekKey)state.weekKey='';
+    // 遷移：補上 P3 counts
+    UPGRADES_P3.forEach(u=>{if(state.counts[u.id]===undefined)state.counts[u.id]=0;});
     // 週重置
     const wk=weekKey();
     if(state.weekKey&&state.weekKey!==wk){state.weekly=0;state.weekKey=wk;}
