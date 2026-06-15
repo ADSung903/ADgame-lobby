@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔢 幾A幾B 猜數字</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #05050f; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  .digit-box {
+    width: 60px; height: 68px;
+    font-size: 1.8rem; font-weight: 800;
+    text-align: center; letter-spacing: 0;
+    background: #0d0d22;
+    border: 1.5px solid #2a2a4a;
+    border-radius: 14px;
+    color: #fff;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    caret-color: transparent;
+    -webkit-appearance: none;
+  }
+  .digit-box:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,.25);
+    background: #12122a;
+  }
+  .digit-box.filled { border-color: #4a4a6a; background: #12122a; }
+  .digit-box.error  { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,.2) !important; }
+
+  @keyframes shake {
+    0%,100%{ transform:translateX(0) }
+    20%,60%{ transform:translateX(-6px) }
+    40%,80%{ transform:translateX( 6px) }
+  }
+  @keyframes slideDown {
+    from{ opacity:0; transform:translateY(-10px) }
+    to  { opacity:1; transform:translateY(0) }
+  }
+  @keyframes popIn {
+    0%  { opacity:0; transform:scale(.65) }
+    70% { transform:scale(1.04) }
+    100%{ opacity:1; transform:scale(1) }
+  }
+  @keyframes pulse-ring {
+    0%  { box-shadow: 0 0 0 0 rgba(74,222,128,.35) }
+    70% { box-shadow: 0 0 0 12px rgba(74,222,128,0) }
+    100%{ box-shadow: 0 0 0 0  rgba(74,222,128,0) }
+  }
+
+  .shake  { animation: shake .4s ease-in-out; }
+  .slide  { animation: slideDown .3s ease-out; }
+  .pop    { animation: popIn .45s cubic-bezier(.34,1.56,.64,1); }
+  .win-row{ animation: pulse-ring 1.2s ease-out; }
+
+  .digit-chip {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: #12122a; border-radius: 8px;
+    font-size: 1rem; font-weight: 700;
+    border: 1px solid #2a2a4a;
+  }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 2px; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4 select-none">
+
+<!-- Header -->
+<header class="w-full max-w-sm text-center mb-5">
+  <h1 class="text-2xl font-black text-white tracking-wide">🔢 猜數字</h1>
+  <p class="text-xs text-gray-600 mt-1">
+    <span class="text-green-400 font-semibold">A</span> = 數字對＆位置對 ·
+    <span class="text-orange-400 font-semibold">B</span> = 數字對但位置錯
+  </p>
+</header>
+
+<!-- Input card -->
+<div class="w-full max-w-sm bg-[#0a0a1a] border border-[#1e1e3a] rounded-2xl p-5 mb-3">
+  <div class="flex justify-center gap-3 mb-4">
+    <input id="d0" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
+    <input id="d1" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
+    <input id="d2" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
+    <input id="d3" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
+  </div>
+  <div class="flex gap-2">
+    <button onclick="submitGuess()"
+      class="flex-1 py-3 rounded-xl font-bold text-sm bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white">
+      確認猜測
+    </button>
+    <button onclick="clearInputs()"
+      class="px-4 py-3 rounded-xl text-sm bg-[#12122a] border border-[#2a2a4a] hover:border-violet-500 active:scale-95 transition-all text-gray-400">
+      ✕
+    </button>
+  </div>
+  <div id="err" class="text-red-400 text-xs text-center mt-2 h-4"></div>
+</div>
+
+<!-- Stats row -->
+<div class="w-full max-w-sm flex items-center justify-between px-1 mb-4">
+  <p class="text-xs text-gray-500">
+    猜測次數 <span id="cnt" class="text-violet-400 font-bold text-sm">0</span>
+  </p>
+  <button onclick="giveUp()" class="text-xs text-gray-600 hover:text-red-400 underline transition-colors">
+    放棄並顯示答案
+  </button>
+</div>
+
+<!-- History -->
+<div class="w-full max-w-sm">
+  <div id="empty-hint" class="text-center py-10 text-gray-700 text-sm">
+    <div class="text-4xl mb-3">🤔</div>
+    開始你的第一次猜測吧！
+  </div>
+  <div id="hist" class="flex flex-col gap-2"></div>
+</div>
+
+<!-- ── 勝利 Modal ── -->
+<div id="win-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <div class="pop w-full max-w-xs bg-[#0d0d22] border border-violet-600 rounded-2xl p-6 text-center">
+    <div class="text-5xl mb-3">🎉</div>
+    <h2 class="text-xl font-black text-white mb-1">答對了！</h2>
+    <p class="text-gray-500 text-xs mb-2">謎底是</p>
+    <div id="win-ans" class="flex justify-center gap-2 mb-3"></div>
+    <p class="text-sm text-gray-300 mb-1">
+      共猜了 <span id="win-cnt" class="text-violet-400 font-black text-xl"></span> 次
+    </p>
+    <p id="win-rating" class="text-sm font-semibold mb-5"></p>
+    <button onclick="restart()"
+      class="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white font-bold">
+      🔄 再玩一次
+    </button>
+  </div>
+</div>
+
+<!-- ── 放棄 Modal ── -->
+<div id="up-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <div class="pop w-full max-w-xs bg-[#0d0d22] border border-red-900 rounded-2xl p-6 text-center">
+    <div class="text-4xl mb-3">😔</div>
+    <h2 class="text-lg font-black text-white mb-1">答案揭曉</h2>
+    <p class="text-gray-500 text-xs mb-2">謎底是</p>
+    <div id="up-ans" class="flex justify-center gap-2 mb-5"></div>
+    <button onclick="restart()"
+      class="w-full py-3 rounded-xl bg-[#1a1a3a] border border-[#3a3a5a] hover:border-violet-500 active:scale-95 transition-all text-white font-bold mb-2">
+      🔄 重新開始
+    </button>
+    <button onclick="document.getElementById('up-modal').classList.add('hidden')"
+      class="w-full py-2 text-gray-600 text-sm hover:text-gray-300 transition-colors">
+      繼續猜
+    </button>
+  </div>
+</div>
+
+<script>
+// ── 遊戲狀態 ─────────────────────────────────────────
+let secret = '', attempts = 0, over = false;
+
+function gen() {
+  const pool = [0,1,2,3,4,5,6,7,8,9];
+  const r = [];
+  while (r.length < 4) {
+    const i = Math.floor(Math.random() * pool.length);
+    r.push(pool.splice(i, 1)[0]);
+  }
+  return r.join('');
+}
+
+function calcAB(guess) {
+  let a = 0, b = 0;
+  for (let i = 0; i < 4; i++) {
+    if (guess[i] === secret[i]) a++;
+    else if (secret.includes(guess[i])) b++;
+  }
+  return { a, b };
+}
+
+// ── 初始化 ────────────────────────────────────────────
+function init() {
+  secret = gen();
+  attempts = 0; over = false;
+  document.getElementById('cnt').textContent = '0';
+  document.getElementById('hist').innerHTML = '';
+  document.getElementById('empty-hint').style.display = 'block';
+  document.getElementById('err').textContent = '';
+  document.getElementById('win-modal').classList.add('hidden');
+  document.getElementById('up-modal').classList.add('hidden');
+  clearInputs(true);
+}
+
+function restart() { init(); }
+
+// ── 輸入控制 ──────────────────────────────────────────
+function boxes() { return [0,1,2,3].map(i => document.getElementById('d'+i)); }
+
+function clearInputs(silent=false) {
+  boxes().forEach(b => { b.value = ''; b.classList.remove('filled','error'); });
+  if (!silent) document.getElementById('err').textContent = '';
+  document.getElementById('d0').focus();
+}
+
+function getVals() { return boxes().map(b => b.value); }
+
+function showErr(msg) {
+  document.getElementById('err').textContent = msg;
+  boxes().forEach(b => {
+    b.classList.add('error');
+    b.style.animation = 'none';
+    requestAnimationFrame(() => { b.style.animation = ''; b.classList.add('shake'); });
+    setTimeout(() => b.classList.remove('error','shake'), 500);
+  });
+}
+
+// ── 提交 ──────────────────────────────────────────────
+function submitGuess() {
+  if (over) return;
+  const vals = getVals();
+  if (vals.some(v => v === ''))        { showErr('請填入 4 個數字'); return; }
+  if (new Set(vals).size < 4)          { showErr('數字不能重複！'); return; }
+
+  const guess = vals.join('');
+  attempts++;
+  document.getElementById('cnt').textContent = attempts;
+
+  const { a, b } = calcAB(guess);
+  addHistory(guess, a, b);
+
+  if (a === 4) { over = true; setTimeout(showWin, 350); }
+  clearInputs(true);
+}
+
+// ── 歷史紀錄 ──────────────────────────────────────────
+function addHistory(guess, a, b) {
+  document.getElementById('empty-hint').style.display = 'none';
+  const list = document.getElementById('hist');
+  const win  = a === 4;
+
+  const row = document.createElement('div');
+  row.className = 'slide flex items-center gap-3 rounded-xl px-4 py-3 border ' +
+    (win
+      ? 'bg-green-950/40 border-green-700 win-row'
+      : 'bg-[#0a0a1a] border-[#1e1e3a]');
+
+  const chipStyle = win
+    ? 'border-green-600 bg-green-900/60 text-green-200'
+    : 'border-[#2a2a4a] bg-[#12122a] text-white';
+
+  row.innerHTML = `
+    <span class="text-xs text-gray-600 w-5 text-right shrink-0">#${attempts}</span>
+    <div class="flex gap-1.5 flex-1">
+      ${guess.split('').map(d =>
+        `<div class="digit-chip ${chipStyle}">${d}</div>`
+      ).join('')}
+    </div>
+    <div class="flex gap-2 shrink-0 items-center">
+      <span class="text-sm font-black ${a > 0 ? 'text-green-400' : 'text-gray-700'}">${a}A</span>
+      <span class="text-sm font-black ${b > 0 ? 'text-orange-400' : 'text-gray-700'}">${b}B</span>
+    </div>`;
+
+  list.insertBefore(row, list.firstChild);
+}
+
+// ── 答案 chips ────────────────────────────────────────
+function ansChips(id) {
+  document.getElementById(id).innerHTML = secret.split('').map(d =>
+    `<div class="w-11 h-11 flex items-center justify-center rounded-xl
+       bg-violet-900/60 border border-violet-500 text-xl font-black text-violet-200">${d}</div>`
+  ).join('');
+}
+
+// ── 評價 ──────────────────────────────────────────────
+function rating(n) {
+  if (n <= 3)  return ['text-yellow-400', '天才！神乎其技 🧠'];
+  if (n <= 5)  return ['text-green-400',  '優秀！邏輯滿分 ⭐'];
+  if (n <= 7)  return ['text-blue-400',   '不錯！繼續加油 👍'];
+  if (n <= 10) return ['text-purple-400', '完成！熟能生巧 💪'];
+  return ['text-gray-400', '成功！勝利就是一切 🎊'];
+}
+
+// ── Win Modal ─────────────────────────────────────────
+function showWin() {
+  ansChips('win-ans');
+  document.getElementById('win-cnt').textContent = attempts;
+  const [cls, txt] = rating(attempts);
+  document.getElementById('win-rating').className = `text-sm font-semibold mb-5 ${cls}`;
+  document.getElementById('win-rating').textContent = txt;
+  const modal = document.getElementById('win-modal');
+  modal.classList.remove('hidden');
+  const card = modal.querySelector('div');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = '';
+  card.classList.add('pop');
+}
+
+// ── Give Up ───────────────────────────────────────────
+function giveUp() {
+  if (over) return;
+  ansChips('up-ans');
+  document.getElementById('up-modal').classList.remove('hidden');
+}
+
+// ── 鍵盤事件 ──────────────────────────────────────────
+[0,1,2,3].forEach(i => {
+  const el = document.getElementById('d' + i);
+
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter')     { submitGuess(); return; }
+    if (e.key === 'Backspace' && el.value === '' && i > 0) {
+      const prev = document.getElementById('d' + (i - 1));
+      prev.value = ''; prev.classList.remove('filled'); prev.focus();
+    }
+    if (e.key === 'ArrowLeft'  && i > 0) document.getElementById('d'+(i-1)).focus();
+    if (e.key === 'ArrowRight' && i < 3) document.getElementById('d'+(i+1)).focus();
+  });
+
+  el.addEventListener('input', () => {
+    const raw = el.value.replace(/\D/g, '');
+    if (!raw) { el.value = ''; el.classList.remove('filled'); return; }
+
+    const digit = raw.slice(-1);
+    const others = [0,1,2,3].filter(j => j !== i).map(j => document.getElementById('d'+j).value);
+
+    if (others.includes(digit)) {
+      el.value = '';
+      showErr(`數字 ${digit} 已使用！`);
+      setTimeout(() => {
+        if (document.getElementById('err').textContent === `數字 ${digit} 已使用！`)
+          document.getElementById('err').textContent = '';
+      }, 1500);
+      return;
+    }
+
+    el.value = digit;
+    el.classList.add('filled');
+    document.getElementById('err').textContent = '';
+    if (i < 3) document.getElementById('d'+(i+1)).focus();
+  });
+
+  el.addEventListener('focus', () => el.select());
+});
+
+// ── 啟動 ──────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
