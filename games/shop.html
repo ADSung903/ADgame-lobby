@@ -141,6 +141,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
     <span class="pbadge pb-token" id="pb-token">🏅 0 枚代幣</span>
     <span class="pbadge pb-mult" id="pb-mult">×1 收益</span>
   </div>
+  <div id="fb-rank" style="display:none;font-size:11px;color:#a78bfa;text-align:center;margin-top:.35rem;padding:.1rem .75rem .05rem;line-height:1.5"></div>
 </div>
 
 <div class="prestige-area">
@@ -264,12 +265,33 @@ const MILESTONES=[
   {v:1e8,     title:'✨ 旗艦店解鎖！',body:'$100,000,000！\n可以開設旗艦店（轉生）了！'},
 ];
 
+// 真實富豪清單（美金 ×33 換台幣，與遊戲金額比較）
+const BILLIONAIRES=[
+  {n:'張忠謀',       s:'台積電創辦人 🇹🇼',       usd:2  },
+  {n:'林百里',       s:'廣達董事長 🇹🇼',          usd:3.5},
+  {n:'郭台銘',       s:'鴻海創辦人・台灣首富 🇹🇼', usd:7  },
+  {n:'孫正義',       s:'軟銀・日本首富 🇯🇵',       usd:20 },
+  {n:'李嘉誠',       s:'長江集團・香港超人 🇭🇰',   usd:35 },
+  {n:'Mukesh Ambani',s:'信實工業・印度首富 🇮🇳',   usd:80 },
+  {n:'Jensen Huang', s:'NVIDIA 🇺🇸',               usd:100},
+  {n:'Steve Ballmer',s:'前微軟執行長 🇺🇸',         usd:105},
+  {n:'Sergey Brin',  s:'Google 共同創辦人 🇺🇸',    usd:110},
+  {n:'Larry Page',   s:'Google 共同創辦人 🇺🇸',    usd:120},
+  {n:'Warren Buffett',s:'波克夏海瑟威・股神 🇺🇸',  usd:130},
+  {n:'Bill Gates',   s:'微軟創辦人 🇺🇸',           usd:150},
+  {n:'Larry Ellison',s:'Oracle 創辦人 🇺🇸',        usd:180},
+  {n:'Mark Zuckerberg',s:'Meta 創辦人 🇺🇸',        usd:200},
+  {n:'Jeff Bezos',   s:'亞馬遜創辦人 🇺🇸',         usd:220},
+  {n:'Elon Musk',    s:'Tesla・SpaceX 🇺🇸',         usd:300},
+].map(e=>({...e,t:Math.round(e.usd*33*1e9)}));
+
 const LS_KEY='shop24h_save', LS_LB='shop24h_lb_v1', RATE=1.15;
 
 let state={
   money:0, totalEarned:0, allTime:0, weekly:0, weekKey:'',
   clicks:0, peakCps:0, peakCpsEver:0, startTime:Date.now(),
   prestige:0, goldTokens:0, counts:{}, lastSave:Date.now(),
+  forbesCrossed:0,
 };
 let msIdx=0, lbTab='weekly';
 allUpgrades().forEach(u=>state.counts[u.id]=0);
@@ -303,7 +325,7 @@ function doClick(e){
   state.clicks++;
   const r=document.getElementById('click-btn').getBoundingClientRect();
   spawnFloat('+$'+fmt(earn), e?e.clientX:r.left+r.width/2, e?e.clientY:r.top);
-  updateUI(); checkMS();
+  updateUI(); checkMS(); checkForbes();
 }
 
 function buyUpgrade(id){
@@ -390,6 +412,7 @@ function updateUI(){
     if(be){be.disabled=!can;be.textContent=maxed?'MAX':'購買';}
     if(pe)pe.style.width=(cnt/u.max*100)+'%';
   });
+  updateForbesRank();
 }
 
 function cardHTML(u){
@@ -554,6 +577,36 @@ function showMS(ms){
 }
 function closeMilestone(){document.getElementById('milestone').style.display='none';}
 
+// ── 富比士財富對比 ────────────────────────────────────
+function checkForbes(){
+  let last=null;
+  while(state.forbesCrossed<BILLIONAIRES.length&&state.money>=BILLIONAIRES[state.forbesCrossed].t){
+    last=BILLIONAIRES[state.forbesCrossed];
+    state.forbesCrossed++;
+  }
+  if(last){
+    const rank=BILLIONAIRES.length-state.forbesCrossed+1;
+    showMS({
+      title:`💰 超越 ${last.n}！`,
+      body:`${last.s}\n$${last.usd}B USD・換算 NT$${fmt(last.t)}\n\n🏆 本榜富比士第 ${rank} 名！`
+    });
+  }
+}
+
+function updateForbesRank(){
+  const el=document.getElementById('fb-rank');
+  const beaten=BILLIONAIRES.filter(f=>state.money>=f.t).length;
+  if(beaten===0){el.style.display='none';return;}
+  el.style.display='block';
+  if(beaten>=BILLIONAIRES.length){
+    el.textContent='🌍 富比士 #1・超越 Elon Musk！世界首富！';
+  } else {
+    const top=BILLIONAIRES[beaten-1],next=BILLIONAIRES[beaten];
+    const rank=BILLIONAIRES.length-beaten+1;
+    el.textContent=`📊 富比士第 ${rank} 名・超越 ${top.n}｜距 ${next.n} 還差 NT$${fmt(next.t-state.money)}`;
+  }
+}
+
 // ── 存檔 ──────────────────────────────────────────────
 function save(){
   localStorage.setItem(LS_KEY,JSON.stringify({...state,lastSave:Date.now(),msIdx}));
@@ -572,8 +625,9 @@ function load(){
     if(!state.peakCpsEver)state.peakCpsEver=state.peakCps||0;
     if(!state.weekly)state.weekly=0;
     if(!state.weekKey)state.weekKey='';
-    // 遷移：補上 P3 counts
+    // 遷移：補上 P3 counts 和 forbesCrossed
     UPGRADES_P3.forEach(u=>{if(state.counts[u.id]===undefined)state.counts[u.id]=0;});
+    if(state.forbesCrossed===undefined)state.forbesCrossed=0;
     // 週重置
     const wk=weekKey();
     if(state.weekKey&&state.weekKey!==wk){state.weekly=0;state.weekKey=wk;}
@@ -627,7 +681,7 @@ setInterval(()=>{
     state.money+=cps;state.totalEarned+=cps;state.allTime+=cps;state.weekly+=cps;
     if(cps>state.peakCps)state.peakCps=cps;
     if(cps>state.peakCpsEver)state.peakCpsEver=cps;
-    updateUI();checkMS();
+    updateUI();checkMS();checkForbes();
   }
 },1000);
 
@@ -637,7 +691,7 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
 load();
 renderShop();
 updateUI();
-checkMS();
+checkMS();checkForbes();
 if(state.prestige>0)document.getElementById('prestige-row').style.display='flex';
 </script>
 </body></html>
