@@ -5,13 +5,14 @@
 <title>🎮 歡樂遊戲大廳</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
-<meta name="theme-color" content="#7c3aed">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ADgame">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7c3aed">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;padding:1rem}
+body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-height:100vh;padding:1rem;padding-top:max(1rem,calc(env(safe-area-inset-top,0px) + 0.75rem))}
 .screen{display:none}.screen.active{display:block}
 .wrap{max-width:540px;margin:0 auto}
 
@@ -24,15 +25,22 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .player-bar label{font-size:13px;color:#7788aa;white-space:nowrap}
 .player-bar input{flex:1;background:transparent;border:none;color:#eee;font-size:14px;outline:none}
 .total-score{font-size:13px;color:#f59e0b;font-weight:600;white-space:nowrap}
+
+/* game sections */
+.section-title{font-size:12px;color:#5566aa;margin-bottom:.5rem;padding-left:.2rem;display:flex;align-items:center;gap:6px}
+.section-title::after{content:'';flex:1;height:0.5px;background:#1e1e3a}
 .game-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
 .game-card{background:#0d0d22;border:1.5px solid #1e1e3a;border-radius:14px;padding:1rem;cursor:pointer;transition:all .15s;position:relative;user-select:none;text-decoration:none;display:block;color:inherit}
 .game-card:hover{border-color:#5555cc;transform:translateY(-2px);background:#11112a}
 .game-card:active{transform:scale(.98)}
+.game-card.played{border-color:#2a2a4a}
+.game-card.played:hover{border-color:#7c3aed}
 .gc-badge{position:absolute;top:8px;right:8px;font-size:10px;padding:2px 7px;border-radius:10px;background:#1a1a3a;color:#7788aa;border:0.5px solid #2a2a4a}
 .gc-icon{font-size:32px;margin-bottom:.4rem}
 .gc-name{font-size:14px;font-weight:600;margin-bottom:.2rem}
 .gc-desc{font-size:11px;color:#6677aa;line-height:1.45;margin-bottom:.35rem}
 .gc-best{font-size:11px;color:#f59e0b;min-height:16px}
+.gc-unplayed{font-size:11px;color:#445566;min-height:16px}
 .lobby-footer{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .btn{font-size:13px;padding:9px 18px;border-radius:8px;border:0.5px solid #444;background:transparent;color:#eee;cursor:pointer;transition:background .1s}
 .btn:hover{background:#12122a}.btn:active{transform:scale(.97)}
@@ -43,7 +51,10 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .tab-row{display:flex;gap:6px;margin-bottom:.75rem;flex-wrap:wrap}
 .tab{font-size:12px;padding:7px 14px;border-radius:20px;border:0.5px solid #2a2a4a;background:transparent;color:#7788aa;cursor:pointer}
 .tab.active{background:#1a1a3a;border-color:#5555cc;color:#fff}
-.lb-box{background:#0d0d22;border:0.5px solid #1e1e3a;border-radius:14px;overflow:hidden;margin-bottom:.75rem}
+.lb-mode-row{display:flex;gap:8px;margin-bottom:.75rem;justify-content:center}
+.lb-mode-btn{font-size:12px;padding:5px 16px;border-radius:20px;border:0.5px solid #2a2a4a;background:transparent;color:#7788aa;cursor:pointer}
+.lb-mode-btn.active{background:#1a1a3a;border-color:#f59e0b;color:#f59e0b}
+.lb-box{background:#0d0d22;border:0.5px solid #1e1e3a;border-radius:14px;overflow:hidden;margin-bottom:.75rem;min-height:60px}
 .lb-row{display:flex;align-items:center;gap:10px;padding:.6rem .9rem;border-bottom:0.5px solid #12122a}
 .lb-row:last-child{border:none}
 .lb-row.me{background:#1a1a2e}
@@ -52,11 +63,14 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .lb-score{font-size:14px;font-weight:600;color:#f59e0b;white-space:nowrap}
 .lb-meta{font-size:11px;color:#445566;margin-left:4px}
 .lb-empty{text-align:center;padding:2rem;color:#445566;font-size:14px;line-height:1.8}
+.lb-loading{text-align:center;padding:1.5rem;color:#445566;font-size:13px}
+.online-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:4px;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* PROFILE */
 .section-box{background:#0d0d22;border:0.5px solid #1e1e3a;border-radius:14px;padding:1rem;margin-bottom:.75rem}
 .section-box h3{font-size:13px;color:#7788aa;margin-bottom:.6rem}
-.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.5rem}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .ps-box{background:#06060f;border-radius:10px;padding:.5rem;text-align:center}
 .ps-val{font-size:18px;font-weight:600}
 .ps-lbl{font-size:10px;color:#5566aa;margin-top:2px}
@@ -65,7 +79,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .gs-left{display:flex;align-items:center;gap:6px;font-size:13px;color:#aaa}
 .gs-val{font-size:13px;font-weight:500;color:#f59e0b}
 
-/* WELCOME MODAL */
+/* WELCOME */
 .wm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;align-items:center;justify-content:center;padding:1rem}
 .wm-overlay.show{display:flex}
 .wm-card{background:#0d0d22;border:1.5px solid #3a3a5a;border-radius:20px;padding:1.5rem;max-width:360px;width:100%;text-align:center}
@@ -76,23 +90,40 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .wm-start{width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#5555cc,#7c3aed);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
 .wm-skip{font-size:12px;color:#445566;background:none;border:none;cursor:pointer;margin-top:.6rem;text-decoration:underline}
 
-/* MOBILE */
 @media(max-width:480px){
-  .game-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .game-grid{gap:8px}
   .game-card{padding:.75rem}
   .gc-icon{font-size:28px}
   .gc-name{font-size:13px}
-  .gc-desc{font-size:12px}
-  .gc-best{font-size:12px}
+  .gc-desc,.gc-best,.gc-unplayed{font-size:11px}
   .lobby-footer{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .lobby-footer .btn:last-child{grid-column:span 2}
-  .player-bar{padding:.75rem}
-  .tab-row{gap:5px}
 }
 
-/* TOAST */
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a1a3a;border:0.5px solid #5555cc;border-radius:10px;padding:.5rem 1.2rem;font-size:13px;color:#c4b5fd;opacity:0;transition:opacity .3s;pointer-events:none;z-index:1000;max-width:calc(100vw - 3rem);text-align:center}
 .toast.show{opacity:1}
+
+/* ── 開發日誌 ── */
+.cl-version{background:#0d0d1e;border:0.5px solid #1e1e3a;border-radius:12px;padding:1rem;margin-bottom:.75rem}
+.cl-ver-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap}
+.cl-ver-badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#1a0a3a;color:#a78bfa;border:1px solid #4a1a8a;letter-spacing:1px}
+.cl-ver-title{font-size:14px;font-weight:600;color:#eee;flex:1}
+.cl-ver-date{font-size:11px;color:#555}
+.cl-items{display:flex;flex-direction:column;gap:4px}
+.cl-item{font-size:12px;padding:5px 8px;border-radius:6px;line-height:1.6}
+.cl-new{background:#0a1a0a;color:#86efac;border-left:2px solid #22c55e}
+.cl-improve{background:#0a1020;color:#93c5fd;border-left:2px solid #3b82f6}
+.cl-fix{background:#1a0a0a;color:#fca5a5;border-left:2px solid #ef4444}
+.cl-item code{background:#0d0d22;padding:1px 5px;border-radius:3px;font-size:11px;color:#c4b5fd}
+
+
+  /* 防長按選單（只套非互動元素，不影響點擊）*/
+  canvas, img, .game-card, .gc-icon, .gc-badge, .gc-name, .gc-desc, .gc-best, .gc-unplayed,
+  .result-card, .dim-bars, .lb-row, .catch-row, .cl-item, .cl-version {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 </style>
 </head><body>
 
@@ -109,11 +140,158 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
       <input id="name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
       <div class="total-score">🏆 <span id="total-pts">0</span> 分</div>
     </div>
-    <div class="game-grid" id="game-grid"></div>
+    <div id="played-section" style="display:none">
+      <div class="section-title">⭐ 已遊玩</div>
+      <div class="game-grid" id="played-grid"></div>
+    </div>
+    <div id="unplayed-section">
+      <div class="section-title" id="unplayed-label">🎮 所有遊戲</div>
+      <div class="game-grid" id="unplayed-grid"></div>
+    </div>
+    <div id="self-section">
+      <div class="section-title">🔍 探索自我</div>
+      <div class="game-grid" id="self-grid"></div>
+    </div>
     <div class="lobby-footer">
       <button class="btn" id="lb-btn">🏆 排行榜</button>
       <button class="btn" id="profile-btn">📊 我的成績</button>
+      <button class="btn" id="changelog-btn">📋 開發日誌</button>
       <button class="btn" id="clear-btn">🗑️ 清除記錄</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGELOG -->
+<div class="screen" id="screen-changelog">
+  <div class="wrap">
+    <div class="lb-header">
+      <h2>📋 開發日誌</h2>
+      <button class="btn" id="changelog-back-btn">← 返回</button>
+    </div>
+    <div id="changelog-body" style="padding-bottom:2rem">
+
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <div style="font-size:36px;margin-bottom:.4rem">🎮</div>
+        <div style="font-size:18px;font-weight:700;color:#a78bfa">ADgame Lobby</div>
+        <div style="font-size:12px;color:#555;margin-top:.2rem">與 Claude 共同開發 · 純靜態網頁遊戲平台</div>
+        <a href="https://a-dgame-lobby.vercel.app" target="_blank" style="font-size:11px;color:#7c3aed;text-decoration:none">🔗 a-dgame-lobby.vercel.app</a>
+      </div>
+
+      <!-- v1.0 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.0</span>
+          <span class="cl-ver-title">大廳誕生</span>
+          <span class="cl-ver-date">2025 早期</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🌈 彩虹連連看 — 首款遊戲，AI 無限生成關卡，支援多人競速</div>
+          <div class="cl-item cl-new">🐟 釣魚翻牌記憶 — 12關，4×2 到 8×8 難度漸進</div>
+          <div class="cl-item cl-new">🌀 逃出迷宮 — Recursive Backtracker 演算法，15關，BFS提示</div>
+          <div class="cl-item cl-new">🧙‍♀️ 女巫毒藥 — 2人對戰，毒藥藏選揭曉動畫</div>
+          <div class="cl-item cl-new">🚣 過河難題 — 5關經典邏輯題</div>
+          <div class="cl-item cl-new">🧠 機智問答 — 兒童題庫 75題，8主題，三種求救方式</div>
+          <div class="cl-item cl-new">🧬 細胞餵食進化 — 7種細胞 × 20種食物，化學進化機制</div>
+          <div class="cl-item cl-new">🏠 遊戲大廳主介面 — 統一入口，本機排行榜，玩家名稱記憶</div>
+        </div>
+      </div>
+
+      <!-- v1.1 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.1</span>
+          <span class="cl-ver-title">上線 Vercel</span>
+          <span class="cl-ver-date">首次公開發布</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🚀 部署至 Vercel — <code>a-dgame-lobby.vercel.app</code> 正式上線</div>
+          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung/ADgame-lobby</code></div>
+          <div class="cl-item cl-new">⚙️ vercel.json 路由設定</div>
+          <div class="cl-item cl-improve">🔧 修正所有遊戲返回大廳按鈕</div>
+          <div class="cl-item cl-improve">🔧 成績回傳改用 localStorage（postMessage → localStorage）</div>
+        </div>
+      </div>
+
+      <!-- v1.2 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.2</span>
+          <span class="cl-ver-title">Firebase 全球排行榜</span>
+          <span class="cl-ver-date">線上對戰時代</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🌐 Firebase Realtime Database 整合 — 成績自動上傳</div>
+          <div class="cl-item cl-new">🏆 線上 / 本機 排行榜雙模式切換</div>
+          <div class="cl-item cl-new">👤 歡迎彈窗 — 首次進入輸入名稱</div>
+          <div class="cl-item cl-new">⭐ 已遊玩 / 未遊玩 分區顯示</div>
+          <div class="cl-item cl-new">🎣 深海釣魚 — 天氣影響魚群的新遊戲</div>
+          <div class="cl-item cl-new">💣 踩地雷 — Windows 經典重現</div>
+        </div>
+      </div>
+
+      <!-- v1.3 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.3</span>
+          <span class="cl-ver-title">探索自我系列</span>
+          <span class="cl-ver-date">人格 & 智力測驗</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🧩 MBTI 人格測驗 — 20題，16種類型完整分析</div>
+          <div class="cl-item cl-new">🔢 智力挑戰 — 20道邏輯推理題，4主題各40題題庫隨機抽取</div>
+          <div class="cl-item cl-new">🔍 「探索自我」獨立分區 — 不計入總分，僅本機儲存</div>
+          <div class="cl-item cl-new">📊 個人成績頁顯示 MBTI / IQ 結果，標註「僅自己可見」</div>
+          <div class="cl-item cl-improve">🎨 大廳分類重整：益智遊戲 / 探索自我 兩區</div>
+        </div>
+      </div>
+
+      <!-- v1.4 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.5</span>
+          <span class="cl-ver-title">新遊戲 · 益智擴充</span>
+          <span class="cl-ver-date">本次更新</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🔢 2048 — 合併數字益智經典，支援滑動/鍵盤/WASD，悔一步功能，Firebase 排行榜</div>
+          <div class="cl-item cl-new">🏪 24H 迷你店長 — 放置經營遊戲，7種升級，指數成本公式，離線收益，自動存檔</div>
+          <div class="cl-item cl-new">🍉 西瓜合成 — Matter.js 物理引擎，11種水果掉落合成，連擊加分系統</div>
+          <div class="cl-item cl-fix">🎣 深海釣魚 HUD 避開 iOS 狀態列，海面比例調整，稀有魚深度上移</div>
+          <div class="cl-item cl-fix">📱 全遊戲加入 viewport-fit=cover 和 safe-area，修正 iPhone 遮蔽問題</div>
+          <div class="cl-item cl-fix">🐛 iOS Safari 點擊失效修正（a→div+onclick）</div>
+        </div>
+      </div>
+
+      <!-- v1.4 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.4</span>
+          <span class="cl-ver-title">MBTI 深度升級</span>
+          <span class="cl-ver-date">本次更新</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">💞 相容性分析 — 最合／融洽／反差大三級，每種附說明</div>
+          <div class="cl-item cl-new">💼 職業建議 — 8種最適職業 + 工作風格分析 + 注意事項</div>
+          <div class="cl-item cl-new">🔍 深度解析 — 4個維度各自說明 + 人格核心 + 日常行為模式</div>
+          <div class="cl-item cl-new">💾 MBTI 結果持久儲存 — 重開頁面不需重測，直接查看上次結果</div>
+          <div class="cl-item cl-fix">🐛 排行榜卡「載入中」 — Firebase databaseURL 修正（asia→us-central1）</div>
+          <div class="cl-item cl-fix">🐛 排行榜 Tab 包含 MBTI/IQ 導致讀取失敗 — 已排除 self 分類</div>
+          <div class="cl-item cl-fix">🐛 Firebase 無 timeout 保護 — 加入 5 秒 timeout + 失敗自動切本機</div>
+          <div class="cl-item cl-fix">🐛 JS SyntaxError（單引號衝突）— 修正 onclick 字串跳脫</div>
+          <div class="cl-item cl-fix">🐛 手機點擊沒反應 — setLBMode / openLB 掛到 window</div>
+          <div class="cl-item cl-new">📋 開發日誌頁面 — 本頁！</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:1.5rem;padding:1rem;background:#0a0a1a;border-radius:12px;border:0.5px solid #1a1a2e">
+        <div style="font-size:12px;color:#555;line-height:2">
+          <span style="color:#a78bfa;font-weight:600">創作者 Adrian</span> × <span style="color:#7c3aed">Claude (Anthropic)</span><br>
+          想法 · 設計 · 決策 · 發布 — <span style="color:#4a4a6a">Adrian</span><br>
+          編碼 · 除錯 · 建議 — <span style="color:#4a4a6a">Claude</span><br>
+          <span style="color:#3a3a5a">純靜態 HTML · 無後端 · 無框架</span>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -124,6 +302,12 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
     <div class="lb-header">
       <h2 id="lb-title">🏆 排行榜</h2>
       <button class="btn" id="lb-back-btn">← 返回</button>
+    </div>
+    <div class="lb-mode-row">
+      <button class="lb-mode-btn active" id="lb-online-btn">
+        <span class="online-dot"></span>線上排行
+      </button>
+      <button class="lb-mode-btn" id="lb-local-btn">📱 本機記錄</button>
     </div>
     <div class="tab-row" id="lb-tabs"></div>
     <div class="lb-box" id="lb-list"></div>
@@ -145,6 +329,10 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
       <h3>各遊戲最佳成績</h3>
       <div id="game-scores-list"></div>
     </div>
+    <div class="section-box" id="self-result-box" style="display:none">
+      <h3>🔍 探索自我 <span style="font-size:11px;color:#445566;margin-left:4px">🔒 僅自己可見</span></h3>
+      <div id="self-result-list"></div>
+    </div>
   </div>
 </div>
 
@@ -154,219 +342,385 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
   <div class="wm-card">
     <div style="font-size:52px">🎮</div>
     <h2>歡樂遊戲大廳</h2>
-    <p>7 款完全免費遊戲，永久無廣告！<br>益智・記憶・邏輯・問答一次滿足<br>成績自動儲存，挑戰好友排名 🏆</p>
+    <p>11 款完全免費遊戲，永久無廣告！<br>益智・記憶・邏輯・問答一次滿足<br>成績自動上傳，挑戰全球玩家 🏆</p>
     <input class="wm-inp" id="welcome-name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
     <button class="wm-start" onclick="confirmWelcome()">開始遊戲 🎯</button><br>
     <button class="wm-skip" onclick="skipWelcome()">先跳過</button>
   </div>
 </div>
 
-<script>
-const GAMES=[
-  {id:'rainbow',name:'彩虹連連看',icon:'🌈',badge:'益智',desc:'把相同動物連起來，填滿所有格子！',file:'games/rainbow.html',scoreLabel:'完成時間',unit:'秒',lower:true},
-  {id:'fishing',name:'釣魚翻牌',icon:'🐟',badge:'記憶',desc:'翻開兩張一樣的魚，全部釣走過關！',file:'games/fishing.html',scoreLabel:'翻牌次數',unit:'次',lower:true},
-  {id:'maze',name:'逃出迷宮',icon:'🌀',badge:'探索',desc:'在隨機迷宮中找到出口！',file:'games/maze.html',scoreLabel:'完成時間',unit:'秒',lower:true},
-  {id:'witch',name:'女巫毒藥',icon:'🧙‍♀️',badge:'雙人',desc:'猜出對方藏的毒藥，先猜中就贏！',file:'games/witch.html',scoreLabel:'勝場數',unit:'勝',lower:false},
-  {id:'river',name:'過河難題',icon:'🚣',badge:'邏輯',desc:'怎麼把所有人安全渡河？',file:'games/river.html',scoreLabel:'完成步數',unit:'步',lower:true},
-  {id:'quiz',name:'機智問答',icon:'🧠',badge:'知識',desc:'兒童題庫 + 三種求救方式！',file:'games/quiz.html',scoreLabel:'得分',unit:'分',lower:false},
-  {id:'cell',name:'細胞餵食',icon:'🧬',badge:'進化',desc:'選一種細胞，餵養到最終型態！',file:'games/cell.html',scoreLabel:'進化分數',unit:'分',lower:false},
-  {id:'mbti',name:'MBTI人格',icon:'🧩',badge:'測驗',desc:'20題探索你的人格類型，了解自己！',file:'games/mbti.html',scoreLabel:'人格類型',unit:'',lower:false},
-  {id:'iq',name:'智力挑戰',icon:'🔢',badge:'益智',desc:'20道邏輯推理題，測試你的分析能力！',file:'games/iq.html',scoreLabel:'答對題數',unit:'/20',lower:false},
-  {id:'mine',name:'踩地雷',icon:'💣',badge:'經典',desc:'Windows 經典！找出所有地雷不踩中！',file:'games/mine.html',scoreLabel:'最佳時間',unit:'秒',lower:true},
-  {id:'shop',name:'24H店長',icon:'🎲',badge:'經營',desc:'經營桌遊館！升級賺錢，轉生稱霸全台！',file:'games/shop.html',scoreLabel:'歷代身家',unit:'',lower:false},
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD_tt8CQhFpUkJHP5nlpqw5lj9DfphEsRk",
+  authDomain: "adgame-lobby.firebaseapp.com",
+  projectId: "adgame-lobby",
+  databaseURL: "https://adgame-lobby-default-rtdb.firebaseio.com",
+  storageBucket: "adgame-lobby.firebasestorage.app",
+  messagingSenderId: "327242677809",
+  appId: "1:327242677809:web:c621472813882c40061f10"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ── 遊戲清單 ───────────────────────────────────────────────
+const GAMES = [
+  {id:'rainbow',    name:'彩虹連連看', icon:'🌈', badge:'益智',   desc:'把相同動物連起來，填滿所有格子！',     file:'games/rainbow.html',    unit:'秒',  lower:true,  category:'game'},
+  {id:'fishing',    name:'釣魚翻牌',   icon:'🐟', badge:'記憶',   desc:'翻開兩張一樣的魚，全部釣走過關！',     file:'games/fishing.html',    unit:'次',  lower:true,  category:'game'},
+  {id:'fishing_rod',name:'深海釣魚',   icon:'🎣', badge:'休閒',   desc:'點擊下竿，勾到魚才算釣獲！天氣影響魚群！',file:'games/fishing_rod.html',unit:'分',  lower:false, category:'game'},
+  {id:'maze',       name:'逃出迷宮',   icon:'🌀', badge:'探索',   desc:'在隨機迷宮中找到出口！',               file:'games/maze.html',       unit:'秒',  lower:true,  category:'game'},
+  {id:'witch',      name:'女巫毒藥',   icon:'🧙‍♀️', badge:'雙人', desc:'猜出對方藏的毒藥，先猜中就贏！',       file:'games/witch.html',      unit:'勝',  lower:false, category:'game'},
+  {id:'river',      name:'過河難題',   icon:'🚣', badge:'邏輯',   desc:'怎麼把所有人安全渡河？',               file:'games/river.html',      unit:'步',  lower:true,  category:'game'},
+  {id:'quiz',       name:'機智問答',   icon:'🧠', badge:'知識',   desc:'兒童題庫 + 三種求救方式！',             file:'games/quiz.html',       unit:'分',  lower:false, category:'game'},
+  {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',         file:'games/cell.html',       unit:'分',  lower:false, category:'game'},
+  {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',   file:'games/mine.html',       unit:'秒',  lower:true,  category:'game'},
+  {id:'2048',       name:'2048',       icon:'🔢', badge:'益智',   desc:'合併數字拼出 2048，停不下來的益智經典！', file:'games/2048.html',       unit:'分',  lower:false, category:'game'},
+  {id:'suika',      name:'西瓜合成',   icon:'🍉', badge:'物理',   desc:'水果掉落合成，越合越大直到西瓜！',       file:'games/suika.html',      unit:'分',  lower:false, category:'game'},
+  {id:'shop',       name:'迷你店長',   icon:'🏪', badge:'放置',   desc:'24H 桌遊館經營，離線也能賺錢！',         file:'games/shop.html',       unit:'分',  lower:false, category:'game'},
+  {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',     file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
+  {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',   file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
 ];
 
-const LS_LOBBY='game_lobby_v2';
-const LS_PENDING='game_pending_score';
+// ── localStorage ───────────────────────────────────────────
+const LS_LOBBY   = 'game_lobby_v2';
+const LS_PENDING = 'game_pending_score';
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LS_LOBBY))||{name:'',scores:{}}; }catch{ return{name:'',scores:{}}; } }
+function saveLocal(){ localStorage.setItem(LS_LOBBY, JSON.stringify(DB)); }
 
-function load(){try{return JSON.parse(localStorage.getItem(LS_LOBBY))||{name:'',scores:{}};}catch{return{name:'',scores:{}};}}
-function save(){localStorage.setItem(LS_LOBBY,JSON.stringify(DB));}
+let DB = loadLocal();
+let lbTab = 'all', lbMode = 'online';
 
-let DB=load();
-let lbTab='all';
-
-// ── check for pending score from game page ──────────────────
-const pending=localStorage.getItem(LS_PENDING);
+// ── 處理從遊戲帶回的成績 ───────────────────────────────────
+const pending = localStorage.getItem(LS_PENDING);
 if(pending){
   try{
-    const d=JSON.parse(pending);
+    const d = JSON.parse(pending);
     localStorage.removeItem(LS_PENDING);
-    const g=GAMES.find(x=>x.id===d.game);
-    if(g){
-      // auto-save if name already set
-      if(DB.name){
-        if(!DB.scores[d.game])DB.scores[d.game]=[];
-        DB.scores[d.game].push({name:DB.name,score:d.score,detail:d.detail||'',date:new Date().toLocaleDateString('zh-TW')});
-        DB.scores[d.game].sort((a,b)=>g.lower?a.score-b.score:b.score-a.score);
-        DB.scores[d.game]=DB.scores[d.game].slice(0,100);
-        save();
-        setTimeout(()=>toast('✅ '+g.name+' 成績已儲存！'+d.score+g.unit),300);
-      }
+    const g = GAMES.find(x => x.id === d.game);
+    if(g && DB.name){
+      if(!DB.scores[d.game]) DB.scores[d.game] = [];
+      DB.scores[d.game].push({name:DB.name, score:d.score, detail:d.detail||'', date:new Date().toLocaleDateString('zh-TW')});
+      DB.scores[d.game].sort((a,b) => g.lower ? a.score-b.score : b.score-a.score);
+      DB.scores[d.game] = DB.scores[d.game].slice(0,100);
+      saveLocal();
+      saveToFirebase(d.game, DB.name, d.score, d.detail, g);
+      setTimeout(()=>toast('✅ '+g.name+' 成績已上傳排行榜！'),300);
     }
   }catch(e){}
 }
 
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+// ── Firebase ──────────────────────────────────────────────
+async function saveToFirebase(gameId, name, score, detail, g){
+  try{
+    const key = encodeURIComponent(name).replace(/\./g,'_');
+    const r = ref(db, `scores/${gameId}/${key}`);
+    const snap = await get(r);
+    const existing = snap.val();
+    const better = !existing || (g.lower ? score < existing.score : score > existing.score);
+    if(better) await set(r, {name, score, detail:detail||'', date:new Date().toLocaleDateString('zh-TW'), ts:Date.now()});
+  }catch(e){ console.warn('Firebase write:', e); }
 }
 
-function toast(msg){
-  const el=document.getElementById('toast');
-  el.textContent=msg;el.classList.add('show');
-  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2500);
+function withTimeout(promise, ms=5000){
+  return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
 }
 
-function pts(g,score){return g.lower?Math.max(0,Math.round(1000-score*8)):score;}
-
-function getBest(gameId,name){
-  const g=GAMES.find(x=>x.id===gameId);
-  const entries=(DB.scores[gameId]||[]).filter(e=>e.name===name);
-  if(!entries.length)return null;
-  return g.lower?Math.min(...entries.map(e=>e.score)):Math.max(...entries.map(e=>e.score));
+async function loadFromFirebase(gameId){
+  try{
+    const snap = await withTimeout(get(ref(db, `scores/${gameId}`)));
+    return snap.exists() ? Object.values(snap.val()) : [];
+  }catch(e){ return []; }
 }
 
-function getTotalPts(name){
-  return GAMES.reduce((sum,g)=>{const b=getBest(g.id,name);return sum+(b!==null?pts(g,b):0);},0);
+async function loadAllFromFirebase(){
+  try{
+    const snap = await withTimeout(get(ref(db, 'scores')));
+    return snap.exists() ? snap.val() : {};
+  }catch(e){ return {}; }
 }
 
-function rankEmoji(i){return i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);}
+// ── 計分 ──────────────────────────────────────────────────
+function pts(g, score){ return g.lower ? Math.max(0, Math.round(1000 - score*8)) : score; }
 
-// ── BUILD LOBBY ────────────────────────────────────────────
+function getBestLocal(gameId, name){
+  const g = GAMES.find(x => x.id === gameId);
+  const entries = (DB.scores[gameId]||[]).filter(e => e.name === name);
+  if(!entries.length) return null;
+  return g.lower ? Math.min(...entries.map(e=>e.score)) : Math.max(...entries.map(e=>e.score));
+}
+
+function getTotalPtsLocal(name){
+  return GAMES.reduce((sum,g)=>{ const b=getBestLocal(g.id,name); return sum+(b!==null?pts(g,b):0); }, 0);
+}
+
+function rankEmoji(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1); }
+
+// ── 大廳：分區顯示 ─────────────────────────────────────────
 function buildLobby(){
-  const grid=document.getElementById('game-grid');
-  grid.innerHTML='';
-  GAMES.forEach(g=>{
-    const best=getBest(g.id,DB.name);
-    const bestStr=best!==null?(g.lower?'⭐ 最佳 '+best+g.unit:'⭐ 最高 '+best+g.unit):'尚未遊玩';
-    const a=document.createElement('a');
-    a.className='game-card';
-    a.href=g.file+'?from=lobby';
-    a.innerHTML=`<div class="gc-badge">${g.badge}</div>
+  const gameList = GAMES.filter(g => g.category === 'game');
+  const selfList = GAMES.filter(g => g.category === 'self');
+
+  const played   = gameList.filter(g => getBestLocal(g.id, DB.name) !== null);
+  const unplayed = gameList.filter(g => getBestLocal(g.id, DB.name) === null);
+
+  const playedSec   = document.getElementById('played-section');
+  const unplayedSec = document.getElementById('unplayed-section');
+  const unplayedLbl = document.getElementById('unplayed-label');
+
+  // 已遊玩區
+  if(played.length > 0){
+    playedSec.style.display = 'block';
+    renderGrid('played-grid', played, true);
+  } else {
+    playedSec.style.display = 'none';
+  }
+
+  // 未遊玩區
+  unplayedLbl.textContent = played.length > 0 ? '🎮 還沒玩過' : '🎮 所有遊戲';
+  renderGrid('unplayed-grid', unplayed, false);
+
+  // 探索自我（固定顯示，不分已玩/未玩）
+  renderGrid('self-grid', selfList, false, true);
+
+  document.getElementById('total-pts').textContent = Math.round(getTotalPtsLocal(DB.name));
+}
+
+function renderGrid(gridId, games, isPlayed, isSelf=false){
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  games.forEach(g => {
+    const best = getBestLocal(g.id, DB.name);
+    const a = document.createElement('div');
+    a.className = 'game-card' + (isPlayed ? ' played' : '');
+    a.onclick = () => { window.location.href = g.file + '?from=lobby'; };
+    let bottomHtml = '';
+    if(isSelf){
+      // 探索自我：顯示「再次探索」或「尚未探索」
+      bottomHtml = best !== null
+        ? `<div class="gc-best">✅ 已完成</div>`
+        : `<div class="gc-unplayed">點擊開始探索</div>`;
+    } else if(isPlayed && best !== null){
+      bottomHtml = `<div class="gc-best">${g.lower ? '⭐ 最佳 '+best+g.unit : '⭐ 最高 '+best+g.unit}</div>`;
+    } else {
+      bottomHtml = `<div class="gc-unplayed">尚未遊玩</div>`;
+    }
+    a.innerHTML = `
+      <div class="gc-badge">${g.badge}</div>
       <div class="gc-icon">${g.icon}</div>
       <div class="gc-name">${g.name}</div>
       <div class="gc-desc">${g.desc}</div>
-      <div class="gc-best">${bestStr}</div>`;
+      ${bottomHtml}`;
     grid.appendChild(a);
   });
-  document.getElementById('total-pts').textContent=Math.round(getTotalPts(DB.name));
 }
 
-document.getElementById('name-inp').value=DB.name;
-document.getElementById('name-inp').addEventListener('input',function(){
-  DB.name=this.value.trim();save();buildLobby();updateTotalPts();
+document.getElementById('name-inp').value = DB.name;
+document.getElementById('name-inp').addEventListener('input', function(){
+  DB.name = this.value.trim(); saveLocal(); buildLobby();
 });
 
-function updateTotalPts(){
-  document.getElementById('total-pts').textContent=Math.round(getTotalPts(DB.name));
+// ── 排行榜 ────────────────────────────────────────────────
+document.getElementById('lb-online-btn').addEventListener('click', ()=>setLBMode('online'));
+document.getElementById('lb-local-btn').addEventListener('click',  ()=>setLBMode('local'));
+
+function setLBMode(m){
+  lbMode = m;
+  document.getElementById('lb-online-btn').classList.toggle('active', m==='online');
+  document.getElementById('lb-local-btn').classList.toggle('active',  m==='local');
+  renderLB();
 }
 
-// ── LEADERBOARD ────────────────────────────────────────────
 function openLB(tabId){
-  lbTab=tabId||'all';buildLBTabs();renderLB();showScreen('screen-lb');
+  lbTab = tabId||'all';
+  buildLBTabs();
+  renderLB();
+  showScreen('screen-lb');
 }
 
 function buildLBTabs(){
-  const row=document.getElementById('lb-tabs');row.innerHTML='';
-  [{id:'all',label:'🏆 總榜'},...GAMES.map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
-    const b=document.createElement('button');
-    b.className='tab'+(t.id===lbTab?' active':'');
-    b.textContent=t.label;
-    b.addEventListener('click',()=>{lbTab=t.id;buildLBTabs();renderLB();});
+  const row = document.getElementById('lb-tabs');
+  row.innerHTML = '';
+  [{id:'all',label:'🏆 總榜'}, ...GAMES.filter(g=>g.category==='game').map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
+    const b = document.createElement('button');
+    b.className = 'tab' + (t.id===lbTab?' active':'');
+    b.textContent = t.label;
+    b.addEventListener('click', ()=>{ lbTab=t.id; buildLBTabs(); renderLB(); });
     row.appendChild(b);
   });
 }
 
-function renderLB(){
-  const list=document.getElementById('lb-list');
-  if(lbTab==='all'){
-    document.getElementById('lb-title').textContent='🏆 總排行榜';
-    const totals={};
-    GAMES.forEach(g=>{
-      const best={};
-      (DB.scores[g.id]||[]).forEach(e=>{
-        if(!best[e.name]||(g.lower&&e.score<best[e.name])||(!g.lower&&e.score>best[e.name]))best[e.name]=e.score;
+async function renderLB(){
+  const list = document.getElementById('lb-list');
+  list.innerHTML = '<div class="lb-loading">載入中...</div>';
+
+  if(lbMode === 'online'){
+    document.getElementById('lb-title').textContent = lbTab==='all' ? '🏆 全球總排行榜' : '🏆 全球排行榜';
+    let firebaseOk = true;
+    if(lbTab === 'all'){
+      const allData = await loadAllFromFirebase();
+      // 判斷是否連線失敗（空物件且非正常空資料）
+      const totals = {};
+      GAMES.forEach(g=>{
+        const gd = allData[g.id];
+        if(!gd) return;
+        firebaseOk = true;
+        Object.values(gd).forEach(e=>{ totals[e.name] = (totals[e.name]||0) + pts(g, e.score); });
       });
-      Object.entries(best).forEach(([name,score])=>{totals[name]=(totals[name]||0)+pts(g,score);});
-    });
-    const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
-    if(!sorted.length){list.innerHTML='<div class="lb-empty">還沒有成績記錄<br>去玩幾款遊戲吧！🎮</div>';return;}
-    list.innerHTML=sorted.slice(0,20).map(([name,p],i)=>`
-      <div class="lb-row${name===DB.name?' me':''}">
-        <div class="lb-rank">${rankEmoji(i)}</div>
-        <div class="lb-name">${name}${name===DB.name?' 👈':''}</div>
-        <div class="lb-score">${Math.round(p)}<span class="lb-meta">分</span></div>
-      </div>`).join('');
-  }else{
-    const g=GAMES.find(x=>x.id===lbTab);if(!g)return;
-    document.getElementById('lb-title').textContent=g.icon+' '+g.name+' 排行榜';
-    const best={};
-    (DB.scores[g.id]||[]).forEach(e=>{
-      if(!best[e.name]||(g.lower&&e.score<best[e.name].score)||(!g.lower&&e.score>best[e.name].score))best[e.name]=e;
-    });
-    const sorted=Object.values(best).sort((a,b)=>g.lower?a.score-b.score:b.score-a.score);
-    if(!sorted.length){list.innerHTML='<div class="lb-empty">這個遊戲還沒有成績<br>快去挑戰！'+g.icon+'</div>';return;}
-    list.innerHTML=sorted.slice(0,20).map((e,i)=>`
-      <div class="lb-row${e.name===DB.name?' me':''}">
-        <div class="lb-rank">${rankEmoji(i)}</div>
-        <div class="lb-name">${e.name}${e.name===DB.name?' 👈':''}</div>
-        <div class="lb-score">${e.score}<span class="lb-meta">${g.unit}</span></div>
-        <div class="lb-meta">${e.detail||''}</div>
-      </div>`).join('');
+      const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+      if(!sorted.length){
+        list.innerHTML='<div class="lb-empty">🌐 還沒有人上傳成績，或無法連線<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode(&apos;local&apos;)">切換本機排行榜</button></div>';
+        return;
+      }
+      list.innerHTML = sorted.slice(0,20).map(([name,p],i)=>`
+        <div class="lb-row${name===DB.name?' me':''}">
+          <div class="lb-rank">${rankEmoji(i)}</div>
+          <div class="lb-name">${name}${name===DB.name?' 👈':''}</div>
+          <div class="lb-score">${Math.round(p)}<span class="lb-meta">分</span></div>
+        </div>`).join('');
+    } else {
+      const g = GAMES.find(x=>x.id===lbTab); if(!g) return;
+      document.getElementById('lb-title').textContent = g.icon+' '+g.name+' 全球排行';
+      const entries = await loadFromFirebase(lbTab);
+      if(!entries.length){
+        list.innerHTML='<div class="lb-empty">這個遊戲還沒有人上傳，或無法連線<br>'+g.icon+'<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode(&apos;local&apos;)">切換本機排行榜</button></div>';
+        return;
+      }
+      const sorted = entries.sort((a,b)=>g.lower?a.score-b.score:b.score-a.score);
+      list.innerHTML = sorted.slice(0,20).map((e,i)=>`
+        <div class="lb-row${e.name===DB.name?' me':''}">
+          <div class="lb-rank">${rankEmoji(i)}</div>
+          <div class="lb-name">${e.name}${e.name===DB.name?' 👈':''}</div>
+          <div class="lb-score">${e.score}<span class="lb-meta">${g.unit}</span></div>
+          <div class="lb-meta">${e.detail||''}</div>
+        </div>`).join('');
+    }
+  } else {
+    // 本機模式
+    document.getElementById('lb-title').textContent = '📱 本機排行榜';
+    if(lbTab === 'all'){
+      const totals = {};
+      GAMES.forEach(g=>{
+        const best = {};
+        (DB.scores[g.id]||[]).forEach(e=>{
+          if(!best[e.name]||(g.lower&&e.score<best[e.name])||(!g.lower&&e.score>best[e.name])) best[e.name]=e.score;
+        });
+        Object.entries(best).forEach(([name,score])=>{ totals[name]=(totals[name]||0)+pts(g,score); });
+      });
+      const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+      if(!sorted.length){ list.innerHTML='<div class="lb-empty">本機還沒有成績記錄</div>'; return; }
+      list.innerHTML = sorted.slice(0,20).map(([name,p],i)=>`
+        <div class="lb-row${name===DB.name?' me':''}">
+          <div class="lb-rank">${rankEmoji(i)}</div>
+          <div class="lb-name">${name}${name===DB.name?' 👈':''}</div>
+          <div class="lb-score">${Math.round(p)}<span class="lb-meta">分</span></div>
+        </div>`).join('');
+    } else {
+      const g = GAMES.find(x=>x.id===lbTab); if(!g) return;
+      const best = {};
+      (DB.scores[g.id]||[]).forEach(e=>{
+        if(!best[e.name]||(g.lower&&e.score<best[e.name].score)||(!g.lower&&e.score>best[e.name].score)) best[e.name]=e;
+      });
+      const sorted = Object.values(best).sort((a,b)=>g.lower?a.score-b.score:b.score-a.score);
+      if(!sorted.length){ list.innerHTML='<div class="lb-empty">本機還沒有這個遊戲的成績</div>'; return; }
+      list.innerHTML = sorted.slice(0,20).map((e,i)=>`
+        <div class="lb-row${e.name===DB.name?' me':''}">
+          <div class="lb-rank">${rankEmoji(i)}</div>
+          <div class="lb-name">${e.name}${e.name===DB.name?' 👈':''}</div>
+          <div class="lb-score">${e.score}<span class="lb-meta">${g.unit}</span></div>
+          <div class="lb-meta">${e.detail||''}</div>
+        </div>`).join('');
+    }
   }
 }
 
-// ── PROFILE ────────────────────────────────────────────────
+// ── 個人成績 ──────────────────────────────────────────────
 function showProfile(){
-  const name=DB.name||'（未設定）';
-  const played=GAMES.filter(g=>getBest(g.id,DB.name)!==null).length;
-  const total=Math.round(getTotalPts(DB.name));
-  const totals={};
+  const name = DB.name||'（未設定）';
+  const played = GAMES.filter(g=>getBestLocal(g.id,DB.name)!==null).length;
+  const total = Math.round(getTotalPtsLocal(DB.name));
+  const totals = {};
   GAMES.forEach(g=>{
     const best={};
     (DB.scores[g.id]||[]).forEach(e=>{
-      if(!best[e.name]||(g.lower&&e.score<best[e.name])||(!g.lower&&e.score>best[e.name]))best[e.name]=e.score;
+      if(!best[e.name]||(g.lower&&e.score<best[e.name])||(!g.lower&&e.score>best[e.name])) best[e.name]=e.score;
     });
-    Object.entries(best).forEach(([n,score])=>{totals[n]=(totals[n]||0)+pts(g,score);});
+    Object.entries(best).forEach(([n,s])=>{ totals[n]=(totals[n]||0)+pts(g,s); });
   });
-  const rank=Object.values(totals).filter(v=>v>total).length+1;
-  document.getElementById('profile-stats').innerHTML=`
+  const rank = Object.values(totals).filter(v=>v>total).length+1;
+  document.getElementById('profile-stats').innerHTML = `
     <div class="ps-box"><div class="ps-val" style="font-size:14px">${name}</div><div class="ps-lbl">玩家</div></div>
     <div class="ps-box"><div class="ps-val">${played}/${GAMES.length}</div><div class="ps-lbl">遊玩款數</div></div>
-    <div class="ps-box"><div class="ps-val">#${rank}</div><div class="ps-lbl">總排名</div></div>`;
-  document.getElementById('game-scores-list').innerHTML=GAMES.map(g=>{
-    const best=getBest(g.id,DB.name);
-    return`<div class="gs-row"><div class="gs-left">${g.icon} ${g.name}</div><div class="gs-val">${best!==null?best+g.unit:'—'}</div></div>`;
+    <div class="ps-box"><div class="ps-val">#${rank}</div><div class="ps-lbl">本機排名</div></div>`;
+  document.getElementById('game-scores-list').innerHTML = GAMES.map(g=>{
+    const best = getBestLocal(g.id, DB.name);
+    return `<div class="gs-row">
+      <div class="gs-left">${g.icon} ${g.name}</div>
+      <div class="gs-val">${best!==null ? best+g.unit : '—'}</div>
+    </div>`;
   }).join('');
   showScreen('screen-profile');
 }
 
-// ── EVENTS ─────────────────────────────────────────────────
-document.getElementById('lb-btn').addEventListener('click',()=>openLB('all'));
-document.getElementById('lb-back-btn').addEventListener('click',()=>{showScreen('screen-lobby');buildLobby();});
-document.getElementById('profile-btn').addEventListener('click',showProfile);
-document.getElementById('profile-back-btn').addEventListener('click',()=>{showScreen('screen-lobby');buildLobby();});
-document.getElementById('clear-btn').addEventListener('click',()=>{
-  if(!confirm('確定要清除所有成績記錄嗎？'))return;
-  DB.scores={};save();buildLobby();toast('🗑️ 成績已清除');
+// ── 工具 ──────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('show'), 2500);
+}
+
+// ── 掛到 window，讓 inline onclick 也能用 ─────────────────
+window.setLBMode = setLBMode;
+window.openLB = openLB;
+window.confirmWelcome = window.confirmWelcome || function(){};
+window.skipWelcome = window.skipWelcome || function(){};
+
+// ── 事件 ──────────────────────────────────────────────────
+document.getElementById('lb-btn').addEventListener('click', ()=>openLB('all'));
+document.getElementById('lb-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
+document.getElementById('changelog-btn').addEventListener('click', ()=>showScreen('screen-changelog'));
+document.getElementById('changelog-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
+document.getElementById('profile-btn').addEventListener('click', showProfile);
+document.getElementById('profile-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
+document.getElementById('clear-btn').addEventListener('click', ()=>{
+  if(!confirm('確定要清除本機所有成績？（線上排行榜不受影響）')) return;
+  DB.scores = {}; saveLocal(); buildLobby(); toast('🗑️ 本機成績已清除');
 });
 
 buildLobby();
 
-// ── WELCOME MODAL ───────────────────────────────────────────
-function confirmWelcome(){
-  const name=document.getElementById('welcome-name-inp').value.trim();
-  if(name){DB.name=name;document.getElementById('name-inp').value=name;save();buildLobby();}
+// ── 歡迎彈窗 ──────────────────────────────────────────────
+window.confirmWelcome = function(){
+  const name = document.getElementById('welcome-name-inp').value.trim();
+  if(name){ DB.name=name; document.getElementById('name-inp').value=name; saveLocal(); buildLobby(); }
   document.getElementById('welcome-modal').classList.remove('show');
-}
-function skipWelcome(){
+};
+window.skipWelcome = function(){
   document.getElementById('welcome-modal').classList.remove('show');
-}
+};
 if(!DB.name){
-  const modal=document.getElementById('welcome-modal');
-  modal.classList.add('show');
-  setTimeout(()=>document.getElementById('welcome-name-inp').focus(),100);
-  document.getElementById('welcome-name-inp').addEventListener('keydown',e=>{if(e.key==='Enter')confirmWelcome();});
+  document.getElementById('welcome-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('welcome-name-inp').focus(), 100);
+  document.getElementById('welcome-name-inp').addEventListener('keydown', e=>{ if(e.key==='Enter') window.confirmWelcome(); });
 }
+</script>
+<script>
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+  // 註冊 Service Worker（PWA 離線支援）
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      console.log('SW registered:', reg.scope);
+    }).catch(err => {
+      console.log('SW failed:', err);
+    });
+  }
 </script>
 </body></html>

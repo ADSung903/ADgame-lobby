@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>🌈 彩虹連連看</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:sans-serif;background:#0a0a1a;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
 .app{width:100%;max-width:500px}
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding-top:env(safe-area-inset-top,44px);margin-bottom:.75rem}
 .topbar h1{font-size:20px;font-weight:500}
 .meta{display:flex;gap:8px;align-items:center}
 .pill{font-size:12px;padding:3px 10px;border-radius:20px;background:#1a1a2e;border:0.5px solid #2a2a4a;color:#9a9ab0}
@@ -33,6 +33,20 @@ canvas{display:block;border-radius:12px;border:0.5px solid #2a2a4a;background:#0
 .sb-row:last-child{border:none}
 .sb-row.winner{color:#4ade80;font-weight:500}
 .controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* iOS 安全區域：避免被工具列或 Home 條遮住 */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    min-height: 100dvh;
+  }
 </style>
 </head><body>
 <div class="app">
@@ -363,5 +377,8 @@ document.getElementById('retry-btn').addEventListener('click',()=>loadLevel(lvlI
 document.getElementById('next-btn').addEventListener('click',()=>loadLevel(lvlIdx+1));
 
 loadLevel(0);
+</script>
+<script>
+  document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
 </body></html>

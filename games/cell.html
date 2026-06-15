@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:sans-serif;background:#060612;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh}
+body{font-family:sans-serif;background:#060612;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh;padding-top:max(1rem,calc(env(safe-area-inset-top,0px) + 0.75rem))}
 .app{width:100%;max-width:520px}
 h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
 .screen{display:none}.screen.active{display:block}
@@ -69,6 +69,20 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
 .final-card p{font-size:14px;color:#c4b5fd;line-height:1.7;margin-bottom:.75rem}
 
 .controls-bot{display:flex;gap:8px;justify-content:center;margin-top:.5rem}
+
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* iOS 安全區域：避免被工具列或 Home 條遮住 */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    min-height: 100dvh;
+  }
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
@@ -609,5 +623,8 @@ function showScreen(id){
 
 document.getElementById('back-btn').addEventListener('click',()=>showScreen('screen-select'));
 document.getElementById('restart-btn').addEventListener('click',startGame);
+</script>
+<script>
+  document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
 </body></html>

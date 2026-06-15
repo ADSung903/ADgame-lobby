@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🍉 西瓜合成</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#0d0a14;color:#eee;display:flex;justify-content:center;align-items:flex-start;min-height:100dvh;overflow:hidden}
+.app{width:100%;max-width:400px;display:flex;flex-direction:column;height:100dvh;height:100vh;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+
+.topbar{display:flex;align-items:center;padding:calc(.5rem .75rem; + env(safe-area-inset-top,0px));gap:.5rem;flex-shrink:0}
+.back-btn{font-size:12px;padding:4px 10px;border-radius:8px;border:.5px solid #333;background:transparent;color:#aaa;cursor:pointer}
+h1{font-size:17px;font-weight:700;color:#f9a825;flex:1;text-align:center}
+
+.score-row{display:flex;gap:8px;padding:0 .75rem .5rem;flex-shrink:0}
+.sbox{flex:1;background:#1a1528;border:.5px solid #2a2040;border-radius:10px;padding:.4rem;text-align:center}
+.sbox .lbl{font-size:10px;color:#666;text-transform:uppercase}
+.sbox .val{font-size:18px;font-weight:800;color:#f9a825}
+.sbox.best .val{color:#a78bfa}
+
+/* next fruit */
+.next-wrap{display:flex;align-items:center;gap:.5rem;padding:0 .75rem .4rem;flex-shrink:0}
+.next-lbl{font-size:11px;color:#666}
+#next-fruit{font-size:28px;line-height:1}
+.combo-tag{font-size:11px;color:#f9a825;background:#2a2000;padding:2px 8px;border-radius:20px;margin-left:auto;opacity:0;transition:opacity .3s}
+.combo-tag.show{opacity:1}
+
+/* game area */
+.game-area{flex:1;position:relative;overflow:hidden;margin:0 .75rem;border-radius:12px;border:.5px solid #2a2040;background:#0a0814}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+
+/* drop line */
+#drop-line{position:absolute;top:0;width:2px;background:rgba(255,255,255,.15);pointer-events:none;transform:translateX(-50%);display:none}
+
+/* overlay */
+.overlay{position:absolute;inset:0;background:rgba(10,8,20,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;opacity:0;pointer-events:none;transition:opacity .3s;border-radius:12px}
+.overlay.show{opacity:1;pointer-events:auto}
+.ov-title{font-size:28px;font-weight:800;margin-bottom:.3rem}
+.ov-sub{font-size:13px;color:#888;margin-bottom:.5rem}
+.ov-score{font-size:40px;font-weight:900;color:#f9a825;margin-bottom:1rem}
+.ov-btn{padding:10px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#f9a825);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin:4px}
+
+/* toast */
+.toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,20,50,.95);border:.5px solid #7c3aed;border-radius:12px;padding:.5rem 1.2rem;font-size:14px;font-weight:600;color:#e9d5ff;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30;white-space:nowrap}
+.toast.show{opacity:1}
+
+.btns{display:flex;gap:8px;padding:.5rem .75rem 0;flex-shrink:0}
+.btn{flex:1;padding:8px;border-radius:8px;border:.5px solid #2a2040;background:#1a1528;color:#eee;font-size:12px;font-weight:600;cursor:pointer}
+.btn:active{transform:scale(.97)}
+
+canvas,img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+</style>
+</head><body><div class="app">
+
+<div class="topbar">
+  <button class="back-btn" onclick="goBack()">← 大廳</button>
+  <h1>🍉 西瓜合成</h1>
+</div>
+
+<div class="score-row">
+  <div class="sbox"><div class="lbl">分數</div><div class="val" id="score">0</div></div>
+  <div class="sbox best"><div class="lbl">最高</div><div class="val" id="best">0</div></div>
+  <div class="sbox"><div class="lbl">最大</div><div class="val" id="biggest">🍒</div></div>
+</div>
+
+<div class="next-wrap">
+  <span class="next-lbl">下一個</span>
+  <span id="next-fruit">🍒</span>
+  <span class="combo-tag" id="combo-tag"></span>
+</div>
+
+<div class="game-area" id="game-area">
+  <canvas id="gc"></canvas>
+  <div id="drop-line"></div>
+  <div class="overlay" id="overlay-over">
+    <div class="ov-title">😵 滿出來了！</div>
+    <div class="ov-sub">最終分數</div>
+    <div class="ov-score" id="over-score">0</div>
+    <button class="ov-btn" onclick="newGame()">再來一局 🍉</button>
+    <button class="ov-btn" style="background:#1a1528;border:.5px solid #555" onclick="goBack()">回大廳</button>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div class="btns">
+  <button class="btn" onclick="newGame()">🔄 重新開始</button>
+  <button class="btn" id="hint-btn" onclick="showHint()">💡 提示</button>
+</div>
+
+</div>
+
+<!-- Matter.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+const {Engine,Render,Runner,Bodies,Body,Events,Composite,World,Mouse,MouseConstraint} = Matter;
+
+// ── 水果定義 ──────────────────────────────────────────
+const FRUITS = [
+  {name:'櫻桃', emoji:'🍒', r:14, pts:1,  color:'#c0392b'},
+  {name:'草莓', emoji:'🍓', r:20, pts:3,  color:'#e74c3c'},
+  {name:'葡萄', emoji:'🍇', r:26, pts:6,  color:'#8e44ad'},
+  {name:'金桔', emoji:'🍊', r:32, pts:10, color:'#e67e22'},
+  {name:'柿子', emoji:'🍅', r:38, pts:15, color:'#c0392b'},
+  {name:'蘋果', emoji:'🍎', r:46, pts:21, color:'#27ae60'},
+  {name:'梨子', emoji:'🍐', r:54, pts:28, color:'#f1c40f'},
+  {name:'桃子', emoji:'🍑', r:60, pts:36, color:'#e67e22'},
+  {name:'鳳梨', emoji:'🍍', r:68, pts:45, color:'#f39c12'},
+  {name:'哈密瓜', emoji:'🍈', r:78, pts:55, color:'#1abc9c'},
+  {name:'西瓜', emoji:'🍉', r:90, pts:100, color:'#27ae60'},
+];
+
+const LS_BEST = 'game_suika_best';
+let engine, world, render, runner;
+let score = 0, bestScore = 0, gameOver = false;
+let nextIdx = 0, curIdx = 0;
+let dropX = 0, canDrop = true, dropCooldown = false;
+let bodies = []; // {body, idx}
+let combo = 0, comboTimer = null;
+let hintUsed = false;
+let biggestIdx = 0;
+
+const canvas = document.getElementById('gc');
+const gameArea = document.getElementById('game-area');
+const dropLine = document.getElementById('drop-line');
+
+// ── 尺寸 ──────────────────────────────────────────────
+let W, H;
+function getSize(){
+  W = gameArea.clientWidth;
+  H = gameArea.clientHeight;
+  return {W, H};
+}
+
+// ── 初始化引擎 ────────────────────────────────────────
+function initEngine(){
+  const {W,H} = getSize();
+  canvas.width = W; canvas.height = H;
+
+  if(engine) Engine.clear(engine);
+
+  engine = Engine.create({gravity:{y:1.8}});
+  world = engine.world;
+
+  const wallOpts = {isStatic:true, friction:.5, restitution:.2, render:{fillStyle:'transparent'}};
+  // 左右牆、底部
+  World.add(world, [
+    Bodies.rectangle(-5, H/2, 10, H*2, wallOpts),
+    Bodies.rectangle(W+5, H/2, 10, H*2, wallOpts),
+    Bodies.rectangle(W/2, H+5, W*2, 10, wallOpts),
+  ]);
+
+  bodies = [];
+  dropX = W/2;
+  dropLine.style.left = dropX+'px';
+  dropLine.style.height = H+'px';
+  dropLine.style.display = 'block';
+}
+
+// ── 繪製 ──────────────────────────────────────────────
+let animId;
+function gameLoop(){
+  if(!gameOver) Engine.update(engine, 1000/60);
+  draw();
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function draw(){
+  const ctx = canvas.getContext('2d');
+  const {W,H} = {W:canvas.width, H:canvas.height};
+  ctx.clearRect(0,0,W,H);
+
+  // 危險線（頂部20%）
+  ctx.strokeStyle='rgba(239,68,68,.15)';
+  ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(0,H*.18); ctx.lineTo(W,H*.18); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(239,68,68,.2)';
+  ctx.font='9px sans-serif'; ctx.textAlign='right';
+  ctx.fillText('— 危險線',W-4,H*.18-3);
+
+  // 下竿預覽圈
+  if(canDrop && !gameOver){
+    const f = FRUITS[curIdx];
+    ctx.strokeStyle='rgba(255,255,255,.2)';
+    ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(dropX,f.r+4,f.r,0,Math.PI*2); ctx.stroke();
+    ctx.font = (f.r*1.4)+'px serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.globalAlpha=.5;
+    ctx.fillText(f.emoji, dropX, f.r+4);
+    ctx.globalAlpha=1;
+  }
+
+  // 畫所有水果
+  ctx.textBaseline='middle'; ctx.textAlign='center';
+  for(const {body,idx} of bodies){
+    if(!body) continue;
+    const {x,y} = body.position;
+    const f = FRUITS[idx];
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(body.angle);
+    // 陰影
+    ctx.shadowColor=f.color+'88';
+    ctx.shadowBlur=6;
+    ctx.font=(f.r*1.5)+'px serif';
+    ctx.fillText(f.emoji, 0, 0);
+    ctx.restore();
+  }
+}
+
+// ── 掉落水果 ──────────────────────────────────────────
+function dropFruit(x){
+  if(!canDrop || dropCooldown || gameOver) return;
+  const f = FRUITS[curIdx];
+  const body = Bodies.circle(x, f.r+2, f.r, {
+    restitution:.3, friction:.6, density:.004,
+    fruitIdx: curIdx,
+    render:{fillStyle:f.color}
+  });
+  body.fruitIdx = curIdx;
+  World.add(world, body);
+  bodies.push({body, idx:curIdx});
+
+  // 下一顆
+  curIdx = nextIdx;
+  nextIdx = Math.floor(Math.random() * Math.min(5, FRUITS.length));
+  document.getElementById('next-fruit').textContent = FRUITS[nextIdx].emoji;
+
+  canDrop = false;
+  dropCooldown = true;
+  setTimeout(()=>{
+    canDrop = true; dropCooldown = false;
+  }, 550);
+
+  checkDanger();
+}
+
+// ── 碰撞合成 ──────────────────────────────────────────
+function setupCollision(){
+  Events.on(engine, 'collisionStart', e=>{
+    const pairs = e.pairs;
+    const toMerge = [];
+    const processed = new Set();
+
+    for(const pair of pairs){
+      const a = pair.bodyA, b = pair.bodyB;
+      if(a.isStatic || b.isStatic) continue;
+      if(processed.has(a.id) || processed.has(b.id)) continue;
+      if(a.fruitIdx === undefined || b.fruitIdx === undefined) continue;
+      if(a.fruitIdx === b.fruitIdx && a.fruitIdx < FRUITS.length-1){
+        toMerge.push([a,b]);
+        processed.add(a.id); processed.add(b.id);
+      }
+    }
+
+    for(const [a,b] of toMerge){
+      const idx = a.fruitIdx;
+      const newIdx = idx+1;
+      const mx = (a.position.x+b.position.x)/2;
+      const my = (a.position.y+b.position.y)/2;
+
+      World.remove(world,a); World.remove(world,b);
+      bodies = bodies.filter(x=>x.body!==a && x.body!==b);
+
+      const f = FRUITS[newIdx];
+      const nb = Bodies.circle(mx, my, f.r, {
+        restitution:.35, friction:.6, density:.004,
+        fruitIdx: newIdx,
+        render:{fillStyle:f.color}
+      });
+      nb.fruitIdx = newIdx;
+      World.add(world, nb);
+      bodies.push({body:nb, idx:newIdx});
+
+      // 積分
+      const pts = FRUITS[newIdx].pts * (1 + Math.floor(combo/3));
+      addScore(pts);
+      combo++;
+      clearTimeout(comboTimer);
+      comboTimer = setTimeout(()=>{ combo=0; },2000);
+
+      if(combo>=3){
+        const tag = document.getElementById('combo-tag');
+        tag.textContent = `${combo}連擊！✨`;
+        tag.classList.add('show');
+        clearTimeout(tag._t);
+        tag._t = setTimeout(()=>tag.classList.remove('show'),1500);
+      }
+
+      // 最大水果
+      if(newIdx > biggestIdx){
+        biggestIdx = newIdx;
+        document.getElementById('biggest').textContent = FRUITS[biggestIdx].emoji;
+      }
+
+      // 西瓜達成
+      if(newIdx === FRUITS.length-1){
+        toast('🍉 西瓜！超厲害！+100分');
+      }
+    }
+  });
+}
+
+// ── 危險偵測 ──────────────────────────────────────────
+let dangerTimer = null;
+function checkDanger(){
+  clearTimeout(dangerTimer);
+  dangerTimer = setTimeout(()=>{
+    if(gameOver) return;
+    const danger = bodies.some(({body})=>
+      body && !body.isStatic && body.position.y < H*.18 &&
+      Math.abs(body.velocity.y) < 0.5
+    );
+    if(danger) endGame();
+  }, 1200);
+}
+
+function endGame(){
+  if(gameOver) return;
+  gameOver = true;
+  cancelAnimationFrame(animId);
+  draw();
+  saveBest();
+  document.getElementById('over-score').textContent = score.toLocaleString();
+  document.getElementById('overlay-over').classList.add('show');
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    if(d.name) localStorage.setItem('game_pending_score', JSON.stringify({
+      game:'suika', score, detail:`最大 ${FRUITS[biggestIdx].name}`
+    }));
+  }catch(e){}
+}
+
+// ── 分數 ──────────────────────────────────────────────
+function addScore(pts){
+  score += pts;
+  document.getElementById('score').textContent = score.toLocaleString();
+  saveBest();
+}
+
+function saveBest(){
+  if(score>bestScore){
+    bestScore=score;
+    localStorage.setItem(LS_BEST, String(bestScore));
+    document.getElementById('best').textContent = bestScore.toLocaleString();
+  }
+}
+
+// ── 提示 ──────────────────────────────────────────────
+function showHint(){
+  if(hintUsed){ toast('本局提示已用完'); return; }
+  hintUsed = true;
+  const hints = [
+    '把相同水果靠在一起，讓它們自然碰撞合成！',
+    '小水果往中間丟，大水果往兩側堆！',
+    '別讓水果堆太高，要留空間給大水果！',
+    '先清底部的堆積，再往上疊！',
+  ];
+  toast(hints[Math.floor(Math.random()*hints.length)]);
+  document.getElementById('hint-btn').textContent = '💡 (已用)';
+}
+
+// ── 互動 ──────────────────────────────────────────────
+function setupInput(){
+  const area = gameArea;
+
+  function getX(e){
+    const rect = area.getBoundingClientRect();
+    return Math.max(FRUITS[curIdx].r, Math.min(W-FRUITS[curIdx].r,
+      (e.clientX||e.touches[0].clientX) - rect.left));
+  }
+
+  area.addEventListener('mousemove', e=>{
+    if(gameOver) return;
+    dropX = getX(e);
+    dropLine.style.left = dropX+'px';
+  });
+
+  area.addEventListener('touchmove', e=>{
+    if(gameOver) return;
+    e.preventDefault();
+    dropX = getX(e);
+    dropLine.style.left = dropX+'px';
+  },{passive:false});
+
+  area.addEventListener('click', e=>{
+    if(gameOver) return;
+    dropX = getX(e);
+    dropFruit(dropX);
+  });
+
+  area.addEventListener('touchend', e=>{
+    if(gameOver) return;
+    e.preventDefault();
+    dropFruit(dropX);
+  },{passive:false});
+}
+
+// ── 新遊戲 ────────────────────────────────────────────
+function newGame(){
+  cancelAnimationFrame(animId);
+  score=0; gameOver=false; combo=0; biggestIdx=0; hintUsed=false;
+  document.getElementById('score').textContent='0';
+  document.getElementById('biggest').textContent='🍒';
+  document.getElementById('overlay-over').classList.remove('show');
+  document.getElementById('hint-btn').textContent='💡 提示';
+  document.getElementById('combo-tag').classList.remove('show');
+
+  curIdx = Math.floor(Math.random()*4);
+  nextIdx = Math.floor(Math.random()*4);
+  document.getElementById('next-fruit').textContent = FRUITS[nextIdx].emoji;
+  canDrop = true; dropCooldown = false;
+
+  initEngine();
+  setupCollision();
+  setupInput();
+  gameLoop();
+}
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+function goBack(){
+  cancelAnimationFrame(animId);
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    if(d.name && score>0) localStorage.setItem('game_pending_score',JSON.stringify({game:'suika',score,detail:`最大 ${FRUITS[biggestIdx].name}`}));
+  }catch(e){}
+  window.location.href='/';
+}
+
+// ── 載入 ──────────────────────────────────────────────
+bestScore = parseInt(localStorage.getItem(LS_BEST)||'0');
+document.getElementById('best').textContent = bestScore.toLocaleString();
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// 等 layout 穩定再初始化
+setTimeout(newGame, 100);
+</script>
+</body></html>

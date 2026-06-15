@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:sans-serif;background:#1a1a1a;color:#eee;display:flex;justify-content:center;padding:1rem}
 .app{width:100%;max-width:500px}
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding-top:env(safe-area-inset-top,44px);margin-bottom:.6rem}
 .topbar h1{font-size:20px;font-weight:500}
 .meta{display:flex;gap:8px;align-items:center}
 .pill{font-size:12px;padding:3px 10px;border-radius:20px;background:#2a2a2a;color:#aaa;border:0.5px solid #444}
@@ -21,6 +21,20 @@ canvas{display:block;border-radius:10px;border:0.5px solid #444;touch-action:non
 .db{width:48px;height:48px;border-radius:10px;border:0.5px solid #555;background:#2a2a2a;color:#eee;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .db:active{background:#3a3a3a;transform:scale(0.93)}
 .empty{width:48px;height:48px}
+
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* iOS 安全區域：避免被工具列或 Home 條遮住 */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    min-height: 100dvh;
+  }
 </style></head><body>
 <div class="app">
   <div class="topbar">
@@ -229,5 +243,8 @@ document.getElementById('new-btn').onclick=()=>load(lvl,true);
 document.getElementById('next-btn').onclick=()=>load(lvl+1,true);
 
 load(0);
+</script>
+<script>
+  document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
 </body></html>

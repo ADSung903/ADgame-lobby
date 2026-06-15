@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🎣 深海釣魚</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#000a14;color:#eee;display:flex;justify-content:center;overflow:hidden;height:100vh;height:100dvh}
+.app{width:100%;max-width:480px;position:relative;height:100vh;height:100dvh;overflow:hidden}
+.screen{visibility:hidden;position:absolute;inset:0;pointer-events:none}
+.screen.active{visibility:visible;pointer-events:auto}
+
+#screen-title{background:linear-gradient(180deg,#000a14 0%,#001428 60%,#002040 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;padding-top:env(safe-area-inset-top,44px)}
+.title-card{background:rgba(0,15,30,.9);border:1px solid #1e4a7a;border-radius:20px;padding:2rem 1.5rem;text-align:center;z-index:10;width:88%;max-width:340px}
+.title-card h1{font-size:26px;font-weight:700;margin-bottom:.3rem}
+.title-card p{font-size:13px;color:#7ab;line-height:1.7;margin-bottom:1.2rem}
+.big-btn{width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#0c4a6e,#0ea5e9);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.big-btn:active{transform:scale(.98)}
+.best-lbl{font-size:12px;color:#4a7a9a;margin-top:.5rem}
+
+#screen-game{background:#000a14}
+canvas{display:block;width:100%;height:100%}
+
+.hud{position:absolute;top:env(safe-area-inset-top,44px);left:0;right:0;z-index:20;padding:.5rem .75rem;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;background:linear-gradient(180deg,rgba(0,5,15,.9) 0%,rgba(0,5,15,.6) 60%,transparent 100%)}
+.cast-info{font-size:13px;color:#7ab}
+.score-info{font-size:16px;font-weight:700;color:#ffd700;text-shadow:0 0 8px #f90}
+.weather-tag{font-size:11px;padding:2px 9px;border-radius:12px;background:rgba(0,20,40,.75);border:0.5px solid #1e4a6a;color:#7ab;margin-top:3px}
+
+.w-alert{position:absolute;top:calc(env(safe-area-inset-top,44px) + 56px);left:50%;transform:translateX(-50%);z-index:25;background:rgba(0,10,25,.93);border:1px solid #1e5a7a;border-radius:12px;padding:.55rem .9rem;font-size:12px;color:#7de;text-align:center;max-width:88%;opacity:0;transition:opacity .4s;pointer-events:none;line-height:1.6;white-space:pre-line}
+.w-alert.show{opacity:1}
+
+.cast-hint{position:absolute;bottom:max(16px,calc(16px + env(safe-area-inset-bottom,0px)));left:50%;transform:translateX(-50%);z-index:20;font-size:13px;color:rgba(100,180,255,.7);pointer-events:none;text-align:center;transition:opacity .3s;white-space:nowrap}
+
+.cast-area{position:absolute;top:env(safe-area-inset-top,44px);right:0;z-index:20;padding:.4rem .5rem}
+#cast-btn{padding:7px 14px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:rgba(12,110,158,.85);color:#fff;backdrop-filter:blur(4px);border:0.5px solid rgba(14,165,233,.5)}
+#cast-btn:disabled{background:rgba(20,40,60,.7);color:#445;cursor:default;border-color:rgba(50,80,100,.3)}
+#cast-btn:active:not(:disabled){transform:scale(.97)}
+
+.catch-pop{position:absolute;z-index:30;font-size:15px;font-weight:700;color:#ffd700;pointer-events:none;text-shadow:0 0 8px #f90;animation:floatUp .9s ease forwards}
+@keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-50px);opacity:0}}
+
+#screen-result{background:linear-gradient(180deg,#000a14,#001428);display:flex;align-items:center;justify-content:center}
+.result-card{background:rgba(0,15,30,.95);border:1px solid #1e4a7a;border-radius:20px;padding:1.5rem;width:88%;max-width:340px;text-align:center;max-height:90vh;overflow-y:auto}
+.result-card h2{font-size:20px;margin-bottom:.3rem}
+.final-score{font-size:52px;font-weight:800;color:#ffd700;margin:.3rem 0}
+.best-badge{font-size:12px;color:#4ade80;margin-bottom:.75rem}
+.catch-list{text-align:left;margin:.75rem 0;max-height:200px;overflow-y:auto}
+.catch-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:.5px solid #0a2030;font-size:13px}
+.catch-row:last-child{border:none}
+.cr-fish{font-size:20px;width:28px}
+.cr-name{flex:1;color:#9ab}
+.cr-pts{font-weight:600;color:#ffd700}
+.btn-sm{font-size:13px;padding:7px 16px;border-radius:8px;border:.5px solid #444;background:transparent;color:#eee;cursor:pointer;width:100%;margin-top:.4rem}
+.btn-sm:hover{background:#0a1a2a}
+
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* iOS safe-area：避免被工具列遮住 */
+  :root { --sat: env(safe-area-inset-top,0px); --sab: env(safe-area-inset-bottom,0px); }
+  @supports (height: 100dvh){ body,.app{ height:100dvh; } }
+</style></head><body>
+<div class="app">
+
+<!-- TITLE -->
+<div class="screen active" id="screen-title">
+  <div class="title-card">
+    <div style="font-size:52px;margin-bottom:.3rem">🎣</div>
+    <h1>深海釣魚</h1>
+    <p>點擊海面下方決定下竿位置<br>勾到魚才算釣獲！共20次機會<br>天氣影響魚群與能見度</p>
+    <button class="big-btn" id="start-btn">開始釣魚 🚢</button>
+    <div class="best-lbl" id="title-best"></div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="screen-game">
+  <canvas id="gc"></canvas>
+  <div class="hud">
+    <div>
+      <div class="cast-info">下竿 <span id="cast-num">0</span>/20</div>
+      <div class="weather-tag" id="wtag">☀️ 晴朗</div>
+    </div>
+    <div class="score-info">🏆 <span id="score-disp">0</span></div>
+  </div>
+  <div class="w-alert" id="w-alert"></div>
+  <div class="cast-hint" id="cast-hint">👆 點擊海面任意位置下竿</div>
+  <div class="cast-area">
+    <button id="cast-btn" disabled>開始後可下竿</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <div class="result-card">
+    <h2 id="res-title"></h2>
+    <div class="final-score" id="res-score"></div>
+    <div class="best-badge" id="res-best"></div>
+    <div class="catch-list" id="catch-list"></div>
+    <button class="big-btn" id="again-btn">再釣一次 🎣</button>
+    <button class="btn-sm" onclick="window.location.href='/'">← 大廳</button>
+  </div>
+</div>
+
+<script>
+const FISH_TYPES=[
+  // ── 淺水層 ──
+  {id:'sardine',   name:'沙丁魚',  pts:10, sz:18,spd:1.4, depthMin:.04,depthMax:.32,rarity:1.0, weather:null},
+  {id:'carp',      name:'鯉魚',    pts:25, sz:22,spd:0.8, depthMin:.05,depthMax:.32,rarity:0.88,weather:null},
+  {id:'clownfish', name:'小丑魚',  pts:35, sz:16,spd:1.0, depthMin:.08,depthMax:.38,rarity:0.75,weather:['sunny','cloudy']},
+  {id:'mackerel',  name:'鯖魚',    pts:20, sz:20,spd:1.2, depthMin:.06,depthMax:.40,rarity:0.90,weather:null},
+  {id:'flyingfish',name:'飛魚',    pts:45, sz:20,spd:2.8, depthMin:.04,depthMax:.22,rarity:0.60,weather:['sunny','wavy']},
+  {id:'dolphin',   name:'海豚',    pts:120,sz:32,spd:2.2, depthMin:.10,depthMax:.42,rarity:0.38,weather:null},
+  {id:'seal',      name:'海豹',    pts:85, sz:28,spd:0.9, depthMin:.08,depthMax:.38,rarity:0.42,weather:null},
+  // ── 中水層 ──
+  {id:'bass',      name:'鱸魚',    pts:30, sz:24,spd:0.9, depthMin:.18,depthMax:.52,rarity:0.82,weather:null},
+  {id:'squid',     name:'魷魚',    pts:40, sz:22,spd:1.3, depthMin:.28,depthMax:.60,rarity:0.72,weather:null},
+  {id:'shrimp',    name:'大蝦',    pts:35, sz:14,spd:1.5, depthMin:.22,depthMax:.52,rarity:0.72,weather:null},
+  {id:'jellyfish', name:'水母',    pts:70, sz:22,spd:0.25,depthMin:.22,depthMax:.62,rarity:0.45,weather:['foggy','rainy']},
+  {id:'seahorse',  name:'海馬',    pts:150,sz:14,spd:0.18,depthMin:.20,depthMax:.52,rarity:0.18,weather:['sunny','cloudy']},
+  {id:'lionfish',  name:'獅子魚',  pts:180,sz:26,spd:0.6, depthMin:.30,depthMax:.65,rarity:0.15,weather:null,glow:true,glowColor:'#ff6b35'},
+  {id:'shark',     name:'鯊魚',    pts:100,sz:34,spd:1.6, depthMin:.30,depthMax:.70,rarity:0.42,weather:null},
+  {id:'turtle',    name:'海龜',    pts:90, sz:28,spd:0.5, depthMin:.35,depthMax:.68,rarity:0.38,weather:null},
+  {id:'blowfish',  name:'河豚',    pts:60, sz:24,spd:0.7, depthMin:.32,depthMax:.65,rarity:0.55,weather:null},
+  {id:'swordfish', name:'旗魚',    pts:220,sz:38,spd:3.2, depthMin:.25,depthMax:.58,rarity:0.12,weather:['sunny','wavy'],glow:true,glowColor:'#4fc3f7'},
+  // ── 深水層 ──
+  {id:'octopus',   name:'章魚',    pts:50, sz:26,spd:0.5, depthMin:.42,depthMax:.72,rarity:0.65,weather:null},
+  {id:'crab',      name:'螃蟹',    pts:45, sz:22,spd:0.4, depthMin:.45,depthMax:.75,rarity:0.65,weather:null},
+  {id:'lobster',   name:'龍蝦',    pts:80, sz:26,spd:0.6, depthMin:.48,depthMax:.76,rarity:0.48,weather:null},
+  {id:'sunfish',   name:'翻車魚',  pts:300,sz:44,spd:0.3, depthMin:.40,depthMax:.72,rarity:0.08,weather:['sunny','cloudy'],glow:true,glowColor:'#b3e5fc'},
+  {id:'whale',     name:'鯨魚',    pts:200,sz:46,spd:0.55,depthMin:.45,depthMax:.75,rarity:0.12,weather:['wavy','storm']},
+  {id:'manta',     name:'蝠鱝',    pts:250,sz:40,spd:0.8, depthMin:.42,depthMax:.72,rarity:0.10,weather:['sunny','wavy'],glow:true,glowColor:'#7c4dff'},
+  // ── 深淵層 ──
+  {id:'oarfish',   name:'皇帶魚',  pts:500,sz:16,spd:0.28,depthMin:.55,depthMax:.85,rarity:0.04, weather:['storm','wavy'],glow:true,glowColor:'#ffd700',custom:true},
+  {id:'angler',    name:'燈籠魚',  pts:400,sz:18,spd:1.9, depthMin:.58,depthMax:.88,rarity:0.05, weather:['storm','foggy'],glow:true,glowColor:'#00ffff',custom:true},
+  {id:'viperfish', name:'蝰魚',    pts:350,sz:20,spd:2.4, depthMin:.60,depthMax:.90,rarity:0.055,weather:['foggy','storm'],glow:true,glowColor:'#e040fb',custom:true},
+];
+
+const WEATHERS=[
+  {id:'sunny', label:'☀️ 晴朗',  skyTop:'#001020',skyBot:'#002848',seaTop:'#003a6a',seaBot:'#001a3a',speedMult:1.0,visibility:1.0,  rainAmt:0,  fog:false,alert:'🌙 夜空晴朗，海面平靜，魚群正常活動！'},
+  {id:'cloudy',label:'🌥️ 多雲',  skyTop:'#080e18',skyBot:'#121c28',seaTop:'#002858',seaBot:'#001230',speedMult:0.82,visibility:0.75,rainAmt:0,  fog:false,alert:'☁️ 雲層遮月，魚兒游速變慢，更容易瞄準！'},
+  {id:'rainy', label:'🌧️ 下雨',  skyTop:'#040810',skyBot:'#080e18',seaTop:'#001e3a',seaBot:'#000c1e',speedMult:0.68,visibility:0.52,rainAmt:50, fog:false,alert:'🌧️ 雨點打在海面！魚兒潛入深處！'},
+  {id:'storm', label:'⛈️ 雷雨',  skyTop:'#020408',skyBot:'#040810',seaTop:'#000e1e',seaBot:'#000508',speedMult:1.85,visibility:0.28,rainAmt:90, fog:false,alert:'⛈️ 雷雨來襲！\n皇帶魚和燈籠魚可能出沒！'},
+  {id:'foggy', label:'🌫️ 大霧',  skyTop:'#101820',skyBot:'#182030',seaTop:'#001e3a',seaBot:'#000e20',speedMult:0.9, visibility:0.30,rainAmt:0,  fog:true, alert:'🌫️ 大霧瀰漫！\n燈籠魚最愛霧天，注意深層！'},
+  {id:'wavy',  label:'🌊 大浪',  skyTop:'#000c1e',skyBot:'#001830',seaTop:'#002050',seaBot:'#000e28',speedMult:1.32,visibility:0.80,rainAmt:18, fog:false,alert:'🌊 湧浪警報！\n皇帶魚與鯨魚被推到淺層！'},
+];
+
+// ── 狀態 ─────────────────────────────────────────────────────
+let W=0,H=0,SEA_TOP=0;
+const BOAT_Y_RATIO=0.34;
+const SEA_RATIO=0.38;
+const BOUNDARY_PAD=20;
+const WEATHER_INTERVAL=45000;
+const MAX_CASTS=20;
+
+let fish=[],castCount=0,score=0,catches=[];
+let curWeather=WEATHERS[0];
+let lastWeatherTime=0,sinceLastWeather=0,nextCheck=3;
+let linePhase='idle'; // 'cast'=去程, 'reel'=收竿回程, 'idle'=停止
+let lineX=0,lineY=0,lineTargetX=0,lineTargetY=0,lineProgress=0;
+let hookX=0,hookY=0;
+let maxScore=0,animId=null,rainDrops=[],waveOffset=0;
+let clickHandler=null,lastCaughtCheck=0;
+
+const LS='fishing_rod_best2';
+function loadBest(){try{return parseInt(localStorage.getItem(LS))||0;}catch{return 0;}}
+function saveBest(s){localStorage.setItem(LS,String(s));}
+maxScore=loadBest();
+
+// ── DOM ──────────────────────────────────────────────────────
+const cv=document.getElementById('gc');
+const ctx=cv.getContext('2d');
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function getBtn(){return document.getElementById('cast-btn');}
+
+// ── RESIZE ────────────────────────────────────────────────────
+function resize(){
+  const app=document.querySelector('.app');
+  W=app.offsetWidth||window.innerWidth;
+  // visualViewport.height = 真實可視高度（扣掉瀏覽器工具列和鍵盤）
+  const vvh = window.visualViewport ? window.visualViewport.height : 0;
+  // safe-area-inset-bottom（iPhone Home 條）
+  const sab = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')||'0') || 0;
+  H = vvh || (app.offsetHeight||window.innerHeight);
+  // 設定 canvas 實際高度
+  cv.width=W; cv.height=H;
+  // 也讓 app 高度同步
+  app.style.height = H+'px';
+  SEA_TOP=H*SEA_RATIO;
+}
+window.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+function initGame(){
+  resize();
+  castCount=0;score=0;catches=[];
+  casting=false;lineActive=false;linePhase='idle';
+  lastWeatherTime=Date.now();
+  sinceLastWeather=0;nextCheck=3;
+  rainDrops=[];waveOffset=0;
+  document.getElementById('cast-num').textContent=0;
+  document.getElementById('score-disp').textContent=0;
+  const btn=getBtn();
+  if(btn){btn.disabled=false;btn.textContent='🎣 下竿！（'+MAX_CASTS+'次）';}
+  setWeather(WEATHERS[0],false);
+  spawnAllFish();
+  setupClick();
+  showCastHint(true);
+  if(animId)cancelAnimationFrame(animId);
+  loop();
+}
+
+document.getElementById('start-btn').addEventListener('click',()=>{
+  showScreen('screen-game');
+  initGame();
+});
+document.getElementById('again-btn').addEventListener('click',()=>{
+  showScreen('screen-game');
+  initGame();
+});
+document.getElementById('title-best').textContent=maxScore?'🏆 個人最高：'+maxScore+'分':'';
+
+// ── FISH ─────────────────────────────────────────────────────
+function getPool(){
+  return FISH_TYPES.filter(f=>!f.weather||f.weather.includes(curWeather.id));
+}
+function pickWeighted(pool){
+  const tot=pool.reduce((a,b)=>a+b.rarity,0);
+  let r=Math.random()*tot;
+  for(const f of pool){r-=f.rarity;if(r<=0)return f;}
+  return pool[0];
+}
+function spawnOne(pool){
+  const data=pool?pickWeighted(pool):FISH_TYPES[0];
+  const seaH=H-SEA_TOP;
+  const y=SEA_TOP+data.depthMin*seaH+Math.random()*(data.depthMax-data.depthMin)*seaH;
+  const goRight=Math.random()<.5;
+  const x=goRight?-data.sz:W+data.sz;
+  const baseSpd=(0.4+Math.random()*0.6)*data.spd;
+  return{data,x,y,dir:goRight?1:-1,baseSpd,spd:baseSpd*curWeather.speedMult,
+    driftPhase:Math.random()*Math.PI*2,caught:false,caughtAt:0,
+    opacity:Math.min(1,0.4+curWeather.visibility*0.65)};
+}
+function spawnAllFish(){
+  fish=[];
+  const pool=getPool();
+  for(let i=0;i<12;i++)fish.push(spawnOne(pool));
+  ensureRare();
+}
+function ensureRare(){
+  const rareMap={storm:['oarfish','angler'],wavy:['oarfish','whale'],foggy:['angler','jellyfish']};
+  const targets=rareMap[curWeather.id];
+  if(!targets)return;
+  targets.forEach(rid=>{
+    if(!fish.some(f=>!f.caught&&f.data.id===rid)){
+      const data=FISH_TYPES.find(f=>f.id===rid);
+      if(data)fish.push(spawnOne([data]));
+    }
+  });
+}
+function repositionFish(){
+  const seaH=H-SEA_TOP;
+  fish.forEach(f=>{
+    const rel=Math.max(0,Math.min(1,(f.y-SEA_TOP)/(H*0.7||1)));
+    f.y=SEA_TOP+rel*seaH;
+  });
+}
+
+// ── WEATHER ───────────────────────────────────────────────────
+function setWeather(w,showAlert=true){
+  curWeather=w;
+  document.getElementById('wtag').textContent=w.label;
+  fish.forEach(f=>{
+    f.spd=f.baseSpd*w.speedMult;
+    f.opacity=Math.min(1,0.4+w.visibility*0.65);
+  });
+  rainDrops=[];
+  if(w.rainAmt>0){
+    for(let i=0;i<w.rainAmt;i++){
+      rainDrops.push({x:Math.random()*W,y:Math.random()*H,len:8+Math.random()*12,spd:8+Math.random()*8});
+    }
+  }
+  if(showAlert){
+    const el=document.getElementById('w-alert');
+    el.textContent=w.alert;el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'),3600);
+  }
+  if(showAlert)ensureRare();
+}
+function tryWeatherChange(){
+  const now=Date.now();
+  sinceLastWeather++;
+  const byTime=now-lastWeatherTime>=WEATHER_INTERVAL;
+  const byCast=sinceLastWeather>=nextCheck;
+  if(byTime||byCast){
+    if(Math.random()<0.7||byTime){
+      const opts=WEATHERS.filter(w=>w.id!==curWeather.id);
+      setWeather(opts[Math.floor(Math.random()*opts.length)]);
+      lastWeatherTime=now;sinceLastWeather=0;nextCheck=3;
+    } else {
+      nextCheck=1;
+    }
+  }
+}
+
+// ── CLICK / CAST ─────────────────────────────────────────────
+function setupClick(){
+  if(clickHandler)cv.removeEventListener('click',clickHandler);
+  clickHandler=function(e){
+    if(casting||castCount>=MAX_CASTS)return;
+    const rect=cv.getBoundingClientRect();
+    const cx=(e.clientX-rect.left)*(W/rect.width);
+    const cy=(e.clientY-rect.top)*(H/rect.height);
+    if(cy<SEA_TOP+5)return;
+    startCast(cx,cy);
+  };
+  cv.addEventListener('click',clickHandler);
+}
+
+function startCast(tx,ty){
+  casting=true;lineActive=true;linePhase='cast';
+  showCastHint(false);
+  const btn=getBtn();
+  if(btn){btn.disabled=true;btn.textContent='🎣 收竿中...';}
+  tryWeatherChange();
+  castCount++;
+  document.getElementById('cast-num').textContent=castCount;
+  if(castCount%3===0)ensureRare();
+  const tip=getRodTip();
+  lineX=tip.x;lineY=tip.y;
+  lineTargetX=Math.max(BOUNDARY_PAD,Math.min(W-BOUNDARY_PAD,tx));
+  lineTargetY=Math.min(H-BOUNDARY_PAD,Math.max(SEA_TOP+5,ty));
+  lineProgress=0;
+  hookX=lineX;hookY=lineY;
+}
+
+function getRodTip(){return{x:W*.5+28,y:H*BOAT_Y_RATIO-10};}
+
+function endCast(){
+  casting=false;lineActive=false;linePhase='idle';
+  const tip=getRodTip();
+  hookX=tip.x;hookY=tip.y;
+  lineProgress=0;
+  if(castCount>=MAX_CASTS){
+    setTimeout(showResult,700);
+    return;
+  }
+  const btn=getBtn();
+  if(btn){btn.disabled=false;btn.textContent='🎣 下竿！（'+(MAX_CASTS-castCount)+'次）';}
+  showCastHint(true);
+}
+
+function showCastHint(show){
+  const el=document.getElementById('cast-hint');
+  if(el)el.style.opacity=show?'1':'0';
+}
+
+// ── GAME LOOP ─────────────────────────────────────────────────
+function loop(){animId=requestAnimationFrame(loop);update();draw();}
+
+function update(){
+  // 時間天氣觸發
+  if(Date.now()-lastWeatherTime>=WEATHER_INTERVAL&&!casting){
+    const opts=WEATHERS.filter(w=>w.id!==curWeather.id);
+    setWeather(opts[Math.floor(Math.random()*opts.length)]);
+    lastWeatherTime=Date.now();sinceLastWeather=0;nextCheck=3;
+  }
+  waveOffset+=0.4;
+  // fish move
+  const pool=getPool();
+  fish.forEach(f=>{
+    if(f.caught)return;
+    f.x+=f.spd*f.dir;
+    f.y+=Math.sin(Date.now()/1800+f.driftPhase)*0.25;
+    if(f.x>W+60){f.x=-f.data.sz;f.dir=1;}
+    if(f.x<-60){f.x=W+f.data.sz;f.dir=-1;}
+    const seaH=H-SEA_TOP;
+    f.y=Math.max(SEA_TOP+f.data.depthMin*seaH,Math.min(SEA_TOP+f.data.depthMax*seaH,f.y));
+  });
+  fish=fish.filter(f=>!f.caught||(Date.now()-f.caughtAt<400));
+  while(fish.filter(f=>!f.caught).length<8)fish.push(spawnOne(pool));
+  // line 去程 & 收竿回程
+  if(lineActive&&casting){
+    if(linePhase==='cast'){
+      // 去程：往目標點
+      lineProgress=Math.min(1,lineProgress+0.045);
+      hookX=lineX+(lineTargetX-lineX)*lineProgress;
+      hookY=lineY+(lineTargetY-lineY)*lineProgress;
+      // 偵測碰魚
+      if(Date.now()-lastCaughtCheck>40){
+        lastCaughtCheck=Date.now();
+        const hit=checkHit();
+        if(hit){doCatch(hit);return;}
+      }
+      // 到達目標點 → 轉為收竿
+      if(lineProgress>=1){
+        linePhase='reel';
+        lineProgress=0;
+        // 收竿起點 = 目前鉤子位置，終點 = 船桿
+        lineX=hookX;lineY=hookY;
+        const tip=getRodTip();
+        lineTargetX=tip.x;lineTargetY=tip.y;
+        const btn=getBtn();
+        if(btn)btn.textContent='↩️ 收竿中...';
+      }
+    } else if(linePhase==='reel'){
+      // 收竿回程：往船桿縮回（比去程快一點）
+      lineProgress=Math.min(1,lineProgress+0.065);
+      hookX=lineX+(lineTargetX-lineX)*lineProgress;
+      hookY=lineY+(lineTargetY-lineY)*lineProgress;
+      // 回程也偵測碰魚
+      if(Date.now()-lastCaughtCheck>40){
+        lastCaughtCheck=Date.now();
+        const hit=checkHit();
+        if(hit){doCatch(hit);return;}
+      }
+      // 縮回完畢
+      if(lineProgress>=1){
+        showMiss();
+        endCast();
+      }
+    }
+  }
+  // rain
+  rainDrops.forEach(d=>{d.y+=d.spd;if(d.y>H){d.y=-20;d.x=Math.random()*W;}});
+}
+
+function checkHit(){
+  let best=null,bd=999;
+  fish.forEach(f=>{
+    if(f.caught)return;
+    const dx=hookX-f.x,dy=hookY-f.y;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<f.data.sz*.9&&d<bd){bd=d;best=f;}
+  });
+  return best;
+}
+
+function doCatch(f){
+  f.caught=true;f.caughtAt=Date.now();
+  score+=f.data.pts;
+  catches.push({...f.data});
+  document.getElementById('score-disp').textContent=score;
+  const pop=document.createElement('div');
+  pop.className='catch-pop';
+  pop.style.left=hookX+'px';pop.style.top=(hookY-20)+'px';
+  pop.textContent=fishEmoji(f.data)+' +'+f.data.pts;
+  document.getElementById('screen-game').appendChild(pop);
+  setTimeout(()=>{if(pop.parentNode)pop.remove();},950);
+  endCast();
+}
+
+function showMiss(){
+  const pop=document.createElement('div');
+  pop.className='catch-pop';
+  pop.style.cssText='left:'+(W/2-20)+'px;top:'+(H*.4)+'px;color:#7ab;text-shadow:none;font-size:13px;';
+  pop.textContent='空鉤...';
+  document.getElementById('screen-game').appendChild(pop);
+  setTimeout(()=>{if(pop.parentNode)pop.remove();},800);
+}
+
+function fishEmoji(f){
+  const map={
+    sardine:'🐟',mackerel:'🐡',carp:'🎏',clownfish:'🐠',flyingfish:'💨',
+    dolphin:'🐬',seal:'🦭',bass:'🐟',squid:'🦑',shrimp:'🦐',
+    jellyfish:'🪼',seahorse:'🐠',lionfish:'🐡',shark:'🦈',turtle:'🐢',
+    blowfish:'🐡',swordfish:'🐟',octopus:'🐙',crab:'🦀',lobster:'🦞',
+    sunfish:'🔵',whale:'🐳',manta:'🕊️',
+    oarfish:'✨',angler:'💡',viperfish:'💜'
+  };
+  return map[f.id]||'🐟';
+}
+function drawCustomFish(ctx, id, x, y, dir, sz, glowColor, opacity){
+  ctx.save();
+  ctx.globalAlpha=opacity;
+  ctx.translate(x, y);
+  if(dir<0) ctx.scale(-1,1);
+
+  if(id==='oarfish'){
+    // 皇帶魚：細長銀色發光帶狀魚
+    const len=sz*5;
+    // 發光效果
+    ctx.shadowColor='#ffd700';
+    ctx.shadowBlur=16+Math.sin(Date.now()/400)*6;
+    // 身體（細長波浪形）
+    ctx.strokeStyle='rgba(220,230,255,0.9)';
+    ctx.lineWidth=sz*0.28;
+    ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(-len/2, 0);
+    for(let i=0;i<=20;i++){
+      const px=-len/2+i*(len/20);
+      const py=Math.sin(i*0.5+Date.now()/400)*sz*0.4;
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    // 銀色光澤線
+    ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,255,255,0.6)';
+    ctx.lineWidth=sz*0.08;
+    ctx.beginPath();
+    ctx.moveTo(-len/2, -sz*0.05);
+    for(let i=0;i<=20;i++){
+      const px=-len/2+i*(len/20);
+      const py=Math.sin(i*0.5+Date.now()/400)*sz*0.4-sz*0.05;
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    // 頭部
+    ctx.shadowColor='#ffd700';ctx.shadowBlur=12;
+    ctx.fillStyle='rgba(200,210,255,0.95)';
+    ctx.beginPath();ctx.ellipse(-len/2, 0, sz*0.35, sz*0.22, 0, 0, Math.PI*2);ctx.fill();
+    // 背鰭（紅色）
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(220,60,60,0.85)';
+    for(let i=0;i<6;i++){
+      const px=-len/2+20+i*(len/7);
+      const py=Math.sin(i*0.5+Date.now()/400)*sz*0.4;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px-sz*0.2, py-sz*0.7);
+      ctx.lineTo(px+sz*0.2, py-sz*0.1);
+      ctx.closePath();ctx.fill();
+    }
+    // 眼睛
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-len/2-sz*0.05,sz*0.05,sz*0.12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(-len/2-sz*0.05,sz*0.05,sz*0.07,0,Math.PI*2);ctx.fill();
+
+  } else if(id==='angler'){
+    // 燈籠魚：深黑圓身、頭頂發光燈籠
+    const r=sz*0.55;
+    // 燈籠（頭頂）
+    const lampX=-r*0.3;
+    const lampY=-r*1.4;
+    const lampGlow=10+Math.sin(Date.now()/300)*5;
+    // 燈籠線
+    ctx.shadowColor='#00ffff';ctx.shadowBlur=lampGlow;
+    ctx.strokeStyle='rgba(150,255,200,0.7)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(-r*0.2,-r*0.5);ctx.bezierCurveTo(-r*0.1,-r,lampX+r*0.1,lampY+r*0.3,lampX,lampY);ctx.stroke();
+    // 燈籠發光球
+    ctx.shadowColor='#00ffff';ctx.shadowBlur=lampGlow*2;
+    const lgrd=ctx.createRadialGradient(lampX,lampY,0,lampX,lampY,sz*0.28);
+    lgrd.addColorStop(0,'rgba(200,255,255,1)');
+    lgrd.addColorStop(0.4,'rgba(0,220,255,0.8)');
+    lgrd.addColorStop(1,'rgba(0,100,255,0)');
+    ctx.fillStyle=lgrd;
+    ctx.beginPath();ctx.arc(lampX,lampY,sz*0.32,0,Math.PI*2);ctx.fill();
+    // 白色核心
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.beginPath();ctx.arc(lampX,lampY,sz*0.1,0,Math.PI*2);ctx.fill();
+    // 身體
+    ctx.shadowColor='#004466';ctx.shadowBlur=8;
+    const bgrd=ctx.createRadialGradient(-r*0.2,0,0,0,0,r);
+    bgrd.addColorStop(0,'#1a3a3a');bgrd.addColorStop(1,'#050f10');
+    ctx.fillStyle=bgrd;
+    ctx.beginPath();ctx.ellipse(0,0,r,r*0.85,0,0,Math.PI*2);ctx.fill();
+    // 牙齒
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(200,220,200,0.9)';
+    for(let i=0;i<5;i++){
+      ctx.beginPath();
+      ctx.moveTo(-r*0.5+i*r*0.25, r*0.3);
+      ctx.lineTo(-r*0.38+i*r*0.25, r*0.6);
+      ctx.lineTo(-r*0.25+i*r*0.25, r*0.3);
+      ctx.closePath();ctx.fill();
+    }
+    // 眼睛（發光）
+    ctx.shadowColor='#00ffff';ctx.shadowBlur=8;
+    ctx.fillStyle='rgba(0,200,255,0.9)';
+    ctx.beginPath();ctx.arc(-r*0.35,-r*0.15,r*0.22,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#001a1a';
+    ctx.beginPath();ctx.arc(-r*0.35,-r*0.15,r*0.13,0,Math.PI*2);ctx.fill();
+    // 尾鰭
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(30,60,60,0.8)';
+    ctx.beginPath();ctx.moveTo(r*0.7,0);ctx.lineTo(r*1.3,-r*0.5);ctx.lineTo(r*1.3,r*0.5);ctx.closePath();ctx.fill();
+    // 胸鰭
+    ctx.fillStyle='rgba(20,50,50,0.7)';
+    ctx.beginPath();ctx.ellipse(r*0.1,r*0.4,r*0.4,r*0.15,-0.4,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+
+function draw(){
+  const w=curWeather;
+  ctx.clearRect(0,0,W,H);
+  // sky
+  const sg=ctx.createLinearGradient(0,0,0,SEA_TOP);
+  sg.addColorStop(0,w.skyTop);sg.addColorStop(1,w.skyBot);
+  ctx.fillStyle=sg;ctx.fillRect(0,0,W,SEA_TOP);
+  // stars
+  if(w.id==='sunny'||w.id==='cloudy'){
+    ctx.fillStyle='rgba(255,255,255,.5)';
+    for(let i=0;i<25;i++){ctx.beginPath();ctx.arc((i*137.5)%W,(i*73.1)%(SEA_TOP*.9),.8,0,Math.PI*2);ctx.fill();}
+  }
+  // moon
+  if(w.id!=='storm'){
+    ctx.fillStyle='rgba(255,255,220,.9)';ctx.beginPath();ctx.arc(W*.82,SEA_TOP*.25,12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=w.skyTop;ctx.beginPath();ctx.arc(W*.82+7,SEA_TOP*.25,10,0,Math.PI*2);ctx.fill();
+  }
+  if(w.id==='storm'&&Math.random()<.003){ctx.fillStyle='rgba(200,200,255,.12)';ctx.fillRect(0,0,W,SEA_TOP);}
+  // sea
+  const seag=ctx.createLinearGradient(0,SEA_TOP,0,H);
+  seag.addColorStop(0,w.seaTop);seag.addColorStop(1,w.seaBot);
+  ctx.fillStyle=seag;ctx.fillRect(0,SEA_TOP,W,H-SEA_TOP);
+  // depth shading
+  const seaH=H-SEA_TOP;
+  for(let i=1;i<=3;i++){ctx.fillStyle='rgba(0,0,0,'+(.05*i)+')';ctx.fillRect(0,SEA_TOP+seaH*(i*.25),W,seaH*.25);}
+  // depth labels
+  ctx.fillStyle='rgba(80,140,200,.22)';ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('— 淺層',4,SEA_TOP+seaH*.08);
+  ctx.fillText('— 中層',4,SEA_TOP+seaH*.40);
+  ctx.fillText('— 深層',4,SEA_TOP+seaH*.65);
+  ctx.fillText('— 深淵',4,SEA_TOP+seaH*.85);
+  // fog
+  if(w.fog){const fg=ctx.createLinearGradient(0,0,0,H*.7);fg.addColorStop(0,'rgba(140,160,180,.22)');fg.addColorStop(1,'transparent');ctx.fillStyle=fg;ctx.fillRect(0,0,W,H*.7);}
+  // rain
+  ctx.strokeStyle='rgba(140,190,255,.5)';ctx.lineWidth=1;
+  rainDrops.forEach(d=>{ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+2,d.y+d.len);ctx.stroke();});
+  // waves
+  const wAmp=w.id==='storm'?8:w.id==='wavy'?5:2;
+  ctx.fillStyle='rgba(0,100,180,.45)';
+  ctx.beginPath();ctx.moveTo(0,SEA_TOP);
+  for(let x=0;x<=W;x+=4){ctx.lineTo(x,SEA_TOP+Math.sin(x*.018+waveOffset*.06)*wAmp+Math.sin(x*.03+waveOffset*.04)*wAmp*.5);}
+  ctx.lineTo(W,SEA_TOP-10);ctx.lineTo(0,SEA_TOP-10);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(180,220,255,.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,SEA_TOP);
+  for(let x=0;x<=W;x+=4){ctx.lineTo(x,SEA_TOP+Math.sin(x*.018+waveOffset*.06)*wAmp+Math.sin(x*.03+waveOffset*.04)*wAmp*.5);}
+  ctx.stroke();
+  // fish — 全部手繪
+  fish.forEach(f=>{
+    if(f.caught)return;
+    drawCustomFish(ctx, f.data.id, f.x, f.y, f.dir, f.data.sz, f.data.glowColor||null, f.opacity);
+  });
+  // visibility overlay
+  if(w.visibility<1){ctx.fillStyle='rgba(0,5,12,'+(1-w.visibility)*.75+')';ctx.fillRect(0,SEA_TOP,W,H-SEA_TOP);}
+  // boat
+  drawBoat();
+  // line & hook
+  if(lineActive){
+    const tip=getRodTip();
+    ctx.strokeStyle='rgba(255,255,180,.7)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(tip.x,tip.y);ctx.lineTo(hookX,hookY);ctx.stroke();
+    ctx.save();ctx.font='14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.globalAlpha=.9;
+    ctx.fillText('🪝',hookX,hookY);ctx.restore();
+    // ripple
+    ctx.strokeStyle='rgba(100,200,255,.3)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(hookX,hookY,4+Math.sin(Date.now()/200)*2,0,Math.PI*2);ctx.stroke();
+  }
+}
+
+function drawBoat(){
+  const bx=W*.5,by=H*BOAT_Y_RATIO;
+  const wave=Math.sin(Date.now()/1200)*2;
+  ctx.save();ctx.translate(bx,by+wave);
+  // 船影
+  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(0,26,50,6,0,0,Math.PI*2);ctx.fill();
+  // 船殼（紅色深V）
+  const hg=ctx.createLinearGradient(0,-4,0,22);
+  hg.addColorStop(0,'#c0392b');hg.addColorStop(.5,'#96281b');hg.addColorStop(1,'#7b241c');
+  ctx.fillStyle=hg;ctx.beginPath();
+  ctx.moveTo(-52,4);ctx.lineTo(-48,20);ctx.quadraticCurveTo(0,28,48,20);ctx.lineTo(52,4);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(255,120,100,.35)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-48,10);ctx.quadraticCurveTo(0,18,48,10);ctx.stroke();
+  // 甲板（白）
+  const dg=ctx.createLinearGradient(0,-8,0,6);
+  dg.addColorStop(0,'#f0f0f0');dg.addColorStop(1,'#d0d0d0');
+  ctx.fillStyle=dg;ctx.beginPath();
+  ctx.moveTo(-52,4);ctx.lineTo(52,4);ctx.lineTo(46,-4);ctx.quadraticCurveTo(0,-10,-46,-4);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#aaa';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(-52,4);ctx.lineTo(-46,-4);ctx.quadraticCurveTo(0,-10,46,-4);ctx.lineTo(52,4);ctx.stroke();
+  // 船艙（藍）
+  const cg=ctx.createLinearGradient(-18,-28,18,0);
+  cg.addColorStop(0,'#4a90d9');cg.addColorStop(1,'#2c6faf');
+  ctx.fillStyle=cg;ctx.beginPath();ctx.roundRect(-18,-28,36,28,3);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=1;ctx.strokeRect(-18,-28,36,28);
+  // 窗戶
+  ctx.fillStyle='rgba(180,230,255,.85)';
+  ctx.beginPath();ctx.roundRect(-12,-22,10,9,2);ctx.fill();
+  ctx.beginPath();ctx.roundRect(2,-22,10,9,2);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=.8;
+  ctx.strokeRect(-12,-22,10,9);ctx.strokeRect(2,-22,10,9);
+  ctx.beginPath();ctx.moveTo(-7,-22);ctx.lineTo(-7,-13);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-12,-17);ctx.lineTo(-2,-17);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(7,-22);ctx.lineTo(7,-13);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(2,-17);ctx.lineTo(12,-17);ctx.stroke();
+  ctx.fillStyle='rgba(30,60,100,.8)';ctx.beginPath();ctx.roundRect(-5,-10,10,10,2);ctx.fill();
+  // 煙囪
+  ctx.fillStyle='#555';ctx.beginPath();ctx.roundRect(-22,-32,9,18,2);ctx.fill();
+  ctx.fillStyle='#333';ctx.beginPath();ctx.roundRect(-23,-36,11,7,2);ctx.fill();
+  const sa=0.15+Math.abs(Math.sin(Date.now()/800))*.1;
+  ctx.fillStyle=`rgba(180,180,180,${sa})`;ctx.beginPath();ctx.arc(-17,-44,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=`rgba(180,180,180,${sa*.6})`;ctx.beginPath();ctx.arc(-14,-52,4,0,Math.PI*2);ctx.fill();
+  // 桅桿
+  ctx.strokeStyle='#8B6914';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(22,-8);ctx.lineTo(22,-46);ctx.stroke();
+  ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(8,-38);ctx.lineTo(36,-38);ctx.stroke();
+  // 旗
+  ctx.fillStyle='#e74c3c';ctx.beginPath();
+  ctx.moveTo(22,-46);ctx.lineTo(38,-41);ctx.lineTo(22,-36);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+
+function drawCustomFish(c, id, x, y, dir, sz, glowColor, opacity){
+  c.save();
+  c.globalAlpha=opacity||1;
+  c.translate(x,y);
+  if(dir<0)c.scale(-1,1);
+  const t=Date.now();
+  if(glowColor){c.shadowColor=glowColor;c.shadowBlur=10+Math.sin(t/500)*5;}
+
+  switch(id){
+    case 'sardine':{
+      const sg=c.createLinearGradient(-sz*.7,0,sz*.7,0);
+      sg.addColorStop(0,'#b0bec5');sg.addColorStop(.5,'#eceff1');sg.addColorStop(1,'#78909c');
+      c.fillStyle=sg;c.beginPath();c.ellipse(0,0,sz*.75,sz*.25,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='#4a90c8';c.lineWidth=sz*.07;
+      c.beginPath();c.moveTo(-sz*.6,0);c.quadraticCurveTo(0,-sz*.18,sz*.6,0);c.stroke();
+      c.fillStyle='#78909c';c.beginPath();c.moveTo(-sz*.7,0);c.lineTo(-sz,sz*.3);c.lineTo(-sz,-sz*.3);c.closePath();c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.5,0,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='#222';c.beginPath();c.arc(sz*.52,0,sz*.06,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'mackerel':{
+      const mg=c.createLinearGradient(0,-sz*.3,0,sz*.3);
+      mg.addColorStop(0,'#1565c0');mg.addColorStop(.4,'#26c6da');mg.addColorStop(1,'#e0f7fa');
+      c.fillStyle=mg;c.beginPath();c.ellipse(0,0,sz*.8,sz*.28,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='rgba(0,50,100,.5)';c.lineWidth=sz*.06;
+      for(let i=0;i<5;i++){const bx=-sz*.4+i*sz*.2;c.beginPath();c.moveTo(bx,-sz*.2);c.quadraticCurveTo(bx+sz*.05,0,bx,-sz*.05);c.stroke();}
+      c.fillStyle='#0d47a1';c.beginPath();c.moveTo(-sz*.78,0);c.lineTo(-sz*1.05,sz*.32);c.lineTo(-sz*1.05,-sz*.32);c.closePath();c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.56,sz*.02,sz*.11,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.58,sz*.02,sz*.065,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'carp':{
+      const cg2=c.createRadialGradient(0,-sz*.1,0,0,0,sz*.8);
+      cg2.addColorStop(0,'#ffcc02');cg2.addColorStop(.5,'#f4511e');cg2.addColorStop(1,'#b71c1c');
+      c.fillStyle=cg2;c.beginPath();c.ellipse(0,0,sz*.85,sz*.35,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='rgba(255,200,0,.4)';c.lineWidth=sz*.04;
+      for(let i=-2;i<=2;i++){c.beginPath();c.arc(i*sz*.28,0,sz*.22,Math.PI*.1,Math.PI*.9);c.stroke();}
+      c.strokeStyle='#8d1c00';c.lineWidth=sz*.04;
+      c.beginPath();c.moveTo(sz*.7,sz*.05);c.quadraticCurveTo(sz*.9,-sz*.2,sz*.85,-sz*.35);c.stroke();
+      c.beginPath();c.moveTo(sz*.7,sz*.05);c.quadraticCurveTo(sz*.95,sz*.1,sz*.9,sz*.3);c.stroke();
+      c.fillStyle='#c62828';c.beginPath();c.moveTo(-sz*.8,0);c.lineTo(-sz*1.1,sz*.38);c.lineTo(-sz*1.1,-sz*.38);c.closePath();c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.58,0,sz*.12,0,Math.PI*2);c.fill();
+      c.fillStyle='#333';c.beginPath();c.arc(sz*.6,0,sz*.07,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'clownfish':{
+      c.fillStyle='#ff6d00';c.beginPath();c.ellipse(0,0,sz*.75,sz*.32,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';
+      c.beginPath();c.ellipse(sz*.15,0,sz*.1,sz*.28,0,0,Math.PI*2);c.fill();
+      c.beginPath();c.ellipse(-sz*.25,0,sz*.1,sz*.28,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#ff6d00';
+      c.beginPath();c.ellipse(sz*.15,0,sz*.06,sz*.24,0,0,Math.PI*2);c.fill();
+      c.beginPath();c.ellipse(-sz*.25,0,sz*.06,sz*.24,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='#111';c.lineWidth=sz*.04;c.beginPath();c.ellipse(0,0,sz*.75,sz*.32,0,0,Math.PI*2);c.stroke();
+      c.fillStyle='#e65100';c.beginPath();c.moveTo(-sz*.1,-sz*.3);c.lineTo(sz*.3,-sz*.55);c.lineTo(sz*.5,-sz*.3);c.closePath();c.fill();
+      c.fillStyle='#ff6d00';c.beginPath();c.moveTo(-sz*.72,0);c.lineTo(-sz,.35*sz);c.lineTo(-sz,-sz*.35);c.closePath();c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.52,-sz*.05,sz*.13,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.54,-sz*.05,sz*.08,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'flyingfish':{
+      c.fillStyle='#1976d2';c.beginPath();c.ellipse(0,0,sz*.85,sz*.2,0,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(100,180,255,.7)';
+      c.beginPath();c.moveTo(-sz*.2,-sz*.15);c.lineTo(sz*.4,-sz*.65);c.lineTo(sz*.5,-sz*.15);c.closePath();c.fill();
+      c.beginPath();c.moveTo(-sz*.2,sz*.15);c.lineTo(sz*.4,sz*.65);c.lineTo(sz*.5,sz*.15);c.closePath();c.fill();
+      c.fillStyle='#0d47a1';c.beginPath();c.moveTo(-sz*.82,0);c.lineTo(-sz*1.1,sz*.28);c.lineTo(-sz*1.1,-sz*.28);c.closePath();c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.6,-sz*.02,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.62,-sz*.02,sz*.06,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'dolphin':{
+      const dg2=c.createLinearGradient(0,-sz*.4,0,sz*.4);
+      dg2.addColorStop(0,'#1565c0');dg2.addColorStop(.5,'#42a5f5');dg2.addColorStop(1,'#e3f2fd');
+      c.fillStyle=dg2;c.beginPath();c.ellipse(sz*.05,0,sz*.9,sz*.38,0,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.7)';c.beginPath();c.ellipse(sz*.15,sz*.1,sz*.5,sz*.2,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#1565c0';
+      c.beginPath();c.moveTo(sz*.05,-sz*.36);c.lineTo(sz*.3,-sz*.7);c.lineTo(sz*.5,-sz*.36);c.closePath();c.fill();
+      c.beginPath();c.moveTo(-sz*.88,0);c.quadraticCurveTo(-sz*1.1,-sz*.1,-sz*1.15,-sz*.4);
+      c.quadraticCurveTo(-sz*1.05,-sz*.2,-sz*.9,0);
+      c.quadraticCurveTo(-sz*1.05,sz*.2,-sz*1.15,sz*.4);
+      c.quadraticCurveTo(-sz*1.1,sz*.1,-sz*.88,0);c.closePath();c.fill();
+      c.strokeStyle='#263238';c.lineWidth=sz*.04;
+      c.beginPath();c.arc(sz*.78,sz*.14,sz*.15,Math.PI*.1,Math.PI*.55);c.stroke();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.62,-sz*.06,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='#1a1a1a';c.beginPath();c.arc(sz*.63,-sz*.06,sz*.06,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'seal':{
+      c.fillStyle='#795548';c.beginPath();c.ellipse(sz*.1,0,sz*.75,sz*.38,-.12,0,Math.PI*2);c.fill();
+      c.fillStyle='#bcaaa4';c.beginPath();c.ellipse(sz*.15,sz*.08,sz*.42,sz*.22,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#6d4c41';c.beginPath();c.ellipse(sz*.35,sz*.32,sz*.22,sz*.1,-.4,0,Math.PI*2);c.fill();
+      c.beginPath();c.moveTo(-sz*.75,0);c.lineTo(-sz*1.0,-sz*.28);c.lineTo(-sz*.9,0);c.lineTo(-sz*1.0,sz*.28);c.closePath();c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.58,-sz*.1,sz*.16,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.62,-sz*.13,sz*.06,0,Math.PI*2);c.fill();
+      c.fillStyle='#3e2723';c.beginPath();c.arc(sz*.82,sz*.05,sz*.07,0,Math.PI*2);c.fill();
+      c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=sz*.025;
+      for(let i=-1;i<=1;i++){c.beginPath();c.moveTo(sz*.82,sz*.05+i*sz*.06);c.lineTo(sz*1.1,sz*.05+i*sz*.1);c.stroke();}
+      break;
+    }
+    case 'bass':{
+      const bg=c.createLinearGradient(0,-sz*.3,0,sz*.3);
+      bg.addColorStop(0,'#546e7a');bg.addColorStop(.5,'#80cbc4');bg.addColorStop(1,'#e0f2f1');
+      c.fillStyle=bg;c.beginPath();c.ellipse(0,0,sz*.8,sz*.3,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#37474f';
+      for(let i=0;i<5;i++){const fx=-sz*.2+i*sz*.16;c.beginPath();c.moveTo(fx,-sz*.28);c.lineTo(fx-sz*.06,-sz*.52);c.lineTo(fx+sz*.06,-sz*.28);c.closePath();c.fill();}
+      c.strokeStyle='rgba(0,0,0,.3)';c.lineWidth=sz*.04;
+      c.beginPath();c.moveTo(sz*.6,-sz*.15);c.quadraticCurveTo(sz*.2,-sz*.05,-sz*.5,sz*.05);c.stroke();
+      c.fillStyle='#263238';c.beginPath();c.moveTo(-sz*.78,0);c.lineTo(-sz*1.05,sz*.3);c.lineTo(-sz*1.05,-sz*.3);c.closePath();c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.56,0,sz*.11,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.58,0,sz*.065,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'squid':{
+      c.fillStyle='#e8d5ff';c.beginPath();c.ellipse(0,-sz*.2,sz*.25,sz*.55,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='#9c4dcc';c.lineWidth=sz*.06;
+      const arms=[-.5,-.3,-.1,.1,.3,.5,.7,.9];
+      arms.forEach((ox,i)=>{const len=sz*(.55+Math.sin(t*.001+i)*.05);c.beginPath();c.moveTo(ox*sz*.4,sz*.3);c.quadraticCurveTo(ox*sz*.5,sz*.6+len*.3,ox*sz*.4,sz*.3+len);c.stroke();});
+      c.fillStyle='#ce93d8';c.beginPath();c.moveTo(-sz*.2,sz*.3);c.quadraticCurveTo(-sz*.5,sz*.7,-sz*.4,sz*.9);c.lineTo(sz*.4,sz*.9);c.quadraticCurveTo(sz*.5,sz*.7,sz*.2,sz*.3);c.closePath();c.fill();
+      c.fillStyle='#4a148c';c.beginPath();c.arc(-sz*.1,-sz*.38,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(-sz*.08,-sz*.38,sz*.05,0,Math.PI*2);c.fill();
+      c.fillStyle='#4a148c';c.beginPath();c.arc(sz*.1,-sz*.38,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.12,-sz*.38,sz*.05,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'shrimp':{
+      c.fillStyle='#ef9a9a';
+      for(let i=0;i<5;i++){c.beginPath();c.ellipse(-sz*.15+i*sz*.1,sz*.05*Math.sin(i),sz*.14,sz*.1,i*.2-.4,0,Math.PI*2);c.fill();}
+      c.strokeStyle='#c62828';c.lineWidth=sz*.06;
+      c.beginPath();c.moveTo(-sz*.5,0);c.quadraticCurveTo(0,-sz*.15,sz*.5,sz*.05);c.stroke();
+      c.strokeStyle='rgba(200,100,100,.5)';c.lineWidth=sz*.03;
+      for(let i=0;i<4;i++){c.beginPath();c.moveTo(-sz*.2+i*sz*.15,sz*.1);c.lineTo(-sz*.25+i*sz*.15,sz*.35);c.stroke();}
+      c.strokeStyle='#b71c1c';c.lineWidth=sz*.04;
+      c.beginPath();c.moveTo(sz*.5,sz*.05);c.lineTo(sz*.85,-sz*.15);c.stroke();
+      c.beginPath();c.moveTo(sz*.5,sz*.05);c.lineTo(sz*.82,sz*.1);c.stroke();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.52,sz*.02,sz*.07,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'jellyfish':{
+      const pulse=Math.sin(t/600)*.05;
+      const jg=c.createRadialGradient(0,-sz*.1,0,0,-sz*.1,sz*.6);
+      jg.addColorStop(0,'rgba(180,100,255,.9)');jg.addColorStop(.6,'rgba(120,60,200,.5)');jg.addColorStop(1,'rgba(80,20,150,.1)');
+      c.fillStyle=jg;c.beginPath();c.ellipse(0,-sz*.1,sz*(.5+pulse),sz*(.4+pulse),0,0,Math.PI);c.fill();
+      c.strokeStyle='rgba(200,150,255,.4)';c.lineWidth=sz*.04;
+      for(let i=0;i<6;i++){
+        const tx=-sz*.4+i*sz*.16,wave2=Math.sin(t/400+i)*sz*.08;
+        c.beginPath();c.moveTo(tx,sz*.2);c.quadraticCurveTo(tx+wave2,sz*.5+i*sz*.05,tx-wave2,sz*.8+i*sz*.08);c.stroke();
+      }
+      c.fillStyle='rgba(220,180,255,.3)';c.beginPath();c.ellipse(0,-sz*.1,sz*.35,sz*.15,0,0,Math.PI);c.fill();
+      break;
+    }
+    case 'seahorse':{
+      c.strokeStyle='#f57c00';c.lineWidth=sz*.28;c.lineCap='round';
+      c.beginPath();c.moveTo(0,-sz*.5);c.bezierCurveTo(sz*.3,-sz*.3,sz*.3,sz*.1,0,sz*.3);c.bezierCurveTo(-sz*.15,sz*.4,-sz*.1,sz*.6,sz*.05,sz*.7);c.stroke();
+      c.strokeStyle='#e65100';c.lineWidth=sz*.12;
+      c.beginPath();c.moveTo(0,-sz*.5);c.bezierCurveTo(sz*.3,-sz*.3,sz*.3,sz*.1,0,sz*.3);c.bezierCurveTo(-sz*.15,sz*.4,-sz*.1,sz*.6,sz*.05,sz*.7);c.stroke();
+      c.fillStyle='#ffcc02';c.beginPath();c.ellipse(sz*.1,-sz*.55,sz*.2,sz*.15,-.3,0,Math.PI*2);c.fill();
+      c.strokeStyle='#e65100';c.lineWidth=sz*.06;
+      for(let i=0;i<4;i++){const sy=-sz*.25+i*sz*.15;c.beginPath();c.moveTo(-sz*.1,sy);c.lineTo(-sz*.35,sy-sz*.1);c.stroke();}
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.2,-sz*.55,sz*.07,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.6)';c.beginPath();c.arc(sz*.22,-sz*.58,sz*.03,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'lionfish':{
+      c.shadowColor='#ff6b35';c.shadowBlur=12+Math.sin(t/400)*5;
+      const lg2=c.createRadialGradient(0,0,0,0,0,sz*.7);
+      lg2.addColorStop(0,'#ff8a50');lg2.addColorStop(.5,'#d84315');lg2.addColorStop(1,'#4a0e00');
+      c.fillStyle=lg2;c.beginPath();c.ellipse(0,0,sz*.7,sz*.32,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='rgba(255,200,100,.5)';c.lineWidth=sz*.05;
+      for(let i=0;i<5;i++){c.beginPath();c.moveTo(-sz*.5+i*sz*.25,sz*.32);c.lineTo(-sz*.55+i*sz*.28,sz*.65);c.stroke();}
+      c.fillStyle='rgba(255,100,50,.8)';
+      for(let i=0;i<7;i++){const fx=-sz*.4+i*sz*.12;c.beginPath();c.moveTo(fx,-sz*.3);c.lineTo(fx-sz*.06,-sz*.65);c.lineTo(fx+sz*.06,-sz*.3);c.closePath();c.fill();}
+      c.strokeStyle='rgba(255,150,50,.6)';c.lineWidth=sz*.04;
+      for(let i=0;i<4;i++){const bx=-sz*.5+i*sz*.22;c.beginPath();c.moveTo(bx,-sz*.12);c.quadraticCurveTo(bx+sz*.04,sz*.05,bx+sz*.08,-sz*.12);c.stroke();}
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.5,-sz*.04,sz*.12,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.52,-sz*.04,sz*.07,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'shark':{
+      const sg2=c.createLinearGradient(0,-sz*.4,0,sz*.4);
+      sg2.addColorStop(0,'#455a64');sg2.addColorStop(.5,'#78909c');sg2.addColorStop(1,'#eceff1');
+      c.fillStyle=sg2;c.beginPath();
+      c.moveTo(sz,0);c.quadraticCurveTo(sz*.5,-sz*.3,-sz*.7,-sz*.28);c.quadraticCurveTo(-sz,-sz*.1,-sz,sz*.1);c.quadraticCurveTo(-sz*.7,sz*.28,sz*.5,sz*.3);c.closePath();c.fill();
+      c.fillStyle='#37474f';
+      c.beginPath();c.moveTo(sz*.1,-sz*.28);c.lineTo(sz*.3,-sz*.72);c.lineTo(sz*.5,-sz*.28);c.closePath();c.fill();
+      c.beginPath();c.moveTo(sz*.3,sz*.22);c.lineTo(sz*.45,sz*.5);c.lineTo(sz*.6,sz*.22);c.closePath();c.fill();
+      c.beginPath();c.moveTo(-sz*.8,-sz*.1);c.lineTo(-sz*1.1,-sz*.35);c.lineTo(-sz*1.0,sz*.0);c.lineTo(-sz*1.1,sz*.35);c.lineTo(-sz*.8,sz*.1);c.closePath();c.fill();
+      c.fillStyle='#37474f';c.beginPath();c.arc(sz*.72,-sz*.08,sz*.13,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.74,-sz*.1,sz*.06,0,Math.PI*2);c.fill();
+      c.strokeStyle='rgba(255,255,255,.4)';c.lineWidth=sz*.04;
+      for(let i=0;i<3;i++){c.beginPath();c.moveTo(sz*.72+i*sz*.04,-sz*.02);c.lineTo(sz*.74+i*sz*.04,sz*.08);c.stroke();}
+      break;
+    }
+    case 'turtle':{
+      c.fillStyle='#2e7d32';c.beginPath();c.ellipse(0,0,sz*.65,sz*.5,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='#1b5e20';c.lineWidth=sz*.05;
+      c.beginPath();c.moveTo(0,-sz*.48);c.lineTo(0,sz*.48);c.stroke();
+      c.beginPath();c.moveTo(-sz*.63,0);c.lineTo(sz*.63,0);c.stroke();
+      c.beginPath();c.moveTo(-sz*.45,-sz*.34);c.lineTo(sz*.45,sz*.34);c.stroke();
+      c.beginPath();c.moveTo(sz*.45,-sz*.34);c.lineTo(-sz*.45,sz*.34);c.stroke();
+      c.fillStyle='#4caf50';c.beginPath();c.ellipse(sz*.55,0,sz*.22,sz*.1,0,0,Math.PI*2);c.fill();
+      c.beginPath();c.ellipse(-sz*.55,0,sz*.22,sz*.1,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#388e3c';c.beginPath();c.ellipse(sz*.68,sz*.35,sz*.14,sz*.08,-.5,0,Math.PI*2);c.fill();
+      c.beginPath();c.ellipse(sz*.68,-sz*.35,sz*.14,sz*.08,.5,0,Math.PI*2);c.fill();
+      c.fillStyle='#33691e';c.beginPath();c.ellipse(sz*.8,sz*.02,sz*.25,sz*.15,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#1b5e20';c.beginPath();c.arc(sz*.9,-sz*.04,sz*.06,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.7)';c.beginPath();c.arc(sz*.91,-sz*.06,sz*.03,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'blowfish':{
+      const bf=c.createRadialGradient(0,0,0,0,0,sz*.7);
+      bf.addColorStop(0,'#ffee58');bf.addColorStop(.6,'#fdd835');bf.addColorStop(1,'#f57f17');
+      c.fillStyle=bf;c.beginPath();c.arc(0,0,sz*.6,0,Math.PI*2);c.fill();
+      c.fillStyle='#e65100';
+      for(let a=0;a<24;a++){const ang=a*Math.PI/12,r=sz*.6,rl=sz*.75;c.beginPath();c.moveTo(Math.cos(ang)*r,Math.sin(ang)*r);c.lineTo(Math.cos(ang)*rl,Math.sin(ang)*rl);c.lineTo(Math.cos(ang+.13)*r,Math.sin(ang+.13)*r);c.closePath();c.fill();}
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.35,-sz*.15,sz*.18,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.38,-sz*.15,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.42,-sz*.18,sz*.04,0,Math.PI*2);c.fill();
+      c.strokeStyle='#e65100';c.lineWidth=sz*.08;c.lineCap='round';
+      c.beginPath();c.moveTo(sz*.55,-sz*.05);c.lineTo(sz*.82,-sz*.05);c.stroke();
+      break;
+    }
+    case 'swordfish':{
+      c.shadowColor='#4fc3f7';c.shadowBlur=10+Math.sin(t/400)*4;
+      const swg=c.createLinearGradient(0,-sz*.25,0,sz*.25);
+      swg.addColorStop(0,'#0288d1');swg.addColorStop(.5,'#4fc3f7');swg.addColorStop(1,'#e1f5fe');
+      c.fillStyle=swg;c.beginPath();c.ellipse(0,0,sz*.9,sz*.22,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#01579b';
+      c.beginPath();c.moveTo(-sz*.88,0);c.lineTo(-sz*1.15,sz*.28);c.lineTo(-sz*1.15,-sz*.28);c.closePath();c.fill();
+      c.beginPath();c.moveTo(sz*.2,-sz*.2);c.lineTo(sz*.6,-sz*.48);c.lineTo(sz*.65,-sz*.2);c.closePath();c.fill();
+      c.strokeStyle='#01579b';c.lineWidth=sz*.1;c.lineCap='round';
+      c.beginPath();c.moveTo(sz*.88,0);c.lineTo(sz*1.6,sz*.04);c.stroke();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.68,-sz*.04,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.6)';c.beginPath();c.arc(sz*.7,-sz*.06,sz*.04,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'octopus':{
+      const og=c.createRadialGradient(0,-sz*.15,0,0,-sz*.15,sz*.55);
+      og.addColorStop(0,'#ce93d8');og.addColorStop(.6,'#9c27b0');og.addColorStop(1,'#4a148c');
+      c.fillStyle=og;c.beginPath();c.ellipse(0,-sz*.15,sz*.5,sz*.4,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#7b1fa2';
+      const tentPos=[-.42,-.22,-.02,.18,.38,.58,.3,-.15];
+      for(let i=0;i<8;i++){
+        const tx=(-sz*.35+i*sz*.1)*(i<6?1:0)+tentPos[i]*sz;
+        const wave3=Math.sin(t/500+i)*.08;
+        c.beginPath();c.moveTo(tx,sz*.2);c.quadraticCurveTo(tx+wave3*sz,sz*.55,tx*1.1+wave3*sz*.5,sz*.85);c.quadraticCurveTo(tx+wave3*sz*.3,sz*.65,tx,sz*.2);c.fill();
+      }
+      c.fillStyle='#fff';c.beginPath();c.arc(-sz*.18,-sz*.22,sz*.14,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(-sz*.18,-sz*.22,sz*.09,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.5)';c.beginPath();c.arc(-sz*.15,-sz*.25,sz*.04,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.18,-sz*.22,sz*.14,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.18,-sz*.22,sz*.09,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.5)';c.beginPath();c.arc(sz*.21,-sz*.25,sz*.04,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'crab':{
+      c.fillStyle='#e53935';c.beginPath();c.ellipse(0,0,sz*.5,sz*.35,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#c62828';
+      c.beginPath();c.ellipse(-sz*.62,sz*.05,sz*.3,sz*.12,-.4,0,Math.PI*2);c.fill();
+      c.beginPath();c.ellipse(sz*.62,sz*.05,sz*.3,sz*.12,.4,0,Math.PI*2);c.fill();
+      c.fillStyle='#b71c1c';
+      for(let s=-1;s<=1;s+=2){
+        for(let i=0;i<3;i++){
+          c.beginPath();c.moveTo(s*sz*.45,-sz*.05+i*sz*.12);
+          c.quadraticCurveTo(s*sz*.75,-sz*.1+i*sz*.12,s*sz*.9,-sz*.05+i*sz*.12);c.stroke();
+        }
+      }
+      c.strokeStyle='#b71c1c';c.lineWidth=sz*.06;
+      for(let s=-1;s<=1;s+=2){
+        for(let i=0;i<3;i++){
+          c.beginPath();c.moveTo(s*sz*.45,-sz*.05+i*sz*.12);
+          c.quadraticCurveTo(s*sz*.75,-sz*.1+i*sz*.12,s*sz*.9,-sz*.05+i*sz*.12);c.stroke();
+        }
+      }
+      c.fillStyle='#fff';c.beginPath();c.arc(-sz*.2,-sz*.1,sz*.12,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(-sz*.2,-sz*.1,sz*.07,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.2,-sz*.1,sz*.12,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.2,-sz*.1,sz*.07,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'lobster':{
+      c.fillStyle='#e53935';
+      for(let i=0;i<5;i++){c.beginPath();c.ellipse(-sz*.1+i*sz*.04,i*sz*.06,sz*.22-i*sz*.02,sz*.12-i*sz*.01,0,0,Math.PI*2);c.fill();}
+      c.fillStyle='#c62828';
+      c.beginPath();c.ellipse(-sz*.55,sz*.05,sz*.35,sz*.12,.2,0,Math.PI*2);c.fill();
+      c.beginPath();c.ellipse(-sz*.62,-sz*.1,sz*.25,sz*.08,-.3,0,Math.PI*2);c.fill();
+      c.strokeStyle='#b71c1c';c.lineWidth=sz*.05;
+      for(let i=0;i<5;i++){c.beginPath();c.moveTo(-sz*.2+i*sz*.12,sz*.12);c.lineTo(-sz*.25+i*sz*.12,sz*.4);c.stroke();}
+      c.strokeStyle='#b71c1c';c.lineWidth=sz*.04;
+      c.beginPath();c.moveTo(sz*.3,sz*.05);c.lineTo(sz*.72,-sz*.12);c.stroke();
+      c.beginPath();c.moveTo(sz*.3,sz*.05);c.lineTo(sz*.68,sz*.2);c.stroke();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.38,-sz*.04,sz*.09,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.5)';c.beginPath();c.arc(sz*.4,-sz*.06,sz*.04,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'sunfish':{
+      c.shadowColor='#b3e5fc';c.shadowBlur=16+Math.sin(t/600)*8;
+      const sfg=c.createRadialGradient(0,0,0,0,0,sz*.85);
+      sfg.addColorStop(0,'#b3e5fc');sfg.addColorStop(.5,'#039be5');sfg.addColorStop(1,'#01579b');
+      c.fillStyle=sfg;c.beginPath();c.ellipse(0,0,sz*.65,sz*.8,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#0277bd';
+      c.beginPath();c.moveTo(sz*.05,-sz*.78);c.lineTo(sz*.2,-sz*1.15);c.lineTo(sz*.35,-sz*.78);c.closePath();c.fill();
+      c.beginPath();c.moveTo(sz*.05,sz*.78);c.lineTo(sz*.2,sz*1.15);c.lineTo(sz*.35,sz*.78);c.closePath();c.fill();
+      c.strokeStyle='#0277bd';c.lineWidth=sz*.18;c.lineCap='round';
+      c.beginPath();c.moveTo(-sz*.62,-sz*.28);c.lineTo(-sz*.62,sz*.28);c.stroke();
+      c.fillStyle='#01579b';c.beginPath();c.arc(sz*.35,0,sz*.12,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.38,-sz*.2,sz*.14,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.4,-sz*.2,sz*.08,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'whale':{
+      const wg=c.createLinearGradient(0,-sz*.5,0,sz*.5);
+      wg.addColorStop(0,'#1a237e');wg.addColorStop(.5,'#3949ab');wg.addColorStop(1,'#e8eaf6');
+      c.fillStyle=wg;c.beginPath();
+      c.moveTo(sz,sz*.1);c.quadraticCurveTo(sz*.5,-sz*.45,-sz*.8,-sz*.42);
+      c.quadraticCurveTo(-sz*1.0,-sz*.2,-sz*1.0,sz*.2);
+      c.quadraticCurveTo(-sz*.8,sz*.42,sz*.5,sz*.45);c.closePath();c.fill();
+      c.fillStyle='#e8eaf6';c.beginPath();c.ellipse(sz*.3,sz*.2,sz*.45,sz*.22,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#1a237e';
+      c.beginPath();c.moveTo(-sz*1.0,0);c.lineTo(-sz*1.35,-sz*.38);c.lineTo(-sz*1.35,sz*.38);c.closePath();c.fill();
+      c.beginPath();c.moveTo(sz*.2,-sz*.42);c.lineTo(sz*.5,-sz*.72);c.lineTo(sz*.65,-sz*.42);c.closePath();c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.72,-sz*.08,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.6)';c.beginPath();c.arc(sz*.74,-sz*.1,sz*.04,0,Math.PI*2);c.fill();
+      const spout=Math.sin(t/800);
+      if(spout>0.5){c.strokeStyle='rgba(180,210,255,.5)';c.lineWidth=sz*.06;c.lineCap='round';c.beginPath();c.moveTo(sz*.55,-sz*.44);c.bezierCurveTo(sz*.5,-sz*.8,sz*.6,-sz*.9,sz*.58,-sz*.65);c.stroke();}
+      break;
+    }
+    case 'manta':{
+      c.shadowColor='#7c4dff';c.shadowBlur=12+Math.sin(t/500)*6;
+      const mg2=c.createLinearGradient(0,-sz*.1,0,sz*.1);
+      mg2.addColorStop(0,'#311b92');mg2.addColorStop(.5,'#6200ea');mg2.addColorStop(1,'#b39ddb');
+      c.fillStyle=mg2;
+      const flap=Math.sin(t/600)*sz*.08;
+      c.beginPath();c.moveTo(0,sz*.05);c.quadraticCurveTo(-sz*.5,-sz*.2+flap,-sz*1.0,-sz*.05+flap);
+      c.quadraticCurveTo(-sz*.5,sz*.15,-sz*.1,sz*.2);c.closePath();c.fill();
+      c.beginPath();c.moveTo(0,sz*.05);c.quadraticCurveTo(sz*.5,-sz*.2+flap,sz*1.0,-sz*.05+flap);
+      c.quadraticCurveTo(sz*.5,sz*.15,sz*.1,sz*.2);c.closePath();c.fill();
+      c.fillStyle='#ede7f6';c.beginPath();c.ellipse(0,sz*.1,sz*.18,sz*.1,0,0,Math.PI*2);c.fill();
+      c.strokeStyle='#4a148c';c.lineWidth=sz*.04;
+      c.beginPath();c.moveTo(sz*.05,sz*.12);c.lineTo(sz*.05,sz*.65);c.stroke();
+      c.fillStyle='#111';c.beginPath();c.arc(-sz*.08,sz*.05,sz*.07,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.5)';c.beginPath();c.arc(-sz*.07,sz*.04,sz*.03,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.08,sz*.05,sz*.07,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,.5)';c.beginPath();c.arc(sz*.09,sz*.04,sz*.03,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'oarfish':{
+      const olen=sz*5;
+      c.shadowColor='#ffd700';c.shadowBlur=16+Math.sin(t/400)*6;
+      c.strokeStyle='rgba(220,230,255,.9)';c.lineWidth=sz*.28;c.lineCap='round';
+      c.beginPath();c.moveTo(-olen/2,0);
+      for(let i=1;i<=20;i++){c.lineTo(-olen/2+i*(olen/20),Math.sin(i*.35+t*.001)*sz*.6);}c.stroke();
+      c.shadowBlur=0;c.strokeStyle='rgba(255,215,0,.5)';c.lineWidth=sz*.08;
+      c.beginPath();c.moveTo(-olen/2,-sz*.05);
+      for(let i=1;i<=20;i++){c.lineTo(-olen/2+i*(olen/20),Math.sin(i*.35+t*.001)*sz*.6-sz*.05);}c.stroke();
+      c.fillStyle='rgba(220,60,60,.85)';
+      for(let i=0;i<8;i++){const px=-olen/2+i*(olen/8),py=Math.sin(i*.35+t*.001)*sz*.6;c.beginPath();c.moveTo(px,py);c.lineTo(px-sz*.2,py-sz*.7);c.lineTo(px+sz*.2,py-sz*.1);c.closePath();c.fill();}
+      c.fillStyle='rgba(200,210,255,.95)';c.beginPath();c.ellipse(-olen/2,0,sz*.35,sz*.22,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(-olen/2-sz*.05,sz*.05,sz*.12,0,Math.PI*2);c.fill();
+      c.fillStyle='#000';c.beginPath();c.arc(-olen/2-sz*.05,sz*.05,sz*.07,0,Math.PI*2);c.fill();
+      break;
+    }
+    case 'angler':{
+      const ar=sz*.9,lampX=ar*.45,lampY=-ar*.65;
+      const lampGlow=12+Math.sin(t/300)*8;
+      c.shadowColor='#00ffff';c.shadowBlur=lampGlow;
+      c.strokeStyle='rgba(150,255,200,.7)';c.lineWidth=1.5;
+      c.beginPath();c.moveTo(-ar*.2,-ar*.5);c.bezierCurveTo(-ar*.1,-ar,lampX+ar*.1,lampY+ar*.3,lampX,lampY);c.stroke();
+      c.shadowBlur=lampGlow*2;
+      const alg=c.createRadialGradient(lampX,lampY,0,lampX,lampY,sz*.28);
+      alg.addColorStop(0,'rgba(200,255,255,1)');alg.addColorStop(.4,'rgba(0,255,200,.8)');alg.addColorStop(1,'rgba(0,200,150,0)');
+      c.fillStyle=alg;c.beginPath();c.arc(lampX,lampY,sz*.28,0,Math.PI*2);c.fill();
+      c.shadowBlur=0;
+      const aag=c.createRadialGradient(-ar*.1,0,0,-ar*.1,0,ar);
+      aag.addColorStop(0,'#1a0030');aag.addColorStop(.6,'#0d001a');aag.addColorStop(1,'#050008');
+      c.fillStyle=aag;c.beginPath();c.ellipse(-ar*.1,0,ar,ar*.7,0,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(0,200,150,.3)';
+      for(let i=0;i<4;i++){c.beginPath();c.arc(-ar*.35+i*ar*.22,-ar*.15,ar*.22,Math.PI*.15,Math.PI*.85);c.fill();}
+      c.shadowColor='#00ffff';c.shadowBlur=lampGlow;
+      c.fillStyle='rgba(200,255,255,.9)';c.beginPath();c.arc(-ar*.35,-ar*.15,ar*.13,0,Math.PI*2);c.fill();
+      c.fillStyle='#000';c.beginPath();c.arc(-ar*.35,-ar*.15,ar*.07,0,Math.PI*2);c.fill();
+      c.shadowBlur=0;c.fillStyle='rgba(0,200,100,.8)';
+      for(let i=0;i<6;i++){c.beginPath();c.moveTo(-ar*.1+i*ar*.05,ar*.3);c.lineTo(-ar*.15+i*ar*.05,ar*.65);c.lineTo(-ar*.05+i*ar*.05,ar*.65);c.closePath();c.fill();}
+      break;
+    }
+    case 'viperfish':{
+      const vlen=sz*3.5;
+      c.shadowColor='#e040fb';c.shadowBlur=14+Math.sin(t/400)*6;
+      const vg=c.createLinearGradient(-vlen/2,0,vlen/2,0);
+      vg.addColorStop(0,'#1a0030');vg.addColorStop(.5,'#4a0080');vg.addColorStop(1,'#1a0030');
+      c.fillStyle=vg;c.beginPath();c.ellipse(0,0,vlen/2,sz*.28,0,0,Math.PI*2);c.fill();
+      for(let i=0;i<5;i++){
+        const lx=-vlen*.35+i*(vlen*.18);
+        c.fillStyle=`rgba(224,64,251,${.6+Math.sin(t/300+i)*.3})`;
+        c.beginPath();c.arc(lx,sz*.1,sz*.06,0,Math.PI*2);c.fill();
+      }
+      c.fillStyle='#2a0050';c.beginPath();c.ellipse(vlen*.42,0,sz*.22,sz*.15,0,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(220,180,255,.9)';
+      for(let i=0;i<3;i++){const tx=vlen*.36+i*sz*.06;c.beginPath();c.moveTo(tx,-sz*.12);c.lineTo(tx+sz*.03,sz*.18);c.lineTo(tx+sz*.06,-sz*.1);c.fill();}
+      c.fillStyle='#e040fb';c.beginPath();c.arc(vlen*.32,-sz*.05,sz*.11,0,Math.PI*2);c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(vlen*.32,-sz*.05,sz*.05,0,Math.PI*2);c.fill();
+      c.fillStyle='#3a0060';c.beginPath();c.moveTo(-vlen*.45,0);c.lineTo(-vlen*.65,-sz*.3);c.lineTo(-vlen*.65,sz*.3);c.closePath();c.fill();
+      break;
+    }
+    default:{
+      c.fillStyle='#78909c';c.beginPath();c.ellipse(0,0,sz*.7,sz*.25,0,0,Math.PI*2);c.fill();
+      c.fillStyle='#546e7a';c.beginPath();c.moveTo(-sz*.68,0);c.lineTo(-sz*.95,sz*.28);c.lineTo(-sz*.95,-sz*.28);c.closePath();c.fill();
+      c.fillStyle='#fff';c.beginPath();c.arc(sz*.45,0,sz*.1,0,Math.PI*2);c.fill();
+      c.fillStyle='#111';c.beginPath();c.arc(sz*.47,0,sz*.06,0,Math.PI*2);c.fill();
+    }
+  }
+  c.restore();
+}
+
+// ── RESULT ────────────────────────────────────────────────────
+function showResult(){
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  showScreen('screen-result');
+  document.getElementById('res-score').textContent=score;
+  const isNew=score>maxScore;
+  if(isNew){maxScore=score;saveBest(score);document.getElementById('title-best').textContent='🏆 個人最高：'+maxScore+'分';}
+  document.getElementById('res-best').textContent=isNew?'🏆 新紀錄！':'個人最高：'+maxScore+'分';
+  // 稱號（10層級）
+  const titles=[
+    [3000,'🌊⚡ 皇帶魚傳說'],
+    [1800,'👑 傳奇漁夫'],
+    [1200,'🐳 鯨海霸主'],
+    [800, '🐬 深海獵人'],
+    [500, '🦈 海上老手'],
+    [300, '🦑 漁獲豐收'],
+    [150, '🐠 小有斬獲'],
+    [50,  '🐟 初出茅廬'],
+    [1,   '🎣 新手漁夫'],
+    [0,   '🪣 空桶而歸'],
+  ];
+  const title=titles.find(t=>score>=t[0])[1];
+  document.getElementById('res-title').textContent=title;
+  const cl=document.getElementById('catch-list');
+  if(!catches.length){cl.innerHTML='<div style="text-align:center;color:#446;padding:1rem">一條都沒釣到...😢</div>';return;}
+  cl.innerHTML='<div style="font-size:11px;color:#446;margin-bottom:4px">釣獲清單</div>'+
+    [...catches].sort((a,b)=>b.pts-a.pts).map(f=>`<div class="catch-row">
+      <span class="cr-fish">${fishEmoji(f)}</span>
+      <span class="cr-name">${f.name}${f.glow?' ✨':''}</span>
+      <span class="cr-pts">+${f.pts}</span>
+    </div>`).join('');
+  try{
+    const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');
+    if(d.name)localStorage.setItem('game_pending_score',JSON.stringify({game:'fishing_rod',score,detail:catches.length+'隻，最高'+score+'分'}));
+  }catch(e){}
+}
+</script>
+<script>
+  document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+</body></html>

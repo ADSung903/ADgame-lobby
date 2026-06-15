@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>💣 踩地雷</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:sans-serif;background:#0a0e14;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh;touch-action:manipulation}
+body{font-family:sans-serif;background:#0a0e14;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh;touch-action:manipulation;padding-top:max(1rem,calc(env(safe-area-inset-top,0px) + 0.75rem))}
 .app{width:100%;max-width:520px}
 .btn{font-size:13px;padding:6px 16px;border-radius:8px;border:0.5px solid #444;background:transparent;color:#eee;cursor:pointer}
 .btn:hover{background:#12192a}.btn:active{transform:scale(0.97)}
@@ -51,6 +51,20 @@ body{font-family:sans-serif;background:#0a0e14;color:#eee;display:flex;justify-c
 .big-btn{width:100%;padding:11px;border-radius:12px;border:none;color:#fff;font-size:15px;font-weight:500;cursor:pointer;margin-bottom:.4rem}
 
 .hint{font-size:11px;color:#4a6a8a;text-align:center;margin-bottom:.5rem}
+
+
+  /* 防長按選單 */
+  canvas, img {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* iOS 安全區域：避免被工具列或 Home 條遮住 */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    min-height: 100dvh;
+  }
 </style></head><body>
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
