@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>📈 股票市場</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#060610;--bg2:#0d0d1e;--bg3:#12122a;--border:#1e1e3a;--accent:#7c3aed;--gold:#f59e0b;--text:#eee;--sub:#9a9ab0;--up:#4ade80;--dn:#f87171}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;justify-content:center}
+.app{width:100%;max-width:420px;display:flex;flex-direction:column;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom,12px)}
+.topbar{display:flex;align-items:center;padding-top:calc(.6rem + env(safe-area-inset-top,0px));padding-right:.75rem;padding-bottom:.6rem;padding-left:.75rem;gap:.5rem;border-bottom:.5px solid var(--border);flex-shrink:0}
+.back-btn{font-size:12px;padding:4px 10px;border-radius:8px;border:.5px solid #333;background:transparent;color:#aaa;cursor:pointer}
+.game-title{font-size:16px;font-weight:700;color:var(--accent);flex:1;text-align:center}
+.refresh-btn{font-size:18px;background:transparent;border:none;cursor:pointer;padding:0 4px;color:#aaa;transition:opacity .2s}
+.refresh-btn:disabled{opacity:.4}
+.hero{padding:.7rem .75rem .5rem;background:linear-gradient(180deg,#0d0020 0%,var(--bg) 100%);flex-shrink:0}
+.acc-row{display:flex;gap:4px;margin-bottom:.4rem}
+.acc-item{flex:1;background:var(--bg3);border:.5px solid var(--border);border-radius:10px;padding:.4rem .35rem;text-align:center}
+.acc-lbl{font-size:9px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px}
+.acc-val{font-size:14px;font-weight:800;color:var(--gold)}
+.pnl-row{text-align:center;font-size:12px;color:var(--sub);min-height:18px}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.transfer-bar{display:flex;align-items:center;gap:5px;padding:.4rem .75rem;border-bottom:.5px solid var(--border);flex-shrink:0}
+.tb-shop{font-size:11px;color:var(--sub);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-shop span{color:var(--up);font-weight:600}
+#transfer-amt{width:68px;padding:4px 6px;border-radius:6px;border:.5px solid #2a2040;background:var(--bg2);color:#eee;font-size:12px;text-align:center}
+.tb-btn{font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;background:transparent;white-space:nowrap;font-weight:600}
+.tb-in{border:.5px solid #1a4a1a;color:var(--up)}
+.tb-out{border:.5px solid #1a1a4a;color:#a78bfa}
+.update-bar{font-size:10px;color:var(--sub);text-align:center;padding:.22rem .75rem;flex-shrink:0}
+.no-cash-box{margin:1.5rem .75rem;background:var(--bg3);border:.5px solid var(--border);border-radius:14px;padding:1.5rem;text-align:center}
+.no-cash-box .nci{font-size:42px;margin-bottom:.5rem}
+.no-cash-box h3{font-size:16px;color:var(--gold);margin-bottom:.4rem}
+.no-cash-box p{font-size:12px;color:var(--sub);line-height:1.8;margin-bottom:.9rem}
+.no-cash-box button{padding:9px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--gold));color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.market-list{flex:1;overflow-y:auto;padding:.5rem .75rem .75rem}
+.market-list::-webkit-scrollbar{width:3px}
+.market-list::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
+.market-card{background:var(--bg3);border:.5px solid var(--border);border-radius:12px;padding:.65rem .7rem;margin-bottom:.5rem}
+.mc-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem}
+.mc-flag{font-size:26px;width:32px;text-align:center;flex-shrink:0}
+.mc-info{flex:1;min-width:0}
+.mc-name{font-size:13px;font-weight:700}
+.mc-desc{font-size:10px;color:var(--sub)}
+.mc-right{text-align:right;flex-shrink:0}
+.mc-price{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.mc-chg{font-size:11px;font-weight:600}
+.mc-pos{font-size:11px;color:var(--sub);margin-bottom:.35rem;padding:.2rem .4rem;background:var(--bg2);border-radius:6px}
+.mc-actions{display:flex;align-items:center;gap:5px}
+.status-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;flex-shrink:0}
+.open{background:#0a2a0a;border:.5px solid #1a4a1a;color:var(--up)}
+.closed{background:#1a1a2a;border:.5px solid var(--border);color:var(--sub)}
+.mc-actions button{flex:1;font-size:11px;padding:5px;border-radius:7px;border:.5px solid var(--border);background:var(--bg2);color:#aaa;cursor:pointer;font-weight:600;transition:border-color .1s}
+.mc-actions button:disabled{color:#333;cursor:default}
+.mc-actions .buy-btn:not(:disabled){border-color:#1a4a1a;color:var(--up)}
+.mc-actions .sell-btn:not(:disabled){border-color:#4a1a1a;color:var(--dn)}
+.port-section{flex-shrink:0}
+.section-hdr{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;padding:.5rem .75rem .25rem;border-top:.5px solid var(--border);margin-top:.25rem}
+.port-row{display:flex;align-items:center;gap:.5rem;padding:.45rem .75rem;border-bottom:.5px solid var(--border)}
+.port-flag{font-size:22px;width:28px;text-align:center;flex-shrink:0}
+.port-info{flex:1;min-width:0}
+.port-name{font-size:13px;font-weight:600}
+.port-detail{font-size:10px;color:var(--sub)}
+.port-right{text-align:right;flex-shrink:0}
+.port-val{font-size:13px;font-weight:700}
+.port-pnl{font-size:11px;font-weight:600}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:80;padding:1rem}
+.modal-card{background:#0d0d22;border:1px solid var(--accent);border-radius:20px;padding:1.4rem;width:100%;max-width:300px}
+.modal-title{font-size:16px;font-weight:700;color:var(--gold);margin-bottom:.3rem;text-align:center}
+.modal-sub{font-size:12px;color:var(--sub);text-align:center;margin-bottom:.55rem}
+.modal-input{width:100%;padding:8px 10px;border-radius:8px;border:.5px solid #2a2040;background:var(--bg2);color:#eee;font-size:15px;margin-bottom:.4rem;text-align:center}
+.quick-btns{display:flex;gap:5px;margin-bottom:.65rem}
+.quick-btns button{flex:1;padding:5px;border-radius:6px;border:.5px solid var(--border);background:var(--bg2);color:#aaa;font-size:11px;cursor:pointer}
+.sell-slider{width:100%;margin:.4rem 0 .25rem;accent-color:var(--accent)}
+.sell-pct-row{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-bottom:.45rem}
+.sell-est{font-size:14px;font-weight:700;color:var(--up);text-align:center;margin-bottom:.85rem}
+.modal-btns{display:flex;gap:8px}
+.modal-btns button{flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+.cancel-btn{border:.5px solid #333;background:transparent;color:#aaa}
+.confirm-buy{border:none;background:linear-gradient(135deg,#065f46,#059669);color:#fff}
+.confirm-sell{border:none;background:linear-gradient(135deg,#7f1d1d,#dc2626);color:#fff}
+</style>
+</head><body><div class="app">
+
+<div class="topbar">
+  <button class="back-btn" onclick="goBack()">← 大廳</button>
+  <div class="game-title">📈 股票市場</div>
+  <button class="refresh-btn" id="refresh-btn" onclick="refreshPrices()">🔄</button>
+</div>
+
+<div class="hero">
+  <div class="acc-row">
+    <div class="acc-item"><div class="acc-lbl">可用現金</div><div class="acc-val" id="cash-val">NT$0</div></div>
+    <div class="acc-item"><div class="acc-lbl">持倉價值</div><div class="acc-val" id="pos-val">NT$0</div></div>
+    <div class="acc-item"><div class="acc-lbl">總資產</div><div class="acc-val" id="total-val">NT$0</div></div>
+  </div>
+  <div class="pnl-row">損益 <span id="pnl-abs">--</span> <span id="pnl-pct"></span></div>
+</div>
+
+<div class="transfer-bar">
+  <div class="tb-shop">🎲 店鋪餘額 <span id="shop-bal">NT$0</span></div>
+  <input id="transfer-amt" type="number" min="1" placeholder="M">
+  <button class="tb-btn tb-in" onclick="transferIn()">← 匯入</button>
+  <button class="tb-btn tb-out" onclick="transferOut()">匯回 →</button>
+</div>
+
+<div class="update-bar" id="update-bar">點 🔄 取得即時行情</div>
+
+<div id="no-cash-box" class="no-cash-box" style="display:none">
+  <div class="nci">💸</div>
+  <h3>帳戶餘額為 NT$0</h3>
+  <p>請先到 🎲 24H 迷你店長 賺錢<br>在統計頁輸入金額匯入股市帳戶<br>再回這裡投資！</p>
+  <button onclick="goToShop()">前往 24H 迷你店長</button>
+</div>
+
+<div id="market-list" class="market-list"></div>
+<div id="port-section" class="port-section" style="display:none">
+  <div class="section-hdr">📊 我的持倉</div>
+  <div id="port-list"></div>
+</div>
+
+<!-- Buy Modal -->
+<div class="modal-overlay" id="buy-modal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-title" id="buy-title">買入</div>
+    <div class="modal-sub" id="buy-sub"></div>
+    <div class="modal-sub" id="buy-cash" style="color:var(--up)"></div>
+    <input class="modal-input" id="buy-amt" type="number" min="1" placeholder="投入金額（M）">
+    <div class="quick-btns">
+      <button onclick="setBuyPct(25)">25%</button>
+      <button onclick="setBuyPct(50)">50%</button>
+      <button onclick="setBuyPct(100)">全倉</button>
+    </div>
+    <div class="modal-btns">
+      <button class="cancel-btn" onclick="closeBuy()">取消</button>
+      <button class="confirm-buy" onclick="executeBuy()">確認買入 ↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sell Modal -->
+<div class="modal-overlay" id="sell-modal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-title" id="sell-title">賣出</div>
+    <div class="modal-sub" id="sell-sub"></div>
+    <input type="range" class="sell-slider" id="sell-slider" min="1" max="100" value="100" oninput="updateSellEst()">
+    <div class="sell-pct-row"><span>1%</span><span id="sell-pct-lbl" style="color:var(--text);font-weight:700">100%</span><span>100%</span></div>
+    <div class="sell-est" id="sell-est">預計收回 NT$--</div>
+    <div class="modal-btns">
+      <button class="cancel-btn" onclick="closeSell()">取消</button>
+      <button class="confirm-sell" onclick="executeSell()">確認賣出 ↓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MARKETS=[
+  {id:'GSPC',name:'S&P 500',   flag:'🇺🇸',symbol:'^GSPC',desc:'美國大型股指數',   isOpen:isUSOpen},
+  {id:'TWII',name:'台股加權',  flag:'🇹🇼',symbol:'^TWII',desc:'台灣加權股價指數', isOpen:isTWOpen},
+  {id:'N225',name:'日經 225',  flag:'🇯🇵',symbol:'^N225',desc:'日本大型股指數',   isOpen:isJPOpen},
+  {id:'HSI', name:'恆生指數',  flag:'🇭🇰',symbol:'^HSI', desc:'香港股市主要指數', isOpen:isHKOpen},
+  {id:'KS11',name:'KOSPI',    flag:'🇰🇷',symbol:'^KS11',desc:'韓國綜合股價指數', isOpen:isKROpen},
+];
+
+// ── 開盤時間（以 UTC 為基準）─────────────────────────
+function _hm(d){return d.getUTCHours()*60+d.getUTCMinutes();}
+function _wd(d){const w=d.getUTCDay();return w>0&&w<6;}
+function _usDST(d){
+  const m=d.getUTCMonth();
+  if(m>2&&m<10)return true;
+  if(m<2||m>10)return false;
+  const yr=d.getUTCFullYear();
+  function nthSun(mon,n){const d1=new Date(Date.UTC(yr,mon,1));return new Date(Date.UTC(yr,mon,1+((7-d1.getUTCDay())%7)+(n-1)*7));}
+  if(m===2){const s=nthSun(2,2);s.setUTCHours(7);return d>=s;}
+  const e=nthSun(10,1);e.setUTCHours(6);return d<e;
+}
+function isUSOpen(d=new Date()){
+  if(!_wd(d))return false;
+  const t=_hm(d),dst=_usDST(d);
+  return t>=(dst?13*60+30:14*60+30)&&t<(dst?20*60:21*60);
+}
+function isTWOpen(d=new Date()){if(!_wd(d))return false;const t=_hm(d);return t>=60&&t<5*60+30;}
+function isJPOpen(d=new Date()){if(!_wd(d))return false;const t=_hm(d);return t>=0&&t<6*60+30;}
+function isHKOpen(d=new Date()){if(!_wd(d))return false;const t=_hm(d);return(t>=90&&t<240)||(t>=300&&t<480);}
+function isKROpen(d=new Date()){if(!_wd(d))return false;const t=_hm(d);return t>=0&&t<6*60+30;}
+
+// ── localStorage ─────────────────────────────────────
+const LS_STOCK='shop24h_stock', LS_SHOP='shop24h_save';
+function getLS(k,fb={}){try{return JSON.parse(localStorage.getItem(k)||'null')||fb;}catch(e){return fb;}}
+function setLS(k,v){localStorage.setItem(k,JSON.stringify(v));}
+
+let state={cash:0,positions:{},lastPrices:{},lastFetch:0};
+function loadState(){
+  const s=getLS(LS_STOCK);
+  state.cash=s.cash||0;
+  state.positions=s.positions||{};
+  state.lastPrices=s.lastPrices||{};
+  state.lastFetch=s.lastFetch||0;
+}
+function save(){setLS(LS_STOCK,state);}
+
+let prices={};
+
+// ── 格式化 ────────────────────────────────────────────
+function fmt(n){
+  n=Math.abs(n);
+  if(n>=1e12)return(n/1e12).toFixed(2)+'T';
+  if(n>=1e9)return(n/1e9).toFixed(2)+'B';
+  if(n>=1e6)return(n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return Math.floor(n).toLocaleString();
+}
+function fmtIdx(n){
+  if(n==null)return'--';
+  return n>=1000?n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,','):n.toFixed(2);
+}
+function fmtPct(n){return(n>=0?'+':'')+n.toFixed(2)+'%';}
+
+// ── 行情抓取 ──────────────────────────────────────────
+async function fetchOne(m){
+  try{
+    const r=await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(m.symbol)}?interval=1d&range=5d`);
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    const meta=d.chart.result[0].meta;
+    const price=meta.regularMarketPrice;
+    const prev=meta.chartPreviousClose||meta.previousClose||price;
+    return{price,prev,change:price-prev,pct:(price-prev)/prev*100};
+  }catch(e){return null;}
+}
+
+async function refreshPrices(){
+  const btn=document.getElementById('refresh-btn');
+  btn.textContent='⏳';btn.disabled=true;
+  document.getElementById('update-bar').textContent='正在取得行情...';
+  const res=await Promise.allSettled(MARKETS.map(fetchOne));
+  let ok=0;
+  MARKETS.forEach((m,i)=>{
+    const r=res[i];
+    if(r.status==='fulfilled'&&r.value){prices[m.id]=r.value;ok++;}
+    else if(state.lastPrices[m.id])prices[m.id]=state.lastPrices[m.id];
+  });
+  state.lastPrices={...prices};state.lastFetch=Date.now();save();
+  btn.textContent='🔄';btn.disabled=false;
+  const t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('update-bar').textContent=ok
+    ?`最後更新：${t}（${ok}/5 筆成功）`
+    :'⚠️ 行情取得失敗，顯示快取價格';
+  render();
+}
+
+// ── 持倉計算 ──────────────────────────────────────────
+function posVal(id){
+  const pos=state.positions[id];
+  if(!pos||!pos.units)return 0;
+  const p=prices[id];
+  return pos.units*(p?p.price:pos.avgEntry);
+}
+function totalPosVal(){return MARKETS.reduce((s,m)=>s+posVal(m.id),0);}
+function totalCost(){return MARKETS.reduce((s,m)=>s+(state.positions[m.id]?.cost||0),0);}
+
+// ── 渲染 ──────────────────────────────────────────────
+function render(){renderHero();renderMarkets();renderPort();renderShopBal();}
+
+function renderHero(){
+  const pv=totalPosVal(),cost=totalCost(),total=state.cash+pv,pnl=pv-cost;
+  const pnlPct=cost>0?pnl/cost*100:0;
+  document.getElementById('cash-val').textContent='NT$'+fmt(state.cash);
+  document.getElementById('pos-val').textContent='NT$'+fmt(pv);
+  document.getElementById('total-val').textContent='NT$'+fmt(total);
+  const ab=document.getElementById('pnl-abs'),pc=document.getElementById('pnl-pct');
+  if(cost>0){
+    ab.textContent=(pnl>=0?'+':'−')+'NT$'+fmt(pnl);ab.className=pnl>=0?'up':'dn';
+    pc.textContent='('+fmtPct(pnlPct)+')';pc.className=pnl>=0?'up':'dn';
+  } else {ab.textContent='--';ab.className='';pc.textContent='';}
+  const empty=state.cash<=0&&pv<=0;
+  document.getElementById('no-cash-box').style.display=empty?'block':'none';
+  document.getElementById('market-list').style.display=empty?'none':'block';
+  document.getElementById('port-section').style.display=totalCost()>0?'block':'none';
+}
+
+function renderMarkets(){
+  document.getElementById('market-list').innerHTML=MARKETS.map(m=>{
+    const p=prices[m.id],open=m.isOpen(),pos=state.positions[m.id],hasPos=pos&&pos.units>0;
+    const pv=hasPos?posVal(m.id):0,pnl=hasPos?pv-(pos.cost||0):0;
+    return`<div class="market-card">
+      <div class="mc-header">
+        <span class="mc-flag">${m.flag}</span>
+        <div class="mc-info"><div class="mc-name">${m.name}</div><div class="mc-desc">${m.desc}</div></div>
+        <div class="mc-right">
+          <div class="mc-price ${p?(p.pct>=0?'up':'dn'):''}">${p?fmtIdx(p.price):'--'}</div>
+          <div class="mc-chg ${p?(p.pct>=0?'up':'dn'):''}">${p?fmtPct(p.pct):'--'}</div>
+        </div>
+      </div>
+      ${hasPos?`<div class="mc-pos">持倉 NT$${fmt(pv)} <span class="${pnl>=0?'up':'dn'}">${pnl>=0?'+':'−'}NT$${fmt(Math.abs(pnl))} (${pos.cost?fmtPct(pnl/pos.cost*100):'--'})</span></div>`:''}
+      <div class="mc-actions">
+        <span class="status-badge ${open?'open':'closed'}">${open?'開盤中':'休市'}</span>
+        <button class="buy-btn" ${!open||!p?'disabled':''} onclick="openBuy('${m.id}')">買入</button>
+        <button class="sell-btn" ${!open||!p||!hasPos?'disabled':''} onclick="openSell('${m.id}')">賣出</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPort(){
+  const held=MARKETS.filter(m=>state.positions[m.id]?.units>0);
+  if(!held.length){document.getElementById('port-section').style.display='none';return;}
+  document.getElementById('port-section').style.display='block';
+  document.getElementById('port-list').innerHTML=held.map(m=>{
+    const pos=state.positions[m.id],pv=posVal(m.id),pnl=pv-pos.cost,p=prices[m.id];
+    return`<div class="port-row">
+      <div class="port-flag">${m.flag}</div>
+      <div class="port-info">
+        <div class="port-name">${m.name}</div>
+        <div class="port-detail">${p?`均價 ${fmtIdx(pos.avgEntry)} → 現 ${fmtIdx(p.price)}`:'(更新中...)'}</div>
+      </div>
+      <div class="port-right">
+        <div class="port-val">NT$${fmt(pv)}</div>
+        <div class="port-pnl ${pnl>=0?'up':'dn'}">${pnl>=0?'+':'−'}${pos.cost?fmtPct(Math.abs(pnl/pos.cost*100)):'--'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderShopBal(){
+  const s=getLS(LS_SHOP);
+  document.getElementById('shop-bal').textContent='NT$'+fmt(s.money||0);
+}
+
+// ── 轉帳 ──────────────────────────────────────────────
+function transferIn(){
+  const M=parseFloat(document.getElementById('transfer-amt').value||0);
+  if(!M||M<=0){toast('⚠️ 請輸入金額（M）');return;}
+  const amt=Math.floor(M*1e6);
+  const s=getLS(LS_SHOP);
+  if(amt>(s.money||0)){toast('⚠️ 店鋪餘額不足');return;}
+  s.money=(s.money||0)-amt;
+  setLS(LS_SHOP,s);
+  state.cash+=amt;save();
+  document.getElementById('transfer-amt').value='';
+  render();toast(`✅ 已匯入 NT$${fmt(amt)}`);
+}
+
+function transferOut(){
+  if(!(state.cash>0)){toast('⚠️ 現金帳戶為零');return;}
+  if(!confirm(`確定將 NT$${fmt(state.cash)} 全額匯回店鋪？`))return;
+  const s=getLS(LS_SHOP);
+  const amt=state.cash;
+  s.money=(s.money||0)+amt;
+  s.allTime=(s.allTime||0)+amt;
+  setLS(LS_SHOP,s);
+  state.cash=0;save();
+  render();toast(`✅ 已匯回 NT$${fmt(amt)} 到店鋪`);
+}
+
+// ── 買入 ──────────────────────────────────────────────
+let _buyId=null;
+function openBuy(id){
+  _buyId=id;
+  const m=MARKETS.find(x=>x.id===id),p=prices[id];
+  document.getElementById('buy-title').textContent=`買入 ${m.flag} ${m.name}`;
+  document.getElementById('buy-sub').textContent=`現價 ${fmtIdx(p.price)}　${fmtPct(p.pct)}`;
+  document.getElementById('buy-cash').textContent=`可用現金 NT$${fmt(state.cash)}`;
+  document.getElementById('buy-amt').value='';
+  document.getElementById('buy-modal').style.display='flex';
+}
+function closeBuy(){document.getElementById('buy-modal').style.display='none';}
+function setBuyPct(pct){document.getElementById('buy-amt').value=Math.floor(state.cash/1e6*pct/100)||'';}
+function executeBuy(){
+  const M=parseFloat(document.getElementById('buy-amt').value||0);
+  if(!M||M<=0){toast('⚠️ 請輸入金額');return;}
+  const amt=Math.floor(M*1e6);
+  if(amt>state.cash){toast('⚠️ 現金不足');return;}
+  const p=prices[_buyId].price;
+  const pos=state.positions[_buyId]||{units:0,cost:0,avgEntry:p};
+  const newUnits=amt/p,newCost=pos.cost+amt;
+  pos.avgEntry=newCost/(pos.units+newUnits);
+  pos.units+=newUnits;pos.cost=newCost;
+  state.positions[_buyId]=pos;state.cash-=amt;save();
+  closeBuy();render();
+  toast(`✅ 買入 ${MARKETS.find(x=>x.id===_buyId).flag} NT$${fmt(amt)}`);
+}
+
+// ── 賣出 ──────────────────────────────────────────────
+let _sellId=null;
+function openSell(id){
+  _sellId=id;
+  const m=MARKETS.find(x=>x.id===id),p=prices[id];
+  document.getElementById('sell-title').textContent=`賣出 ${m.flag} ${m.name}`;
+  document.getElementById('sell-sub').textContent=`現價 ${fmtIdx(p.price)}　${fmtPct(p.pct)}`;
+  document.getElementById('sell-slider').value=100;
+  updateSellEst();
+  document.getElementById('sell-modal').style.display='flex';
+}
+function closeSell(){document.getElementById('sell-modal').style.display='none';}
+function updateSellEst(){
+  const pct=parseInt(document.getElementById('sell-slider').value);
+  document.getElementById('sell-pct-lbl').textContent=pct+'%';
+  if(!_sellId)return;
+  document.getElementById('sell-est').textContent=`預計收回 NT$${fmt(posVal(_sellId)*pct/100)}`;
+}
+function executeSell(){
+  const pct=parseInt(document.getElementById('sell-slider').value)/100;
+  const pos=state.positions[_sellId];
+  if(!pos||!pos.units)return;
+  const sellVal=Math.floor(posVal(_sellId)*pct);
+  pos.units*=(1-pct);pos.cost*=(1-pct);
+  if(pos.units<1e-8){pos.units=0;pos.cost=0;}
+  state.cash+=sellVal;state.positions[_sellId]=pos;save();
+  closeSell();render();
+  toast(`✅ 賣出 ${MARKETS.find(x=>x.id===_sellId).flag} NT$${fmt(sellVal)}`);
+}
+
+function goBack(){window.location.href='../';}
+function goToShop(){window.location.href='shop.html';}
+
+function toast(msg){
+  let el=document.getElementById('_t');
+  if(!el){el=document.createElement('div');el.id='_t';el.style.cssText='position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#1a1a3a;border:.5px solid #7c3aed;border-radius:10px;padding:.4rem 1rem;font-size:13px;color:#c4b5fd;opacity:0;transition:opacity .25s;pointer-events:none;z-index:100;white-space:nowrap;max-width:90vw;text-align:center';document.body.appendChild(el);}
+  el.textContent=msg;el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2200);
+}
+
+// ── 初始化 ────────────────────────────────────────────
+loadState();
+prices={...state.lastPrices};
+render();
+if(state.lastFetch&&Date.now()-state.lastFetch<5*60*1000){
+  const mins=Math.round((Date.now()-state.lastFetch)/60000);
+  document.getElementById('update-bar').textContent=`快取行情（${mins} 分鐘前）・點 🔄 更新`;
+} else {
+  refreshPrices();
+}
+setInterval(refreshPrices,5*60*1000);
+</script>
+</body></html>
