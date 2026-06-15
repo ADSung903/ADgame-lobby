@@ -19,17 +19,17 @@ body{font-family:sans-serif;background:#000a14;color:#eee;display:flex;justify-c
 #screen-game{background:#000a14}
 canvas{display:block;width:100%;height:100%}
 
-.hud{position:absolute;top:0;left:0;right:0;z-index:20;padding:.5rem .75rem;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;background:linear-gradient(180deg,rgba(0,5,15,.85) 0%,transparent 100%)}
+.hud{position:absolute;top:env(safe-area-inset-top,44px);left:0;right:0;z-index:20;padding:.5rem .75rem;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;background:linear-gradient(180deg,rgba(0,5,15,.9) 0%,rgba(0,5,15,.6) 60%,transparent 100%)}
 .cast-info{font-size:13px;color:#7ab}
 .score-info{font-size:16px;font-weight:700;color:#ffd700;text-shadow:0 0 8px #f90}
 .weather-tag{font-size:11px;padding:2px 9px;border-radius:12px;background:rgba(0,20,40,.75);border:0.5px solid #1e4a6a;color:#7ab;margin-top:3px}
 
-.w-alert{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(0,10,25,.93);border:1px solid #1e5a7a;border-radius:12px;padding:.55rem .9rem;font-size:12px;color:#7de;text-align:center;max-width:88%;opacity:0;transition:opacity .4s;pointer-events:none;line-height:1.6;white-space:pre-line}
+.w-alert{position:absolute;top:calc(env(safe-area-inset-top,44px) + 56px);left:50%;transform:translateX(-50%);z-index:25;background:rgba(0,10,25,.93);border:1px solid #1e5a7a;border-radius:12px;padding:.55rem .9rem;font-size:12px;color:#7de;text-align:center;max-width:88%;opacity:0;transition:opacity .4s;pointer-events:none;line-height:1.6;white-space:pre-line}
 .w-alert.show{opacity:1}
 
 .cast-hint{position:absolute;bottom:max(16px,calc(16px + env(safe-area-inset-bottom,0px)));left:50%;transform:translateX(-50%);z-index:20;font-size:13px;color:rgba(100,180,255,.7);pointer-events:none;text-align:center;transition:opacity .3s;white-space:nowrap}
 
-.cast-area{position:absolute;top:0;right:0;z-index:20;padding:.4rem .5rem}
+.cast-area{position:absolute;top:env(safe-area-inset-top,44px);right:0;z-index:20;padding:.4rem .5rem}
 #cast-btn{padding:7px 14px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:rgba(12,110,158,.85);color:#fff;backdrop-filter:blur(4px);border:0.5px solid rgba(14,165,233,.5)}
 #cast-btn:disabled{background:rgba(20,40,60,.7);color:#445;cursor:default;border-color:rgba(50,80,100,.3)}
 #cast-btn:active:not(:disabled){transform:scale(.97)}
@@ -130,13 +130,13 @@ const FISH_TYPES=[
   {id:'octopus',   name:'章魚',    pts:50, sz:26,spd:0.5, depthMin:.42,depthMax:.72,rarity:0.65,weather:null},
   {id:'crab',      name:'螃蟹',    pts:45, sz:22,spd:0.4, depthMin:.45,depthMax:.75,rarity:0.65,weather:null},
   {id:'lobster',   name:'龍蝦',    pts:80, sz:26,spd:0.6, depthMin:.48,depthMax:.76,rarity:0.48,weather:null},
-  {id:'sunfish',   name:'翻車魚',  pts:300,sz:44,spd:0.3, depthMin:.45,depthMax:.78,rarity:0.08,weather:['sunny','cloudy'],glow:true,glowColor:'#b3e5fc'},
-  {id:'whale',     name:'鯨魚',    pts:200,sz:46,spd:0.55,depthMin:.50,depthMax:.80,rarity:0.12,weather:['wavy','storm']},
-  {id:'manta',     name:'蝠鱝',    pts:250,sz:40,spd:0.8, depthMin:.48,depthMax:.78,rarity:0.10,weather:['sunny','wavy'],glow:true,glowColor:'#7c4dff'},
+  {id:'sunfish',   name:'翻車魚',  pts:300,sz:44,spd:0.3, depthMin:.40,depthMax:.72,rarity:0.08,weather:['sunny','cloudy'],glow:true,glowColor:'#b3e5fc'},
+  {id:'whale',     name:'鯨魚',    pts:200,sz:46,spd:0.55,depthMin:.45,depthMax:.75,rarity:0.12,weather:['wavy','storm']},
+  {id:'manta',     name:'蝠鱝',    pts:250,sz:40,spd:0.8, depthMin:.42,depthMax:.72,rarity:0.10,weather:['sunny','wavy'],glow:true,glowColor:'#7c4dff'},
   // ── 深淵層 ──
-  {id:'oarfish',   name:'皇帶魚',  pts:500,sz:16,spd:0.28,depthMin:.65,depthMax:.92,rarity:0.04, weather:['storm','wavy'],glow:true,glowColor:'#ffd700',custom:true},
-  {id:'angler',    name:'燈籠魚',  pts:400,sz:18,spd:1.9, depthMin:.68,depthMax:.94,rarity:0.05, weather:['storm','foggy'],glow:true,glowColor:'#00ffff',custom:true},
-  {id:'viperfish', name:'蝰魚',    pts:350,sz:20,spd:2.4, depthMin:.70,depthMax:.95,rarity:0.055,weather:['foggy','storm'],glow:true,glowColor:'#e040fb',custom:true},
+  {id:'oarfish',   name:'皇帶魚',  pts:500,sz:16,spd:0.28,depthMin:.55,depthMax:.85,rarity:0.04, weather:['storm','wavy'],glow:true,glowColor:'#ffd700',custom:true},
+  {id:'angler',    name:'燈籠魚',  pts:400,sz:18,spd:1.9, depthMin:.58,depthMax:.88,rarity:0.05, weather:['storm','foggy'],glow:true,glowColor:'#00ffff',custom:true},
+  {id:'viperfish', name:'蝰魚',    pts:350,sz:20,spd:2.4, depthMin:.60,depthMax:.90,rarity:0.055,weather:['foggy','storm'],glow:true,glowColor:'#e040fb',custom:true},
 ];
 
 const WEATHERS=[
@@ -150,8 +150,8 @@ const WEATHERS=[
 
 // ── 狀態 ─────────────────────────────────────────────────────
 let W=0,H=0,SEA_TOP=0;
-const BOAT_Y_RATIO=0.24;
-const SEA_RATIO=0.26;
+const BOAT_Y_RATIO=0.34;
+const SEA_RATIO=0.38;
 const BOUNDARY_PAD=20;
 const WEATHER_INTERVAL=45000;
 const MAX_CASTS=20;
@@ -621,8 +621,9 @@ function draw(){
   // depth labels
   ctx.fillStyle='rgba(80,140,200,.22)';ctx.font='10px sans-serif';ctx.textAlign='left';
   ctx.fillText('— 淺層',4,SEA_TOP+seaH*.08);
-  ctx.fillText('— 中層',4,SEA_TOP+seaH*.42);
-  ctx.fillText('— 深層',4,SEA_TOP+seaH*.75);
+  ctx.fillText('— 中層',4,SEA_TOP+seaH*.40);
+  ctx.fillText('— 深層',4,SEA_TOP+seaH*.65);
+  ctx.fillText('— 深淵',4,SEA_TOP+seaH*.85);
   // fog
   if(w.fog){const fg=ctx.createLinearGradient(0,0,0,H*.7);fg.addColorStop(0,'rgba(140,160,180,.22)');fg.addColorStop(1,'transparent');ctx.fillStyle=fg;ctx.fillRect(0,0,W,H*.7);}
   // rain
