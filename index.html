@@ -115,9 +115,6 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 .cl-fix{background:#1a0a0a;color:#fca5a5;border-left:2px solid #ef4444}
 .cl-item code{background:#0d0d22;padding:1px 5px;border-radius:3px;font-size:11px;color:#c4b5fd}
 
-  /* 防止長按選取 */
-  * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-  canvas { -webkit-tap-highlight-color: transparent; touch-action: none; }
 </style>
 </head><body>
 
@@ -199,7 +196,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
         </div>
         <div class="cl-items">
           <div class="cl-item cl-new">🚀 部署至 Vercel — <code>a-dgame-lobby.vercel.app</code> 正式上線</div>
-          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung/ADgame-lobby</code></div>
+          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung903/ADgame-lobby</code></div>
           <div class="cl-item cl-new">⚙️ vercel.json 路由設定</div>
           <div class="cl-item cl-improve">🔧 修正所有遊戲返回大廳按鈕</div>
           <div class="cl-item cl-improve">🔧 成績回傳改用 localStorage（postMessage → localStorage）</div>
@@ -468,9 +465,9 @@ function renderGrid(gridId, games, isPlayed, isSelf=false){
   grid.innerHTML = '';
   games.forEach(g => {
     const best = getBestLocal(g.id, DB.name);
-    const a = document.createElement('a');
+    const a = document.createElement('div');
     a.className = 'game-card' + (isPlayed ? ' played' : '');
-    a.href = g.file + '?from=lobby';
+    a.onclick = () => { window.location.href = g.file + '?from=lobby'; };
     let bottomHtml = '';
     if(isSelf){
       // 探索自我：顯示「再次探索」或「尚未探索」
@@ -686,9 +683,6 @@ if(!DB.name){
 }
 </script>
 <script>
-  /* 鎖右鍵與長按 */
   document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('touchstart', e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
-  document.addEventListener('selectstart', e => e.preventDefault());
 </script>
 </body></html>
