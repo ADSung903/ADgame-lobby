@@ -101,6 +101,19 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
 
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a1a3a;border:0.5px solid #5555cc;border-radius:10px;padding:.5rem 1.2rem;font-size:13px;color:#c4b5fd;opacity:0;transition:opacity .3s;pointer-events:none;z-index:1000;max-width:calc(100vw - 3rem);text-align:center}
 .toast.show{opacity:1}
+
+/* ── 開發日誌 ── */
+.cl-version{background:#0d0d1e;border:0.5px solid #1e1e3a;border-radius:12px;padding:1rem;margin-bottom:.75rem}
+.cl-ver-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap}
+.cl-ver-badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#1a0a3a;color:#a78bfa;border:1px solid #4a1a8a;letter-spacing:1px}
+.cl-ver-title{font-size:14px;font-weight:600;color:#eee;flex:1}
+.cl-ver-date{font-size:11px;color:#555}
+.cl-items{display:flex;flex-direction:column;gap:4px}
+.cl-item{font-size:12px;padding:5px 8px;border-radius:6px;line-height:1.6}
+.cl-new{background:#0a1a0a;color:#86efac;border-left:2px solid #22c55e}
+.cl-improve{background:#0a1020;color:#93c5fd;border-left:2px solid #3b82f6}
+.cl-fix{background:#1a0a0a;color:#fca5a5;border-left:2px solid #ef4444}
+.cl-item code{background:#0d0d22;padding:1px 5px;border-radius:3px;font-size:11px;color:#c4b5fd}
 </style>
 </head><body>
 
@@ -132,7 +145,126 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
     <div class="lobby-footer">
       <button class="btn" id="lb-btn">🏆 排行榜</button>
       <button class="btn" id="profile-btn">📊 我的成績</button>
+      <button class="btn" id="changelog-btn">📋 開發日誌</button>
       <button class="btn" id="clear-btn">🗑️ 清除記錄</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGELOG -->
+<div class="screen" id="screen-changelog">
+  <div class="wrap">
+    <div class="lb-header">
+      <h2>📋 開發日誌</h2>
+      <button class="btn" id="changelog-back-btn">← 返回</button>
+    </div>
+    <div id="changelog-body" style="padding-bottom:2rem">
+
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <div style="font-size:36px;margin-bottom:.4rem">🎮</div>
+        <div style="font-size:18px;font-weight:700;color:#a78bfa">ADgame Lobby</div>
+        <div style="font-size:12px;color:#555;margin-top:.2rem">與 Claude 共同開發 · 純靜態網頁遊戲平台</div>
+        <a href="https://a-dgame-lobby.vercel.app" target="_blank" style="font-size:11px;color:#7c3aed;text-decoration:none">🔗 a-dgame-lobby.vercel.app</a>
+      </div>
+
+      <!-- v1.0 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.0</span>
+          <span class="cl-ver-title">大廳誕生</span>
+          <span class="cl-ver-date">2025 早期</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🌈 彩虹連連看 — 首款遊戲，AI 無限生成關卡，支援多人競速</div>
+          <div class="cl-item cl-new">🐟 釣魚翻牌記憶 — 12關，4×2 到 8×8 難度漸進</div>
+          <div class="cl-item cl-new">🌀 逃出迷宮 — Recursive Backtracker 演算法，15關，BFS提示</div>
+          <div class="cl-item cl-new">🧙‍♀️ 女巫毒藥 — 2人對戰，毒藥藏選揭曉動畫</div>
+          <div class="cl-item cl-new">🚣 過河難題 — 5關經典邏輯題</div>
+          <div class="cl-item cl-new">🧠 機智問答 — 兒童題庫 75題，8主題，三種求救方式</div>
+          <div class="cl-item cl-new">🧬 細胞餵食進化 — 7種細胞 × 20種食物，化學進化機制</div>
+          <div class="cl-item cl-new">🏠 遊戲大廳主介面 — 統一入口，本機排行榜，玩家名稱記憶</div>
+        </div>
+      </div>
+
+      <!-- v1.1 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.1</span>
+          <span class="cl-ver-title">上線 Vercel</span>
+          <span class="cl-ver-date">首次公開發布</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🚀 部署至 Vercel — <code>a-dgame-lobby.vercel.app</code> 正式上線</div>
+          <div class="cl-item cl-new">📁 建立 GitHub repo — <code>ADSung903/ADgame-lobby</code></div>
+          <div class="cl-item cl-new">⚙️ vercel.json 路由設定</div>
+          <div class="cl-item cl-improve">🔧 修正所有遊戲返回大廳按鈕</div>
+          <div class="cl-item cl-improve">🔧 成績回傳改用 localStorage（postMessage → localStorage）</div>
+        </div>
+      </div>
+
+      <!-- v1.2 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.2</span>
+          <span class="cl-ver-title">Firebase 全球排行榜</span>
+          <span class="cl-ver-date">線上對戰時代</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🌐 Firebase Realtime Database 整合 — 成績自動上傳</div>
+          <div class="cl-item cl-new">🏆 線上 / 本機 排行榜雙模式切換</div>
+          <div class="cl-item cl-new">👤 歡迎彈窗 — 首次進入輸入名稱</div>
+          <div class="cl-item cl-new">⭐ 已遊玩 / 未遊玩 分區顯示</div>
+          <div class="cl-item cl-new">🎣 深海釣魚 — 天氣影響魚群的新遊戲</div>
+          <div class="cl-item cl-new">💣 踩地雷 — Windows 經典重現</div>
+        </div>
+      </div>
+
+      <!-- v1.3 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.3</span>
+          <span class="cl-ver-title">探索自我系列</span>
+          <span class="cl-ver-date">人格 & 智力測驗</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🧩 MBTI 人格測驗 — 20題，16種類型完整分析</div>
+          <div class="cl-item cl-new">🔢 智力挑戰 — 20道邏輯推理題，4主題各40題題庫隨機抽取</div>
+          <div class="cl-item cl-new">🔍 「探索自我」獨立分區 — 不計入總分，僅本機儲存</div>
+          <div class="cl-item cl-new">📊 個人成績頁顯示 MBTI / IQ 結果，標註「僅自己可見」</div>
+          <div class="cl-item cl-improve">🎨 大廳分類重整：益智遊戲 / 探索自我 兩區</div>
+        </div>
+      </div>
+
+      <!-- v1.4 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.4</span>
+          <span class="cl-ver-title">MBTI 深度升級</span>
+          <span class="cl-ver-date">本次更新</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">💞 相容性分析 — 最合／融洽／反差大三級，每種附說明</div>
+          <div class="cl-item cl-new">💼 職業建議 — 8種最適職業 + 工作風格分析 + 注意事項</div>
+          <div class="cl-item cl-new">🔍 深度解析 — 4個維度各自說明 + 人格核心 + 日常行為模式</div>
+          <div class="cl-item cl-new">💾 MBTI 結果持久儲存 — 重開頁面不需重測，直接查看上次結果</div>
+          <div class="cl-item cl-fix">🐛 排行榜卡「載入中」 — Firebase databaseURL 修正（asia→us-central1）</div>
+          <div class="cl-item cl-fix">🐛 排行榜 Tab 包含 MBTI/IQ 導致讀取失敗 — 已排除 self 分類</div>
+          <div class="cl-item cl-fix">🐛 Firebase 無 timeout 保護 — 加入 5 秒 timeout + 失敗自動切本機</div>
+          <div class="cl-item cl-fix">🐛 JS SyntaxError（單引號衝突）— 修正 onclick 字串跳脫</div>
+          <div class="cl-item cl-fix">🐛 手機點擊沒反應 — setLBMode / openLB 掛到 window</div>
+          <div class="cl-item cl-new">📋 開發日誌頁面 — 本頁！</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:1.5rem;padding:1rem;background:#0a0a1a;border-radius:12px;border:0.5px solid #1a1a2e">
+        <div style="font-size:12px;color:#555;line-height:2">
+          <span style="color:#a78bfa;font-weight:600">創作者 Adrian</span> × <span style="color:#7c3aed">Claude (Anthropic)</span><br>
+          想法 · 設計 · 決策 · 發布 — <span style="color:#4a4a6a">Adrian</span><br>
+          編碼 · 除錯 · 建議 — <span style="color:#4a4a6a">Claude</span><br>
+          <span style="color:#3a3a5a">純靜態 HTML · 無後端 · 無框架</span>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -199,7 +331,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyD_tt8CQhFpUkJHP5nlpqw5lj9DfphEsRk",
   authDomain: "adgame-lobby.firebaseapp.com",
   projectId: "adgame-lobby",
-  databaseURL: "https://adgame-lobby-default-rtdb.firebaseio.com",
+  databaseURL: "https://adgame-lobby-default-rtdb.asia-southeast1.firebasedatabase.app",
   storageBucket: "adgame-lobby.firebasestorage.app",
   messagingSenderId: "327242677809",
   appId: "1:327242677809:web:c621472813882c40061f10"
@@ -410,7 +542,7 @@ async function renderLB(){
       });
       const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
       if(!sorted.length){
-        list.innerHTML='<div class="lb-empty">🌐 還沒有人上傳成績，或無法連線<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode(&apos;local&apos;)">切換本機排行榜</button></div>';
+        list.innerHTML='<div class="lb-empty">🌐 還沒有人上傳成績，或無法連線<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode('local')">切換本機排行榜</button></div>';
         return;
       }
       list.innerHTML = sorted.slice(0,20).map(([name,p],i)=>`
@@ -424,7 +556,7 @@ async function renderLB(){
       document.getElementById('lb-title').textContent = g.icon+' '+g.name+' 全球排行';
       const entries = await loadFromFirebase(lbTab);
       if(!entries.length){
-        list.innerHTML='<div class="lb-empty">這個遊戲還沒有人上傳，或無法連線<br>'+g.icon+'<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode(&apos;local&apos;)">切換本機排行榜</button></div>';
+        list.innerHTML='<div class="lb-empty">這個遊戲還沒有人上傳，或無法連線<br>'+g.icon+'<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode('local')">切換本機排行榜</button></div>';
         return;
       }
       const sorted = entries.sort((a,b)=>g.lower?a.score-b.score:b.score-a.score);
@@ -523,6 +655,8 @@ window.skipWelcome = window.skipWelcome || function(){};
 // ── 事件 ──────────────────────────────────────────────────
 document.getElementById('lb-btn').addEventListener('click', ()=>openLB('all'));
 document.getElementById('lb-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
+document.getElementById('changelog-btn').addEventListener('click', ()=>showScreen('screen-changelog'));
+document.getElementById('changelog-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
 document.getElementById('profile-btn').addEventListener('click', showProfile);
 document.getElementById('profile-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
 document.getElementById('clear-btn').addEventListener('click', ()=>{
