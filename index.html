@@ -125,6 +125,10 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100vh;paddi
       <div class="section-title" id="unplayed-label">🎮 所有遊戲</div>
       <div class="game-grid" id="unplayed-grid"></div>
     </div>
+    <div id="self-section">
+      <div class="section-title">🔍 探索自我</div>
+      <div class="game-grid" id="self-grid"></div>
+    </div>
     <div class="lobby-footer">
       <button class="btn" id="lb-btn">🏆 排行榜</button>
       <button class="btn" id="profile-btn">📊 我的成績</button>
@@ -202,17 +206,17 @@ const db = getDatabase(app);
 
 // ── 遊戲清單 ───────────────────────────────────────────────
 const GAMES = [
-  {id:'rainbow',    name:'彩虹連連看', icon:'🌈', badge:'益智',   desc:'把相同動物連起來，填滿所有格子！',     file:'games/rainbow.html',    unit:'秒',  lower:true},
-  {id:'fishing',    name:'釣魚翻牌',   icon:'🐟', badge:'記憶',   desc:'翻開兩張一樣的魚，全部釣走過關！',     file:'games/fishing.html',    unit:'次',  lower:true},
-  {id:'fishing_rod',name:'深海釣魚',   icon:'🎣', badge:'休閒',   desc:'點擊下竿，勾到魚才算釣獲！天氣影響魚群！',file:'games/fishing_rod.html',unit:'分',  lower:false},
-  {id:'maze',       name:'逃出迷宮',   icon:'🌀', badge:'探索',   desc:'在隨機迷宮中找到出口！',               file:'games/maze.html',       unit:'秒',  lower:true},
-  {id:'witch',      name:'女巫毒藥',   icon:'🧙‍♀️', badge:'雙人', desc:'猜出對方藏的毒藥，先猜中就贏！',       file:'games/witch.html',      unit:'勝',  lower:false},
-  {id:'river',      name:'過河難題',   icon:'🚣', badge:'邏輯',   desc:'怎麼把所有人安全渡河？',               file:'games/river.html',      unit:'步',  lower:true},
-  {id:'quiz',       name:'機智問答',   icon:'🧠', badge:'知識',   desc:'兒童題庫 + 三種求救方式！',             file:'games/quiz.html',       unit:'分',  lower:false},
-  {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',         file:'games/cell.html',       unit:'分',  lower:false},
-  {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'測驗',   desc:'20題探索你的人格類型，了解自己！',     file:'games/mbti.html',       unit:'',    lower:false},
-  {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'益智',   desc:'20道邏輯推理題，測試你的分析能力！',   file:'games/iq.html',         unit:'/20', lower:false},
-  {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',   file:'games/mine.html',       unit:'秒',  lower:true},
+  {id:'rainbow',    name:'彩虹連連看', icon:'🌈', badge:'益智',   desc:'把相同動物連起來，填滿所有格子！',     file:'games/rainbow.html',    unit:'秒',  lower:true,  category:'game'},
+  {id:'fishing',    name:'釣魚翻牌',   icon:'🐟', badge:'記憶',   desc:'翻開兩張一樣的魚，全部釣走過關！',     file:'games/fishing.html',    unit:'次',  lower:true,  category:'game'},
+  {id:'fishing_rod',name:'深海釣魚',   icon:'🎣', badge:'休閒',   desc:'點擊下竿，勾到魚才算釣獲！天氣影響魚群！',file:'games/fishing_rod.html',unit:'分',  lower:false, category:'game'},
+  {id:'maze',       name:'逃出迷宮',   icon:'🌀', badge:'探索',   desc:'在隨機迷宮中找到出口！',               file:'games/maze.html',       unit:'秒',  lower:true,  category:'game'},
+  {id:'witch',      name:'女巫毒藥',   icon:'🧙‍♀️', badge:'雙人', desc:'猜出對方藏的毒藥，先猜中就贏！',       file:'games/witch.html',      unit:'勝',  lower:false, category:'game'},
+  {id:'river',      name:'過河難題',   icon:'🚣', badge:'邏輯',   desc:'怎麼把所有人安全渡河？',               file:'games/river.html',      unit:'步',  lower:true,  category:'game'},
+  {id:'quiz',       name:'機智問答',   icon:'🧠', badge:'知識',   desc:'兒童題庫 + 三種求救方式！',             file:'games/quiz.html',       unit:'分',  lower:false, category:'game'},
+  {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',         file:'games/cell.html',       unit:'分',  lower:false, category:'game'},
+  {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',   file:'games/mine.html',       unit:'秒',  lower:true,  category:'game'},
+  {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',     file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
+  {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',   file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
 ];
 
 // ── localStorage ───────────────────────────────────────────
@@ -287,8 +291,11 @@ function rankEmoji(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1); 
 
 // ── 大廳：分區顯示 ─────────────────────────────────────────
 function buildLobby(){
-  const played   = GAMES.filter(g => getBestLocal(g.id, DB.name) !== null);
-  const unplayed = GAMES.filter(g => getBestLocal(g.id, DB.name) === null);
+  const gameList = GAMES.filter(g => g.category === 'game');
+  const selfList = GAMES.filter(g => g.category === 'self');
+
+  const played   = gameList.filter(g => getBestLocal(g.id, DB.name) !== null);
+  const unplayed = gameList.filter(g => getBestLocal(g.id, DB.name) === null);
 
   const playedSec   = document.getElementById('played-section');
   const unplayedSec = document.getElementById('unplayed-section');
@@ -306,10 +313,13 @@ function buildLobby(){
   unplayedLbl.textContent = played.length > 0 ? '🎮 還沒玩過' : '🎮 所有遊戲';
   renderGrid('unplayed-grid', unplayed, false);
 
+  // 探索自我（固定顯示，不分已玩/未玩）
+  renderGrid('self-grid', selfList, false, true);
+
   document.getElementById('total-pts').textContent = Math.round(getTotalPtsLocal(DB.name));
 }
 
-function renderGrid(gridId, games, isPlayed){
+function renderGrid(gridId, games, isPlayed, isSelf=false){
   const grid = document.getElementById(gridId);
   grid.innerHTML = '';
   games.forEach(g => {
@@ -318,7 +328,12 @@ function renderGrid(gridId, games, isPlayed){
     a.className = 'game-card' + (isPlayed ? ' played' : '');
     a.href = g.file + '?from=lobby';
     let bottomHtml = '';
-    if(isPlayed && best !== null){
+    if(isSelf){
+      // 探索自我：顯示「再次探索」或「尚未探索」
+      bottomHtml = best !== null
+        ? `<div class="gc-best">✅ 已完成</div>`
+        : `<div class="gc-unplayed">點擊開始探索</div>`;
+    } else if(isPlayed && best !== null){
       bottomHtml = `<div class="gc-best">${g.lower ? '⭐ 最佳 '+best+g.unit : '⭐ 最高 '+best+g.unit}</div>`;
     } else {
       bottomHtml = `<div class="gc-unplayed">尚未遊玩</div>`;
