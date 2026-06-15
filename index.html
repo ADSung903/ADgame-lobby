@@ -140,18 +140,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
       <input id="name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
       <div class="total-score">🏆 <span id="total-pts">0</span> 分</div>
     </div>
-    <div id="played-section" style="display:none">
-      <div class="section-title">⭐ 已遊玩</div>
-      <div class="game-grid" id="played-grid"></div>
-    </div>
-    <div id="unplayed-section">
-      <div class="section-title" id="unplayed-label">🎮 所有遊戲</div>
-      <div class="game-grid" id="unplayed-grid"></div>
-    </div>
-    <div id="self-section">
-      <div class="section-title">🔍 探索自我</div>
-      <div class="game-grid" id="self-grid"></div>
-    </div>
+    <div id="game-sections"></div>
     <div class="lobby-footer">
       <button class="btn" id="lb-btn">🏆 排行榜</button>
       <button class="btn" id="profile-btn">📊 我的成績</button>
@@ -369,21 +358,21 @@ const db = getDatabase(app);
 
 // ── 遊戲清單 ───────────────────────────────────────────────
 const GAMES = [
-  {id:'rainbow',    name:'彩虹連連看', icon:'🌈', badge:'益智',   desc:'把相同動物連起來，填滿所有格子！',     file:'games/rainbow.html',    unit:'秒',  lower:true,  category:'game'},
-  {id:'fishing',    name:'釣魚翻牌',   icon:'🐟', badge:'記憶',   desc:'翻開兩張一樣的魚，全部釣走過關！',     file:'games/fishing.html',    unit:'次',  lower:true,  category:'game'},
-  {id:'fishing_rod',name:'深海釣魚',   icon:'🎣', badge:'休閒',   desc:'點擊下竿，勾到魚才算釣獲！天氣影響魚群！',file:'games/fishing_rod.html',unit:'分',  lower:false, category:'game'},
-  {id:'maze',       name:'逃出迷宮',   icon:'🌀', badge:'探索',   desc:'在隨機迷宮中找到出口！',               file:'games/maze.html',       unit:'秒',  lower:true,  category:'game'},
-  {id:'witch',      name:'女巫毒藥',   icon:'🧙‍♀️', badge:'雙人', desc:'猜出對方藏的毒藥，先猜中就贏！',       file:'games/witch.html',      unit:'勝',  lower:false, category:'game'},
-  {id:'river',      name:'過河難題',   icon:'🚣', badge:'邏輯',   desc:'怎麼把所有人安全渡河？',               file:'games/river.html',      unit:'步',  lower:true,  category:'game'},
-  {id:'quiz',       name:'機智問答',   icon:'🧠', badge:'知識',   desc:'兒童題庫 + 三種求救方式！',             file:'games/quiz.html',       unit:'分',  lower:false, category:'game'},
-  {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',         file:'games/cell.html',       unit:'分',  lower:false, category:'game'},
-  {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',   file:'games/mine.html',       unit:'秒',  lower:true,  category:'game'},
-  {id:'2048',       name:'2048',       icon:'🔢', badge:'益智',   desc:'合併數字拼出 2048，停不下來的益智經典！', file:'games/2048.html',       unit:'分',  lower:false, category:'game'},
-  {id:'suika',      name:'西瓜合成',   icon:'🍉', badge:'物理',   desc:'水果掉落合成，越合越大直到西瓜！',       file:'games/suika.html',      unit:'分',  lower:false, category:'game'},
-  {id:'shop',       name:'迷你店長',   icon:'🏪', badge:'放置',   desc:'24H 桌遊館經營，離線也能賺錢！',         file:'games/shop.html',       unit:'轉',  lower:false, category:'game'},
-  {id:'stock',      name:'股票市場',   icon:'📈', badge:'實時',   desc:'美台日港韓五大市場，用桌遊館賺的錢來投資！', file:'games/stock.html',      unit:'分',  lower:false, category:'game'},
-  {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',     file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
-  {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',   file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
+  {id:'rainbow',    name:'彩虹連連看', icon:'🌈', badge:'益智',   desc:'把相同動物連起來，填滿所有格子！',        file:'games/rainbow.html',    unit:'秒',  lower:true,  category:'puzzle'},
+  {id:'maze',       name:'逃出迷宮',   icon:'🌀', badge:'探索',   desc:'在隨機迷宮中找到出口！',                  file:'games/maze.html',       unit:'秒',  lower:true,  category:'puzzle'},
+  {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',      file:'games/mine.html',       unit:'秒',  lower:true,  category:'puzzle'},
+  {id:'2048',       name:'2048',       icon:'🔢', badge:'益智',   desc:'合併數字拼出 2048，停不下來的益智經典！',  file:'games/2048.html',       unit:'分',  lower:false, category:'puzzle'},
+  {id:'river',      name:'過河難題',   icon:'🚣', badge:'邏輯',   desc:'怎麼把所有人安全渡河？',                  file:'games/river.html',      unit:'步',  lower:true,  category:'puzzle'},
+  {id:'shop',       name:'迷你店長',   icon:'🏪', badge:'放置',   desc:'24H 桌遊館經營，離線也能賺錢！',          file:'games/shop.html',       unit:'轉',  lower:false, category:'invest'},
+  {id:'stock',      name:'股票市場',   icon:'📈', badge:'實時',   desc:'美台日港韓五大市場，用桌遊館賺的錢來投資！',file:'games/stock.html',      unit:'分',  lower:false, category:'invest'},
+  {id:'suika',      name:'西瓜合成',   icon:'🍉', badge:'物理',   desc:'水果掉落合成，越合越大直到西瓜！',        file:'games/suika.html',      unit:'分',  lower:false, category:'casual'},
+  {id:'fishing_rod',name:'深海釣魚',   icon:'🎣', badge:'休閒',   desc:'點擊下竿，勾到魚才算釣獲！天氣影響魚群！',file:'games/fishing_rod.html',unit:'分',  lower:false, category:'casual'},
+  {id:'witch',      name:'女巫毒藥',   icon:'🧙‍♀️', badge:'雙人', desc:'猜出對方藏的毒藥，先猜中就贏！',          file:'games/witch.html',      unit:'勝',  lower:false, category:'pvp'},
+  {id:'quiz',       name:'機智問答',   icon:'🧠', badge:'知識',   desc:'兒童題庫 + 三種求救方式！',               file:'games/quiz.html',       unit:'分',  lower:false, category:'kids'},
+  {id:'fishing',    name:'釣魚翻牌',   icon:'🐟', badge:'記憶',   desc:'翻開兩張一樣的魚，全部釣走過關！',        file:'games/fishing.html',    unit:'次',  lower:true,  category:'kids'},
+  {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',            file:'games/cell.html',       unit:'分',  lower:false, category:'kids'},
+  {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',        file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
+  {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',      file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
 ];
 
 // ── localStorage ───────────────────────────────────────────
@@ -461,50 +450,45 @@ function getTotalPtsLocal(name){
 function rankEmoji(i){ return i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1); }
 
 // ── 大廳：分區顯示 ─────────────────────────────────────────
+const CAT_META = [
+  {key:'puzzle', icon:'🧩', label:'益智解謎'},
+  {key:'invest', icon:'💰', label:'經營投資'},
+  {key:'casual', icon:'🃏', label:'休閒娛樂'},
+  {key:'pvp',    icon:'⚔️', label:'雙人對戰'},
+  {key:'kids',   icon:'👶', label:'幼童專屬'},
+  {key:'self',   icon:'🔮', label:'探索自我'},
+];
+
 function buildLobby(){
-  const gameList = GAMES.filter(g => g.category === 'game');
-  const selfList = GAMES.filter(g => g.category === 'self');
-
-  const played   = gameList.filter(g => getBestLocal(g.id, DB.name) !== null);
-  const unplayed = gameList.filter(g => getBestLocal(g.id, DB.name) === null);
-
-  const playedSec   = document.getElementById('played-section');
-  const unplayedSec = document.getElementById('unplayed-section');
-  const unplayedLbl = document.getElementById('unplayed-label');
-
-  // 已遊玩區
-  if(played.length > 0){
-    playedSec.style.display = 'block';
-    renderGrid('played-grid', played, true);
-  } else {
-    playedSec.style.display = 'none';
-  }
-
-  // 未遊玩區
-  unplayedLbl.textContent = played.length > 0 ? '🎮 還沒玩過' : '🎮 所有遊戲';
-  renderGrid('unplayed-grid', unplayed, false);
-
-  // 探索自我（固定顯示，不分已玩/未玩）
-  renderGrid('self-grid', selfList, false, true);
-
+  const container = document.getElementById('game-sections');
+  container.innerHTML = '';
+  CAT_META.forEach(cat => {
+    const games = GAMES.filter(g => g.category === cat.key);
+    if(!games.length) return;
+    const sec = document.createElement('div');
+    const gridId = 'cat-grid-' + cat.key;
+    sec.innerHTML = `<div class="section-title">${cat.icon} ${cat.label} (${games.length})</div><div class="game-grid" id="${gridId}"></div>`;
+    container.appendChild(sec);
+    renderGrid(gridId, games, cat.key === 'self');
+  });
   document.getElementById('total-pts').textContent = Math.round(getTotalPtsLocal(DB.name));
 }
 
-function renderGrid(gridId, games, isPlayed, isSelf=false){
+function renderGrid(gridId, games, isSelf=false){
   const grid = document.getElementById(gridId);
   grid.innerHTML = '';
   games.forEach(g => {
     const best = getBestLocal(g.id, DB.name);
+    const played = best !== null;
     const a = document.createElement('div');
-    a.className = 'game-card' + (isPlayed ? ' played' : '');
+    a.className = 'game-card' + (played ? ' played' : '');
     a.onclick = () => { window.location.href = g.file + '?from=lobby'; };
     let bottomHtml = '';
     if(isSelf){
-      // 探索自我：顯示「再次探索」或「尚未探索」
-      bottomHtml = best !== null
+      bottomHtml = played
         ? `<div class="gc-best">✅ 已完成</div>`
         : `<div class="gc-unplayed">點擊開始探索</div>`;
-    } else if(isPlayed && best !== null){
+    } else if(played){
       bottomHtml = `<div class="gc-best">${g.lower ? '⭐ 最佳 '+best+g.unit : '⭐ 最高 '+best+g.unit}</div>`;
     } else {
       bottomHtml = `<div class="gc-unplayed">尚未遊玩</div>`;
@@ -545,7 +529,7 @@ function openLB(tabId){
 function buildLBTabs(){
   const row = document.getElementById('lb-tabs');
   row.innerHTML = '';
-  [{id:'all',label:'🏆 總榜'}, ...GAMES.filter(g=>g.category==='game').map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
+  [{id:'all',label:'🏆 總榜'}, ...GAMES.filter(g=>g.category!=='self').map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
     const b = document.createElement('button');
     b.className = 'tab' + (t.id===lbTab?' active':'');
     b.textContent = t.label;
