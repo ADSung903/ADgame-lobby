@@ -217,29 +217,23 @@ function fmtIdx(n){
 function fmtPct(n){return(n>=0?'+':'')+n.toFixed(2)+'%';}
 
 // ── 行情抓取 ──────────────────────────────────────────
-async function fetchOne(m){
-  try{
-    const r=await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(m.symbol)}?interval=1d&range=5d`);
-    if(!r.ok)throw 0;
-    const d=await r.json();
-    const meta=d.chart.result[0].meta;
-    const price=meta.regularMarketPrice;
-    const prev=meta.chartPreviousClose||meta.previousClose||price;
-    return{price,prev,change:price-prev,pct:(price-prev)/prev*100};
-  }catch(e){return null;}
-}
-
 async function refreshPrices(){
   const btn=document.getElementById('refresh-btn');
   btn.textContent='⏳';btn.disabled=true;
   document.getElementById('update-bar').textContent='正在取得行情...';
-  const res=await Promise.allSettled(MARKETS.map(fetchOne));
   let ok=0;
-  MARKETS.forEach((m,i)=>{
-    const r=res[i];
-    if(r.status==='fulfilled'&&r.value){prices[m.id]=r.value;ok++;}
-    else if(state.lastPrices[m.id])prices[m.id]=state.lastPrices[m.id];
-  });
+  try{
+    const r=await fetch('/api/markets');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    MARKETS.forEach(m=>{
+      const q=data[m.id];
+      if(q&&q.price!=null){prices[m.id]=q;ok++;}
+      else if(state.lastPrices[m.id])prices[m.id]=state.lastPrices[m.id];
+    });
+  }catch(e){
+    MARKETS.forEach(m=>{if(state.lastPrices[m.id])prices[m.id]=state.lastPrices[m.id];});
+  }
   state.lastPrices={...prices};state.lastFetch=Date.now();save();
   btn.textContent='🔄';btn.disabled=false;
   const t=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
