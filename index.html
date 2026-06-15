@@ -410,7 +410,7 @@ async function renderLB(){
       });
       const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
       if(!sorted.length){
-        list.innerHTML='<div class="lb-empty">🌐 還沒有人上傳成績，或無法連線<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode('local')">切換本機排行榜</button></div>';
+        list.innerHTML='<div class="lb-empty">🌐 還沒有人上傳成績，或無法連線<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode(&apos;local&apos;)">切換本機排行榜</button></div>';
         return;
       }
       list.innerHTML = sorted.slice(0,20).map(([name,p],i)=>`
@@ -424,7 +424,7 @@ async function renderLB(){
       document.getElementById('lb-title').textContent = g.icon+' '+g.name+' 全球排行';
       const entries = await loadFromFirebase(lbTab);
       if(!entries.length){
-        list.innerHTML='<div class="lb-empty">這個遊戲還沒有人上傳，或無法連線<br>'+g.icon+'<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode('local')">切換本機排行榜</button></div>';
+        list.innerHTML='<div class="lb-empty">這個遊戲還沒有人上傳，或無法連線<br>'+g.icon+'<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode(&apos;local&apos;)">切換本機排行榜</button></div>';
         return;
       }
       const sorted = entries.sort((a,b)=>g.lower?a.score-b.score:b.score-a.score);
