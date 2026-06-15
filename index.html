@@ -263,16 +263,20 @@ async function saveToFirebase(gameId, name, score, detail, g){
   }catch(e){ console.warn('Firebase write:', e); }
 }
 
+function withTimeout(promise, ms=5000){
+  return Promise.race([promise, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+}
+
 async function loadFromFirebase(gameId){
   try{
-    const snap = await get(ref(db, `scores/${gameId}`));
+    const snap = await withTimeout(get(ref(db, `scores/${gameId}`)));
     return snap.exists() ? Object.values(snap.val()) : [];
   }catch(e){ return []; }
 }
 
 async function loadAllFromFirebase(){
   try{
-    const snap = await get(ref(db, 'scores'));
+    const snap = await withTimeout(get(ref(db, 'scores')));
     return snap.exists() ? snap.val() : {};
   }catch(e){ return {}; }
 }
@@ -393,16 +397,22 @@ async function renderLB(){
 
   if(lbMode === 'online'){
     document.getElementById('lb-title').textContent = lbTab==='all' ? '🏆 全球總排行榜' : '🏆 全球排行榜';
+    let firebaseOk = true;
     if(lbTab === 'all'){
       const allData = await loadAllFromFirebase();
+      // 判斷是否連線失敗（空物件且非正常空資料）
       const totals = {};
       GAMES.forEach(g=>{
         const gd = allData[g.id];
         if(!gd) return;
+        firebaseOk = true;
         Object.values(gd).forEach(e=>{ totals[e.name] = (totals[e.name]||0) + pts(g, e.score); });
       });
       const sorted = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
-      if(!sorted.length){ list.innerHTML='<div class="lb-empty">還沒有人上傳成績<br>快去玩遊戲吧！🎮</div>'; return; }
+      if(!sorted.length){
+        list.innerHTML='<div class="lb-empty">🌐 還沒有人上傳成績，或無法連線<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode('local')">切換本機排行榜</button></div>';
+        return;
+      }
       list.innerHTML = sorted.slice(0,20).map(([name,p],i)=>`
         <div class="lb-row${name===DB.name?' me':''}">
           <div class="lb-rank">${rankEmoji(i)}</div>
@@ -413,7 +423,10 @@ async function renderLB(){
       const g = GAMES.find(x=>x.id===lbTab); if(!g) return;
       document.getElementById('lb-title').textContent = g.icon+' '+g.name+' 全球排行';
       const entries = await loadFromFirebase(lbTab);
-      if(!entries.length){ list.innerHTML='<div class="lb-empty">這個遊戲還沒有人上傳<br>快去挑戰！'+g.icon+'</div>'; return; }
+      if(!entries.length){
+        list.innerHTML='<div class="lb-empty">這個遊戲還沒有人上傳，或無法連線<br>'+g.icon+'<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode('local')">切換本機排行榜</button></div>';
+        return;
+      }
       const sorted = entries.sort((a,b)=>g.lower?a.score-b.score:b.score-a.score);
       list.innerHTML = sorted.slice(0,20).map((e,i)=>`
         <div class="lb-row${e.name===DB.name?' me':''}">
@@ -500,6 +513,12 @@ function toast(msg){
   el.textContent = msg; el.classList.add('show');
   clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('show'), 2500);
 }
+
+// ── 掛到 window，讓 inline onclick 也能用 ─────────────────
+window.setLBMode = setLBMode;
+window.openLB = openLB;
+window.confirmWelcome = window.confirmWelcome || function(){};
+window.skipWelcome = window.skipWelcome || function(){};
 
 // ── 事件 ──────────────────────────────────────────────────
 document.getElementById('lb-btn').addEventListener('click', ()=>openLB('all'));
