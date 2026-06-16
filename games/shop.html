@@ -536,12 +536,74 @@ function renderStats(){
   document.getElementById('st-stock').textContent='NT$'+fmt(sa.cash||0);
 }
 
-// ── Forbes ────────────────────────────────────────────
-function loadLB(){
-  try{const r=localStorage.getItem(LS_LB);if(r)return JSON.parse(r);}catch(e){}
-  return{weekKey:'',weekly:[],alltime:[],cps:[],prestige:[],prevRanks:{}};
+// ── Firebase 初始化 ───────────────────────────────────
+let _fbDb=null;
+async function getFbDb(){
+  if(_fbDb)return _fbDb;
+  const {initializeApp,getApps}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const {getDatabase}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+  const cfg={
+    apiKey:"AIzaSyD_tt8CQhFpUkJHP5nlpqw5lj9DfphEsRk",
+    authDomain:"adgame-lobby.firebaseapp.com",
+    projectId:"adgame-lobby",
+    databaseURL:"https://adgame-lobby-default-rtdb.firebaseio.com",
+    storageBucket:"adgame-lobby.firebasestorage.app",
+    messagingSenderId:"327242677809",
+    appId:"1:327242677809:web:c621472813882c40061f10"
+  };
+  const app=getApps().find(a=>a.name==='shop')||initializeApp(cfg,'shop');
+  _fbDb=getDatabase(app);
+  return _fbDb;
 }
-function saveLB(lb){localStorage.setItem(LS_LB,JSON.stringify(lb));}
+
+function withTimeout(p,ms=5000){
+  return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+}
+
+// ── Forbes localStorage（備援 + prevRanks）────────────
+function loadLBLocal(){
+  try{const r=localStorage.getItem(LS_LB);if(r)return JSON.parse(r);}catch(e){}
+  return{weekKey:'',prevRanks:{}};
+}
+function saveLBLocal(lb){localStorage.setItem(LS_LB,JSON.stringify(lb));}
+
+// ── Firebase 寫入（只更新比現有更好的數值）────────────
+async function fbWrite(path,val){
+  try{
+    const {ref,get,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const db=await getFbDb();
+    const r=ref(db,path);
+    const snap=await withTimeout(get(r));
+    const cur=snap.val();
+    if(cur===null||val>cur) await set(r,val);
+  }catch(e){console.warn('fbWrite',path,e);}
+}
+
+async function fbWriteEntry(category,name,data){
+  try{
+    const {ref,get,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const db=await getFbDb();
+    const key=encodeURIComponent(name).replace(/\./g,'_');
+    const r=ref(db,`shop_lb/${category}/${key}`);
+    const snap=await withTimeout(get(r));
+    const cur=snap.val();
+    const scoreKey=category==='prestige'?'count':category==='cps'?'cps':'amount';
+    if(!cur||data[scoreKey]>(cur[scoreKey]||0)){
+      await set(r,data);
+    }
+  }catch(e){console.warn('fbWriteEntry',category,e);}
+}
+
+// ── Firebase 讀取 ────────────────────────────────────
+async function fbReadCategory(category){
+  try{
+    const {ref,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const db=await getFbDb();
+    const snap=await withTimeout(get(ref(db,`shop_lb/${category}`)));
+    if(!snap.exists())return[];
+    return Object.values(snap.val());
+  }catch(e){return[];}
+}
 
 function upsert(arr,key,val,extra){
   const e=arr.find(x=>x.name===extra.name);
@@ -553,24 +615,41 @@ function upsert(arr,key,val,extra){
   if(arr.length>20)arr.length=20;
 }
 
-function submitToLB(showToast=true){
+async function submitToLB(showToast=true){
   const name=playerName();
   if(!name){if(showToast)toast('⚠️ 請先在大廳設定名字');return;}
-  const lb=loadLB();
   const wk=weekKey();
-  if(lb.weekKey!==wk){lb.weekly=[];lb.weekKey=wk;}
   const meta={name,tag:industryTag(),prestige:state.prestige,date:new Date().toLocaleDateString('zh-TW')};
-  upsert(lb.weekly,  'amount',state.weekly,       meta);
-  upsert(lb.alltime, 'amount',state.allTime,       meta);
-  upsert(lb.cps,     'cps',   state.peakCpsEver,  meta);
-  upsert(lb.prestige,'count', state.prestige,      meta);
+
+  // 寫 Firebase（4個榜）
+  const weeklyData ={...meta,amount:state.weekly,   weekKey:wk};
+  const alltimeData={...meta,amount:state.allTime};
+  const cpsData    ={...meta,cps:state.peakCpsEver};
+  const prestigeData={...meta,count:state.prestige};
+
+  // weekly 特殊處理：需依 weekKey 區分（寫在不同路徑）
+  try{
+    const {ref,get,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const db=await getFbDb();
+    const key=encodeURIComponent(name).replace(/\./g,'_');
+    // weekly：路徑含 weekKey，每週一個空間
+    const wRef=ref(db,`shop_lb/weekly/${wk}/${key}`);
+    const wSnap=await withTimeout(get(wRef));
+    const wCur=wSnap.val();
+    if(!wCur||state.weekly>(wCur.amount||0)) await set(wRef,weeklyData);
+  }catch(e){console.warn('fbWeekly',e);}
+
+  fbWriteEntry('alltime', name, alltimeData);
+  fbWriteEntry('cps',     name, cpsData);
+  fbWriteEntry('prestige',name, prestigeData);
+
+  // 同步更新 prevRanks 到 localStorage（用於漲跌箭頭）
+  const lb=loadLBLocal();
   if(!lb.prevRanks)lb.prevRanks={};
   if(!lb.prevRanks[name])lb.prevRanks[name]={};
-  lb.prevRanks[name].weekly   =lb.weekly.findIndex(e=>e.name===name)+1;
-  lb.prevRanks[name].alltime  =lb.alltime.findIndex(e=>e.name===name)+1;
-  lb.prevRanks[name].cps      =lb.cps.findIndex(e=>e.name===name)+1;
-  lb.prevRanks[name].prestige =lb.prestige.findIndex(e=>e.name===name)+1;
-  saveLB(lb);
+  // 箭頭在下次 renderForbes 後更新
+  saveLBLocal(lb);
+
   if(showToast)toast('✅ 已提交到富比士榜！');
 }
 
@@ -584,35 +663,63 @@ function switchLBTab(tab){
 
 function rankEmoji(i){return i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);}
 
-function renderForbes(){
-  const lb=loadLB(),pName=playerName();
-  const wk=weekKey();
-  if(lb.weekKey!==wk)lb.weekly=[];
-
-  let entries,scoreKey,fmtScore;
+async function renderForbes(){
+  const pName=playerName();
+  const list=document.getElementById('lb-list');
   const wi=document.getElementById('week-info');
   wi.textContent='';
+  list.innerHTML='<div class="lb-empty" style="padding:1.5rem">⏳ 載入中...</div>';
+
+  let entries=[], scoreKey, fmtScore;
+
   switch(lbTab){
     case 'weekly':
-      entries=lb.weekly;scoreKey='amount';fmtScore=v=>'$'+fmt(v);
-      wi.textContent=`📅 週榜週日重置，還剩 ${daysToSun()} 天`;break;
+      wi.textContent=`📅 週榜週日重置，還剩 ${daysToSun()} 天`;
+      scoreKey='amount'; fmtScore=v=>'$'+fmt(v);
+      try{
+        const {ref,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+        const db=await getFbDb();
+        const wk=weekKey();
+        const snap=await withTimeout(get(ref(db,`shop_lb/weekly/${wk}`)));
+        entries=snap.exists()?Object.values(snap.val()):[];
+      }catch(e){entries=[];}
+      break;
     case 'alltime':
-      entries=lb.alltime;scoreKey='amount';fmtScore=v=>'$'+fmt(v);break;
+      scoreKey='amount'; fmtScore=v=>'$'+fmt(v);
+      entries=await fbReadCategory('alltime');
+      break;
     case 'cps':
-      entries=lb.cps;scoreKey='cps';fmtScore=v=>'$'+fmt(v)+'/s';break;
+      scoreKey='cps'; fmtScore=v=>'$'+fmt(v)+'/s';
+      entries=await fbReadCategory('cps');
+      break;
     case 'prestige':
-      entries=lb.prestige;scoreKey='count';fmtScore=v=>v+'次';break;
+      scoreKey='count'; fmtScore=v=>v+'次';
+      entries=await fbReadCategory('prestige');
+      break;
   }
 
-  const list=document.getElementById('lb-list');
-  if(!entries||!entries.length){
+  entries.sort((a,b)=>b[scoreKey]-a[scoreKey]);
+  if(entries.length>20)entries.length=20;
+
+  // 更新 prevRanks
+  const lb=loadLBLocal();
+  if(!lb.prevRanks)lb.prevRanks={};
+  const prevRanksSnap={...lb.prevRanks};
+
+  if(!entries.length){
     list.innerHTML='<div class="lb-empty">還沒有人提交成績<br>到「統計」頁點「提交成績」！🎮</div>';
     return;
   }
 
+  // 寫入新排名
+  entries.forEach((e,i)=>{
+    if(!lb.prevRanks[e.name])lb.prevRanks[e.name]={};
+    if(!lb.prevRanks[e.name][lbTab]) lb.prevRanks[e.name][lbTab]=i+1;
+  });
+
   list.innerHTML=entries.map((e,i)=>{
     const isMe=e.name===pName;
-    const prev=lb.prevRanks?.[e.name]?.[lbTab]??null;
+    const prev=prevRanksSnap?.[e.name]?.[lbTab]??null;
     const cur=i+1;
     let arrow='',cls='eq';
     if(prev!==null&&prev!==cur){arrow=cur<prev?'▲':'▼';cls=cur<prev?'up':'dn';}
@@ -630,6 +737,10 @@ function renderForbes(){
       </div>
     </div>`;
   }).join('');
+
+  // 更新 prevRanks（下次對比用）
+  entries.forEach((e,i)=>{ lb.prevRanks[e.name][lbTab]=i+1; });
+  saveLBLocal(lb);
 }
 
 // ── 里程碑 ────────────────────────────────────────────
