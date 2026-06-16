@@ -359,7 +359,6 @@ const db = getDatabase(app);
 // ── 遊戲清單 ───────────────────────────────────────────────
 const GAMES = [
   {id:'rainbow',    name:'彩虹連連看', icon:'🌈', badge:'益智',   desc:'把相同動物連起來，填滿所有格子！',        file:'games/rainbow.html',    unit:'秒',  lower:true,  category:'puzzle'},
-  {id:'maze',       name:'逃出迷宮',   icon:'🌀', badge:'探索',   desc:'在隨機迷宮中找到出口！',                  file:'games/maze.html',       unit:'秒',  lower:true,  category:'puzzle'},
   {id:'mine',       name:'踩地雷',     icon:'💣', badge:'經典',   desc:'Windows 經典！找出所有地雷不踩中！',      file:'games/mine.html',       unit:'秒',  lower:true,  category:'puzzle'},
   {id:'2048',       name:'2048',       icon:'🔢', badge:'益智',   desc:'合併數字拼出 2048，停不下來的益智經典！',  file:'games/2048.html',       unit:'分',  lower:false, category:'puzzle'},
   {id:'river',      name:'過河難題',   icon:'🚣', badge:'邏輯',   desc:'怎麼把所有人安全渡河？',                  file:'games/river.html',      unit:'步',  lower:true,  category:'puzzle'},
@@ -370,6 +369,7 @@ const GAMES = [
   {id:'suika',      name:'西瓜合成',   icon:'🍉', badge:'物理',   desc:'水果掉落合成，越合越大直到西瓜！',        file:'games/suika.html',      unit:'分',  lower:false, category:'casual'},
   {id:'fishing_rod',name:'深海釣魚',   icon:'🎣', badge:'休閒',   desc:'點擊下竿，勾到魚才算釣獲！天氣影響魚群！',file:'games/fishing_rod.html',unit:'分',  lower:false, category:'casual'},
   {id:'witch',      name:'女巫毒藥',   icon:'🧙‍♀️', badge:'雙人', desc:'猜出對方藏的毒藥，先猜中就贏！',          file:'games/witch.html',      unit:'勝',  lower:false, category:'pvp'},
+  {id:'maze',       name:'逃出迷宮',   icon:'🌀', badge:'探索',   desc:'在隨機迷宮中找到出口！',                  file:'games/maze.html',       unit:'秒',  lower:true,  category:'kids'},
   {id:'quiz',       name:'機智問答',   icon:'🧠', badge:'知識',   desc:'兒童題庫 + 三種求救方式！',               file:'games/quiz.html',       unit:'分',  lower:false, category:'kids'},
   {id:'fishing',    name:'釣魚翻牌',   icon:'🐟', badge:'記憶',   desc:'翻開兩張一樣的魚，全部釣走過關！',        file:'games/fishing.html',    unit:'次',  lower:true,  category:'kids'},
   {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',            file:'games/cell.html',       unit:'分',  lower:false, category:'kids'},
