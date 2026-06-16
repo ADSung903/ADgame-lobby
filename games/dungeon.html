@@ -797,12 +797,18 @@ let TILE_SIZE = 26;
 const VIEW = 15; // tiles visible
 
 function resizeCanvas() {
-  const wrap = document.getElementById('map-wrap');
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  if (!w || !h) { requestAnimationFrame(resizeCanvas); return; }
-  canvas.width = w;
+  const topbar    = document.querySelector('.topbar');
+  const statusBar = document.querySelector('.status-bar');
+  const controls  = document.querySelector('.controls');
+  const w = document.getElementById('map-wrap').clientWidth || window.innerWidth;
+  const usedH = (topbar?.offsetHeight || 0)
+              + (statusBar?.offsetHeight || 0)
+              + (controls?.offsetHeight || 0);
+  const h = window.innerHeight - usedH;
+  if (w <= 0 || h <= 10) { requestAnimationFrame(resizeCanvas); return; }
+  canvas.width  = w;
   canvas.height = h;
-  TILE_SIZE = w / VIEW;
+  TILE_SIZE = Math.floor(w / VIEW);
   renderMap();
 }
 
@@ -814,7 +820,8 @@ function renderMap() {
   const px0 = Math.floor(canvas.width / 2 - ts / 2);
   const py0 = Math.floor(canvas.height / 2 - ts / 2);
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#07070f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.font = `${Math.floor(ts * 0.65)}px serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -858,8 +865,11 @@ function renderMap() {
   }
 
   // Player at exact canvas center
-  ctx.fillStyle = '#2a0a5a';
+  ctx.fillStyle = '#3b0764';
   ctx.fillRect(px0, py0, ts, ts);
+  ctx.strokeStyle = '#a855f7';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px0 + 1, py0 + 1, ts - 2, ts - 2);
   ctx.font = `${Math.floor(ts * 0.72)}px serif`;
   ctx.fillText('🧑‍⛏️', px0 + ts / 2, py0 + ts / 2);
 
