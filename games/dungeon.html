@@ -38,9 +38,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   text-overflow:ellipsis;max-width:120px}
 
 /* MAP */
-.map-wrap{flex:1;display:flex;align-items:center;justify-content:center;
-  overflow:hidden;background:#000}
-#map-canvas{display:block;border:1px solid var(--border)}
+.map-wrap{flex:1;overflow:hidden;background:var(--bg);min-height:0}
+#map-canvas{display:block}
 
 /* CONTROLS */
 .controls{display:flex;align-items:center;justify-content:space-between;
@@ -801,74 +800,79 @@ function resizeCanvas() {
   const wrap = document.getElementById('map-wrap');
   const w = wrap.clientWidth, h = wrap.clientHeight;
   if (!w || !h) { requestAnimationFrame(resizeCanvas); return; }
-  const size = Math.max(150, Math.min(w, h, 420));
-  canvas.width = canvas.height = size;
-  TILE_SIZE = Math.max(8, Math.floor(size / VIEW));
+  canvas.width = w;
+  canvas.height = h;
+  TILE_SIZE = w / VIEW;
   renderMap();
 }
 
 function renderMap() {
-  const ts = TILE_SIZE, half = Math.floor(VIEW/2);
+  const ts = TILE_SIZE;
+  const halfX = Math.floor(VIEW / 2); // 7 for VIEW=15
+  const halfY = Math.ceil(canvas.height / ts / 2) + 1;
+  // Player tile top-left, centered in canvas
+  const px0 = Math.floor(canvas.width / 2 - ts / 2);
+  const py0 = Math.floor(canvas.height / 2 - ts / 2);
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.font = `${Math.floor(ts*0.65)}px serif`;
+  ctx.font = `${Math.floor(ts * 0.65)}px serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  for (let dy = -half; dy <= half; dy++) {
-    for (let dx = -half; dx <= half; dx++) {
+  for (let dy = -halfY; dy <= halfY; dy++) {
+    for (let dx = -halfX; dx <= halfX; dx++) {
       const wx = state.px + dx, wy = state.py + dy;
-      const sx = (dx + half) * ts, sy = (dy + half) * ts;
+      const sx = px0 + dx * ts, sy = py0 + dy * ts;
+      if (sx + ts < 0 || sx > canvas.width || sy + ts < 0 || sy > canvas.height) continue;
+
       const key = `${wx},${wy}`;
       const explored = !!state.explored[key];
-      const visible  = Math.abs(dx) <= 2 && Math.abs(dy) <= 2;
-
-      if (!explored && !visible) {
-        ctx.fillStyle = '#000';
-        ctx.fillRect(sx, sy, ts, ts);
-        continue;
-      }
+      const visible = Math.abs(dx) <= 2 && Math.abs(dy) <= 2;
 
       const ter = getTerrain(wx, wy);
       const ti = TERRAIN_INFO[ter] || TERRAIN_INFO[2];
       ctx.fillStyle = ti.col;
       ctx.fillRect(sx, sy, ts, ts);
 
-      // Draw emoji (skip center tile — player drawn there)
-      if (dx !== 0 || dy !== 0) {
-        ctx.fillText(ti.emoji, sx + ts/2, sy + ts/2);
+      if ((explored || visible) && (dx !== 0 || dy !== 0)) {
+        ctx.fillText(ti.emoji, sx + ts / 2, sy + ts / 2);
       }
 
-      // Monster marker
       if (visible && (dx !== 0 || dy !== 0)) {
         const mon = getMonsterAt(wx, wy);
         if (mon) {
           ctx.fillStyle = MDEFS[mon.name]?.elite ? '#f59e0b44' : '#f8717144';
           ctx.fillRect(sx, sy, ts, ts);
-          ctx.fillText(MDEFS[mon.name]?.icon || '👾', sx + ts/2, sy + ts/2);
+          ctx.fillText(MDEFS[mon.name]?.icon || '👾', sx + ts / 2, sy + ts / 2);
         }
       }
 
-      // Fog overlay for explored but not visible
-      if (!visible) {
+      if (!explored && !visible) {
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(sx, sy, ts, ts);
+      } else if (!visible) {
         ctx.fillStyle = 'rgba(0,0,0,0.42)';
         ctx.fillRect(sx, sy, ts, ts);
       }
     }
   }
 
-  // Draw player at center — solid bg so terrain doesn't bleed through
-  const cx = half * ts, cy = half * ts;
+  // Player at exact canvas center
   ctx.fillStyle = '#2a0a5a';
-  ctx.fillRect(cx, cy, ts, ts);
+  ctx.fillRect(px0, py0, ts, ts);
   ctx.font = `${Math.floor(ts * 0.72)}px serif`;
-  ctx.fillText('🧑‍⛏️', cx + ts/2, cy + ts/2);
+  ctx.fillText('🧑‍⛏️', px0 + ts / 2, py0 + ts / 2);
 
-  // Grid lines (subtle)
+  // Grid lines
   ctx.strokeStyle = 'rgba(30,30,58,0.5)';
   ctx.lineWidth = 0.5;
-  for (let i = 0; i <= VIEW; i++) {
-    ctx.beginPath(); ctx.moveTo(i*ts,0); ctx.lineTo(i*ts,canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0,i*ts); ctx.lineTo(canvas.width,i*ts); ctx.stroke();
+  for (let i = -halfX; i <= halfX + 1; i++) {
+    const x = px0 + i * ts;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let j = -halfY; j <= halfY + 1; j++) {
+    const y = py0 + j * ts;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
   }
 }
 
