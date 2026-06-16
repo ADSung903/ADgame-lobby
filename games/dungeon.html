@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>⛏️ 礦洞冒險</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;--bg2:#0d0d1f;--bg3:#121226;--border:#1e1e3a;
+  --accent:#8b5cf6;--gold:#f59e0b;--green:#4ade80;--blue:#60a5fa;
+  --red:#f87171;--text:#eee;--sub:#8a8aa8;
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
+  height:100dvh;overflow:hidden;display:flex;justify-content:center}
+.app{width:100%;max-width:420px;display:flex;flex-direction:column;height:100dvh;position:relative}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:.5rem;
+  padding:calc(.5rem + env(safe-area-inset-top,0px)) .75rem .5rem;
+  border-bottom:.5px solid var(--border);flex-shrink:0;background:var(--bg2)}
+.back-btn{font-size:12px;padding:4px 10px;border-radius:8px;
+  border:.5px solid #333;background:transparent;color:#aaa;cursor:pointer}
+.game-title{flex:1;text-align:center;font-size:16px;font-weight:700;color:var(--accent)}
+.lv-badge{font-size:12px;font-weight:700;color:var(--gold);
+  background:#1a1400;border:.5px solid var(--gold);border-radius:8px;padding:2px 8px}
+
+/* STATUS BAR */
+.status-bar{display:flex;align-items:center;gap:.5rem;padding:.35rem .75rem;
+  font-size:12px;flex-shrink:0;border-bottom:.5px solid var(--border);background:var(--bg2)}
+.hp-wrap{display:flex;align-items:center;gap:4px;flex:1}
+.hp-bar-track{flex:1;height:7px;background:#1a0a0a;border-radius:4px;
+  overflow:hidden;border:.5px solid #3a1a1a}
+.hp-bar-fill{height:100%;background:linear-gradient(90deg,#b91c1c,#f87171);
+  border-radius:4px;transition:width .3s}
+.hp-txt{font-size:10px;color:var(--red);white-space:nowrap;font-weight:600}
+.gold-txt{color:var(--gold);font-weight:700;font-size:12px;white-space:nowrap}
+.wpn-txt{font-size:10px;color:var(--blue);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:120px}
+
+/* MAP */
+.map-wrap{flex:1;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:#000}
+#map-canvas{display:block;border:1px solid var(--border)}
+
+/* CONTROLS */
+.controls{display:flex;align-items:center;justify-content:space-between;
+  padding:.4rem .75rem calc(.4rem + env(safe-area-inset-bottom,0px));
+  flex-shrink:0;background:var(--bg2);border-top:.5px solid var(--border)}
+.dpad{display:flex;flex-direction:column;align-items:center;gap:3px}
+.dpad-row{display:flex;align-items:center;gap:3px}
+.dpad-btn{width:46px;height:46px;border-radius:10px;border:.5px solid #333;
+  background:#0d0d1e;color:var(--text);font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-user-select:none;user-select:none;transition:background .1s}
+.dpad-btn:active{background:#1a1a3a;transform:scale(.93)}
+.dpad-center{width:46px;height:46px;display:flex;align-items:center;
+  justify-content:center;font-size:22px}
+.act-btns{display:flex;gap:5px}
+.act-btn{width:56px;height:54px;border-radius:10px;border:.5px solid #333;
+  background:#0d0d1e;color:var(--text);font-size:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:2px;line-height:1;
+  -webkit-user-select:none;user-select:none;transition:background .1s}
+.act-btn:active{background:#1a1a3a}
+.act-btn span{font-size:18px}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(100px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%);background:#1a1a3a;
+  border:.5px solid var(--accent);border-radius:10px;padding:.4rem 1rem;
+  font-size:13px;color:#c4b5fd;z-index:200;white-space:nowrap;
+  opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
+
+/* MODAL BASE */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.8);
+  z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-back.open{display:flex}
+.modal-sheet{width:100%;max-width:420px;max-height:88dvh;
+  background:var(--bg2);border-radius:20px 20px 0 0;
+  border:.5px solid var(--border);overflow:hidden;display:flex;flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+.modal-head{display:flex;align-items:center;padding:.8rem 1rem;
+  border-bottom:.5px solid var(--border);flex-shrink:0}
+.modal-title{flex:1;font-size:15px;font-weight:700}
+.modal-x{width:30px;height:30px;border-radius:50%;border:.5px solid var(--border);
+  background:var(--bg3);color:var(--sub);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center}
+.modal-body{flex:1;overflow-y:auto;padding:.6rem}
+.modal-body::-webkit-scrollbar{width:3px}
+.modal-body::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
+
+/* INVENTORY */
+.inv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.inv-slot{background:var(--bg3);border:.5px solid var(--border);border-radius:10px;
+  padding:.5rem .3rem;text-align:center;cursor:pointer;
+  min-height:70px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;transition:border-color .15s}
+.inv-slot:hover{border-color:var(--accent)}
+.inv-slot .s-icon{font-size:22px}
+.inv-slot .s-name{font-size:9px;color:var(--sub);line-height:1.2;word-break:break-all}
+.inv-slot .s-enh{font-size:10px;font-weight:700;color:var(--gold)}
+.inv-slot.white .s-name{color:#ddd}
+.inv-slot.green .s-name{color:var(--green)}
+.inv-slot.blue .s-name{color:var(--blue)}
+.inv-slot.gold .s-name{color:var(--gold)}
+.inv-slot.red .s-name{color:var(--red)}
+.inv-slot.empty{cursor:default;opacity:.3}
+.inv-count{font-size:11px;color:var(--sub);text-align:right;margin-bottom:.4rem}
+
+/* EQUIPMENT PANEL */
+.eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.eq-slot{background:var(--bg3);border:.5px solid var(--border);border-radius:10px;
+  padding:.5rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;
+  transition:border-color .15s;min-height:52px}
+.eq-slot:hover{border-color:var(--accent)}
+.eq-slot .es-icon{font-size:20px;flex-shrink:0}
+.eq-slot .es-info{flex:1;min-width:0}
+.eq-slot .es-label{font-size:10px;color:var(--sub);line-height:1}
+.eq-slot .es-name{font-size:11px;font-weight:600;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.eq-slot.empty .es-name{color:var(--sub);font-weight:400}
+.eq-weapon-row{margin-bottom:6px;background:var(--bg3);border:.5px solid var(--border);
+  border-radius:10px;padding:.5rem;display:flex;align-items:center;gap:.5rem;cursor:pointer}
+
+/* STATS PANEL */
+.stat-section{margin-bottom:.8rem}
+.stat-section h3{font-size:11px;color:var(--sub);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:.4rem}
+.stat-row{display:flex;justify-content:space-between;align-items:center;
+  padding:.32rem 0;border-bottom:.5px solid var(--bg3)}
+.stat-row .sn{font-size:13px;color:var(--sub)}
+.stat-row .sv{font-size:13px;font-weight:700;color:var(--text)}
+.alloc-row{display:flex;justify-content:space-between;align-items:center;
+  padding:.32rem 0;border-bottom:.5px solid var(--bg3)}
+.alloc-row .an{font-size:13px}
+.alloc-row .av{font-size:13px;font-weight:700;min-width:40px;text-align:center}
+.alloc-btn{width:28px;height:28px;border-radius:8px;border:none;
+  background:var(--accent);color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.alloc-btn:disabled{background:#2a2a4a;color:#555;cursor:default}
+.points-badge{text-align:center;padding:.5rem;background:#1a0a2a;
+  border:.5px solid var(--accent);border-radius:8px;margin-bottom:.6rem;
+  font-size:13px;color:var(--accent);font-weight:700}
+
+/* ITEM CARD */
+.item-card-back{position:fixed;inset:0;background:rgba(0,0,0,.85);
+  z-index:150;display:none;align-items:center;justify-content:center;padding:1rem}
+.item-card-back.open{display:flex}
+.item-card{background:var(--bg2);border:1px solid var(--accent);border-radius:18px;
+  padding:1.2rem;width:100%;max-width:320px;max-height:80dvh;overflow-y:auto}
+.ic-name{font-size:18px;font-weight:800;margin-bottom:.15rem}
+.ic-sub{font-size:11px;color:var(--sub);margin-bottom:.6rem}
+.ic-flavor{font-size:11px;color:#8a8aa8;font-style:italic;
+  background:var(--bg3);border-radius:8px;padding:.5rem .6rem;
+  margin-bottom:.6rem;line-height:1.6}
+.ic-stats{margin-bottom:.6rem}
+.ic-stat{display:flex;justify-content:space-between;font-size:12px;
+  padding:.2rem 0;border-bottom:.5px solid var(--bg3)}
+.ic-stat .ics-pos{color:var(--green);font-weight:600}
+.ic-stat .ics-neg{color:var(--red);font-weight:600}
+.ic-req{font-size:11px;color:var(--sub);margin-bottom:.6rem}
+.ic-req .req-fail{color:var(--red)}
+.ic-heirloom{font-size:11px;color:var(--gold);background:#1a1200;
+  border:.5px solid var(--gold);border-radius:8px;padding:.4rem .6rem;margin-bottom:.6rem}
+.ic-btns{display:flex;gap:6px;flex-wrap:wrap}
+.ic-btn{flex:1;min-width:70px;padding:8px 4px;border-radius:10px;
+  border:none;font-size:12px;font-weight:700;cursor:pointer}
+.ic-btn-equip{background:var(--accent);color:#fff}
+.ic-btn-use{background:#1a3a1a;color:var(--green);border:.5px solid var(--green)}
+.ic-btn-drop{background:#1a0a0a;color:var(--red);border:.5px solid var(--red)}
+.ic-btn-close{background:var(--bg3);color:var(--sub);border:.5px solid var(--border)}
+
+/* MERCHANT */
+.merchant-item{background:var(--bg3);border:.5px solid var(--border);
+  border-radius:10px;padding:.6rem;margin-bottom:.4rem;display:flex;
+  align-items:center;gap:.5rem}
+.mi-icon{font-size:22px;flex-shrink:0}
+.mi-info{flex:1;min-width:0}
+.mi-name{font-size:13px;font-weight:600}
+.mi-desc{font-size:10px;color:var(--sub)}
+.mi-price{font-size:13px;font-weight:700;color:var(--gold)}
+.mi-buy{padding:5px 12px;border-radius:8px;border:none;
+  background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+.mi-buy:disabled{background:#2a2a4a;color:#555;cursor:default}
+
+/* COMBAT OVERLAY */
+.combat-overlay{position:fixed;inset:0;z-index:80;display:none;
+  background:rgba(5,5,20,.97)}
+.combat-overlay.active{display:block}
+
+/* Corner answer buttons */
+.ans-btn{position:fixed;z-index:90;width:100px;
+  border:2px solid var(--accent);background:rgba(14,10,35,.97);
+  color:var(--text);font-size:20px;font-weight:800;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;line-height:1.1;-webkit-user-select:none;user-select:none;
+  transition:transform .1s,border-color .1s,background .1s}
+.ans-btn:active{transform:scale(.9);border-color:var(--gold);background:rgba(30,15,60,.97)}
+.ans-btn.correct{border-color:var(--green)!important;background:rgba(0,30,10,.97)!important}
+.ans-btn.wrong{border-color:var(--red)!important;background:rgba(30,5,5,.97)!important}
+.ans-btn .ans-label{font-size:10px;color:var(--sub);font-weight:400}
+
+#ans-tl{top:0;left:0;
+  padding:calc(max(12px,env(safe-area-inset-top,0px))) 8px 16px;
+  border-radius:0 0 14px 0;border-width:0 2px 2px 0;min-height:calc(80px + env(safe-area-inset-top,0px))}
+#ans-tr{top:0;right:0;
+  padding:calc(max(12px,env(safe-area-inset-top,0px))) 8px 16px;
+  border-radius:0 0 0 14px;border-width:0 0 2px 2px;min-height:calc(80px + env(safe-area-inset-top,0px))}
+#ans-bl{bottom:0;left:0;
+  padding:16px 8px calc(max(12px,env(safe-area-inset-bottom,0px)));
+  border-radius:0 14px 0 0;border-width:2px 2px 0 0;min-height:calc(80px + env(safe-area-inset-bottom,0px))}
+#ans-br{bottom:0;right:0;
+  padding:16px 8px calc(max(12px,env(safe-area-inset-bottom,0px)));
+  border-radius:14px 0 0 0;border-width:2px 0 0 2px;min-height:calc(80px + env(safe-area-inset-bottom,0px))}
+
+/* Combat center content */
+.combat-center{position:fixed;inset:0;z-index:85;display:flex;flex-direction:column;
+  pointer-events:none}
+.combat-center>*{pointer-events:auto}
+.cb-mon{margin-top:calc(env(safe-area-inset-top,0px) + 4px);
+  padding:.5rem 110px;text-align:center;flex-shrink:0}
+.cb-mon-name{font-size:18px;font-weight:800;color:var(--red);margin-bottom:.3rem}
+.cb-mon-hp-track{height:8px;background:#2a0a0a;border-radius:4px;
+  overflow:hidden;border:.5px solid #3a1a1a}
+.cb-mon-hp-fill{height:100%;background:linear-gradient(90deg,#dc2626,#ef4444);
+  border-radius:4px;transition:width .4s}
+.cb-mon-hp-txt{font-size:10px;color:var(--sub);margin-top:.15rem}
+.cb-log{flex:1;overflow-y:auto;padding:.5rem 110px;display:flex;
+  flex-direction:column;gap:.15rem;margin:4px 0}
+.cb-log::-webkit-scrollbar{width:3px}
+.cb-log::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
+.cb-line{font-size:13px;line-height:1.65;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.cl-w{color:var(--text)}.cl-r{color:var(--red);font-weight:700}
+.cl-g{color:var(--green)}.cl-y{color:var(--gold);font-weight:700}
+.cl-p{color:#c084fc}.cl-o{color:#fb923c}.cl-s{color:var(--sub)}
+
+.cb-q{padding:.4rem 110px;flex-shrink:0;text-align:center;pointer-events:none}
+.cb-q-text{font-size:24px;font-weight:900;letter-spacing:1px;margin-bottom:.35rem}
+.cb-timer-track{height:8px;background:#1a1a2a;border-radius:4px;
+  overflow:hidden;border:.5px solid var(--border)}
+.cb-timer-fill{height:100%;width:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--green),var(--gold),var(--red))}
+.cb-footer{padding:.4rem 110px calc(max(12px,env(safe-area-inset-bottom,0px)) + 56px);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cb-player-hp{font-size:12px;color:var(--green);font-weight:700}
+.cb-escape{padding:6px 16px;border-radius:10px;border:.5px solid #333;
+  background:#0d0d1e;color:var(--sub);font-size:12px;cursor:pointer}
+.cb-escape:disabled{opacity:.4;cursor:default}
+
+/* DEATH SCREEN */
+.death-overlay{position:fixed;inset:0;z-index:120;
+  background:#000;display:none;flex-direction:column;
+  align-items:center;justify-content:center;padding:2rem}
+.death-overlay.active{display:flex}
+.death-text{font-size:15px;line-height:2;text-align:center;color:#888;
+  max-width:300px;transition:color .5s}
+.death-text.gold{color:var(--gold)}
+
+/* INHERITANCE */
+.inherit-overlay{position:fixed;inset:0;z-index:130;
+  background:rgba(0,0,0,.9);display:none;align-items:flex-end;justify-content:center}
+.inherit-overlay.open{display:flex}
+.inherit-sheet{width:100%;max-width:420px;background:var(--bg2);
+  border-radius:20px 20px 0 0;border:.5px solid var(--gold);
+  padding:1rem;padding-bottom:calc(1rem + env(safe-area-inset-bottom,0px));
+  max-height:75dvh;display:flex;flex-direction:column}
+.inherit-title{text-align:center;color:var(--gold);font-size:16px;font-weight:700;
+  margin-bottom:.3rem}
+.inherit-sub{text-align:center;color:var(--sub);font-size:12px;margin-bottom:.8rem}
+.inherit-pool{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.inherit-slot{background:var(--bg3);border:.5px solid var(--border);border-radius:10px;
+  padding:.5rem .3rem;text-align:center;cursor:pointer;min-height:70px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  transition:border-color .15s}
+.inherit-slot.selected{border-color:var(--gold);background:#1a1200}
+.inherit-slot .is-icon{font-size:20px}
+.inherit-slot .is-name{font-size:9px;line-height:1.2}
+.inherit-confirm{width:100%;margin-top:.8rem;padding:.8rem;border-radius:12px;
+  border:none;background:linear-gradient(135deg,var(--accent),var(--gold));
+  color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+.inherit-confirm:disabled{background:#2a2a4a;color:#555;cursor:default}
+
+/* CAVE / EVENT MODAL */
+.event-card{background:var(--bg2);border:1px solid var(--accent);border-radius:18px;
+  padding:1.4rem;text-align:center;max-width:300px;margin:1rem}
+.event-card h2{color:var(--accent);font-size:18px;margin-bottom:.5rem}
+.event-card p{font-size:13px;color:var(--sub);line-height:1.7;margin-bottom:1rem}
+.event-btn{padding:8px 24px;border-radius:10px;border:none;
+  background:var(--bg3);color:var(--text);font-size:13px;cursor:pointer;
+  border:.5px solid var(--border)}
+
+/* RARITY COLORS */
+.rarity-white{color:#eee}.rarity-green{color:var(--green)}
+.rarity-blue{color:var(--blue)}.rarity-gold{color:var(--gold)}
+.rarity-red{color:var(--red)}.rarity-rainbow{background:linear-gradient(90deg,#f87171,#fb923c,#f59e0b,#4ade80,#60a5fa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* MINI MAP INDICATOR */
+.gen-badge{position:absolute;top:calc(env(safe-area-inset-top,0px) + 46px + 48px);
+  right:.5rem;background:rgba(7,7,15,.85);border:.5px solid var(--accent);
+  border-radius:8px;padding:3px 8px;font-size:10px;color:#c4b5fd;z-index:10;pointer-events:none}
+</style>
+</head><body>
+<div class="app" id="app">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">← 大廳</button>
+    <div class="game-title">⛏️ 礦洞冒險</div>
+    <span class="lv-badge" id="lv-badge">Lv.1</span>
+  </div>
+
+  <div class="status-bar">
+    <div class="hp-wrap">
+      <span class="hp-txt" id="hp-txt">❤️100/100</span>
+      <div class="hp-bar-track"><div class="hp-bar-fill" id="hp-bar" style="width:100%"></div></div>
+    </div>
+    <span class="gold-txt" id="gold-txt">💰0</span>
+    <span class="wpn-txt" id="wpn-txt">⚔️ 空手</span>
+  </div>
+
+  <div class="map-wrap" id="map-wrap">
+    <canvas id="map-canvas"></canvas>
+  </div>
+  <div class="gen-badge" id="gen-badge">第1代</div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="dpad-btn" ontouchstart="tryMove(0,-1)" onclick="tryMove(0,-1)">▲</button>
+      <div class="dpad-row">
+        <button class="dpad-btn" ontouchstart="tryMove(-1,0)" onclick="tryMove(-1,0)">◀</button>
+        <div class="dpad-center">⛏️</div>
+        <button class="dpad-btn" ontouchstart="tryMove(1,0)" onclick="tryMove(1,0)">▶</button>
+      </div>
+      <button class="dpad-btn" ontouchstart="tryMove(0,1)" onclick="tryMove(0,1)">▼</button>
+    </div>
+    <div class="act-btns">
+      <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
+      <button class="act-btn" onclick="openEquipment()"><span>🛡️</span>裝備</button>
+      <button class="act-btn" onclick="openStats()"><span>📊</span>屬性</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY -->
+<div class="modal-back" id="modal-inv" onclick="if(event.target===this)closeModal('modal-inv')">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title">🎒 背包</div>
+      <button class="modal-x" onclick="closeModal('modal-inv')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="inv-count" id="inv-count">0/20</div>
+      <div class="inv-grid" id="inv-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EQUIPMENT -->
+<div class="modal-back" id="modal-eq" onclick="if(event.target===this)closeModal('modal-eq')">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title">🛡️ 裝備欄</div>
+      <button class="modal-x" onclick="closeModal('modal-eq')">✕</button>
+    </div>
+    <div class="modal-body" id="eq-body"></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="modal-back" id="modal-stats" onclick="if(event.target===this)closeModal('modal-stats')">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title">📊 屬性</div>
+      <button class="modal-x" onclick="closeModal('modal-stats')">✕</button>
+    </div>
+    <div class="modal-body" id="stats-body"></div>
+  </div>
+</div>
+
+<!-- MERCHANT -->
+<div class="modal-back" id="modal-merchant" onclick="if(event.target===this)closeModal('modal-merchant')">
+  <div class="modal-sheet">
+    <div class="modal-head">
+      <div class="modal-title">🧑‍💼 旅行商人</div>
+      <button class="modal-x" onclick="closeModal('modal-merchant')">✕</button>
+    </div>
+    <div class="modal-body" id="merchant-body"></div>
+  </div>
+</div>
+
+<!-- ITEM CARD -->
+<div class="item-card-back" id="modal-item" onclick="if(event.target===this)closeModal('modal-item')">
+  <div class="item-card" id="item-card-content"></div>
+</div>
+
+<!-- COMBAT OVERLAY -->
+<div class="combat-overlay" id="combat-overlay">
+  <button class="ans-btn" id="ans-tl" onclick="answerQ('tl')">
+    <span id="ans-tl-val">?</span><span class="ans-label">TL</span>
+  </button>
+  <button class="ans-btn" id="ans-tr" onclick="answerQ('tr')">
+    <span id="ans-tr-val">?</span><span class="ans-label">TR</span>
+  </button>
+  <button class="ans-btn" id="ans-bl" onclick="answerQ('bl')">
+    <span id="ans-bl-val">?</span><span class="ans-label">BL</span>
+  </button>
+  <button class="ans-btn" id="ans-br" onclick="answerQ('br')">
+    <span id="ans-br-val">?</span><span class="ans-label">BR</span>
+  </button>
+
+  <div class="combat-center">
+    <div class="cb-mon">
+      <div class="cb-mon-name" id="cb-name">???</div>
+      <div class="cb-mon-hp-track"><div class="cb-mon-hp-fill" id="cb-hp" style="width:100%"></div></div>
+      <div class="cb-mon-hp-txt" id="cb-hp-txt">❤️ ??/??</div>
+    </div>
+    <div class="cb-log" id="cb-log"></div>
+    <div class="cb-q" id="cb-q" style="display:none">
+      <div class="cb-q-text" id="cb-q-text">5 × 3 = ?</div>
+      <div class="cb-timer-track"><div class="cb-timer-fill" id="cb-timer"></div></div>
+    </div>
+    <div class="cb-footer">
+      <div class="cb-player-hp" id="cb-player-hp">❤️ 100</div>
+      <button class="cb-escape" id="cb-escape" onclick="tryEscape()">🏃 逃跑</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEATH -->
+<div class="death-overlay" id="death-overlay">
+  <div class="death-text" id="death-text"></div>
+</div>
+
+<!-- INHERITANCE -->
+<div class="inherit-overlay" id="inherit-overlay">
+  <div class="inherit-sheet">
+    <div class="inherit-title">📜 傳承遺物</div>
+    <div class="inherit-sub" id="inherit-sub">選擇 1 件傳給下一代</div>
+    <div class="inherit-pool" id="inherit-pool"></div>
+    <button class="inherit-confirm" id="inherit-confirm" onclick="confirmInherit()">傳承並重生 ✨</button>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-back" id="modal-event" onclick="if(event.target===this)closeModal('modal-event')">
+  <div style="display:flex;align-items:center;justify-content:center;width:100%">
+    <div class="event-card" id="event-card"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════
+// WORLD SEED (changes each quarter)
+// ═══════════════════════════════════════════════
+const d0 = new Date();
+const WORLD_SEED = d0.getFullYear() * 4 + Math.floor(d0.getMonth() / 3);
+
+// ═══════════════════════════════════════════════
+// SEEDED PRNG + NOISE
+// ═══════════════════════════════════════════════
+function posH(x, y, s) {
+  let h = (s * 2246822519 + x * 374761393 + y * 1103515245) | 0;
+  h = Math.imul(h ^ (h >>> 13), h * 15731 + 789221) | 0;
+  h = h ^ (h >>> 17);
+  return (h >>> 0) / 0x100000000;
+}
+function lerp(a, b, t) { return a + (b - a) * t; }
+function ss(t) { return t * t * (3 - 2 * t); }
+function vnoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = ss(x - xi), yf = ss(y - yi);
+  return lerp(
+    lerp(posH(xi, yi, s), posH(xi+1, yi, s), xf),
+    lerp(posH(xi, yi+1, s), posH(xi+1, yi+1, s), xf), yf);
+}
+function worldNoise(wx, wy) {
+  return 0.5  * vnoise(wx*0.030, wy*0.030, WORLD_SEED)
+       + 0.3  * vnoise(wx*0.080, wy*0.080, WORLD_SEED+1000)
+       + 0.2  * vnoise(wx*0.150, wy*0.150, WORLD_SEED+2000);
+}
+function tileH(wx, wy, off) {
+  return posH(wx ^ (off*7919), wy ^ (off*6271), WORLD_SEED + off*1231);
+}
+
+// ═══════════════════════════════════════════════
+// TERRAIN
+// ═══════════════════════════════════════════════
+const T = { OCEAN:0, COAST:1, PLAINS:2, FOREST:3, MOUNTAIN:4, HIGH:5, CAVE:6, MERCHANT:8 };
+const TERRAIN_INFO = {
+  0:{col:'#0a1f3a',emoji:'🌊',pass:false},
+  1:{col:'#5c3d11',emoji:'🏖️',pass:true},
+  2:{col:'#1a3a1a',emoji:'🌿',pass:true},
+  3:{col:'#0d250d',emoji:'🌲',pass:true},
+  4:{col:'#252525',emoji:'🪨',pass:true},
+  5:{col:'#131313',emoji:'⛰️',pass:false},
+  6:{col:'#1a0a2a',emoji:'🕳️',pass:true},
+  8:{col:'#2a1a0a',emoji:'🧑‍💼',pass:true},
+};
+const SPAWN_TERRAIN = [T.PLAINS, T.FOREST, T.MOUNTAIN, T.COAST];
+const SPAWN_RATE = {[T.PLAINS]:0.22,[T.FOREST]:0.38,[T.MOUNTAIN]:0.15,[T.COAST]:0.06};
+
+function getTerrain(wx, wy) {
+  const n = worldNoise(wx, wy);
+  if (n >= 0.32 && n < 0.88) {
+    if (tileH(wx, wy, 1) < 0.012) return T.CAVE;
+    if (tileH(wx, wy, 2) < 0.009) return T.MERCHANT;
+  }
+  if (n < 0.30) return T.OCEAN;
+  if (n < 0.40) return T.COAST;
+  if (n < 0.62) return T.PLAINS;
+  if (n < 0.76) return T.FOREST;
+  if (n < 0.88) return T.MOUNTAIN;
+  return T.HIGH;
+}
+function isPassable(t) { return TERRAIN_INFO[t]?.pass !== false; }
+
+// ═══════════════════════════════════════════════
+// MONSTER DEFINITIONS
+// ═══════════════════════════════════════════════
+const MDEFS = {
+  毒牙蟲:    {icon:'🐛',hp:30,atk:8,def:2,agi:6,  special:'poison',   drop:'ring',    exp:18,gold:12,elite:false},
+  憤怒蘑菇:  {icon:'🍄',hp:80,atk:6,def:15,agi:3, special:'highdef',  drop:'legs',    exp:32,gold:22,elite:false},
+  森林野狼:  {icon:'🐺',hp:50,atk:14,def:5,agi:18,special:null,       drop:'boots',   exp:28,gold:18,elite:false},
+  藤蔓精靈:  {icon:'🌿',hp:45,atk:10,def:8,agi:8, special:'slow',     drop:'necklace',exp:26,gold:16,elite:false},
+  狂蜂群:    {icon:'🐝',hp:75,atk:8,def:3,agi:15, special:'segments', drop:'earring1',exp:42,gold:28,elite:false},
+  狡猾狐狸:  {icon:'🦊',hp:40,atk:12,def:6,agi:20,special:'steal',    drop:null,      exp:22,gold:45,elite:false},
+  石頭哥布林:{icon:'🪨',hp:70,atk:10,def:20,agi:5,special:'highdef',  drop:'armor',   exp:38,gold:28,elite:false},
+  毒沼蛙:    {icon:'🐸',hp:55,atk:11,def:7,agi:10,special:'stackslow',drop:'gloves',  exp:30,gold:20,elite:false},
+  憤怒山豬王:{icon:'🐗',hp:200,atk:28,def:12,agi:10,special:'berserk',drop:'multi',   exp:120,gold:80,elite:true},
+  古樹守衛:  {icon:'🌳',hp:300,atk:18,def:25,agi:4,special:'regen',   drop:'multi',   exp:150,gold:100,elite:true},
+  森林詛咒者:{icon:'🧟',hp:800,atk:35,def:20,agi:12,special:'boss',   drop:'multi',   exp:500,gold:300,elite:true},
+};
+const FOREST_POOL   = ['毒牙蟲','憤怒蘑菇','森林野狼','藤蔓精靈','狡猾狐狸','毒沼蛙'];
+const PLAINS_POOL   = ['毒牙蟲','森林野狼','石頭哥布林','狡猾狐狸'];
+const MOUNTAIN_POOL = ['石頭哥布林','憤怒蘑菇','毒牙蟲'];
+const ELITE_POOL    = ['憤怒山豬王','古樹守衛'];
+
+function getMonsterAt(wx, wy) {
+  const k = `${wx},${wy}`;
+  if (state.killedSet.has(k)) return null;
+  const ter = getTerrain(wx, wy);
+  if (!SPAWN_TERRAIN.includes(ter)) return null;
+  const h3 = tileH(wx, wy, 3);
+  if (h3 > SPAWN_RATE[ter]) return null;
+  // Elite check: ~5% of spawns
+  const h4 = tileH(wx, wy, 4);
+  if (h4 < 0.05) {
+    const idx = Math.floor(tileH(wx, wy, 5) * ELITE_POOL.length);
+    return { name: ELITE_POOL[idx], wx, wy };
+  }
+  const pool = ter === T.FOREST ? FOREST_POOL : ter === T.PLAINS ? PLAINS_POOL : MOUNTAIN_POOL;
+  const idx = Math.floor(h4 * pool.length);
+  return { name: pool[idx], wx, wy };
+}
+
+function scaledMonster(name, baseLevel) {
+  const d = MDEFS[name];
+  const lv = Math.max(1, baseLevel);
+  return {
+    name, icon:d.icon, maxHp: Math.floor(d.hp*(1+lv*0.08)), atk: Math.floor(d.atk*(1+lv*0.06)),
+    def: Math.floor(d.def*(1+lv*0.05)), agi:d.agi, special:d.special,
+    drop:d.drop, exp:d.exp+lv*4, gold:Math.floor(d.gold*(1+lv*0.05)),
+    elite:d.elite, lv,
+    hp:0, // set below
+    segments: d.special==='segments' ? 3 : 0,
+    segHp: d.special==='segments' ? Math.ceil(Math.floor(d.hp*(1+lv*0.08))/3) : 0,
+    slowStacks: 0,
+  };
+}
+
+// ═══════════════════════════════════════════════
+// ITEM DEFINITIONS
+// ═══════════════════════════════════════════════
+const RARITY_ORDER = ['white','green','blue','gold','red','rainbow'];
+const RARITY_NAME  = {white:'普通',green:'魔法',blue:'稀有',gold:'史詩',red:'傳說',rainbow:'神器'};
+const SLOT_LABEL = {
+  weapon:'⚔️ 武器',helmet:'👒 頭盔',armor:'🥼 鎧甲',legs:'🩲 下鎧',
+  gloves:'🧤 護手',boots:'👢 護腿',necklace:'📿 項鍊',
+  ring1:'💍 戒指1',ring2:'💍 戒指2',earring1:'💎 耳環1',earring2:'💎 耳環2',
+};
+const SLOT_ICON = {
+  weapon:'⚔️',helmet:'👒',armor:'🥼',legs:'🩲',gloves:'🧤',boots:'👢',
+  necklace:'📿',ring1:'💍',ring2:'💍',earring1:'💎',earring2:'💎',
+};
+const ARMOR_SLOTS = ['helmet','armor','legs','gloves','boots','necklace','ring1','ring2','earring1','earring2'];
+
+// Weapon templates [white[], green[], blue[]]
+const WPN_TPL = {
+  sword: [['鐵劍','銅劍','訓練木劍'],['鋼劍','獵人短劍','鍛造彎刀'],['精鋼劍','古代遺劍','月光直劍']],
+  axe:   [['鐵斧','伐木斧','礦工鶴嘴斧'],['鋼斧','戰斧','雙刃斧'],['精鋼戰斧','古代巨斧','裂地斧']],
+  bow:   [['木弓','短弓','獵人弓'],['強化獵弓','角弓','精準短弓'],['精準長弓','古代精靈弓','月影獵弓']],
+  wand:  [['木製魔杖','學徒細杖','樹枝魔棒'],['學徒魔杖','水晶魔杖','元素細杖'],['法師魔杖','古代符文杖','星光法杖']],
+  dagger:[['小刀','銅匕首','削皮刀'],['鋼匕首','暗刃','刺客小刀'],['影刃','月牙彎刀','幽靈刺刃']],
+  spear: [['木槍','竹槍','訓練長矛'],['鐵槍','騎兵槍','強化木槍'],['精鋼長槍','古代戰矛','龍紋長槍']],
+};
+const WPN_FLAVOR = {
+  '鐵劍':'礦工自己打造的第一把劍，歪歪扭扭但充滿誠意',
+  '銅劍':'銅製的劍刃容易彎曲，但對付蘑菇綽綽有餘',
+  '訓練木劍':'這真的只是一根木棒，但你握得很帥',
+  '鋼劍':'經過淬鍊的鋼鐵，終於有了武器的模樣',
+  '月光直劍':'月光下鍛造的神秘之刃，據說能切開黑暗本身',
+  '木製魔杖':'就是一根棍子，但你相信它有魔力',
+  '小刀':'削水果用的，但你決定拿來冒險',
+  '木弓':'弦是用藤蔓綁的，射程不遠但夠用',
+  '木槍':'削尖的木棒，第一次刺中怪物時你嚇了自己一跳',
+  '鐵斧':'粗糙但有力，適合砍樹也適合砍怪',
+  '礦工鶴嘴斧':'本來是挖礦用的，但用來打架也挺順手',
+};
+const ARMOR_TPL = {
+  helmet:   [['鐵製礦帽','皮革頭盔','木製面罩'],['強化礦帽','熟鐵戰盔','鉚釘頭盔'],['精鋼護頭','古老礦工盔','蒼穹鋼盔']],
+  armor:    [['皮革胸甲','布製上衣','鐵片胸甲'],['強化皮甲','鎖鏈胸甲','厚重板甲'],['精鋼胸甲','古老守護甲','深淵鐵甲']],
+  legs:     [['皮革腿甲','布製長褲','鐵片護腿'],['強化皮腿','鎖鏈護腿','板甲護腿'],['精鋼護腿','古老護腿','蒼穹護腿']],
+  gloves:   [['皮革護手','布製手套','鐵片護手'],['強化護手','鎖鏈護手','板甲護手'],['精鋼護手','古老護手','月光護手']],
+  boots:    [['皮革靴子','布製鞋子','鐵片護腳'],['強化靴子','鎖鏈護腿','板甲靴'],['精鋼戰靴','古老靴子','月影靴']],
+  necklace: [['銅製吊墜','皮繩項鍊','木珠頸鍊'],['銀製項鍊','精雕吊墜','礦晶頸環'],['精鋼項鍊','古老符文鍊','月光項墜']],
+  ring1:    [['銅戒指','木製指環','石頭戒指'],['銀戒指','精鋼指環','礦晶戒指'],['精鋼戒指','古老符文環','月光指環']],
+  ring2:    [['銅戒指','木製指環','石頭戒指'],['銀戒指','精鋼指環','礦晶戒指'],['精鋼戒指','古老符文環','月光指環']],
+  earring1: [['銅耳環','木製耳墜','石頭耳飾'],['銀耳環','精雕耳墜','礦晶耳環'],['精鋼耳環','古老符文耳飾','月光耳墜']],
+  earring2: [['銅耳環','木製耳墜','石頭耳飾'],['銀耳環','精雕耳墜','礦晶耳環'],['精鋼耳環','古老符文耳飾','月光耳墜']],
+};
+const WPN_SUBTYPES = ['sword','axe','bow','wand','dagger','spear'];
+const WPN_ICON = {sword:'⚔️',axe:'🪓',bow:'🏹',wand:'🪄',dagger:'🗡️',spear:'🔱'};
+
+function rarityIdx(r) { return RARITY_ORDER.indexOf(r); }
+
+function generateWeapon(rarity, level) {
+  const ri = Math.min(rarityIdx(rarity), 2); // Phase 1: white/green/blue only
+  const r2 = RARITY_ORDER[ri];
+  const sub = WPN_SUBTYPES[Math.floor(Math.random() * WPN_SUBTYPES.length)];
+  const tpl = WPN_TPL[sub][ri];
+  const name = tpl[Math.floor(Math.random() * tpl.length)];
+  const base = {white:4,green:8,blue:16}[r2] || 4;
+  const lm = 1 + level * 0.06;
+  const v = () => Math.floor(base * lm * (0.8 + Math.random()*0.4));
+  const stats = {str:0,agi:0,int:0,luk:0,def:0};
+  if (sub==='sword')   { stats.str=v(); stats.agi=Math.floor(v()/2); }
+  else if (sub==='axe')   { stats.str=Math.floor(v()*1.5); }
+  else if (sub==='bow')   { stats.agi=Math.floor(v()*1.5); }
+  else if (sub==='wand')  { stats.int=Math.floor(v()*2); }
+  else if (sub==='dagger'){ stats.agi=Math.floor(v()*2); stats.luk=Math.floor(v()/2); }
+  else if (sub==='spear') { stats.str=v(); stats.def=Math.floor(v()/3); }
+  return {
+    id: Date.now()+Math.random(), type:'weapon', subtype:sub, rarity:r2, name,
+    icon:WPN_ICON[sub], enhance:0, stats, reqLevel:{white:0,green:10,blue:30}[r2]||0,
+    flavorText: WPN_FLAVOR[name] || `一把${name}，散發著冒險的氣息`,
+    fromGeneration:null, deathLocation:null, deathKills:null,
+  };
+}
+
+function generateArmor(slot, rarity, level) {
+  const ri = Math.min(rarityIdx(rarity), 2);
+  const r2 = RARITY_ORDER[ri];
+  const tpl = ARMOR_TPL[slot]?.[ri] || ['普通裝備'];
+  const name = tpl[Math.floor(Math.random() * tpl.length)];
+  const base = {white:3,green:6,blue:12}[r2] || 3;
+  const lm = 1 + level * 0.05;
+  const v = () => Math.floor(base * lm * (0.8 + Math.random()*0.4));
+  const stats = {};
+  const mainStat = {
+    helmet:'def', armor:'def', legs:'def', gloves:'def', boots:'agi',
+    necklace:'luk', ring1:'str', ring2:'int', earring1:'luk', earring2:'int',
+  }[slot] || 'def';
+  stats[mainStat] = v();
+  if (r2 !== 'white' && Math.random() < 0.5) {
+    const extra = ['str','agi','luk','int','def'].filter(s=>s!==mainStat);
+    const ek = extra[Math.floor(Math.random()*extra.length)];
+    stats[ek] = Math.floor(v()/2);
+  }
+  return {
+    id: Date.now()+Math.random(), type:'armor', subtype:slot, rarity:r2, name,
+    icon:SLOT_ICON[slot], enhance:0, stats,
+    reqLevel:{white:0,green:10,blue:30}[r2]||0,
+    flavorText: `一件${name}，防護著這一代勇者`,
+    fromGeneration:null, deathLocation:null, deathKills:null,
+  };
+}
+
+function rollRarity(monLv) {
+  const r = Math.random();
+  if (monLv >= 25 && r < 0.08) return 'blue';
+  if (monLv >= 8  && r < 0.28) return 'green';
+  return 'white';
+}
+
+function generateDrop(slot, monLv) {
+  const rarity = rollRarity(monLv);
+  if (slot === 'weapon' || Math.random() < 0.4) return generateWeapon(rarity, monLv);
+  const armorSlot = slot === 'multi'
+    ? ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)]
+    : slot;
+  return generateArmor(armorSlot, rarity, monLv);
+}
+
+// Potions and scrolls (for merchant)
+const SHOP_ITEMS = [
+  {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', desc:'回復 30 HP', price:50, effect:{heal:30}},
+  {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m', desc:'回復 80 HP', price:150, effect:{heal:80}},
+  {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'antidote', desc:'解除中毒狀態', price:80, effect:{cure:'poison'}},
+  {name:'力量藥水',   icon:'💪', type:'potion', subtype:'str_boost', desc:'攻擊+30%（戰鬥3回合）', price:200, effect:{buff:'str',amt:0.3,turns:3}},
+  {name:'鑑定卷軸',   icon:'📜', type:'scroll', subtype:'identify', desc:'立即識別一件裝備', price:150, effect:{action:'identify'}},
+];
+
+// ═══════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════
+const LS_KEY = 'dungeon_v1';
+
+function initState() {
+  return {
+    generation:1, level:1, exp:0, expNext:100,
+    job:'miner', jobLevel:1,
+    stats:{ hp:100,maxHp:100,str:10,agi:8,luk:5,int:5,def:5 },
+    freePoints:0,
+    gold:50,
+    weapon:null,
+    equipment:{ helmet:null,armor:null,legs:null,gloves:null,boots:null,
+                necklace:null,ring1:null,ring2:null,earring1:null,earring2:null },
+    inventory:[], inventoryMax:20,
+    heirlooms:[],
+    explored:{}, killedMonsters:[], totalExplored:0,
+    kills:0, totalKills:0, totalGenerations:1,
+    px:0, py:0,
+    statusEffects:[], // {type,turns}
+    startTime: Date.now(),
+  };
+}
+
+let state = initState();
+let killedSet = new Set();
+
+// ═══════════════════════════════════════════════
+// START POSITION
+// ═══════════════════════════════════════════════
+function findStart() {
+  for (let r = 0; r <= 40; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+        const t = getTerrain(dx, dy);
+        if (isPassable(t) && t !== T.CAVE && t !== T.MERCHANT && t !== T.OCEAN) {
+          return {x:dx, y:dy};
+        }
+      }
+    }
+  }
+  return {x:0,y:0};
+}
+
+// ═══════════════════════════════════════════════
+// STAT HELPERS
+// ═══════════════════════════════════════════════
+function eqStats() {
+  const s = {str:0,agi:0,luk:0,int:0,def:0};
+  for (const slot of ARMOR_SLOTS) {
+    const it = state.equipment[slot]; if (!it) continue;
+    for (const k in it.stats) s[k] = (s[k]||0) + (it.stats[k]||0);
+  }
+  if (state.weapon) {
+    for (const k in state.weapon.stats) s[k] = (s[k]||0) + (state.weapon.stats[k]||0);
+  }
+  return s;
+}
+function totalStat(k) { return (state.stats[k]||0) + (eqStats()[k]||0); }
+
+function calcAtk() {
+  const str = totalStat('str'), agi = totalStat('agi'),
+        int_ = totalStat('int'), luk = totalStat('luk'), def = totalStat('def');
+  if (!state.weapon) return state.level + 5;
+  const sub = state.weapon.subtype;
+  if (sub==='sword')  return str*1.0 + agi*0.5;
+  if (sub==='axe')    return str*1.5;
+  if (sub==='bow')    return agi*1.5;
+  if (sub==='wand')   return int_*2.0;
+  if (sub==='dagger') return agi*2.0 + luk*0.5;
+  if (sub==='spear')  return str*1.0 + def*0.3;
+  return str;
+}
+
+function timeLimit() { return 8 + totalStat('int') * 0.1; }
+
+function expForLevel(lv) { return Math.floor(100 * Math.pow(lv, 1.3)); }
+
+function monsterLevel(wx, wy) {
+  const dist = Math.sqrt(wx*wx + wy*wy);
+  const base = Math.max(1, Math.floor(dist / 12) + 1);
+  const rand = Math.floor(tileH(wx, wy, 6) * 4);
+  return Math.min(50, base + rand);
+}
+
+// ═══════════════════════════════════════════════
+// MAP RENDERING
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('map-canvas');
+const ctx = canvas.getContext('2d');
+let TILE_SIZE = 26;
+const VIEW = 15; // tiles visible
+
+function resizeCanvas() {
+  const wrap = document.getElementById('map-wrap');
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if (!w || !h) { requestAnimationFrame(resizeCanvas); return; }
+  const size = Math.max(150, Math.min(w, h, 420));
+  canvas.width = canvas.height = size;
+  TILE_SIZE = Math.max(8, Math.floor(size / VIEW));
+  renderMap();
+}
+
+function renderMap() {
+  const ts = TILE_SIZE, half = Math.floor(VIEW/2);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = `${Math.floor(ts*0.65)}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for (let dy = -half; dy <= half; dy++) {
+    for (let dx = -half; dx <= half; dx++) {
+      const wx = state.px + dx, wy = state.py + dy;
+      const sx = (dx + half) * ts, sy = (dy + half) * ts;
+      const key = `${wx},${wy}`;
+      const explored = !!state.explored[key];
+      const visible  = Math.abs(dx) <= 2 && Math.abs(dy) <= 2;
+
+      if (!explored && !visible) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(sx, sy, ts, ts);
+        continue;
+      }
+
+      const ter = getTerrain(wx, wy);
+      const ti = TERRAIN_INFO[ter] || TERRAIN_INFO[2];
+      ctx.fillStyle = ti.col;
+      ctx.fillRect(sx, sy, ts, ts);
+
+      // Draw emoji (skip center tile — player drawn there)
+      if (dx !== 0 || dy !== 0) {
+        ctx.fillText(ti.emoji, sx + ts/2, sy + ts/2);
+      }
+
+      // Monster marker
+      if (visible && (dx !== 0 || dy !== 0)) {
+        const mon = getMonsterAt(wx, wy);
+        if (mon) {
+          ctx.fillStyle = MDEFS[mon.name]?.elite ? '#f59e0b44' : '#f8717144';
+          ctx.fillRect(sx, sy, ts, ts);
+          ctx.fillText(MDEFS[mon.name]?.icon || '👾', sx + ts/2, sy + ts/2);
+        }
+      }
+
+      // Fog overlay for explored but not visible
+      if (!visible) {
+        ctx.fillStyle = 'rgba(0,0,0,0.42)';
+        ctx.fillRect(sx, sy, ts, ts);
+      }
+    }
+  }
+
+  // Draw player at center — solid bg so terrain doesn't bleed through
+  const cx = half * ts, cy = half * ts;
+  ctx.fillStyle = '#2a0a5a';
+  ctx.fillRect(cx, cy, ts, ts);
+  ctx.font = `${Math.floor(ts * 0.72)}px serif`;
+  ctx.fillText('🧑‍⛏️', cx + ts/2, cy + ts/2);
+
+  // Grid lines (subtle)
+  ctx.strokeStyle = 'rgba(30,30,58,0.5)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= VIEW; i++) {
+    ctx.beginPath(); ctx.moveTo(i*ts,0); ctx.lineTo(i*ts,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*ts); ctx.lineTo(canvas.width,i*ts); ctx.stroke();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// MOVEMENT
+// ═══════════════════════════════════════════════
+let moveCooldown = false;
+
+function tryMove(dx, dy) {
+  if (moveCooldown || combatActive || deathActive) return;
+  const nx = state.px + dx, ny = state.py + dy;
+  const ter = getTerrain(nx, ny);
+  if (!isPassable(ter)) { toast('⛔ 無法通行'); return; }
+
+  moveCooldown = true;
+  setTimeout(() => moveCooldown = false, 180);
+
+  state.px = nx; state.py = ny;
+  // Explore 3×3 around new position
+  for (let ey = -1; ey <= 1; ey++) {
+    for (let ex = -1; ex <= 1; ex++) {
+      const ek = `${nx+ex},${ny+ey}`;
+      if (!state.explored[ek]) { state.explored[ek] = true; state.totalExplored++; }
+    }
+  }
+
+  // Status effect tick
+  tickEffects();
+
+  // Terrain interaction
+  if (ter === T.CAVE) {
+    showCaveEvent();
+    renderMap(); updateUI(); return;
+  }
+  if (ter === T.MERCHANT) {
+    openMerchant();
+    renderMap(); updateUI(); return;
+  }
+
+  // Monster encounter
+  const mon = getMonsterAt(nx, ny);
+  if (mon) {
+    const lv = monsterLevel(nx, ny);
+    startCombat(mon.name, nx, ny, lv);
+    renderMap(); updateUI(); return;
+  }
+
+  renderMap(); updateUI(); save();
+}
+
+function tickEffects() {
+  state.statusEffects = state.statusEffects.filter(e => {
+    e.turns--;
+    if (e.type === 'poison') {
+      const dmg = 5;
+      state.stats.hp = Math.max(1, state.stats.hp - dmg);
+      toast(`☠️ 毒素侵蝕 -${dmg} HP`);
+    }
+    return e.turns > 0;
+  });
+}
+
+// ═══════════════════════════════════════════════
+// COMBAT SYSTEM
+// ═══════════════════════════════════════════════
+let combatActive = false, deathActive = false;
+let combat = null;
+let cbTimer = null, cbTextQ = [], cbTextRunning = false;
+let answerActive = false;
+
+const CORRECT_MSGS = [
+  '反應神速！', '正中要害！', '答對了！', '快準狠！', '思路清晰！',
+];
+const WRONG_MSGS = [
+  '判斷失誤——', '腦袋短路了！', '答錯了！', '選錯了！', '失誤！',
+];
+
+function startCombat(monName, wx, wy, lv) {
+  const m = scaledMonster(monName, lv);
+  m.hp = m.maxHp;
+  combat = {
+    monster: m, wx, wy,
+    turn: 0,
+    timeLimit: timeLimit(),
+    slowPenalty: 0, // additional seconds removed
+    buffAtk: 1.0, buffDef: 1.0,
+    beesSeg: m.segments > 0 ? 0 : -1, // current bee segment
+    phase: 1, // for boss
+    fled: false,
+    answered: false,
+  };
+  combatActive = true;
+  cbTextQ = []; cbTextRunning = false;
+  answerActive = false;
+
+  document.getElementById('combat-overlay').classList.add('active');
+  document.getElementById('cb-q').style.display = 'none';
+  document.getElementById('cb-log').innerHTML = '';
+  updateCombatHPDisplay();
+
+  // First strike check
+  const monHasFirst = m.agi * 3 >= totalStat('agi');
+  if (!monHasFirst) {
+    cbLog('cl-w', `你眼疾手快，搶先一步出手！`);
+  } else {
+    cbLog('cl-w', `${m.icon} ${m.name}身形一閃，搶先出爪！`);
+  }
+
+  // Bee intro text
+  if (m.special === 'segments') {
+    cbLog('cl-o', `蜂群！一波未平一波又起——`);
+  }
+
+  setTimeout(() => startCombatTurn(monHasFirst), 1200);
+}
+
+function startCombatTurn(monGoesFirst) {
+  if (!combatActive) return;
+  combat.turn++;
+  combat.answered = false;
+
+  // Monster goes first
+  if (monGoesFirst && combat.turn > 0) {
+    doMonsterAttack(() => { showQuestion(); });
+    return;
+  }
+  showQuestion();
+}
+
+function showQuestion() {
+  if (!combatActive) return;
+  answerActive = false;
+  const q = genQuestion(state.level);
+  const choices = shuffleAnswers(q.answer);
+  const corners = ['tl','tr','bl','br'];
+  corners.forEach((c, i) => {
+    document.getElementById(`ans-${c}`).classList.remove('correct','wrong');
+    document.getElementById(`ans-${c}-val`).textContent = choices[i];
+    document.getElementById(`ans-${c}`).dataset.correct = choices[i] === q.answer ? '1' : '0';
+  });
+
+  // Bee segment text
+  const m = combat.monster;
+  if (m.special === 'segments' && m.segments > 0) {
+    const seg = m.segments - Math.floor(m.hp / m.segHp);
+    const segTexts = ['第一隻蜜蜂撲來！','蜂群持續進攻！第二波！','最後一隻！打倒牠就勝利了！'];
+    if (seg < 3 && segTexts[seg]) cbLog('cl-o', segTexts[seg]);
+  }
+
+  document.getElementById('cb-q-text').textContent = `${q.text}`;
+  document.getElementById('cb-q').style.display = '';
+  document.getElementById('cb-escape').disabled = false;
+
+  // Timer
+  const tl = Math.max(3, combat.timeLimit - combat.slowPenalty);
+  const fill = document.getElementById('cb-timer');
+  fill.style.transition = 'none'; fill.style.width = '100%';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fill.style.transition = `width ${tl}s linear`;
+      fill.style.width = '0%';
+    });
+  });
+  answerActive = true;
+  cbTimer = setTimeout(() => onTimeout(), tl * 1000);
+}
+
+function answerQ(corner) {
+  if (!answerActive || !combatActive) return;
+  answerActive = false;
+  clearTimeout(cbTimer);
+  document.getElementById('cb-escape').disabled = true;
+  document.getElementById('cb-q').style.display = 'none';
+
+  const btn = document.getElementById(`ans-${corner}`);
+  const correct = btn.dataset.correct === '1';
+  const fill = document.getElementById('cb-timer');
+  const tl = Math.max(3, combat.timeLimit - combat.slowPenalty);
+  const remaining = parseFloat(fill.style.width) / 100 * tl;
+  fill.style.transition = 'none'; fill.style.width = '0%';
+
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  setTimeout(() => btn.classList.remove('correct','wrong'), 600);
+
+  if (correct) {
+    resolvePlayerAttack(remaining, tl);
+  } else {
+    cbLog('cl-s', WRONG_MSGS[Math.floor(Math.random()*WRONG_MSGS.length)]);
+    setTimeout(() => doMonsterAttack(nextTurnOrEnd), 800);
+  }
+}
+
+function onTimeout() {
+  if (!answerActive || !combatActive) return;
+  answerActive = false;
+  document.getElementById('cb-q').style.display = 'none';
+  cbLog('cl-p', '腦中一片空白……怪物看準機會猛攻！');
+  setTimeout(() => {
+    const dmg = Math.floor(combat.monster.atk * 1.5);
+    applyDmgToPlayer(dmg);
+    checkPlayerDead() || nextTurnOrEnd();
+  }, 800);
+}
+
+function resolvePlayerAttack(timeLeft, tl) {
+  const elapsed = tl - timeLeft;
+  let atk = Math.floor(calcAtk() * combat.buffAtk);
+  let sub = '';
+  if (elapsed <= 3)         { atk = Math.floor(atk * 1.5); sub = '反應神速！傷害+50%'; }
+  else if (timeLeft < 1)    { atk = Math.floor(atk * 0.8); sub = '險！勉強答對……'; }
+  else                      { sub = CORRECT_MSGS[Math.floor(Math.random()*CORRECT_MSGS.length)]; }
+
+  // Crit
+  const critRate = (totalStat('luk') * 0.5) / 100;
+  let isCrit = false;
+  if (Math.random() < critRate) { atk *= 2; isCrit = true; }
+
+  // Monster defense
+  const m = combat.monster;
+  // High defense special: if def > atk, damage = 1
+  if ((m.special === 'highdef') && atk <= m.def) {
+    cbLog('cl-s', `${sub}`);
+    cbLog('cl-s', `${m.icon} ${m.name}的護甲紋絲不動！傷害僅 `+wrapCol('cl-r','1')+'！');
+    atk = 1;
+  } else {
+    atk = Math.max(1, atk - Math.floor(m.def * 0.3));
+    const critText = isCrit ? wrapCol('cl-y','暴擊！') + ' ' : '';
+    cbLog('cl-w', `${sub}`);
+    cbLog('cl-w', `你的攻擊命中要害，${critText}造成 ${wrapCol('cl-r',atk)} 點傷害！`);
+  }
+
+  m.hp = Math.max(0, m.hp - atk);
+  updateCombatHPDisplay();
+
+  if (m.hp <= 0) {
+    setTimeout(() => endCombatVictory(), 600);
+  } else {
+    setTimeout(() => doMonsterAttack(nextTurnOrEnd), 700);
+  }
+}
+
+function doMonsterAttack(cb) {
+  if (!combatActive) return;
+  const m = combat.monster;
+  let dmg = Math.max(1, m.atk - Math.floor(totalStat('def') * 0.4));
+
+  // Special abilities
+  let specialText = '';
+  if (m.special === 'poison' && Math.random() < 0.25) {
+    const alreadyPoisoned = state.statusEffects.some(e=>e.type==='poison');
+    if (!alreadyPoisoned) {
+      state.statusEffects.push({type:'poison',turns:4});
+      specialText = wrapCol('cl-p','中毒！每回合-5血');
+    }
+  }
+  if (m.special === 'steal' && Math.random() < 0.45) {
+    const stolen = Math.min(state.gold, Math.floor(10 + Math.random()*25));
+    state.gold = Math.max(0, state.gold - stolen);
+    cbLog('cl-y', `狡猾狐狸趁你分神，叼走了你的 ${wrapCol('cl-y',stolen)} 枚金幣！`);
+  }
+  if (m.special === 'slow' && Math.random() < 0.4) {
+    combat.slowPenalty = Math.min(combat.slowPenalty + 2, combat.timeLimit - 2);
+    specialText = wrapCol('cl-p',`答題時間-2秒`);
+  }
+  if (m.special === 'stackslow') {
+    combat.slowPenalty = Math.min(combat.slowPenalty + 0.5, combat.timeLimit - 2);
+    if (combat.turn <= 3) specialText = wrapCol('cl-p','毒素侵蝕……思緒越來越遲鈍');
+  }
+  if (m.special === 'regen') {
+    const regen = 15;
+    m.hp = Math.min(m.maxHp, m.hp + regen);
+    cbLog('cl-g', `古樹守衛的樹根吸收大地能量，回復 ${regen} HP`);
+    updateCombatHPDisplay();
+  }
+  if (m.special === 'berserk' && m.hp < m.maxHp * 0.5) {
+    dmg = Math.floor(dmg * 2);
+    cbLog('cl-o', `山豬王瀕死狂怒，攻擊力翻倍！`);
+  }
+
+  cbLog('cl-w', `${m.icon} ${m.name}發起攻擊，造成 ${wrapCol('cl-r',dmg)} 點傷害！${specialText?'　'+specialText:''}`);
+  applyDmgToPlayer(dmg);
+  if (!checkPlayerDead()) cb();
+}
+
+function nextTurnOrEnd() {
+  if (!combatActive) return;
+  setTimeout(() => showQuestion(), 600);
+}
+
+function applyDmgToPlayer(dmg) {
+  state.stats.hp = Math.max(0, state.stats.hp - dmg);
+  document.getElementById('cb-player-hp').textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
+  updateStatusBar();
+}
+
+function checkPlayerDead() {
+  if (state.stats.hp > 0) return false;
+  combatActive = false;
+  clearTimeout(cbTimer);
+  document.getElementById('combat-overlay').classList.remove('active');
+  triggerDeath();
+  return true;
+}
+
+function endCombatVictory() {
+  const m = combat.monster;
+  combatActive = false;
+  clearTimeout(cbTimer);
+
+  const victoryTexts = {
+    毒牙蟲:'毒牙蟲發出最後的嘶鳴，癱倒在地。',
+    憤怒蘑菇:'蘑菇精炸裂成一堆孢子，你撿起了掉落的裝備。',
+    森林野狼:'野狼發出最後一聲嚎叫，倒下了。',
+    藤蔓精靈:'藤蔓精靈的藤蔓瞬間枯萎，消散在空氣中。',
+    狂蜂群:'最後一隻蜜蜂跌落，周圍終於安靜下來。',
+    狡猾狐狸:'狐狸踉蹌逃竄，留下了金幣。',
+    石頭哥布林:'石頭哥布林發出悶響，轟然倒塌。',
+    毒沼蛙:'毒沼蛙發出臨死前的叫聲，沉入地面。',
+    憤怒山豬王:'山豬王轟然倒地，震得地面微微顫抖。',
+    古樹守衛:'古樹守衛發出低沉的呻吟，緩緩枯萎。',
+    森林詛咒者:'詛咒者轟然倒地，整片森林陷入詭異的寂靜……',
+  };
+  cbLog('cl-g', victoryTexts[m.name] || `${m.icon} ${m.name}被擊敗了！`);
+
+  // Rewards
+  const gold = m.gold;
+  const exp  = m.exp;
+  state.gold += gold;
+  state.kills++; state.totalKills++;
+  cbLog('cl-y', `獲得 ${wrapCol('cl-y',gold)} 金幣！`);
+
+  // Item drop
+  if (m.drop) {
+    const item = generateDrop(m.drop, m.lv);
+    if (addToInventory(item)) {
+      cbLog('cl-y', `掉落：${wrapCol('rarity-'+item.rarity, item.name)}`);
+    } else {
+      cbLog('cl-s', `${item.name}因背包已滿而消失了……`);
+    }
+  }
+
+  // Mark killed
+  killedSet.add(`${combat.wx},${combat.wy}`);
+  state.killedMonsters = [...killedSet];
+
+  setTimeout(() => {
+    document.getElementById('combat-overlay').classList.remove('active');
+    gainExp(exp);
+    updateUI(); save();
+  }, 1200);
+}
+
+function tryEscape() {
+  if (!answerActive || !combatActive) return;
+  answerActive = false;
+  clearTimeout(cbTimer);
+  document.getElementById('cb-q').style.display = 'none';
+
+  const m = combat.monster;
+  const myAgi = totalStat('agi'), monAgi = m.agi;
+  const escapeChance = Math.max(0.1, Math.min(0.85, (myAgi - monAgi*0.5) / (myAgi + monAgi)));
+
+  if (Math.random() < escapeChance) {
+    cbLog('cl-g', '你趁隙逃脫了！');
+    setTimeout(() => {
+      combatActive = false;
+      document.getElementById('combat-overlay').classList.remove('active');
+      updateUI();
+    }, 700);
+  } else {
+    cbLog('cl-r', '逃跑失敗！怪物攔住了你！');
+    setTimeout(() => doMonsterAttack(nextTurnOrEnd), 700);
+  }
+}
+
+function cbLog(cls, html) {
+  const log = document.getElementById('cb-log');
+  const line = document.createElement('div');
+  line.className = `cb-line ${cls}`;
+  line.innerHTML = html;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function wrapCol(cls, text) {
+  return `<span class="${cls}">${text}</span>`;
+}
+
+function updateCombatHPDisplay() {
+  if (!combat) return;
+  const m = combat.monster;
+  const pct = Math.max(0, m.hp / m.maxHp * 100);
+  document.getElementById('cb-hp').style.width = pct + '%';
+  document.getElementById('cb-name').textContent = `${m.icon} ${m.name}`;
+  document.getElementById('cb-hp-txt').textContent = `❤️ ${m.hp} / ${m.maxHp}`;
+  document.getElementById('cb-player-hp').textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
+}
+
+// ═══════════════════════════════════════════════
+// QUESTION GENERATOR
+// ═══════════════════════════════════════════════
+function genQuestion(lv) {
+  const diff = Math.min(5, Math.ceil(lv / 10));
+  const r = () => Math.floor(Math.random() * 1e9);
+  let a, b, text, answer;
+
+  if (diff === 1) {
+    a = Math.floor(Math.random()*12)+1; b = Math.floor(Math.random()*12)+1;
+    if (Math.random()<0.5) { text=`${a} + ${b} = ?`; answer=a+b; }
+    else { const big=Math.max(a,b),sm=Math.min(a,b); text=`${big} - ${sm} = ?`; answer=big-sm; }
+  } else if (diff === 2) {
+    a=Math.floor(Math.random()*20)+10; b=Math.floor(Math.random()*15)+2;
+    if (Math.random()<0.5) { text=`${a} + ${b} = ?`; answer=a+b; }
+    else { text=`${a} - ${b} = ?`; answer=a-b; }
+  } else if (diff === 3) {
+    a=Math.floor(Math.random()*9)+2; b=Math.floor(Math.random()*9)+2;
+    text=`${a} × ${b} = ?`; answer=a*b;
+  } else if (diff === 4) {
+    b=Math.floor(Math.random()*8)+2; a=b*(Math.floor(Math.random()*8)+2);
+    if (Math.random()<0.5) { text=`${a} ÷ ${b} = ?`; answer=a/b; }
+    else { const x=Math.floor(Math.random()*6)+2; const y=Math.floor(Math.random()*6)+2;
+           text=`${x} × ${y} = ?`; answer=x*y; }
+  } else {
+    a=Math.floor(Math.random()*50)+50; b=Math.floor(Math.random()*30)+10;
+    const ops=['+','-','×'];const op=ops[Math.floor(Math.random()*ops.length)];
+    if (op==='+') { text=`${a} + ${b} = ?`; answer=a+b; }
+    else if (op==='-') { text=`${a} - ${b} = ?`; answer=a-b; }
+    else { const x=Math.floor(Math.random()*12)+2; const y=Math.floor(Math.random()*6)+2;
+           text=`${x} × ${y} = ?`; answer=x*y; }
+  }
+  return { text, answer };
+}
+
+function shuffleAnswers(correct) {
+  const wrong = new Set();
+  const spread = Math.max(3, Math.floor(correct * 0.2) + 2);
+  const attempts = 50;
+  for (let i=0; i<attempts && wrong.size<3; i++) {
+    const off = Math.floor(Math.random()*spread*2+1) * (Math.random()<0.5?1:-1);
+    const v = correct + off;
+    if (v !== correct && v >= 0 && !wrong.has(v)) wrong.add(v);
+  }
+  // Fallback
+  let fallback = 1;
+  while (wrong.size < 3) { if (correct+fallback!==correct) wrong.add(correct+fallback); fallback++; }
+  const arr = [correct, ...[...wrong].slice(0,3)];
+  for (let i=arr.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// ═══════════════════════════════════════════════
+// EXP / LEVEL UP
+// ═══════════════════════════════════════════════
+function gainExp(amount) {
+  state.exp += amount;
+  while (state.exp >= state.expNext && state.level < 999) {
+    state.exp -= state.expNext;
+    state.level++;
+    state.expNext = expForLevel(state.level);
+    state.stats.maxHp += 5;
+    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 20);
+    state.freePoints += state.level % 10 === 0 ? 4 : 1;
+    toast(`✨ 升級！Lv.${state.level}　獲得屬性點 +${state.level%10===0?4:1}`);
+  }
+  updateUI();
+}
+
+// ═══════════════════════════════════════════════
+// INVENTORY
+// ═══════════════════════════════════════════════
+function addToInventory(item) {
+  if (state.inventory.length >= state.inventoryMax) return false;
+  state.inventory.push(item);
+  return true;
+}
+
+function removeFromInventory(idx) {
+  state.inventory.splice(idx, 1);
+}
+
+function equipItem(item, fromInv, invIdx) {
+  if (item.reqLevel > state.level) {
+    toast(`⚠️ 等級不足（需 Lv.${item.reqLevel}）`); return;
+  }
+  let slot, oldItem;
+  if (item.type === 'weapon') {
+    oldItem = state.weapon;
+    state.weapon = item;
+    slot = 'weapon';
+  } else {
+    const s = item.subtype;
+    oldItem = state.equipment[s];
+    state.equipment[s] = item;
+    slot = s;
+  }
+  if (fromInv) removeFromInventory(invIdx);
+  if (oldItem) { if (!addToInventory(oldItem)) toast('背包已滿，舊裝備消失'); }
+  toast(`✅ 裝備了 ${item.name}`);
+  closeModal('modal-item'); openInventory();
+  updateUI();
+}
+
+function dropItem(item, fromInv, invIdx) {
+  if (!confirm(`確定丟棄「${item.name}」？`)) return;
+  if (fromInv) removeFromInventory(invIdx);
+  else {
+    if (item.type === 'weapon') state.weapon = null;
+    else state.equipment[item.subtype] = null;
+  }
+  closeModal('modal-item');
+  updateUI(); save();
+  toast('🗑️ 已丟棄');
+}
+
+function usePotion(item, invIdx) {
+  const ef = item.effect;
+  if (ef.heal) {
+    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + ef.heal);
+    toast(`💊 ${item.name}：回復 ${ef.heal} HP`);
+  } else if (ef.cure === 'poison') {
+    state.statusEffects = state.statusEffects.filter(e=>e.type!=='poison');
+    toast(`💚 解毒成功！`);
+  }
+  removeFromInventory(invIdx);
+  closeModal('modal-item');
+  updateUI(); save();
+}
+
+// ═══════════════════════════════════════════════
+// UI FUNCTIONS
+// ═══════════════════════════════════════════════
+function updateStatusBar() {
+  const hp = state.stats.hp, mhp = state.stats.maxHp;
+  document.getElementById('hp-txt').textContent = `❤️${hp}/${mhp}`;
+  document.getElementById('hp-bar').style.width = Math.max(0, hp/mhp*100) + '%';
+  document.getElementById('gold-txt').textContent = `💰${state.gold}`;
+  const w = state.weapon;
+  document.getElementById('wpn-txt').textContent = w
+    ? `${w.icon} ${w.name}${w.enhance>0?'+'+w.enhance:''}` : '⚔️ 空手';
+}
+
+function updateUI() {
+  document.getElementById('lv-badge').textContent = `Lv.${state.level}`;
+  document.getElementById('gen-badge').textContent = `第${state.generation}代`;
+  updateStatusBar();
+}
+
+function openInventory() {
+  const grid = document.getElementById('inv-grid');
+  document.getElementById('inv-count').textContent = `${state.inventory.length}/${state.inventoryMax}`;
+  grid.innerHTML = '';
+  state.inventory.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = `inv-slot ${item.rarity}`;
+    el.innerHTML = `<div class="s-icon">${item.icon}</div>
+      <div class="s-name rarity-${item.rarity}">${item.name}</div>
+      ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}`;
+    el.onclick = () => openItemCard(item, true, i, false);
+    grid.appendChild(el);
+  });
+  // Empty slots
+  for (let i = state.inventory.length; i < state.inventoryMax; i++) {
+    const el = document.createElement('div');
+    el.className = 'inv-slot empty';
+    el.innerHTML = '<div class="s-icon" style="font-size:14px;color:#333">·</div>';
+    grid.appendChild(el);
+  }
+  openModal('modal-inv');
+}
+
+function openEquipment() {
+  const body = document.getElementById('eq-body');
+  body.innerHTML = '';
+
+  // Weapon row
+  const w = state.weapon;
+  const wRow = document.createElement('div');
+  wRow.className = 'eq-weapon-row';
+  wRow.innerHTML = `<div class="es-icon">${w?w.icon:'⚔️'}</div>
+    <div class="es-info">
+      <div class="es-label">武器</div>
+      <div class="es-name rarity-${w?.rarity||'white'}">${w?(w.name+(w.enhance>0?'+'+w.enhance:'')):'── 未裝備'}</div>
+    </div>`;
+  if (w) wRow.onclick = () => openItemCard(w, false, null, false);
+  body.appendChild(wRow);
+
+  // Armor grid
+  const grid = document.createElement('div');
+  grid.className = 'eq-grid';
+  ARMOR_SLOTS.forEach(slot => {
+    const it = state.equipment[slot];
+    const el = document.createElement('div');
+    el.className = `eq-slot ${it?'':'empty'}`;
+    el.innerHTML = `<div class="es-icon">${it?it.icon:SLOT_ICON[slot]}</div>
+      <div class="es-info">
+        <div class="es-label">${SLOT_LABEL[slot]}</div>
+        <div class="es-name rarity-${it?.rarity||'white'}">${it?(it.name+(it.enhance>0?'+'+it.enhance:'')):'── 未裝備'}</div>
+      </div>`;
+    if (it) el.onclick = () => openItemCard(it, false, null, false);
+    grid.appendChild(el);
+  });
+  body.appendChild(grid);
+  openModal('modal-eq');
+}
+
+function openStats() {
+  const body = document.getElementById('stats-body');
+  const eq = eqStats();
+  const pts = state.freePoints;
+
+  let html = '';
+  if (pts > 0) html += `<div class="points-badge">🌟 空閒屬性點：${pts}</div>`;
+
+  const statDefs = [
+    {k:'str',  n:'💪 力量', desc:'物理攻擊'},
+    {k:'agi',  n:'⚡ 敏捷', desc:'閃避·先攻'},
+    {k:'luk',  n:'🍀 幸運', desc:'暴擊·掉落'},
+    {k:'int',  n:'🧠 智力', desc:'魔法·答題'},
+    {k:'def',  n:'🛡️ 防禦', desc:'減傷'},
+  ];
+
+  html += '<div class="stat-section"><h3>屬性點分配</h3>';
+  statDefs.forEach(({k,n,desc}) => {
+    const base = state.stats[k]||0, bonus = eq[k]||0;
+    const bonusTxt = bonus>0 ? ` <span style="color:var(--green)">(+${bonus})</span>` : '';
+    html += `<div class="alloc-row">
+      <span class="an">${n}<span style="font-size:10px;color:var(--sub)"> ${desc}</span></span>
+      <span class="av">${base}${bonusTxt}</span>
+      <button class="alloc-btn" ${pts<=0?'disabled':''} onclick="allocStat('${k}')">+</button>
+    </div>`;
+  });
+  html += '</div>';
+
+  const atk = Math.floor(calcAtk());
+  const tl = timeLimit().toFixed(1);
+  html += `<div class="stat-section"><h3>戰鬥數值</h3>
+    <div class="stat-row"><span class="sn">攻擊力</span><span class="sv">${atk}</span></div>
+    <div class="stat-row"><span class="sn">最大血量</span><span class="sv">${state.stats.maxHp}</span></div>
+    <div class="stat-row"><span class="sn">答題時間</span><span class="sv">${tl}秒</span></div>
+    <div class="stat-row"><span class="sn">暴擊率</span><span class="sv">${(totalStat('luk')*0.5).toFixed(1)}%</span></div>
+  </div>`;
+
+  html += `<div class="stat-section"><h3>冒險紀錄</h3>
+    <div class="stat-row"><span class="sn">等級</span><span class="sv">Lv.${state.level}</span></div>
+    <div class="stat-row"><span class="sn">代數</span><span class="sv">第${state.generation}代</span></div>
+    <div class="stat-row"><span class="sn">本代擊殺</span><span class="sv">${state.kills}</span></div>
+    <div class="stat-row"><span class="sn">歷代擊殺</span><span class="sv">${state.totalKills}</span></div>
+    <div class="stat-row"><span class="sn">探索格數</span><span class="sv">${state.totalExplored}</span></div>
+  </div>`;
+
+  body.innerHTML = html;
+  openModal('modal-stats');
+}
+
+function allocStat(k) {
+  if (state.freePoints <= 0) return;
+  state.freePoints--;
+  state.stats[k] = (state.stats[k]||0) + 1;
+  if (k === 'vit' || k === 'def') {
+    state.stats.maxHp += 10;
+    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 5);
+  }
+  openStats(); updateUI(); save();
+}
+
+function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
+  const rCol = `rarity-${item.rarity}`;
+  const rarityLabel = RARITY_NAME[item.rarity] || '';
+  const typeLabel = item.type==='weapon' ? `${WPN_ICON[item.subtype]} 武器·${item.subtype}` : `${SLOT_LABEL[item.subtype]||'裝備'}`;
+  const reqOk = state.level >= (item.reqLevel||0);
+
+  let statHtml = '';
+  for (const [k, v] of Object.entries(item.stats||{})) {
+    if (v===0) continue;
+    const labels = {str:'💪力量',agi:'⚡敏捷',luk:'🍀幸運',int:'🧠智力',def:'🛡️防禦'};
+    statHtml += `<div class="ic-stat"><span>${labels[k]||k}</span><span class="${v>0?'ics-pos':'ics-neg'}">${v>0?'+':''}${v}</span></div>`;
+  }
+
+  const heirloomHtml = item.fromGeneration
+    ? `<div class="ic-heirloom">📜 第${item.fromGeneration}代遺物<br>於 ${item.deathLocation} 力戰而亡・擊殺 ${item.deathKills} 隻</div>` : '';
+
+  let btns = '';
+  if (atMerchant && buyFn) {
+    btns = `<button class="ic-btn ic-btn-equip" onclick="(${buyFn.toString()})()">🛒 購買</button>
+            <button class="ic-btn ic-btn-close" onclick="closeModal('modal-item')">關閉</button>`;
+  } else if (item.type === 'potion' || item.type === 'scroll') {
+    btns = `<button class="ic-btn ic-btn-use" onclick="usePotion(state.inventory[${invIdx}],${invIdx})">使用</button>
+            <button class="ic-btn ic-btn-drop" onclick="dropItem(state.inventory[${invIdx}],true,${invIdx})">丟棄</button>
+            <button class="ic-btn ic-btn-close" onclick="closeModal('modal-item')">關閉</button>`;
+  } else {
+    const equipBtn = fromInv
+      ? `<button class="ic-btn ic-btn-equip" onclick="equipItem(state.inventory[${invIdx}],true,${invIdx})">⚔️ 裝備</button>`
+      : `<button class="ic-btn ic-btn-equip" onclick="unequipItem('${item.type==='weapon'?'weapon':item.subtype}')">↩️ 卸下</button>`;
+    btns = `${equipBtn}
+            <button class="ic-btn ic-btn-drop" onclick="dropItem(${fromInv?`state.inventory[${invIdx}]`:`state.${item.type==='weapon'?'weapon':'equipment.'+item.subtype}`},${fromInv},${fromInv?invIdx:'null'})">🗑️ 丟棄</button>
+            <button class="ic-btn ic-btn-close" onclick="closeModal('modal-item')">關閉</button>`;
+  }
+
+  document.getElementById('item-card-content').innerHTML = `
+    <div class="ic-name ${rCol}">${item.icon} ${item.name}${item.enhance>0?' +'+item.enhance:''}</div>
+    <div class="ic-sub">${rarityLabel}・${typeLabel}</div>
+    <div class="ic-flavor">${item.flavorText||'一件普通的裝備'}</div>
+    ${statHtml?`<div class="ic-stats">${statHtml}</div>`:''}
+    ${item.reqLevel>0?`<div class="ic-req">需求等級：<span class="${reqOk?'':'req-fail'}">Lv.${item.reqLevel}${reqOk?'':'（不足）'}</span></div>`:''}
+    ${heirloomHtml}
+    <div class="ic-btns">${btns}</div>`;
+  openModal('modal-item');
+}
+
+function unequipItem(slot) {
+  const item = slot==='weapon' ? state.weapon : state.equipment[slot];
+  if (!item) return;
+  if (!addToInventory(item)) { toast('背包已滿！'); return; }
+  if (slot==='weapon') state.weapon=null; else state.equipment[slot]=null;
+  toast(`↩️ 卸下 ${item.name}`);
+  closeModal('modal-item');
+  updateUI(); save();
+}
+
+// ═══════════════════════════════════════════════
+// MERCHANT
+// ═══════════════════════════════════════════════
+let merchantStock = [];
+
+function openMerchant() {
+  // Generate stock based on player level and position seed
+  const seedM = posH(state.px*37+3, state.py*41+7, WORLD_SEED+500) * 1000 | 0;
+  const rngM = (() => { let s=seedM; return () => { s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; }; })();
+
+  merchantStock = [];
+  // Weapons
+  for (let i=0; i<2; i++) {
+    const sub = WPN_SUBTYPES[Math.floor(rngM()*WPN_SUBTYPES.length)];
+    const rar = state.level>=10 && rngM()<0.3 ? 'green' : 'white';
+    const item = generateWeapon(rar, Math.max(1, state.level-2));
+    merchantStock.push({item, price: computeSellPrice(item)*3});
+  }
+  // Armor
+  for (let i=0; i<2; i++) {
+    const slot = ARMOR_SLOTS[Math.floor(rngM()*ARMOR_SLOTS.length)];
+    const rar = state.level>=10 && rngM()<0.3 ? 'green' : 'white';
+    const item = generateArmor(slot, rar, Math.max(1, state.level-2));
+    merchantStock.push({item, price: computeSellPrice(item)*3});
+  }
+  // Potions / scrolls
+  SHOP_ITEMS.forEach(si => {
+    merchantStock.push({item:{...si, id:Date.now()+Math.random()}, price:si.price});
+  });
+
+  renderMerchant();
+  openModal('modal-merchant');
+}
+
+function computeSellPrice(item) {
+  const basePrice = {white:30, green:80, blue:200}[item.rarity] || 30;
+  return basePrice + (item.enhance||0)*50;
+}
+
+function renderMerchant() {
+  const body = document.getElementById('merchant-body');
+  let html = `<div style="font-size:11px;color:var(--sub);margin-bottom:.6rem">💰 你的金幣：${state.gold}</div>`;
+  merchantStock.forEach((stock, i) => {
+    const it = stock.item;
+    const canBuy = state.gold >= stock.price;
+    html += `<div class="merchant-item">
+      <div class="mi-icon">${it.icon}</div>
+      <div class="mi-info">
+        <div class="mi-name rarity-${it.rarity||'white'}">${it.name}</div>
+        <div class="mi-desc">${it.type==='potion'||it.type==='scroll' ? it.desc||'' : (SLOT_LABEL[it.subtype]||it.subtype)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div class="mi-price">💰${stock.price}</div>
+        <button class="mi-buy" ${canBuy?'':'disabled'} onclick="merchantBuy(${i})">購買</button>
+      </div>
+    </div>`;
+  });
+  body.innerHTML = html;
+}
+
+function merchantBuy(idx) {
+  const stock = merchantStock[idx];
+  if (!stock || state.gold < stock.price) return;
+  if (state.inventory.length >= state.inventoryMax) { toast('背包已滿！'); return; }
+  state.gold -= stock.price;
+  const item = {...stock.item, id: Date.now()+Math.random()};
+  addToInventory(item);
+  toast(`✅ 購買了 ${item.name}`);
+  renderMerchant();
+  updateUI(); save();
+}
+
+// ═══════════════════════════════════════════════
+// CAVE EVENT
+// ═══════════════════════════════════════════════
+function showCaveEvent() {
+  const card = document.getElementById('event-card');
+  card.innerHTML = `<h2>🕳️ 洞穴入口</h2>
+    <p>你站在幽深的礦洞入口，黑暗中傳來迴盪的聲音……<br><br>
+    <span style="font-size:11px;color:var(--accent)">（地下城系統 Phase 2 開放）</span></p>
+    <button class="event-btn" onclick="closeModal('modal-event')">📍 繼續探索地面</button>`;
+  openModal('modal-event');
+}
+
+// ═══════════════════════════════════════════════
+// DEATH & INHERITANCE
+// ═══════════════════════════════════════════════
+function triggerDeath() {
+  deathActive = true;
+  const overlay = document.getElementById('death-overlay');
+  overlay.classList.add('active');
+  const txtEl = document.getElementById('death-text');
+  const terrain = getTerrain(state.px, state.py);
+  const terrainName = TERRAIN_INFO[terrain]?.emoji || '🌿';
+
+  txtEl.textContent = '';
+  const sequence = [
+    [0, '你的視線漸漸模糊……', '#555'],
+    [1200, `世界變成了灰色。`, '#444'],
+    [2400, '你倒下了。', '#333'],
+    [4000, '但勇者的意志不滅。', '#c9a000'],
+    [5200, '在最後的時刻，你想將什麼留給下一位繼承者？', '#f59e0b'],
+  ];
+  sequence.forEach(([delay, text, col]) => {
+    setTimeout(() => { txtEl.textContent = text; txtEl.style.color = col; }, delay);
+  });
+  setTimeout(() => showInheritance(), 7200);
+}
+
+function inheritanceMax() {
+  if (state.level >= 31) return 3;
+  if (state.level >= 11) return 2;
+  return 1;
+}
+
+let inheritanceSelected = new Set();
+
+function showInheritance() {
+  document.getElementById('death-overlay').classList.remove('active');
+  inheritanceSelected = new Set();
+
+  const maxPick = inheritanceMax();
+  document.getElementById('inherit-sub').textContent = `選擇最多 ${maxPick} 件傳給下一代（Lv.${state.level}）`;
+  document.getElementById('inherit-confirm').disabled = true;
+
+  // Build pool: all inventory + equipped items
+  const pool = [];
+  if (state.weapon) pool.push({item:state.weapon, label:'武器'});
+  ARMOR_SLOTS.forEach(slot => {
+    const it = state.equipment[slot];
+    if (it) pool.push({item:it, label:SLOT_LABEL[slot]});
+  });
+  state.inventory.forEach(it => pool.push({item:it, label:'背包'}));
+
+  const container = document.getElementById('inherit-pool');
+  container.innerHTML = '';
+
+  if (pool.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--sub);font-size:13px;padding:1rem">沒有物品可以傳承……</div>';
+    document.getElementById('inherit-confirm').disabled = false;
+    document.getElementById('inherit-confirm').textContent = '開始新的冒險 ✨';
+  } else {
+    pool.forEach((entry, i) => {
+      const it = entry.item;
+      const el = document.createElement('div');
+      el.className = `inherit-slot ${it.rarity||'white'}`;
+      el.innerHTML = `<div class="is-icon">${it.icon}</div>
+        <div class="is-name rarity-${it.rarity||'white'}">${it.name}</div>
+        <div style="font-size:9px;color:var(--sub)">${entry.label}</div>`;
+      el.onclick = () => toggleInherit(i, el, maxPick, pool);
+      container.appendChild(el);
+    });
+  }
+
+  document.getElementById('inherit-overlay').classList.add('open');
+  window._inheritPool = pool;
+}
+
+function toggleInherit(idx, el, maxPick, pool) {
+  if (inheritanceSelected.has(idx)) {
+    inheritanceSelected.delete(idx);
+    el.classList.remove('selected');
+  } else {
+    if (inheritanceSelected.size >= maxPick) {
+      toast(`最多選 ${maxPick} 件`); return;
+    }
+    inheritanceSelected.add(idx);
+    el.classList.add('selected');
+  }
+  document.getElementById('inherit-confirm').disabled = inheritanceSelected.size === 0 && window._inheritPool.length > 0;
+}
+
+function confirmInherit() {
+  const pool = window._inheritPool || [];
+  const heirlooms = [];
+  const deathTerrain = getTerrain(state.px, state.py);
+  const terrainEmoji = TERRAIN_INFO[deathTerrain]?.emoji || '🌿';
+  const terrainName = terrainEmoji + ' 探索途中';
+
+  inheritanceSelected.forEach(idx => {
+    const entry = pool[idx];
+    if (!entry) return;
+    const item = {...entry.item};
+    item.fromGeneration = state.generation;
+    item.deathLocation = terrainName;
+    item.deathKills = state.kills;
+    item.flavorText = `前代勇者用鮮血換來的教訓，凝結在這件裝備裡`;
+    heirlooms.push(item);
+  });
+
+  const newGen = state.generation + 1;
+  const totalKills = state.totalKills;
+  const totalExplored = state.totalExplored;
+  const totalGenerations = state.totalGenerations + 1;
+
+  document.getElementById('inherit-overlay').classList.remove('open');
+
+  // Start new generation
+  setTimeout(() => {
+    state = initState();
+    state.generation = newGen;
+    state.totalKills = totalKills;
+    state.totalExplored = totalExplored;
+    state.totalGenerations = totalGenerations;
+    state.heirlooms = heirlooms;
+
+    // Add heirlooms to inventory
+    heirlooms.forEach(it => addToInventory(it));
+
+    killedSet = new Set();
+    const sp = findStart();
+    state.px = sp.x; state.py = sp.y;
+    state.explored[`${sp.x},${sp.y}`] = true;
+
+    deathActive = false;
+    toast(`✨ 第${newGen}代勇者踏上旅途！`);
+    renderMap(); updateUI(); save();
+  }, 500);
+}
+
+// ═══════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity='0', 2400);
+}
+
+// ═══════════════════════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════════════════════
+function save() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      ...state, killedMonsters: [...killedSet],
+    }));
+  } catch(e) {}
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    Object.assign(state, d);
+    killedSet = new Set(state.killedMonsters || []);
+    if (!state.explored) state.explored = {};
+    if (!state.statusEffects) state.statusEffects = [];
+    if (!state.heirlooms) state.heirlooms = [];
+    if (!state.inventory) state.inventory = [];
+    if (!state.equipment) state.equipment = {
+      helmet:null,armor:null,legs:null,gloves:null,boots:null,
+      necklace:null,ring1:null,ring2:null,earring1:null,earring2:null,
+    };
+    if (!state.kills) state.kills = 0;
+    if (!state.totalKills) state.totalKills = 0;
+    if (!state.generation) state.generation = 1;
+    if (!state.totalExplored) state.totalExplored = 0;
+    if (!state.freePoints) state.freePoints = 0;
+    if (state.expNext === undefined) state.expNext = expForLevel(state.level);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const map = {
+    'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right',
+    'w':'up','s':'down','a':'left','d':'right',
+  };
+  const dir = map[e.key];
+  if (!dir) return;
+  e.preventDefault();
+  if (dir==='up')    tryMove(0,-1);
+  if (dir==='down')  tryMove(0,1);
+  if (dir==='left')  tryMove(-1,0);
+  if (dir==='right') tryMove(1,0);
+});
+
+// ═══════════════════════════════════════════════
+// BACK TO LOBBY
+// ═══════════════════════════════════════════════
+function goBack() {
+  save();
+  const name = (() => { try { const d=JSON.parse(localStorage.getItem('game_lobby_v2')); return d?.name||null; } catch(e){return null;} })();
+  if (name) {
+    localStorage.setItem('game_pending_score', JSON.stringify({
+      game: 'dungeon',
+      score: state.totalKills,
+      detail: `第${state.generation}代・擊殺${state.totalKills}隻・探索${state.totalExplored}格`,
+    }));
+  }
+  window.location.href = '../';
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+load();
+
+// If no saved position, find start
+if (!state.explored || Object.keys(state.explored).length === 0) {
+  const sp = findStart();
+  state.px = sp.x; state.py = sp.y;
+  // Reveal 5×5 area on first load
+  for (let ey = -2; ey <= 2; ey++) {
+    for (let ex = -2; ex <= 2; ex++) {
+      state.explored[`${sp.x+ex},${sp.y+ey}`] = true;
+    }
+  }
+  state.totalExplored = 25;
+}
+
+// Periodic auto-save
+setInterval(save, 30000);
+
+// Canvas resize
+window.addEventListener('resize', () => resizeCanvas());
+resizeCanvas();
+
+updateUI();
+</script>
+</body></html>

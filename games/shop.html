@@ -404,7 +404,7 @@ function doPrestige(){
   if(!confirm(`確定第 ${nextP} 次轉生？\n所有資產歸零，換取黃金代幣！\n永久 +200% 收益加成！${unlockMsg}${stockWarn}`))return;
   submitToLB(false);
   state.prestige++; state.goldTokens=state.prestige;
-  state.money=0; state.totalEarned=0; state.peakCps=0; msIdx=0;
+  state.money=0; state.totalEarned=0; state.peakCps=0; msIdx=0; state.forbesCrossed=0;
   allUpgrades().forEach(u=>state.counts[u.id]=0);
   if(stockCash>0){stockSave.cash=0;saveStockAccount(stockSave);}
   save(); renderShop(); updateUI();
