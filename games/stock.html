@@ -105,7 +105,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
   <div class="tb-shop">🎲 店鋪餘額 <span id="shop-bal">NT$0</span></div>
   <input id="transfer-amt" type="number" min="1" placeholder="M">
   <button class="tb-btn tb-in" onclick="transferIn()">← 匯入</button>
-  <button class="tb-btn tb-out" onclick="transferOut()" title="手續費 30%">匯回(−30%) →</button>
+  <button class="tb-btn tb-out" onclick="transferOut()" title="兌換損耗 90%，只剩 10% 回到店鋪">匯回(−90%) →</button>
 </div>
 
 <div class="update-bar" id="update-bar">點 🔄 取得即時行情</div>
@@ -376,15 +376,16 @@ function transferIn(){
 
 function transferOut(){
   if(!(state.cash>0)){toast('⚠️ 現金帳戶為零');return;}
-  const fee=Math.floor(state.cash*0.3);
-  const receive=state.cash-fee;
-  if(!confirm(`匯回店鋪確認\n\n股市現金：NT$${fmt(state.cash)}\n手續費（30%）：-NT$${fmt(fee)}\n實際到帳：NT$${fmt(receive)}\n\n確定要匯回嗎？`))return;
+  const total=state.cash;
+  const receive=Math.floor(total*0.1);
+  const lost=total-receive;
+  if(!confirm(`⚠️ 匯回店鋪確認\n\n股市現金：NT$${fmt(total)}\n兌換損耗（90%）：-NT$${fmt(lost)}\n實際到帳：NT$${fmt(receive)}\n\n資金在股市中已大幅貶值，確定要匯回嗎？`))return;
   const s=getLS(LS_SHOP);
   s.money=(s.money||0)+receive;
   s.allTime=(s.allTime||0)+receive;
   setLS(LS_SHOP,s);
   state.cash=0;save();
-  render();toast(`✅ 已匯回 NT$${fmt(receive)}（手續費 NT$${fmt(fee)}）`);
+  render();toast(`✅ 已匯回 NT$${fmt(receive)}（損耗 NT$${fmt(lost)}）`);
 }
 
 // ── 買入 ──────────────────────────────────────────────

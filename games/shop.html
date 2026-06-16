@@ -201,9 +201,9 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
       <input id="stock-amt" type="number" min="1" placeholder="金額（M）"
         style="flex:1;padding:6px 8px;border-radius:6px;border:.5px solid #2a2040;background:#0d0d1e;color:#eee;font-size:12px">
       <button onclick="transferToStock()" style="padding:6px 10px;border-radius:6px;border:.5px solid #1a3a1a;background:transparent;color:#4ade80;font-size:11px;cursor:pointer;white-space:nowrap">匯入 →</button>
-      <button onclick="transferFromStock()" style="padding:6px 10px;border-radius:6px;border:.5px solid #1a1a3a;background:transparent;color:#a78bfa;font-size:11px;cursor:pointer;white-space:nowrap">← 匯回</button>
+      <button onclick="transferFromStock()" style="padding:6px 10px;border-radius:6px;border:.5px solid #1a1a3a;background:transparent;color:#a78bfa;font-size:11px;cursor:pointer;white-space:nowrap">← 匯回(−90%)</button>
     </div>
-    <div style="font-size:10px;color:var(--sub);margin-top:.35rem;text-align:center">匯入後到 📈 股票市場 進行投資</div>
+    <div style="font-size:10px;color:var(--sub);margin-top:.35rem;text-align:center">匯入後到 📈 股票市場 進行投資・匯回只剩 10%</div>
     <button onclick="window.location.href='stock.html'" style="width:100%;margin-top:.55rem;padding:8px;border-radius:8px;border:.5px solid #2a2040;background:#12122a;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer">📈 前往股票市場 →</button>
   </div>
   <button class="action-btn submit-btn" onclick="submitToLB(true)">📤 提交成績到富比士榜</button>
@@ -821,12 +821,15 @@ function transferToStock(){
 function transferFromStock(){
   const sa=getStockAccount();
   if(!(sa.cash>0)){toast('⚠️ 股市帳戶餘額為零');return;}
-  const amt=sa.cash;
-  state.money+=amt;state.totalEarned+=amt;state.allTime+=amt;state.weekly+=amt;
+  const total=sa.cash;
+  const receive=Math.floor(total*0.1);
+  const lost=total-receive;
+  if(!confirm(`⚠️ 匯回確認\n\n股市現金：NT$${fmt(total)}\n兌換損耗（90%）：-NT$${fmt(lost)}\n實際到帳：NT$${fmt(receive)}\n\n資金在股市中已大幅貶值，確定要匯回嗎？`))return;
+  state.money+=receive;state.totalEarned+=receive;state.allTime+=receive;state.weekly+=receive;
   sa.cash=0;
   saveStockAccount(sa);
   updateUI();renderStats();
-  toast(`✅ 已從股市匯回 NT$${fmt(amt)} 到店鋪`);
+  toast(`✅ 已從股市匯回 NT$${fmt(receive)}（損耗 NT$${fmt(lost)}）`);
 }
 
 // ── 存檔 ──────────────────────────────────────────────
