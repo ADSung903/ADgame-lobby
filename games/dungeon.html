@@ -1081,6 +1081,19 @@ function renderMap() {
 let moveCooldown = false;
 let nearMerchant = false;
 
+function checkNearMerchant() {
+  // 檢查玩家周圍3格內有沒有商人
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      if (getTerrain(px+dx, py+dy) === T.MERCHANT) {
+        nearMerchant = true;
+        return;
+      }
+    }
+  }
+  nearMerchant = false;
+}
+
 function move(dx, dy) {
   if (moveCooldown || combatActive || deathActive) return;
   const nx = px + dx, ny = py + dy;
@@ -1109,7 +1122,6 @@ function move(dx, dy) {
     renderMap(); updateUI(); return;
   }
   if (ter === T.MERCHANT) {
-    nearMerchant = true;
     openMerchant();
     renderMap(); updateUI(); return;
   }
@@ -1706,6 +1718,7 @@ function updateUI() {
   updateStatusBar();
   updatePlayerSVG();
   updateQuickBar();
+  checkNearMerchant();
 }
 
 // 裝備顏色對應
