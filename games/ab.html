@@ -7,6 +7,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   body { background: #05050f; font-family: 'Segoe UI', system-ui, sans-serif; }
+  .topbar { display:flex; align-items:center; width:100%; max-width:384px; padding-top:calc(.6rem + env(safe-area-inset-top,0px)); padding-bottom:.6rem; margin-bottom:.25rem; }
+  .back-btn { font-size:12px; padding:4px 10px; border-radius:8px; border:.5px solid #333; background:transparent; color:#aaa; cursor:pointer; }
 
   .digit-box {
     width: 60px; height: 68px;
@@ -66,6 +68,11 @@
 </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-8 px-4 select-none">
+
+<!-- Topbar -->
+<div class="topbar">
+  <button class="back-btn" onclick="goBack()">← 大廳</button>
+</div>
 
 <!-- Header -->
 <header class="w-full max-w-sm text-center mb-5">
@@ -350,6 +357,7 @@ function giveUp() {
 });
 
 // ── 啟動 ──────────────────────────────────────────────
+function goBack() { window.location.href = '../'; }
 init();
 </script>
 </body>
