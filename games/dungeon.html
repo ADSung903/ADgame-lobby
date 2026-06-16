@@ -538,7 +538,7 @@ const ELITE_POOL    = ['憤怒山豬王','古樹守衛'];
 
 function getMonsterAt(wx, wy) {
   const k = `${wx},${wy}`;
-  if (state.killedSet.has(k)) return null;
+  if (killedSet.has(k)) return null;
   const ter = getTerrain(wx, wy);
   if (!SPAWN_TERRAIN.includes(ter)) return null;
   const h3 = tileH(wx, wy, 3);
@@ -713,10 +713,19 @@ function initState() {
     stats:{ hp:100,maxHp:100,str:10,agi:8,luk:5,int:5,def:5 },
     freePoints:0,
     gold:50,
-    weapon:null,
+    weapon:{
+      name:'訓練木劍', subtype:'sword', rarity:'white',
+      enhance:0, attribute:'none', type:'weapon',
+      icon:'⚔️',
+      flavor:'礦工自己削的第一把劍，歪歪扭扭但充滿誠意。',
+      stats:{ str:3 }
+    },
     equipment:{ helmet:null,armor:null,legs:null,gloves:null,boots:null,
                 necklace:null,ring1:null,ring2:null,earring1:null,earring2:null },
-    inventory:[], inventoryMax:20,
+    inventory:[
+      {id:'starter_potion_1', name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
+      {id:'starter_potion_2', name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
+    ], inventoryMax:20,
     heirlooms:[],
     killedMonsters:[], totalExplored:0,
     kills:0, totalKills:0, totalGenerations:1,
@@ -733,7 +742,8 @@ let explored = new Set(); // explored tile keys
 // ═══════════════════════════════════════════════
 // START POSITION
 // ═══════════════════════════════════════════════
-function findStart(ox=500, oy=500) {
+function findStart() {
+  const ox = START_X, oy = START_Y;
   for (let r = 0; r <= 40; r++) {
     for (let dx = -r; dx <= r; dx++) {
       for (let dy = -r; dy <= r; dy++) {
@@ -767,25 +777,31 @@ function totalStat(k) { return (state.stats[k]||0) + (eqStats()[k]||0); }
 function calcAtk() {
   const str = totalStat('str'), agi = totalStat('agi'),
         int_ = totalStat('int'), luk = totalStat('luk'), def = totalStat('def');
-  if (!state.weapon) return state.level + 5;
+  const base = state.stats.str * 1.0 + state.level * 2; // 無武器：力量+等級加成
+  if (!state.weapon) return base;
   const sub = state.weapon.subtype;
-  if (sub==='sword')  return str*1.0 + agi*0.5;
-  if (sub==='axe')    return str*1.5;
-  if (sub==='bow')    return agi*1.5;
-  if (sub==='wand')   return int_*2.0;
-  if (sub==='dagger') return agi*2.0 + luk*0.5;
-  if (sub==='spear')  return str*1.0 + def*0.3;
-  return str;
+  if (sub==='sword')  return base + str*1.0 + agi*0.5;
+  if (sub==='axe')    return base + str*1.5;
+  if (sub==='bow')    return base + agi*1.5;
+  if (sub==='wand')   return base + int_*2.0;
+  if (sub==='dagger') return base + agi*2.0 + luk*0.5;
+  if (sub==='spear')  return base + str*1.0 + def*0.3;
+  return base + str;
 }
 
 function timeLimit() { return 8 + totalStat('int') * 0.1; }
 
 function expForLevel(lv) { return Math.floor(100 * Math.pow(lv, 1.3)); }
 
+// 出生點（全域，monsterLevel 需要用到）
+const START_X = 500, START_Y = 500;
+
 function monsterLevel(wx, wy) {
-  const dist = Math.sqrt(wx*wx + wy*wy);
-  const base = Math.max(1, Math.floor(dist / 12) + 1);
-  const rand = Math.floor(tileH(wx, wy, 6) * 4);
+  // 用距離出生點的相對距離，而非世界原點
+  const dx = wx - START_X, dy = wy - START_Y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const base = Math.max(1, Math.floor(dist / 15));
+  const rand = Math.floor(tileH(wx, wy, 6) * 3);
   return Math.min(50, base + rand);
 }
 
@@ -794,10 +810,17 @@ function monsterLevel(wx, wy) {
 // ═══════════════════════════════════════════════
 const canvas = document.getElementById('map-canvas');
 const ctx = canvas.getContext('2d');
-const TILE = 40;
 const VIEW = 15;
-canvas.width  = TILE * VIEW;  // 600
-canvas.height = TILE * VIEW;  // 600
+// TILE 先給預設值，initCanvas() 會覆蓋
+let TILE = 40;
+function initCanvas() {
+  const mapWrap = document.querySelector('.map-wrap');
+  const availW = mapWrap.clientWidth  || window.innerWidth;
+  const availH = mapWrap.clientHeight || window.innerHeight;
+  TILE = Math.floor(Math.min(availW, availH) / VIEW);
+  canvas.width  = TILE * VIEW;
+  canvas.height = TILE * VIEW;
+}
 
 function getTile(wx, wy) {
   const ter = getTerrain(wx, wy);
@@ -908,7 +931,7 @@ function move(dx, dy) {
     renderMap(); updateUI(); return;
   }
 
-  renderMap(); updateUI(); save();
+  renderMap(); updateUI(); save(true);
 }
 
 function tickEffects() {
@@ -1078,15 +1101,16 @@ function resolvePlayerAttack(timeLeft, tl) {
   let isCrit = false;
   if (Math.random() < critRate) { atk *= 2; isCrit = true; }
 
-  // Monster defense
+  // Monster defense：防禦減傷最多50%，避免低等玩家完全打不動
   const m = combat.monster;
-  // High defense special: if def > atk, damage = 1
-  if ((m.special === 'highdef') && atk <= m.def) {
+  const defReduction = Math.min(0.5, m.def / (m.def + 30));
+  // High defense special: if def > atk*2, damage = 1
+  if ((m.special === 'highdef') && atk <= m.def * 0.5) {
     cbLog('cl-s', `${sub}`);
     cbLog('cl-s', `${m.icon} ${m.name}的護甲紋絲不動！傷害僅 `+wrapCol('cl-r','1')+'！');
     atk = 1;
   } else {
-    atk = Math.max(1, atk - Math.floor(m.def * 0.3));
+    atk = Math.max(1, Math.floor(atk * (1 - defReduction)));
     const critText = isCrit ? wrapCol('cl-y','暴擊！') + ' ' : '';
     cbLog('cl-w', `${sub}`);
     cbLog('cl-w', `你的攻擊命中要害，${critText}造成 ${wrapCol('cl-r',atk)} 點傷害！`);
@@ -1151,6 +1175,10 @@ function nextTurnOrEnd() {
 }
 
 function applyDmgToPlayer(dmg) {
+  // 玩家防禦減傷：防禦/(防禦+20)，最多60%減傷
+  const pDef = totalStat('def');
+  const reduction = Math.min(0.6, pDef / (pDef + 20));
+  dmg = Math.max(1, Math.floor(dmg * (1 - reduction)));
   state.stats.hp = Math.max(0, state.stats.hp - dmg);
   document.getElementById('cb-player-hp').textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
   updateStatusBar();
@@ -1417,7 +1445,8 @@ function openInventory() {
   state.inventory.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = `inv-slot ${item.rarity}`;
-    el.innerHTML = `<div class="s-icon">${item.icon}</div>
+    const icon = item.icon || (item.type==='weapon' ? WPN_ICON[item.subtype]||'⚔️' : SLOT_ICON[item.subtype]||'📦');
+    el.innerHTML = `<div class="s-icon">${icon}</div>
       <div class="s-name rarity-${item.rarity}">${item.name}</div>
       ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}`;
     el.onclick = () => openItemCard(item, true, i, false);
@@ -1456,7 +1485,8 @@ function openEquipment() {
     const it = state.equipment[slot];
     const el = document.createElement('div');
     el.className = `eq-slot ${it?'':'empty'}`;
-    el.innerHTML = `<div class="es-icon">${it?it.icon:SLOT_ICON[slot]}</div>
+    const itIcon = it ? (it.icon || (it.type==='weapon' ? WPN_ICON[it.subtype]||'⚔️' : SLOT_ICON[it.subtype]||'📦')) : SLOT_ICON[slot];
+    el.innerHTML = `<div class="es-icon">${itIcon}</div>
       <div class="es-info">
         <div class="es-label">${SLOT_LABEL[slot]}</div>
         <div class="es-name rarity-${it?.rarity||'white'}">${it?(it.name+(it.enhance>0?'+'+it.enhance:'')):'── 未裝備'}</div>
@@ -1798,7 +1828,7 @@ function confirmInherit() {
 
     deathActive = false;
     toast(`✨ 第${newGen}代勇者踏上旅途！`);
-    renderMap(); updateUI(); save();
+    renderMap(); updateUI(); save(true);
   }, 500);
 }
 
@@ -1818,13 +1848,28 @@ function toast(msg) {
 // ═══════════════════════════════════════════════
 // SAVE / LOAD
 // ═══════════════════════════════════════════════
-function save() {
+function save(silent=false) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       ...state, killedMonsters: [...killedSet],
       px, py, explored: [...explored],
     }));
+    if (!silent) showSaveToast();
   } catch(e) {}
+}
+
+function showSaveToast() {
+  let t = document.getElementById('save-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'save-toast';
+    t.style.cssText = 'position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:.5px solid #4ade80;color:#4ade80;font-size:11px;padding:4px 12px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999';
+    document.body.appendChild(t);
+  }
+  t.textContent = '💾 已存檔';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 1500);
 }
 
 function load() {
@@ -1909,9 +1954,13 @@ if (explored.size === 0) {
 }
 
 // Periodic auto-save
-setInterval(save, 30000);
+setInterval(() => save(false), 30000);
 
-renderMap();
+// 等 DOM 完整 layout 後再初始化 Canvas 尺寸
+requestAnimationFrame(() => {
+  initCanvas();
+  renderMap();
+});
 updateUI();
 </script>
 </body></html>
