@@ -38,7 +38,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   text-overflow:ellipsis;max-width:120px}
 
 /* MAP */
-.map-wrap{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#000;min-height:0}
+.map-wrap{flex:1;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;background:#000;min-height:0}
 #map-canvas{display:block;flex-shrink:0}
 
 /* CONTROLS */
@@ -167,6 +167,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .ic-btn-equip{background:var(--accent);color:#fff}
 .ic-btn-use{background:#1a3a1a;color:var(--green);border:.5px solid var(--green)}
 .ic-btn-drop{background:#1a0a0a;color:var(--red);border:.5px solid var(--red)}
+.ic-btn-sell{background:#1a1400;color:var(--gold);border:.5px solid var(--gold)}
 .ic-btn-close{background:var(--bg3);color:var(--sub);border:.5px solid var(--border)}
 
 /* MERCHANT */
@@ -307,7 +308,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     <span class="lv-badge" id="lv-badge">Lv.1</span>
   </div>
 
-  <div class="status-bar">
+  <div class="status-bar" style="display:none">
     <div class="hp-wrap">
       <span class="hp-txt" id="hp-txt">❤️100/100</span>
       <div class="hp-bar-track"><div class="hp-bar-fill" id="hp-bar" style="width:100%"></div></div>
@@ -316,8 +317,78 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     <span class="wpn-txt" id="wpn-txt">⚔️ 空手</span>
   </div>
 
-  <div class="map-wrap" id="map-wrap">
+  <div class="map-wrap" id="map-wrap" style="position:relative">
     <canvas id="map-canvas"></canvas>
+    <!-- 地圖內資訊列 -->
+    <div id="map-overlay-bar" style="
+      position:absolute;top:0;left:0;right:0;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:4px 8px;
+      background:linear-gradient(180deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,0) 100%);
+      pointer-events:none;gap:6px;flex-wrap:wrap">
+      <!-- 血量 -->
+      <div style="display:flex;align-items:center;gap:4px;min-width:100px;flex:1">
+        <span style="font-size:11px;color:#f87171;white-space:nowrap" id="mo-hp">❤️ 100/100</span>
+        <div style="flex:1;height:5px;background:#3a1a1a;border-radius:3px;overflow:hidden;min-width:40px">
+          <div id="mo-hpbar" style="height:100%;width:100%;background:linear-gradient(90deg,#b91c1c,#f87171);border-radius:3px;transition:width .3s"></div>
+        </div>
+      </div>
+      <!-- 等級 + 經驗 -->
+      <div style="display:flex;align-items:center;gap:4px;min-width:80px">
+        <span style="font-size:11px;color:#a78bfa;white-space:nowrap" id="mo-lv">Lv.1</span>
+        <div style="flex:1;height:5px;background:#1a1a3a;border-radius:3px;overflow:hidden;min-width:30px">
+          <div id="mo-expbar" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px;transition:width .3s"></div>
+        </div>
+      </div>
+      <!-- 金幣 + 武器 -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:#f59e0b;white-space:nowrap" id="mo-gold">💰 0</span>
+        <span style="font-size:11px;color:#60a5fa;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis" id="mo-wpn">⚔️ 空手</span>
+      </div>
+    </div>
+
+    <!-- SVG 主角（絕對定位在地圖中心格） -->
+    <div id="player-svg-wrap" style="
+      position:absolute;pointer-events:none;
+      display:flex;align-items:center;justify-content:center;">
+      <svg id="player-svg" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
+        <!-- 頭盔 -->
+        <g id="svg-helmet" style="display:none">
+          <rect x="7" y="1" width="18" height="9" rx="3" fill="#60a5fa" stroke="#1e3a5f" stroke-width="1"/>
+        </g>
+        <!-- 頭 -->
+        <circle cx="16" cy="10" r="6" fill="#fbbf24" stroke="#92400e" stroke-width="1"/>
+        <circle cx="13.5" cy="9.5" r="1" fill="#1e1e3a"/>
+        <circle cx="18.5" cy="9.5" r="1" fill="#1e1e3a"/>
+        <path d="M13.5 12 Q16 13.5 18.5 12" stroke="#92400e" stroke-width="0.8" fill="none"/>
+        <!-- 身體/鎧甲 -->
+        <rect id="svg-body" x="10" y="17" width="12" height="11" rx="2" fill="#6b7280" stroke="#374151" stroke-width="1"/>
+        <rect x="14" y="15" width="4" height="3" fill="#fbbf24"/>
+        <!-- 左手 -->
+        <rect id="svg-larm" x="6" y="17" width="4" height="9" rx="2" fill="#6b7280" stroke="#374151" stroke-width="1"/>
+        <!-- 右手 -->
+        <rect id="svg-rarm" x="22" y="17" width="4" height="9" rx="2" fill="#6b7280" stroke="#374151" stroke-width="1"/>
+        <!-- 武器 -->
+        <g id="svg-weapon" style="display:none">
+          <rect x="27" y="12" width="2.5" height="14" rx="1" fill="#e5e7eb" stroke="#6b7280" stroke-width="0.5"/>
+          <rect x="24" y="18" width="8" height="2" rx="1" fill="#9ca3af"/>
+        </g>
+        <!-- 腿 -->
+        <rect id="svg-legs" x="10" y="28" width="5" height="9" rx="2" fill="#374151" stroke="#1f2937" stroke-width="1"/>
+        <rect x="17" y="28" width="5" height="9" rx="2" fill="#374151" stroke="#1f2937" stroke-width="1"/>
+        <!-- 靴子 -->
+        <g id="svg-boots" style="display:none">
+          <rect x="9" y="34" width="7" height="5" rx="1.5" fill="#7c3aed"/>
+          <rect x="16" y="34" width="7" height="5" rx="1.5" fill="#7c3aed"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- 快速藥水欄（地圖底部） -->
+    <div id="quick-bar" style="
+      position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+      display:flex;gap:6px;align-items:center">
+    </div>
   </div>
   <div class="gen-badge" id="gen-badge">第1代</div>
 
@@ -736,7 +807,8 @@ function initState() {
 
 let state = initState();
 let killedSet = new Set();
-let px = 500, py = 500;   // player world coords
+const START_X = 500, START_Y = 500;
+let px = START_X, py = START_Y;   // player world coords
 let explored = new Set(); // explored tile keys
 
 // ═══════════════════════════════════════════════
@@ -793,9 +865,6 @@ function timeLimit() { return 8 + totalStat('int') * 0.1; }
 
 function expForLevel(lv) { return Math.floor(100 * Math.pow(lv, 1.3)); }
 
-// 出生點（全域，monsterLevel 需要用到）
-const START_X = 500, START_Y = 500;
-
 function monsterLevel(wx, wy) {
   // 用距離出生點的相對距離，而非世界原點
   const dx = wx - START_X, dy = wy - START_Y;
@@ -815,9 +884,9 @@ const VIEW = 15;
 let TILE = 40;
 function initCanvas() {
   const mapWrap = document.querySelector('.map-wrap');
-  const availW = mapWrap.clientWidth  || window.innerWidth;
-  const availH = mapWrap.clientHeight || window.innerHeight;
-  TILE = Math.floor(Math.min(availW, availH) / VIEW);
+  // 用寬度決定格子大小，地圖永遠是正方形
+  const availW = mapWrap.clientWidth || window.innerWidth;
+  TILE = Math.floor(availW / VIEW);
   canvas.width  = TILE * VIEW;
   canvas.height = TILE * VIEW;
 }
@@ -856,14 +925,13 @@ function renderMap() {
     }
   }
 
-  // Player fixed at center (col=7, row=7)
+  // Player fixed at center (col=7, row=7) - 背景格
   ctx.fillStyle = '#3b0764';
   ctx.fillRect(7 * TILE, 7 * TILE, TILE, TILE);
   ctx.strokeStyle = '#a855f7';
   ctx.lineWidth = 2;
   ctx.strokeRect(7 * TILE + 1, 7 * TILE + 1, TILE - 2, TILE - 2);
-  ctx.font = `${Math.floor(TILE * 0.8)}px serif`;
-  ctx.fillText('⛏️', 7 * TILE + 2, 7 * TILE + TILE - 2);
+  // SVG 小人由 overlay div 負責，這裡只畫背景
 
   // Pass 2: fog (unexplored tiles)
   for (let row = 0; row < VIEW; row++) {
@@ -890,6 +958,7 @@ function renderMap() {
 // MOVEMENT
 // ═══════════════════════════════════════════════
 let moveCooldown = false;
+let nearMerchant = false;
 
 function move(dx, dy) {
   if (moveCooldown || combatActive || deathActive) return;
@@ -919,6 +988,7 @@ function move(dx, dy) {
     renderMap(); updateUI(); return;
   }
   if (ter === T.MERCHANT) {
+    nearMerchant = true;
     openMerchant();
     renderMap(); updateUI(); return;
   }
@@ -1405,6 +1475,23 @@ function dropItem(item, fromInv, invIdx) {
   toast('🗑️ 已丟棄');
 }
 
+function sellItem(fromInv, invIdx, slot) {
+  const item = fromInv ? state.inventory[invIdx]
+    : (slot === 'weapon' ? state.weapon : state.equipment[slot]);
+  if (!item) return;
+  const price = computeSellPrice(item);
+  if (!confirm(`賣出「${item.name}」獲得 $${price}？`)) return;
+  state.gold += price;
+  if (fromInv) removeFromInventory(invIdx);
+  else {
+    if (slot === 'weapon') state.weapon = null;
+    else state.equipment[slot] = null;
+  }
+  closeModal('modal-item');
+  updateUI(); save();
+  toast(`💰 賣出 ${item.name}，獲得 $${price}`);
+}
+
 function usePotion(item, invIdx) {
   const ef = item.effect;
   if (ef.heal) {
@@ -1424,11 +1511,22 @@ function usePotion(item, invIdx) {
 // ═══════════════════════════════════════════════
 function updateStatusBar() {
   const hp = state.stats.hp, mhp = state.stats.maxHp;
+  const hpPct = Math.max(0, hp/mhp*100);
+  // 原有狀態列
   document.getElementById('hp-txt').textContent = `❤️${hp}/${mhp}`;
-  document.getElementById('hp-bar').style.width = Math.max(0, hp/mhp*100) + '%';
+  document.getElementById('hp-bar').style.width = hpPct + '%';
   document.getElementById('gold-txt').textContent = `💰${state.gold}`;
   const w = state.weapon;
   document.getElementById('wpn-txt').textContent = w
+    ? `${w.icon} ${w.name}${w.enhance>0?'+'+w.enhance:''}` : '⚔️ 空手';
+  // 地圖內 overlay 列
+  const expPct = Math.min(100, Math.floor((state.exp / (state.expNext||100)) * 100));
+  document.getElementById('mo-hp').textContent = `❤️ ${hp}/${mhp}`;
+  document.getElementById('mo-hpbar').style.width = hpPct + '%';
+  document.getElementById('mo-lv').textContent = `Lv.${state.level}`;
+  document.getElementById('mo-expbar').style.width = expPct + '%';
+  document.getElementById('mo-gold').textContent = `💰 ${state.gold}`;
+  document.getElementById('mo-wpn').textContent = w
     ? `${w.icon} ${w.name}${w.enhance>0?'+'+w.enhance:''}` : '⚔️ 空手';
 }
 
@@ -1436,6 +1534,101 @@ function updateUI() {
   document.getElementById('lv-badge').textContent = `Lv.${state.level}`;
   document.getElementById('gen-badge').textContent = `第${state.generation}代`;
   updateStatusBar();
+  updatePlayerSVG();
+  updateQuickBar();
+}
+
+// 裝備顏色對應
+const RARITY_COLOR = {white:'#9ca3af',green:'#4ade80',blue:'#60a5fa',gold:'#f59e0b',red:'#f87171',rainbow:'#c084fc'};
+const WPN_SVG_SHAPES = {
+  sword: `<rect x="27" y="11" width="2.5" height="15" rx="1" fill="#e5e7eb" stroke="#6b7280" stroke-width="0.5"/><rect x="24" y="18" width="8" height="2" rx="1" fill="#9ca3af"/>`,
+  axe:   `<rect x="27" y="14" width="2.5" height="10" rx="1" fill="#9ca3af"/><path d="M26 12 Q32 14 32 19 Q32 24 26 26 L26 12Z" fill="#d1d5db" stroke="#6b7280" stroke-width="0.5"/>`,
+  bow:   `<path d="M30 11 Q34 19 30 27" stroke="#92400e" stroke-width="2" fill="none"/><line x1="30" y1="11" x2="30" y2="27" stroke="#d1d5db" stroke-width="0.8"/>`,
+  wand:  `<rect x="28" y="10" width="2" height="18" rx="1" fill="#7c3aed"/><circle cx="29" cy="10" r="2.5" fill="#a78bfa"/>`,
+  dagger:`<rect x="28" y="15" width="2" height="10" rx="1" fill="#e5e7eb"/><path d="M27 13 L31 13 L29 7Z" fill="#d1d5db"/>`,
+  spear: `<rect x="29" y="12" width="2" height="18" rx="0.5" fill="#92400e"/><path d="M28 10 L30 10 L29 6Z" fill="#d1d5db" stroke="#9ca3af" stroke-width="0.5"/>`,
+};
+
+function updatePlayerSVG() {
+  const wrap = document.getElementById('player-svg-wrap');
+  const svg  = document.getElementById('player-svg');
+  if (!wrap || !svg || !TILE) return;
+
+  // canvas 在 map-wrap 裡可能有偏移（justify-content:center）
+  const mapWrap = document.getElementById('map-wrap');
+  const canvasEl = document.getElementById('map-canvas');
+  const wrapRect = mapWrap.getBoundingClientRect();
+  const canvasRect = canvasEl.getBoundingClientRect();
+  const offsetX = canvasRect.left - wrapRect.left;
+  const offsetY = canvasRect.top  - wrapRect.top;
+
+  // 定位到地圖中心格（第7格）
+  wrap.style.left   = (offsetX + 7 * TILE) + 'px';
+  wrap.style.top    = (offsetY + 7 * TILE) + 'px';
+  wrap.style.width  = TILE + 'px';
+  wrap.style.height = TILE + 'px';
+
+  const eq = state.equipment;
+  const w  = state.weapon;
+  const rc = r => RARITY_COLOR[r] || '#9ca3af';
+
+  // 頭盔
+  const hEl = document.getElementById('svg-helmet');
+  if (eq.helmet) { hEl.style.display=''; hEl.querySelector('rect').setAttribute('fill', rc(eq.helmet.rarity)); }
+  else hEl.style.display = 'none';
+
+  // 身體/鎧甲
+  const bodyEl = document.getElementById('svg-body');
+  const larmEl = document.getElementById('svg-larm');
+  const rarmEl = document.getElementById('svg-rarm');
+  const bodyColor = eq.armor ? rc(eq.armor.rarity) : '#6b7280';
+  bodyEl.setAttribute('fill', bodyColor);
+  larmEl.setAttribute('fill', bodyColor);
+  rarmEl.setAttribute('fill', bodyColor);
+
+  // 腿
+  const legsEl = document.getElementById('svg-legs');
+  legsEl.setAttribute('fill', eq.legs ? rc(eq.legs.rarity) : '#374151');
+  legsEl.nextElementSibling.setAttribute('fill', eq.legs ? rc(eq.legs.rarity) : '#374151');
+
+  // 靴子
+  const bootsEl = document.getElementById('svg-boots');
+  if (eq.boots) {
+    bootsEl.style.display = '';
+    bootsEl.querySelectorAll('rect').forEach(r => r.setAttribute('fill', rc(eq.boots.rarity)));
+  } else bootsEl.style.display = 'none';
+
+  // 武器
+  const wpnEl = document.getElementById('svg-weapon');
+  if (w) {
+    wpnEl.style.display = '';
+    wpnEl.innerHTML = WPN_SVG_SHAPES[w.subtype] || WPN_SVG_SHAPES.sword;
+  } else wpnEl.style.display = 'none';
+}
+
+function updateQuickBar() {
+  const bar = document.getElementById('quick-bar');
+  if (!bar) return;
+  // 只顯示背包裡的藥水（最多4格）
+  const potions = state.inventory.filter(i => i.type === 'potion').slice(0, 4);
+  bar.innerHTML = potions.map((p, idx) => {
+    const invIdx = state.inventory.indexOf(p);
+    return `<div onclick="quickUsePotion(${invIdx})" style="
+      width:36px;height:36px;background:rgba(0,0,0,.7);
+      border:.5px solid #444;border-radius:8px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      cursor:pointer;font-size:18px;gap:1px">
+      <span>${p.icon}</span>
+      <span style="font-size:8px;color:#aaa">${p.name.replace('藥水','').replace('卷軸','')}</span>
+    </div>`;
+  }).join('');
+}
+
+function quickUsePotion(invIdx) {
+  const item = state.inventory[invIdx];
+  if (!item || item.type !== 'potion') return;
+  usePotion(item, invIdx);
+  updateUI(); save(true);
 }
 
 function openInventory() {
@@ -1541,6 +1734,12 @@ function openStats() {
     <div class="stat-row"><span class="sn">本代擊殺</span><span class="sv">${state.kills}</span></div>
     <div class="stat-row"><span class="sn">歷代擊殺</span><span class="sv">${state.totalKills}</span></div>
     <div class="stat-row"><span class="sn">探索格數</span><span class="sv">${state.totalExplored}</span></div>
+  </div>
+  <div style="margin-top:1.5rem;text-align:center">
+    <button onclick="resetGame()"
+      style="font-size:11px;color:#555;background:transparent;border:.5px solid #333;padding:6px 16px;border-radius:8px;cursor:pointer">
+      🗑️ 重置遊戲存檔
+    </button>
   </div>`;
 
   body.innerHTML = html;
@@ -1586,7 +1785,12 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
     const equipBtn = fromInv
       ? `<button class="ic-btn ic-btn-equip" onclick="equipItem(state.inventory[${invIdx}],true,${invIdx})">⚔️ 裝備</button>`
       : `<button class="ic-btn ic-btn-equip" onclick="unequipItem('${item.type==='weapon'?'weapon':item.subtype}')">↩️ 卸下</button>`;
+    const sellPrice = computeSellPrice(item);
+    const sellBtn = nearMerchant
+      ? `<button class="ic-btn ic-btn-sell" onclick="sellItem(${fromInv},${fromInv?invIdx:'null'},'${item.type==='weapon'?'weapon':item.subtype}')">💰 賣出 $${sellPrice}</button>`
+      : '';
     btns = `${equipBtn}
+            ${sellBtn}
             <button class="ic-btn ic-btn-drop" onclick="dropItem(${fromInv?`state.inventory[${invIdx}]`:`state.${item.type==='weapon'?'weapon':'equipment.'+item.subtype}`},${fromInv},${fromInv?invIdx:'null'})">🗑️ 丟棄</button>
             <button class="ic-btn ic-btn-close" onclick="closeModal('modal-item')">關閉</button>`;
   }
@@ -1851,6 +2055,7 @@ function toast(msg) {
 function save(silent=false) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
+      saveVersion: SAVE_VERSION,
       ...state, killedMonsters: [...killedSet],
       px, py, explored: [...explored],
     }));
@@ -1872,11 +2077,18 @@ function showSaveToast() {
   t._timer = setTimeout(() => t.style.opacity = '0', 1500);
 }
 
+const SAVE_VERSION = 2; // 升版本號會自動捨棄舊存檔
+
 function load() {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return;
     const d = JSON.parse(raw);
+    // 版本不符，捨棄舊存檔，使用新預設值
+    if (!d.saveVersion || d.saveVersion < SAVE_VERSION) {
+      localStorage.removeItem(LS_KEY);
+      return;
+    }
     Object.assign(state, d);
     killedSet = new Set(state.killedMonsters || []);
     if (d.px !== undefined) px = d.px;
@@ -1884,7 +2096,7 @@ function load() {
     if (Array.isArray(d.explored)) {
       explored = new Set(d.explored);
     } else if (d.explored && typeof d.explored === 'object') {
-      explored = new Set(Object.keys(d.explored)); // backward compat
+      explored = new Set(Object.keys(d.explored));
     }
     if (!state.statusEffects) state.statusEffects = [];
     if (!state.heirlooms) state.heirlooms = [];
@@ -1900,6 +2112,40 @@ function load() {
     if (!state.freePoints) state.freePoints = 0;
     if (state.expNext === undefined) state.expNext = expForLevel(state.level);
   } catch(e) {}
+}
+
+function resetGame() {
+  // 跳出確認視窗，需要輸入「確認重置」才能清除
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #f87171;border-radius:16px;padding:1.5rem;width:100%;max-width:320px;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">⚠️</div>
+      <div style="color:#f87171;font-weight:700;font-size:16px;margin-bottom:.5rem">確認重置遊戲？</div>
+      <div style="color:#888;font-size:12px;margin-bottom:1rem">所有進度、裝備、探索紀錄將永久清除<br>請輸入「確認重置」繼續</div>
+      <input id="reset-input" type="text" placeholder="輸入：確認重置"
+        style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid #333;background:#12122a;color:#fff;font-size:14px;text-align:center;margin-bottom:.75rem;outline:none">
+      <div style="display:flex;gap:.5rem">
+        <button onclick="this.closest('div[style]').remove()"
+          style="flex:1;padding:10px;border-radius:8px;border:1px solid #333;background:transparent;color:#888;cursor:pointer">取消</button>
+        <button id="reset-confirm-btn"
+          style="flex:1;padding:10px;border-radius:8px;border:none;background:#7f1d1d;color:#f87171;cursor:pointer;font-weight:700"
+          onclick="doReset(this)">重置</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('reset-input').focus();
+}
+
+function doReset(btn) {
+  const val = document.getElementById('reset-input').value.trim();
+  if (val !== '確認重置') {
+    document.getElementById('reset-input').style.borderColor = '#f87171';
+    document.getElementById('reset-input').placeholder = '❌ 請輸入「確認重置」';
+    return;
+  }
+  localStorage.removeItem(LS_KEY);
+  location.reload();
 }
 
 // ═══════════════════════════════════════════════
