@@ -16,7 +16,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;gap:.5rem;
-  padding:calc(.5rem + env(safe-area-inset-top,0px)) .75rem .5rem;
+  padding:calc(max(env(safe-area-inset-top,0px), 1.5rem) + .75rem) .75rem .5rem;
   border-bottom:.5px solid var(--border);flex-shrink:0;background:var(--bg2)}
 .back-btn{font-size:12px;padding:4px 10px;border-radius:8px;
   border:.5px solid #333;background:transparent;color:#aaa;cursor:pointer}
@@ -201,11 +201,11 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .ans-btn .ans-label{font-size:10px;color:var(--sub);font-weight:400}
 
 #ans-tl{top:0;left:0;
-  padding:calc(max(12px,env(safe-area-inset-top,0px))) 8px 16px;
-  border-radius:0 0 14px 0;border-width:0 2px 2px 0;min-height:calc(80px + env(safe-area-inset-top,0px))}
+  padding:calc(max(env(safe-area-inset-top,0px), 1.5rem) + .75rem) 8px 16px;
+  border-radius:0 0 14px 0;border-width:0 2px 2px 0;min-height:calc(80px + max(env(safe-area-inset-top,0px), 1.5rem))}
 #ans-tr{top:0;right:0;
-  padding:calc(max(12px,env(safe-area-inset-top,0px))) 8px 16px;
-  border-radius:0 0 0 14px;border-width:0 0 2px 2px;min-height:calc(80px + env(safe-area-inset-top,0px))}
+  padding:calc(max(env(safe-area-inset-top,0px), 1.5rem) + .75rem) 8px 16px;
+  border-radius:0 0 0 14px;border-width:0 0 2px 2px;min-height:calc(80px + max(env(safe-area-inset-top,0px), 1.5rem))}
 #ans-bl{bottom:0;left:0;
   padding:16px 8px calc(max(12px,env(safe-area-inset-bottom,0px)));
   border-radius:0 14px 0 0;border-width:2px 2px 0 0;min-height:calc(80px + env(safe-area-inset-bottom,0px))}
@@ -1967,12 +1967,52 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
   const elemStr = (elemInfo && elemInfo.name !== '無')
     ? `・<span style="color:${elemInfo.color}">${elemInfo.icon} ${elemInfo.name}</span>` : '';
 
-  // Stats
+  // Current equipped item for comparison (only when viewing from inventory or merchant)
+  const canCompare = (item.type === 'weapon' || item.type === 'armor') && (fromInv || atMerchant);
+  const curItem = canCompare
+    ? (item.type === 'weapon' ? state.weapon : state.equipment[item.subtype] || null)
+    : null;
+
+  // Compare header
+  let compareHtml = '';
+  if (canCompare) {
+    if (curItem) {
+      const curEnh = curItem.enhance > 0 ? ` +${curItem.enhance}` : '';
+      const curElemInfo = ELEMENTS[curItem.element || 'none'];
+      const curElemIco = (curElemInfo && curElemInfo.name !== '無') ? ` ${curElemInfo.icon}` : '';
+      compareHtml = `<div style="font-size:11px;color:var(--sub);background:var(--bg3);border:.5px solid var(--border);border-radius:8px;padding:.35rem .6rem;margin-bottom:.4rem">
+        🔄 目前裝備：<span class="rarity-${curItem.rarity}">${curItem.name}${curEnh}</span>${curElemIco}
+      </div>`;
+    } else {
+      compareHtml = `<div style="font-size:11px;color:#555;padding:.1rem 0;margin-bottom:.3rem">🔄 目前該部位未裝備</div>`;
+    }
+  }
+
+  // Stats (with comparison diff if applicable)
+  const statLabels = {str:'💪力量',agi:'⚡敏捷',luk:'🍀幸運',int:'🧠智力',def:'🛡️防禦'};
   let statHtml = '';
-  for (const [k, v] of Object.entries(item.stats||{})) {
-    if (v===0) continue;
-    const labels = {str:'💪力量',agi:'⚡敏捷',luk:'🍀幸運',int:'🧠智力',def:'🛡️防禦'};
-    statHtml += `<div class="ic-stat"><span>${labels[k]||k}</span><span class="${v>0?'ics-pos':'ics-neg'}">${v>0?'+':''}${v}</span></div>`;
+  if (canCompare) {
+    const allKeys = new Set([
+      ...Object.keys(item.stats || {}),
+      ...Object.keys(curItem?.stats || {}),
+    ]);
+    for (const k of allKeys) {
+      const newV = item.stats?.[k] || 0;
+      const curV = curItem?.stats?.[k] || 0;
+      if (newV === 0 && curV === 0) continue;
+      const diff = newV - curV;
+      const diffStr = diff > 0
+        ? `<span style="color:#4ade80;font-size:10px;margin-left:4px">▲+${diff}</span>`
+        : diff < 0
+          ? `<span style="color:#f87171;font-size:10px;margin-left:4px">▼${diff}</span>`
+          : '';
+      statHtml += `<div class="ic-stat"><span>${statLabels[k]||k}</span><span class="${newV>0?'ics-pos':'ics-neg'}">${newV>0?'+':''}${newV}${diffStr}</span></div>`;
+    }
+  } else {
+    for (const [k, v] of Object.entries(item.stats||{})) {
+      if (v===0) continue;
+      statHtml += `<div class="ic-stat"><span>${statLabels[k]||k}</span><span class="${v>0?'ics-pos':'ics-neg'}">${v>0?'+':''}${v}</span></div>`;
+    }
   }
 
   // Curse warning
@@ -2055,6 +2095,7 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
     <div class="ic-sub">${rarityLabel}・${typeLabel}${elemStr}</div>
     ${curseHtml}
     <div class="ic-flavor">${item.flavorText||'一件普通的裝備'}</div>
+    ${compareHtml}
     ${statHtml?`<div class="ic-stats">${statHtml}</div>`:''}
     ${item.reqLevel>0?`<div class="ic-req">需求等級：<span class="${reqOk?'':'req-fail'}">Lv.${item.reqLevel}${reqOk?'':'（不足）'}</span></div>`:''}
     ${heirloomHtml}${setHtml}${enhHtml}
