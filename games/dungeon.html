@@ -38,8 +38,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   text-overflow:ellipsis;max-width:120px}
 
 /* MAP */
-.map-wrap{flex:1;overflow:hidden;background:var(--bg);min-height:0}
-#map-canvas{display:block}
+.map-wrap{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#000;min-height:0}
+#map-canvas{display:block;flex-shrink:0}
 
 /* CONTROLS */
 .controls{display:flex;align-items:center;justify-content:space-between;
@@ -323,13 +323,13 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
   <div class="controls">
     <div class="dpad">
-      <button class="dpad-btn" ontouchstart="tryMove(0,-1)" onclick="tryMove(0,-1)">▲</button>
+      <button class="dpad-btn" ontouchstart="move(0,-1)" onclick="move(0,-1)">▲</button>
       <div class="dpad-row">
-        <button class="dpad-btn" ontouchstart="tryMove(-1,0)" onclick="tryMove(-1,0)">◀</button>
+        <button class="dpad-btn" ontouchstart="move(-1,0)" onclick="move(-1,0)">◀</button>
         <div class="dpad-center">⛏️</div>
-        <button class="dpad-btn" ontouchstart="tryMove(1,0)" onclick="tryMove(1,0)">▶</button>
+        <button class="dpad-btn" ontouchstart="move(1,0)" onclick="move(1,0)">▶</button>
       </div>
-      <button class="dpad-btn" ontouchstart="tryMove(0,1)" onclick="tryMove(0,1)">▼</button>
+      <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div class="act-btns">
       <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
@@ -718,9 +718,8 @@ function initState() {
                 necklace:null,ring1:null,ring2:null,earring1:null,earring2:null },
     inventory:[], inventoryMax:20,
     heirlooms:[],
-    explored:{}, killedMonsters:[], totalExplored:0,
+    killedMonsters:[], totalExplored:0,
     kills:0, totalKills:0, totalGenerations:1,
-    px:0, py:0,
     statusEffects:[], // {type,turns}
     startTime: Date.now(),
   };
@@ -728,23 +727,25 @@ function initState() {
 
 let state = initState();
 let killedSet = new Set();
+let px = 500, py = 500;   // player world coords
+let explored = new Set(); // explored tile keys
 
 // ═══════════════════════════════════════════════
 // START POSITION
 // ═══════════════════════════════════════════════
-function findStart() {
+function findStart(ox=500, oy=500) {
   for (let r = 0; r <= 40; r++) {
     for (let dx = -r; dx <= r; dx++) {
       for (let dy = -r; dy <= r; dy++) {
         if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
-        const t = getTerrain(dx, dy);
+        const t = getTerrain(ox+dx, oy+dy);
         if (isPassable(t) && t !== T.CAVE && t !== T.MERCHANT && t !== T.OCEAN) {
-          return {x:dx, y:dy};
+          return {x:ox+dx, y:oy+dy};
         }
       }
     }
   }
-  return {x:0,y:0};
+  return {x:ox, y:oy};
 }
 
 // ═══════════════════════════════════════════════
@@ -793,96 +794,72 @@ function monsterLevel(wx, wy) {
 // ═══════════════════════════════════════════════
 const canvas = document.getElementById('map-canvas');
 const ctx = canvas.getContext('2d');
-let TILE_SIZE = 26;
-const VIEW = 15; // tiles visible
+const TILE = 40;
+const VIEW = 15;
+canvas.width  = TILE * VIEW;  // 600
+canvas.height = TILE * VIEW;  // 600
 
-function resizeCanvas() {
-  const topbar    = document.querySelector('.topbar');
-  const statusBar = document.querySelector('.status-bar');
-  const controls  = document.querySelector('.controls');
-  const w = document.getElementById('map-wrap').clientWidth || window.innerWidth;
-  const usedH = (topbar?.offsetHeight || 0)
-              + (statusBar?.offsetHeight || 0)
-              + (controls?.offsetHeight || 0);
-  const h = window.innerHeight - usedH;
-  if (w <= 0 || h <= 10) { requestAnimationFrame(resizeCanvas); return; }
-  canvas.width  = w;
-  canvas.height = h;
-  TILE_SIZE = Math.floor(w / VIEW);
-  renderMap();
+function getTile(wx, wy) {
+  const ter = getTerrain(wx, wy);
+  const ti = TERRAIN_INFO[ter] || TERRAIN_INFO[2];
+  return { color: ti.col, emoji: ti.emoji, walkable: ti.pass !== false, terrain: ter };
 }
 
 function renderMap() {
-  const ts = TILE_SIZE;
-  const halfX = Math.floor(VIEW / 2); // 7 for VIEW=15
-  const halfY = Math.ceil(canvas.height / ts / 2) + 1;
-  // Player tile top-left, centered in canvas
-  const px0 = Math.floor(canvas.width / 2 - ts / 2);
-  const py0 = Math.floor(canvas.height / 2 - ts / 2);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const camX = px - 7, camY = py - 7;
 
-  ctx.fillStyle = '#07070f';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.font = `${Math.floor(ts * 0.65)}px serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  for (let dy = -halfY; dy <= halfY; dy++) {
-    for (let dx = -halfX; dx <= halfX; dx++) {
-      const wx = state.px + dx, wy = state.py + dy;
-      const sx = px0 + dx * ts, sy = py0 + dy * ts;
-      if (sx + ts < 0 || sx > canvas.width || sy + ts < 0 || sy > canvas.height) continue;
-
-      const key = `${wx},${wy}`;
-      const explored = !!state.explored[key];
-      const visible = Math.abs(dx) <= 2 && Math.abs(dy) <= 2;
-
-      const ter = getTerrain(wx, wy);
-      const ti = TERRAIN_INFO[ter] || TERRAIN_INFO[2];
-      ctx.fillStyle = ti.col;
-      ctx.fillRect(sx, sy, ts, ts);
-
-      if ((explored || visible) && (dx !== 0 || dy !== 0)) {
-        ctx.fillText(ti.emoji, sx + ts / 2, sy + ts / 2);
-      }
-
-      if (visible && (dx !== 0 || dy !== 0)) {
-        const mon = getMonsterAt(wx, wy);
-        if (mon) {
-          ctx.fillStyle = MDEFS[mon.name]?.elite ? '#f59e0b44' : '#f8717144';
-          ctx.fillRect(sx, sy, ts, ts);
-          ctx.fillText(MDEFS[mon.name]?.icon || '👾', sx + ts / 2, sy + ts / 2);
+  // Pass 1: terrain + nearby monster indicators
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `${Math.floor(TILE * 0.7)}px serif`;
+  for (let row = 0; row < VIEW; row++) {
+    for (let col = 0; col < VIEW; col++) {
+      const worldX = camX + col, worldY = camY + row;
+      const tile = getTile(worldX, worldY);
+      ctx.fillStyle = tile.color;
+      ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
+      if (col !== 7 || row !== 7) {
+        ctx.fillText(tile.emoji, col * TILE + 4, row * TILE + TILE - 4);
+        if (Math.abs(col - 7) <= 2 && Math.abs(row - 7) <= 2) {
+          const mon = getMonsterAt(worldX, worldY);
+          if (mon) {
+            ctx.fillStyle = MDEFS[mon.name]?.elite ? '#f59e0b55' : '#f8717155';
+            ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
+            ctx.fillText(MDEFS[mon.name]?.icon || '👾', col * TILE + 4, row * TILE + TILE - 4);
+          }
         }
-      }
-
-      if (!explored && !visible) {
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(sx, sy, ts, ts);
-      } else if (!visible) {
-        ctx.fillStyle = 'rgba(0,0,0,0.42)';
-        ctx.fillRect(sx, sy, ts, ts);
       }
     }
   }
 
-  // Player at exact canvas center
+  // Player fixed at center (col=7, row=7)
   ctx.fillStyle = '#3b0764';
-  ctx.fillRect(px0, py0, ts, ts);
+  ctx.fillRect(7 * TILE, 7 * TILE, TILE, TILE);
   ctx.strokeStyle = '#a855f7';
   ctx.lineWidth = 2;
-  ctx.strokeRect(px0 + 1, py0 + 1, ts - 2, ts - 2);
-  ctx.font = `${Math.floor(ts * 0.72)}px serif`;
-  ctx.fillText('🧑‍⛏️', px0 + ts / 2, py0 + ts / 2);
+  ctx.strokeRect(7 * TILE + 1, 7 * TILE + 1, TILE - 2, TILE - 2);
+  ctx.font = `${Math.floor(TILE * 0.8)}px serif`;
+  ctx.fillText('⛏️', 7 * TILE + 2, 7 * TILE + TILE - 2);
+
+  // Pass 2: fog (unexplored tiles)
+  for (let row = 0; row < VIEW; row++) {
+    for (let col = 0; col < VIEW; col++) {
+      if (col === 7 && row === 7) continue;
+      const worldX = camX + col, worldY = camY + row;
+      if (!explored.has(`${worldX},${worldY}`)) {
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
+      }
+    }
+  }
 
   // Grid lines
-  ctx.strokeStyle = 'rgba(30,30,58,0.5)';
+  ctx.strokeStyle = 'rgba(30,30,58,0.4)';
   ctx.lineWidth = 0.5;
-  for (let i = -halfX; i <= halfX + 1; i++) {
-    const x = px0 + i * ts;
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-  }
-  for (let j = -halfY; j <= halfY + 1; j++) {
-    const y = py0 + j * ts;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  for (let i = 0; i <= VIEW; i++) {
+    ctx.beginPath(); ctx.moveTo(i * TILE, 0); ctx.lineTo(i * TILE, canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * TILE); ctx.lineTo(canvas.width, i * TILE); ctx.stroke();
   }
 }
 
@@ -891,21 +868,22 @@ function renderMap() {
 // ═══════════════════════════════════════════════
 let moveCooldown = false;
 
-function tryMove(dx, dy) {
+function move(dx, dy) {
   if (moveCooldown || combatActive || deathActive) return;
-  const nx = state.px + dx, ny = state.py + dy;
+  const nx = px + dx, ny = py + dy;
   const ter = getTerrain(nx, ny);
   if (!isPassable(ter)) { toast('⛔ 無法通行'); return; }
 
   moveCooldown = true;
   setTimeout(() => moveCooldown = false, 180);
 
-  state.px = nx; state.py = ny;
+  px = nx; py = ny;
+  explored.add(`${nx},${ny}`);
   // Explore 3×3 around new position
   for (let ey = -1; ey <= 1; ey++) {
     for (let ex = -1; ex <= 1; ex++) {
       const ek = `${nx+ex},${ny+ey}`;
-      if (!state.explored[ek]) { state.explored[ek] = true; state.totalExplored++; }
+      if (!explored.has(ek)) { explored.add(ek); state.totalExplored++; }
     }
   }
 
@@ -1611,7 +1589,7 @@ let merchantStock = [];
 
 function openMerchant() {
   // Generate stock based on player level and position seed
-  const seedM = posH(state.px*37+3, state.py*41+7, WORLD_SEED+500) * 1000 | 0;
+  const seedM = posH(px*37+3, py*41+7, WORLD_SEED+500) * 1000 | 0;
   const rngM = (() => { let s=seedM; return () => { s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; }; })();
 
   merchantStock = [];
@@ -1696,7 +1674,7 @@ function triggerDeath() {
   const overlay = document.getElementById('death-overlay');
   overlay.classList.add('active');
   const txtEl = document.getElementById('death-text');
-  const terrain = getTerrain(state.px, state.py);
+  const terrain = getTerrain(px, py);
   const terrainName = TERRAIN_INFO[terrain]?.emoji || '🌿';
 
   txtEl.textContent = '';
@@ -1779,7 +1757,7 @@ function toggleInherit(idx, el, maxPick, pool) {
 function confirmInherit() {
   const pool = window._inheritPool || [];
   const heirlooms = [];
-  const deathTerrain = getTerrain(state.px, state.py);
+  const deathTerrain = getTerrain(px, py);
   const terrainEmoji = TERRAIN_INFO[deathTerrain]?.emoji || '🌿';
   const terrainName = terrainEmoji + ' 探索途中';
 
@@ -1815,8 +1793,8 @@ function confirmInherit() {
 
     killedSet = new Set();
     const sp = findStart();
-    state.px = sp.x; state.py = sp.y;
-    state.explored[`${sp.x},${sp.y}`] = true;
+    px = sp.x; py = sp.y;
+    explored = new Set([`${sp.x},${sp.y}`]);
 
     deathActive = false;
     toast(`✨ 第${newGen}代勇者踏上旅途！`);
@@ -1844,6 +1822,7 @@ function save() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       ...state, killedMonsters: [...killedSet],
+      px, py, explored: [...explored],
     }));
   } catch(e) {}
 }
@@ -1855,7 +1834,13 @@ function load() {
     const d = JSON.parse(raw);
     Object.assign(state, d);
     killedSet = new Set(state.killedMonsters || []);
-    if (!state.explored) state.explored = {};
+    if (d.px !== undefined) px = d.px;
+    if (d.py !== undefined) py = d.py;
+    if (Array.isArray(d.explored)) {
+      explored = new Set(d.explored);
+    } else if (d.explored && typeof d.explored === 'object') {
+      explored = new Set(Object.keys(d.explored)); // backward compat
+    }
     if (!state.statusEffects) state.statusEffects = [];
     if (!state.heirlooms) state.heirlooms = [];
     if (!state.inventory) state.inventory = [];
@@ -1883,10 +1868,10 @@ document.addEventListener('keydown', e => {
   const dir = map[e.key];
   if (!dir) return;
   e.preventDefault();
-  if (dir==='up')    tryMove(0,-1);
-  if (dir==='down')  tryMove(0,1);
-  if (dir==='left')  tryMove(-1,0);
-  if (dir==='right') tryMove(1,0);
+  if (dir==='up')    move(0,-1);
+  if (dir==='down')  move(0,1);
+  if (dir==='left')  move(-1,0);
+  if (dir==='right') move(1,0);
 });
 
 // ═══════════════════════════════════════════════
@@ -1911,13 +1896,13 @@ function goBack() {
 load();
 
 // If no saved position, find start
-if (!state.explored || Object.keys(state.explored).length === 0) {
+if (explored.size === 0) {
   const sp = findStart();
-  state.px = sp.x; state.py = sp.y;
+  px = sp.x; py = sp.y;
   // Reveal 5×5 area on first load
   for (let ey = -2; ey <= 2; ey++) {
     for (let ex = -2; ex <= 2; ex++) {
-      state.explored[`${sp.x+ex},${sp.y+ey}`] = true;
+      explored.add(`${sp.x+ex},${sp.y+ey}`);
     }
   }
   state.totalExplored = 25;
@@ -1926,10 +1911,7 @@ if (!state.explored || Object.keys(state.explored).length === 0) {
 // Periodic auto-save
 setInterval(save, 30000);
 
-// Canvas resize
-window.addEventListener('resize', () => resizeCanvas());
-resizeCanvas();
-
+renderMap();
 updateUI();
 </script>
 </body></html>
