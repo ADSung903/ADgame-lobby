@@ -205,13 +205,27 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .combat-overlay{
   position:fixed;
   top:0;left:0;right:0;bottom:0;
-  width:100vw;height:100vh;
   z-index:200;
-  display:none;
-  background:#05050f;
-  overflow:hidden;
+  visibility:hidden;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s;
 }
-.combat-overlay.active{display:block}
+.combat-overlay.active{
+  visibility:visible;
+  opacity:1;
+  pointer-events:auto;
+}
+/* 地圖暗層 */
+.map-dim{
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,.7);
+  z-index:5;
+  display:none;
+  pointer-events:none;
+}
+.map-dim.active{display:block}
 
 /* Corner answer buttons */
 .ans-btn{position:fixed;z-index:210;width:100px;
@@ -240,7 +254,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
 /* Combat center content */
 .combat-center{position:fixed;top:0;left:0;right:0;bottom:0;z-index:205;display:flex;flex-direction:column;
-  pointer-events:none}
+  pointer-events:none;max-width:420px;margin:0 auto}
 .combat-center>*{pointer-events:auto}
 .cb-mon{margin-top:calc(env(safe-area-inset-top,0px) + 4px);
   padding:.5rem 110px;text-align:center;flex-shrink:0}
@@ -346,6 +360,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
   <div class="map-wrap" id="map-wrap" style="position:relative">
     <canvas id="map-canvas"></canvas>
+    <!-- 戰鬥時地圖暗層 -->
+    <div class="map-dim" id="map-dim"></div>
     <!-- 地圖內資訊列 -->
     <div id="map-overlay-bar" style="
       position:absolute;top:0;left:0;right:0;
@@ -1380,6 +1396,7 @@ function startCombat(monName, wx, wy, lv) {
   answerActive = false;
 
   document.getElementById('combat-overlay').classList.add('active');
+  document.getElementById('map-dim').classList.add('active');
   document.getElementById('cb-q').style.display = 'none';
   document.getElementById('cb-log').innerHTML = '';
   updateCombatHPDisplay();
@@ -1672,6 +1689,7 @@ function checkPlayerDead() {
   combatActive = false;
   clearTimeout(cbTimer);
   document.getElementById('combat-overlay').classList.remove('active');
+    document.getElementById('map-dim').classList.remove('active');
   triggerDeath();
   return true;
 }
@@ -1729,6 +1747,7 @@ function endCombatVictory() {
 
   setTimeout(() => {
     document.getElementById('combat-overlay').classList.remove('active');
+    document.getElementById('map-dim').classList.remove('active');
     gainExp(exp);
     updateUI(); save();
   }, 1200);
@@ -1749,6 +1768,7 @@ function tryEscape() {
     setTimeout(() => {
       combatActive = false;
       document.getElementById('combat-overlay').classList.remove('active');
+    document.getElementById('map-dim').classList.remove('active');
       updateUI();
     }, 700);
   } else {
