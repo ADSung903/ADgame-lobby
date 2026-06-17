@@ -8,9 +8,14 @@
   v0.4  Phase 1 修正：賣東西功能、裝備數值比較、存檔版本號
   v0.5  Phase 2 開始：8元素屬性、詛咒裝備、套件效果、職業轉職
   v0.6  Phase 2 修正：多樣掉落系統（金幣/藥水/裝備/卷軸）
-  v0.7  修正：強化加成套用至攻擊/防禦計算、版本歷史加入
+  v0.7  修正：強化加成套用至攻擊/防禦計算
+  v0.8  架構重整：97個函式分成17個獨立區塊，容器間以呼叫溝通
+        區塊：WORLD_GEN / MONSTER_DEF / ITEM_GEN / LOOT / STATE /
+              STAT_CALC / MAP_RENDER / MOVEMENT / COMBAT /
+              PROGRESSION / ENHANCE / SET_JOB / INVENTORY /
+              UI_UPDATE / MODALS / DEATH / SAVE_LOAD
   ════════════════════════════════
-  SAVE_VERSION = 3（v0.5起）
+  SAVE_VERSION = 3
 -->
 <html><head>
 <meta charset="utf-8">
@@ -544,14 +549,23 @@ const WORLD_SEED = d0.getFullYear() * 4 + Math.floor(d0.getMonth() / 3);
 // ═══════════════════════════════════════════════
 // SEEDED PRNG + NOISE
 // ═══════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════════════════════
+// 🌍 WORLD GENERATION — Perlin Noise, Terrain
+// ════════════════════════════════════════════════════════════
+
 function posH(x, y, s) {
   let h = (s * 2246822519 + x * 374761393 + y * 1103515245) | 0;
   h = Math.imul(h ^ (h >>> 13), h * 15731 + 789221) | 0;
   h = h ^ (h >>> 17);
   return (h >>> 0) / 0x100000000;
 }
+
 function lerp(a, b, t) { return a + (b - a) * t; }
+
 function ss(t) { return t * t * (3 - 2 * t); }
+
 function vnoise(x, y, s) {
   const xi = Math.floor(x), yi = Math.floor(y);
   const xf = ss(x - xi), yf = ss(y - yi);
@@ -559,11 +573,13 @@ function vnoise(x, y, s) {
     lerp(posH(xi, yi, s), posH(xi+1, yi, s), xf),
     lerp(posH(xi, yi+1, s), posH(xi+1, yi+1, s), xf), yf);
 }
+
 function worldNoise(wx, wy) {
   return 0.5  * vnoise(wx*0.030, wy*0.030, WORLD_SEED)
        + 0.3  * vnoise(wx*0.080, wy*0.080, WORLD_SEED+1000)
        + 0.2  * vnoise(wx*0.150, wy*0.150, WORLD_SEED+2000);
 }
+
 function tileH(wx, wy, off) {
   return posH(wx ^ (off*7919), wy ^ (off*6271), WORLD_SEED + off*1231);
 }
@@ -598,6 +614,7 @@ function getTerrain(wx, wy) {
   if (n < 0.88) return T.MOUNTAIN;
   return T.HIGH;
 }
+
 function isPassable(t) { return TERRAIN_INFO[t]?.pass !== false; }
 
 // ═══════════════════════════════════════════════
@@ -620,6 +637,11 @@ const FOREST_POOL   = ['毒牙蟲','憤怒蘑菇','森林野狼','藤蔓精靈',
 const PLAINS_POOL   = ['毒牙蟲','森林野狼','石頭哥布林','狡猾狐狸'];
 const MOUNTAIN_POOL = ['石頭哥布林','憤怒蘑菇','毒牙蟲'];
 const ELITE_POOL    = ['憤怒山豬王','古樹守衛'];
+
+
+// ════════════════════════════════════════════════════════════
+// 👾 MONSTER DEFINITIONS & SCALING
+// ════════════════════════════════════════════════════════════
 
 function getMonsterAt(wx, wy) {
   const k = `${wx},${wy}`;
@@ -706,6 +728,11 @@ const ARMOR_TPL = {
 };
 const WPN_SUBTYPES = ['sword','axe','bow','wand','dagger','spear'];
 const WPN_ICON = {sword:'⚔️',axe:'🪓',bow:'🏹',wand:'🪄',dagger:'🗡️',spear:'🔱'};
+
+
+// ════════════════════════════════════════════════════════════
+// ⚔️ ITEM GENERATION — Weapons, Armor, Elements, Curses
+// ════════════════════════════════════════════════════════════
 
 function rarityIdx(r) { return RARITY_ORDER.indexOf(r); }
 
@@ -893,6 +920,88 @@ const JOB_DEFS = {
 // ═══════════════════════════════════════════════
 const LS_KEY = 'dungeon_v1';
 
+
+// ════════════════════════════════════════════════════════════
+// 📦 LOOT — Drop tables
+// ════════════════════════════════════════════════════════════
+
+function generateLoot(monName, monLv) {
+  const mon = MDEFS[monName];
+  const luk = totalStat('luk');
+  const lukBonus = 1 + luk * 0.01; // 幸運影響掉落率
+
+  const results = [];
+
+  // ── 金幣（80%機率，狡猾狐狸必掉）
+  const goldChance = mon?.special === 'steal' ? 1.0 : 0.80;
+  if (Math.random() < goldChance) {
+    const base = mon?.gold || 10;
+    const gold = Math.floor(base * (0.8 + Math.random() * 0.6) * lukBonus);
+    results.push({type:'gold', amount: gold});
+  }
+
+  // ── 藥水（30%機率）
+  if (Math.random() < 0.30 * lukBonus) {
+    const potPool = [
+      {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
+      {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m', rarity:'green', desc:'回復 80 HP', effect:{heal:80}},
+      {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'cure_poison', rarity:'white', desc:'解除中毒', effect:{cure:'poison'}},
+      {name:'力量藥水',   icon:'💪', type:'potion', subtype:'buff_str', rarity:'green', desc:'攻擊+30% 3回合', effect:{buff:'str', turns:3}},
+      {name:'迷霧藥水',   icon:'🌫', type:'potion', subtype:'fog_clear', rarity:'green', desc:'揭開周圍15格迷霧', effect:{action:'fog'}},
+    ];
+    // 較高等怪掉比較好的藥水
+    const pool = monLv >= 10 ? potPool : potPool.slice(0, 3);
+    const pot = pool[Math.floor(Math.random() * pool.length)];
+    results.push({...pot, id: Date.now() + Math.random()});
+  }
+
+  // ── 裝備（依怪物設定掉落率）
+  const slot = mon?.drop;
+  const eqChance = mon?.elite ? 0.85 : 0.40;
+  if (slot && Math.random() < eqChance * lukBonus) {
+    const rarity = rollRarity(monLv);
+    const item = (slot === 'weapon' || Math.random() < 0.35)
+      ? generateWeapon(rarity, monLv)
+      : generateArmor(
+          slot === 'multi'
+            ? ARMOR_SLOTS[Math.floor(Math.random() * ARMOR_SLOTS.length)]
+            : slot,
+          rarity, monLv
+        );
+    if (mon.element && mon.element !== 'none' && Math.random() < 0.3) {
+      item.element = mon.element;
+    }
+    results.push(item);
+  }
+
+  // ── 卷軸（稀有，8%機率，幸運加成）
+  if (Math.random() < 0.08 * lukBonus) {
+    const scrollPool = [
+      {name:'普通強化卷軸', icon:'📜', type:'scroll', subtype:'enhance_normal', rarity:'green', desc:'強化裝備+1', effect:{action:'enhance', type:'normal'}},
+      {name:'鑑定卷軸',     icon:'🔍', type:'scroll', subtype:'identify',       rarity:'green', desc:'鑑定未知裝備', effect:{action:'identify'}},
+      {name:'幸運強化卷軸', icon:'🍀', type:'scroll', subtype:'enhance_lucky',  rarity:'blue',  desc:'成功率×150%，可跳級', effect:{action:'enhance', type:'lucky'}},
+      {name:'保護卷軸',     icon:'🛡', type:'scroll', subtype:'enhance_protect',rarity:'blue',  desc:'失敗不爆裝', effect:{action:'protect'}},
+      {name:'解咒卷軸',     icon:'✨', type:'scroll', subtype:'purify',         rarity:'blue',  desc:'解除裝備詛咒', effect:{action:'purify'}},
+      {name:'神聖強化卷軸', icon:'⚡', type:'scroll', subtype:'enhance_holy',   rarity:'gold',  desc:'+4~+6保證成功', effect:{action:'enhance', type:'holy'}},
+    ];
+    // Boss 才有機會掉神聖卷軸
+    const pool = mon?.special === 'boss' ? scrollPool : scrollPool.slice(0, 4);
+    const scroll = pool[Math.floor(Math.random() * pool.length)];
+    results.push({...scroll, id: Date.now() + Math.random() + 1});
+  }
+
+  return results.length > 0 ? results : null;
+}
+
+// ═══════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════════════════════
+// 💾 STATE — initState, findStart
+// ════════════════════════════════════════════════════════════
+
 function initState() {
   return {
     generation:1, level:1, exp:0, expNext:100,
@@ -931,6 +1040,7 @@ let explored = new Set(); // explored tile keys
 // ═══════════════════════════════════════════════
 // START POSITION
 // ═══════════════════════════════════════════════
+
 function findStart() {
   const ox = START_X, oy = START_Y;
   for (let r = 0; r <= 40; r++) {
@@ -950,6 +1060,14 @@ function findStart() {
 // ═══════════════════════════════════════════════
 // STAT HELPERS
 // ═══════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════════════════════
+// 📊 STAT CALCULATION — Pure functions, no side effects
+// // Input: state/item data  Output: numbers only
+// // ⚠️ These functions must NOT modify state directly
+// ════════════════════════════════════════════════════════════
+
 function eqStats() {
   const s = {str:0,agi:0,luk:0,int:0,def:0};
   for (const slot of ARMOR_SLOTS) {
@@ -963,6 +1081,7 @@ function eqStats() {
   }
   return s;
 }
+
 function totalStat(k) { return (state.stats[k]||0) + (eqStats()[k]||0); }
 
 function calcAtk() {
@@ -1022,6 +1141,12 @@ const ctx = canvas.getContext('2d');
 const VIEW = 15;
 // TILE 先給預設值，initCanvas() 會覆蓋
 let TILE = 40;
+
+
+// ════════════════════════════════════════════════════════════
+// 🗺️ MAP RENDERING — Canvas, tiles, fog
+// ════════════════════════════════════════════════════════════
+
 function initCanvas() {
   const mapWrap = document.querySelector('.map-wrap');
   // 用寬度決定格子大小，地圖永遠是正方形
@@ -1113,6 +1238,11 @@ function checkNearMerchant() {
   nearMerchant = false;
 }
 
+
+// ════════════════════════════════════════════════════════════
+// 🚶 MOVEMENT & TERRAIN EFFECTS
+// ════════════════════════════════════════════════════════════
+
 function move(dx, dy) {
   if (moveCooldown || combatActive || deathActive) return;
   const nx = px + dx, ny = py + dy;
@@ -1183,6 +1313,14 @@ const CORRECT_MSGS = [
 const WRONG_MSGS = [
   '判斷失誤——', '腦袋短路了！', '答錯了！', '選錯了！', '失誤！',
 ];
+
+
+// ════════════════════════════════════════════════════════════
+// ⚔️ COMBAT SYSTEM
+// // Flow: startCombat → startCombatTurn → showQuestion
+// //       → answerQ/onTimeout → resolvePlayerAttack/doMonsterAttack
+// //       → nextTurnOrEnd → endCombatVictory / checkPlayerDead
+// ════════════════════════════════════════════════════════════
 
 function startCombat(monName, wx, wy, lv) {
   const m = scaledMonster(monName, lv);
@@ -1563,6 +1701,7 @@ function updateCombatHPDisplay() {
 // ═══════════════════════════════════════════════
 // QUESTION GENERATOR
 // ═══════════════════════════════════════════════
+
 function genQuestion(lv) {
   const diff = Math.min(5, Math.ceil(lv / 10));
   const r = () => Math.floor(Math.random() * 1e9);
@@ -1617,6 +1756,12 @@ function shuffleAnswers(correct) {
 // ═══════════════════════════════════════════════
 // EXP / LEVEL UP
 // ═══════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════════════════════
+// ⬆️ PROGRESSION — EXP, Level up, Jobs
+// ════════════════════════════════════════════════════════════
+
 function gainExp(amount) {
   state.exp += amount;
   while (state.exp >= state.expNext && state.level < 999) {
@@ -1634,6 +1779,188 @@ function gainExp(amount) {
 // ═══════════════════════════════════════════════
 // INVENTORY
 // ═══════════════════════════════════════════════
+
+function getJobPassive() {
+  return JOB_DEFS[state.job||'miner']?.passive || {};
+}
+
+function getPrevJobBonus() {
+  if (!state.prevJobs?.length) return {};
+  const combined = {};
+  for (const prev of state.prevJobs) {
+    for (const [k,v] of Object.entries(prev.passive||{})) {
+      if (typeof v==='number' && v>0) {
+        combined[k] = (combined[k]||1) * (1+(v-1)*0.3);
+      }
+    }
+  }
+  return combined;
+}
+
+function changeJob(jobKey) {
+  const jd = JOB_DEFS[jobKey];
+  if (!jd) return;
+  if (state.level < (jd.reqLevel||0)) { toast(`需要 Lv.${jd.reqLevel}`); return; }
+  if (state.job !== jd.reqJob) { toast('職業條件不符'); return; }
+  if ((state.jobLevel||1) < (jd.reqJobLevel||0)) { toast(`需要目前職業 Lv.${jd.reqJobLevel}`); return; }
+  if (!confirm(`確定轉職為「${jd.name}」？\n職業等級將重置為1，但前職業殘留30%被動加成。`)) return;
+  if (!state.prevJobs) state.prevJobs = [];
+  state.prevJobs.push({job:state.job, level:state.jobLevel||1, passive:JOB_DEFS[state.job]?.passive||{}});
+  state.job = jobKey;
+  state.jobLevel = 1;
+  closeModal('modal-stats');
+  toast(`🎉 成功轉職為 ${jd.name}！`);
+  updateUI(); save(true);
+}
+
+// Ch6: 怪物掉落（含屬性繼承）
+
+
+// ════════════════════════════════════════════════════════════
+// ⚒️ ENHANCE SYSTEM — Scrolls, success rates, cursed items
+// ════════════════════════════════════════════════════════════
+
+function getEnhanceRate(enhance, scrollType) {
+  const base = ENHANCE_RATES[enhance] || 0.0001;
+  if (scrollType==='lucky')  return Math.min(1, base*1.5);
+  if (scrollType==='holy')   return enhance<=6 ? 1.0 : base;
+  if (scrollType==='cursed') return Math.max(0.01, base-0.3);
+  return base;
+}
+
+function tryEnhance(item, scrollType, hasProtect) {
+  const cur = item.enhance || 0;
+  if (cur >= 15) { toast('已達最高強化等級 +15'); return 'done'; }
+  const rate = getEnhanceRate(cur+1, scrollType);
+  const roll = Math.random();
+  if (roll < rate) {
+    let jump = 1;
+    if (scrollType==='lucky' && Math.random()<0.5) {
+      const r2 = Math.random();
+      jump = r2<0.15 ? 3 : r2<0.50 ? 2 : 1;
+    }
+    item.enhance = Math.min(15, cur+jump);
+    const jumpText = jump>1 ? ` 🎊 跳級+${jump}！` : '';
+    toast(`✨ 強化成功！${item.name} → +${item.enhance}${jumpText}`);
+    showEnhanceResult('success', item.name, item.enhance, jump);
+  } else if (cur >= 7 && !hasProtect) {
+    removeItemFromGame(item);
+    toast(`💥 強化失敗！${item.name} 已碎裂……`);
+    showEnhanceResult('break', item.name, cur);
+    return 'break';
+  } else {
+    toast(`❌ 強化失敗，${item.name} 維持 +${cur}`);
+    showEnhanceResult('fail', item.name, cur);
+  }
+  return 'done';
+}
+
+function showEnhanceResult(type, name, enhance) {
+  const colors = {success:'#4ade80', break:'#f87171', fail:'#9ca3af'};
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);
+    font-size:2rem;font-weight:900;color:${colors[type]};
+    text-shadow:0 0 20px ${colors[type]};pointer-events:none;z-index:9999;
+    animation:popIn .5s ease-out forwards`;
+  el.textContent = type==='break' ? '💥 碎裂！' : type==='success' ? `✨ +${enhance}` : '❌ 失敗';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
+function removeItemFromGame(item) {
+  const invIdx = state.inventory.findIndex(i=>i.id===item.id);
+  if (invIdx>=0) { state.inventory.splice(invIdx,1); return; }
+  if (state.weapon?.id===item.id) { state.weapon=null; return; }
+  for (const slot of ARMOR_SLOTS) {
+    if (state.equipment[slot]?.id===item.id) { state.equipment[slot]=null; return; }
+  }
+}
+
+function doEnhance(itemId, fromInv, invIdx, slot) {
+  let item = fromInv ? state.inventory.find(i=>String(i.id)===String(itemId))
+    : (slot==='weapon' ? state.weapon : state.equipment[slot]);
+  if (!item) return;
+  const sel = document.getElementById('enh-scroll-sel');
+  if (!sel) return;
+  const scrollIdx = parseInt(sel.value);
+  const scrolls = state.inventory.filter(i=>i.type==='scroll'&&i.effect?.action==='enhance');
+  const scroll = scrolls[scrollIdx];
+  if (!scroll) return;
+  const protectIdx = state.inventory.findIndex(i=>i.subtype==='enhance_protect');
+  const hasProtect = protectIdx>=0;
+  const realScrollIdx = state.inventory.findIndex(i=>i.id===scroll.id);
+  if (realScrollIdx>=0) state.inventory.splice(realScrollIdx,1);
+  tryEnhance(item, scroll.effect?.type, hasProtect);
+  if (hasProtect) {
+    const pi = state.inventory.findIndex(i=>i.subtype==='enhance_protect');
+    if (pi>=0) state.inventory.splice(pi,1);
+  }
+  closeModal('modal-item');
+  updateUI(); save(true);
+}
+
+// Ch3: 詛咒效果觸發
+
+function usePurifyScroll(item) {
+  if (!item.cursed) { toast('此裝備沒有詛咒'); return; }
+  if (item.purified) { toast('此裝備已經淨化了'); return; }
+  item.purified = true;
+  toast(`✨ 【${item.name}】的詛咒已解除！`);
+  updateUI(); save(true);
+}
+
+// Ch4: 套件計算
+
+
+// ════════════════════════════════════════════════════════════
+// 🎯 SET BONUSES & CURSE EFFECTS
+// ════════════════════════════════════════════════════════════
+
+function getSetBonuses() {
+  const setCounts = {};
+  const allEquipped = [state.weapon, ...ARMOR_SLOTS.map(s=>state.equipment[s])].filter(Boolean);
+  for (const item of allEquipped) {
+    if (!item.setId) continue;
+    setCounts[item.setId] = (setCounts[item.setId]||0)+1;
+  }
+  const bonuses = [];
+  for (const [setId, count] of Object.entries(setCounts)) {
+    const def = SET_DEFS[setId];
+    if (!def) continue;
+    for (const [req, bonus] of Object.entries(def.bonus)) {
+      if (count>=parseInt(req)) bonuses.push({setId, setName:def.name, count, req:parseInt(req), ...bonus});
+    }
+  }
+  return bonuses;
+}
+
+// Ch5: 職業被動
+
+function applyCurseEffects(triggerType) {
+  const allEquipped = [state.weapon, ...ARMOR_SLOTS.map(s=>state.equipment[s])].filter(Boolean);
+  for (const item of allEquipped) {
+    if (!item.cursed || item.purified) continue;
+    const ef = CURSE_EFFECTS.find(e=>e.type===item.curseType);
+    if (!ef) continue;
+    if (triggerType==='move' && ef.type==='hp_drain') {
+      state.stats.hp = Math.max(1, state.stats.hp-1);
+      updateStatusBar();
+    }
+    if (triggerType==='combat_end' && ef.type==='gold_drain') {
+      const drain = Math.floor(state.gold*0.05);
+      if (drain>0) {
+        state.gold = Math.max(0, state.gold-drain);
+        toast(`☠️ 詛咒吸走了 $${drain} 金幣`);
+      }
+    }
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 🎒 INVENTORY — Add, remove, equip, sell, use
+// ════════════════════════════════════════════════════════════
+
 function addToInventory(item) {
   if (state.inventory.length >= state.inventoryMax) return false;
   state.inventory.push(item);
@@ -1718,6 +2045,20 @@ function usePotion(item, invIdx) {
 // ═══════════════════════════════════════════════
 // UI FUNCTIONS
 // ═══════════════════════════════════════════════
+
+function quickUsePotion(invIdx) {
+  const item = state.inventory[invIdx];
+  if (!item || item.type !== 'potion') return;
+  usePotion(item, invIdx);
+  updateUI(); save(true);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 🖥️ UI UPDATE — Status bar, SVG player, quick bar
+// // Call updateUI() after any state change
+// ════════════════════════════════════════════════════════════
+
 function updateStatusBar() {
   const hp = state.stats.hp, mhp = state.stats.maxHp;
   const hpPct = Math.max(0, hp/mhp*100);
@@ -1834,12 +2175,10 @@ function updateQuickBar() {
   }).join('');
 }
 
-function quickUsePotion(invIdx) {
-  const item = state.inventory[invIdx];
-  if (!item || item.type !== 'potion') return;
-  usePotion(item, invIdx);
-  updateUI(); save(true);
-}
+
+// ════════════════════════════════════════════════════════════
+// 🪟 MODALS — Inventory, Equipment, Stats, ItemCard, Merchant
+// ════════════════════════════════════════════════════════════
 
 function openInventory() {
   const grid = document.getElementById('inv-grid');
@@ -2281,6 +2620,7 @@ function merchantBuy(idx) {
 // ═══════════════════════════════════════════════
 // CAVE EVENT
 // ═══════════════════════════════════════════════
+
 function showCaveEvent() {
   const card = document.getElementById('event-card');
   card.innerHTML = `<h2>🕳️ 洞穴入口</h2>
@@ -2293,6 +2633,27 @@ function showCaveEvent() {
 // ═══════════════════════════════════════════════
 // DEATH & INHERITANCE
 // ═══════════════════════════════════════════════
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity='0', 2400);
+}
+
+// ═══════════════════════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════════════════════
+// 💀 DEATH & INHERITANCE
+// ════════════════════════════════════════════════════════════
+
 function triggerDeath() {
   deathActive = true;
   const overlay = document.getElementById('death-overlay');
@@ -2431,252 +2792,12 @@ function confirmInherit() {
 // ═══════════════════════════════════════════════
 
 // Ch1: 強化系統
-function getEnhanceRate(enhance, scrollType) {
-  const base = ENHANCE_RATES[enhance] || 0.0001;
-  if (scrollType==='lucky')  return Math.min(1, base*1.5);
-  if (scrollType==='holy')   return enhance<=6 ? 1.0 : base;
-  if (scrollType==='cursed') return Math.max(0.01, base-0.3);
-  return base;
-}
 
-function tryEnhance(item, scrollType, hasProtect) {
-  const cur = item.enhance || 0;
-  if (cur >= 15) { toast('已達最高強化等級 +15'); return 'done'; }
-  const rate = getEnhanceRate(cur+1, scrollType);
-  const roll = Math.random();
-  if (roll < rate) {
-    let jump = 1;
-    if (scrollType==='lucky' && Math.random()<0.5) {
-      const r2 = Math.random();
-      jump = r2<0.15 ? 3 : r2<0.50 ? 2 : 1;
-    }
-    item.enhance = Math.min(15, cur+jump);
-    const jumpText = jump>1 ? ` 🎊 跳級+${jump}！` : '';
-    toast(`✨ 強化成功！${item.name} → +${item.enhance}${jumpText}`);
-    showEnhanceResult('success', item.name, item.enhance, jump);
-  } else if (cur >= 7 && !hasProtect) {
-    removeItemFromGame(item);
-    toast(`💥 強化失敗！${item.name} 已碎裂……`);
-    showEnhanceResult('break', item.name, cur);
-    return 'break';
-  } else {
-    toast(`❌ 強化失敗，${item.name} 維持 +${cur}`);
-    showEnhanceResult('fail', item.name, cur);
-  }
-  return 'done';
-}
 
-function showEnhanceResult(type, name, enhance) {
-  const colors = {success:'#4ade80', break:'#f87171', fail:'#9ca3af'};
-  const el = document.createElement('div');
-  el.style.cssText = `position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);
-    font-size:2rem;font-weight:900;color:${colors[type]};
-    text-shadow:0 0 20px ${colors[type]};pointer-events:none;z-index:9999;
-    animation:popIn .5s ease-out forwards`;
-  el.textContent = type==='break' ? '💥 碎裂！' : type==='success' ? `✨ +${enhance}` : '❌ 失敗';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1500);
-}
+// ════════════════════════════════════════════════════════════
+// 💿 SAVE / LOAD / RESET
+// ════════════════════════════════════════════════════════════
 
-function removeItemFromGame(item) {
-  const invIdx = state.inventory.findIndex(i=>i.id===item.id);
-  if (invIdx>=0) { state.inventory.splice(invIdx,1); return; }
-  if (state.weapon?.id===item.id) { state.weapon=null; return; }
-  for (const slot of ARMOR_SLOTS) {
-    if (state.equipment[slot]?.id===item.id) { state.equipment[slot]=null; return; }
-  }
-}
-
-function doEnhance(itemId, fromInv, invIdx, slot) {
-  let item = fromInv ? state.inventory.find(i=>String(i.id)===String(itemId))
-    : (slot==='weapon' ? state.weapon : state.equipment[slot]);
-  if (!item) return;
-  const sel = document.getElementById('enh-scroll-sel');
-  if (!sel) return;
-  const scrollIdx = parseInt(sel.value);
-  const scrolls = state.inventory.filter(i=>i.type==='scroll'&&i.effect?.action==='enhance');
-  const scroll = scrolls[scrollIdx];
-  if (!scroll) return;
-  const protectIdx = state.inventory.findIndex(i=>i.subtype==='enhance_protect');
-  const hasProtect = protectIdx>=0;
-  const realScrollIdx = state.inventory.findIndex(i=>i.id===scroll.id);
-  if (realScrollIdx>=0) state.inventory.splice(realScrollIdx,1);
-  tryEnhance(item, scroll.effect?.type, hasProtect);
-  if (hasProtect) {
-    const pi = state.inventory.findIndex(i=>i.subtype==='enhance_protect');
-    if (pi>=0) state.inventory.splice(pi,1);
-  }
-  closeModal('modal-item');
-  updateUI(); save(true);
-}
-
-// Ch3: 詛咒效果觸發
-function applyCurseEffects(triggerType) {
-  const allEquipped = [state.weapon, ...ARMOR_SLOTS.map(s=>state.equipment[s])].filter(Boolean);
-  for (const item of allEquipped) {
-    if (!item.cursed || item.purified) continue;
-    const ef = CURSE_EFFECTS.find(e=>e.type===item.curseType);
-    if (!ef) continue;
-    if (triggerType==='move' && ef.type==='hp_drain') {
-      state.stats.hp = Math.max(1, state.stats.hp-1);
-      updateStatusBar();
-    }
-    if (triggerType==='combat_end' && ef.type==='gold_drain') {
-      const drain = Math.floor(state.gold*0.05);
-      if (drain>0) {
-        state.gold = Math.max(0, state.gold-drain);
-        toast(`☠️ 詛咒吸走了 $${drain} 金幣`);
-      }
-    }
-  }
-}
-
-function usePurifyScroll(item) {
-  if (!item.cursed) { toast('此裝備沒有詛咒'); return; }
-  if (item.purified) { toast('此裝備已經淨化了'); return; }
-  item.purified = true;
-  toast(`✨ 【${item.name}】的詛咒已解除！`);
-  updateUI(); save(true);
-}
-
-// Ch4: 套件計算
-function getSetBonuses() {
-  const setCounts = {};
-  const allEquipped = [state.weapon, ...ARMOR_SLOTS.map(s=>state.equipment[s])].filter(Boolean);
-  for (const item of allEquipped) {
-    if (!item.setId) continue;
-    setCounts[item.setId] = (setCounts[item.setId]||0)+1;
-  }
-  const bonuses = [];
-  for (const [setId, count] of Object.entries(setCounts)) {
-    const def = SET_DEFS[setId];
-    if (!def) continue;
-    for (const [req, bonus] of Object.entries(def.bonus)) {
-      if (count>=parseInt(req)) bonuses.push({setId, setName:def.name, count, req:parseInt(req), ...bonus});
-    }
-  }
-  return bonuses;
-}
-
-// Ch5: 職業被動
-function getJobPassive() {
-  return JOB_DEFS[state.job||'miner']?.passive || {};
-}
-
-function getPrevJobBonus() {
-  if (!state.prevJobs?.length) return {};
-  const combined = {};
-  for (const prev of state.prevJobs) {
-    for (const [k,v] of Object.entries(prev.passive||{})) {
-      if (typeof v==='number' && v>0) {
-        combined[k] = (combined[k]||1) * (1+(v-1)*0.3);
-      }
-    }
-  }
-  return combined;
-}
-
-function changeJob(jobKey) {
-  const jd = JOB_DEFS[jobKey];
-  if (!jd) return;
-  if (state.level < (jd.reqLevel||0)) { toast(`需要 Lv.${jd.reqLevel}`); return; }
-  if (state.job !== jd.reqJob) { toast('職業條件不符'); return; }
-  if ((state.jobLevel||1) < (jd.reqJobLevel||0)) { toast(`需要目前職業 Lv.${jd.reqJobLevel}`); return; }
-  if (!confirm(`確定轉職為「${jd.name}」？\n職業等級將重置為1，但前職業殘留30%被動加成。`)) return;
-  if (!state.prevJobs) state.prevJobs = [];
-  state.prevJobs.push({job:state.job, level:state.jobLevel||1, passive:JOB_DEFS[state.job]?.passive||{}});
-  state.job = jobKey;
-  state.jobLevel = 1;
-  closeModal('modal-stats');
-  toast(`🎉 成功轉職為 ${jd.name}！`);
-  updateUI(); save(true);
-}
-
-// Ch6: 怪物掉落（含屬性繼承）
-function generateLoot(monName, monLv) {
-  const mon = MDEFS[monName];
-  const luk = totalStat('luk');
-  const lukBonus = 1 + luk * 0.01; // 幸運影響掉落率
-
-  const results = [];
-
-  // ── 金幣（80%機率，狡猾狐狸必掉）
-  const goldChance = mon?.special === 'steal' ? 1.0 : 0.80;
-  if (Math.random() < goldChance) {
-    const base = mon?.gold || 10;
-    const gold = Math.floor(base * (0.8 + Math.random() * 0.6) * lukBonus);
-    results.push({type:'gold', amount: gold});
-  }
-
-  // ── 藥水（30%機率）
-  if (Math.random() < 0.30 * lukBonus) {
-    const potPool = [
-      {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
-      {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m', rarity:'green', desc:'回復 80 HP', effect:{heal:80}},
-      {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'cure_poison', rarity:'white', desc:'解除中毒', effect:{cure:'poison'}},
-      {name:'力量藥水',   icon:'💪', type:'potion', subtype:'buff_str', rarity:'green', desc:'攻擊+30% 3回合', effect:{buff:'str', turns:3}},
-      {name:'迷霧藥水',   icon:'🌫', type:'potion', subtype:'fog_clear', rarity:'green', desc:'揭開周圍15格迷霧', effect:{action:'fog'}},
-    ];
-    // 較高等怪掉比較好的藥水
-    const pool = monLv >= 10 ? potPool : potPool.slice(0, 3);
-    const pot = pool[Math.floor(Math.random() * pool.length)];
-    results.push({...pot, id: Date.now() + Math.random()});
-  }
-
-  // ── 裝備（依怪物設定掉落率）
-  const slot = mon?.drop;
-  const eqChance = mon?.elite ? 0.85 : 0.40;
-  if (slot && Math.random() < eqChance * lukBonus) {
-    const rarity = rollRarity(monLv);
-    const item = (slot === 'weapon' || Math.random() < 0.35)
-      ? generateWeapon(rarity, monLv)
-      : generateArmor(
-          slot === 'multi'
-            ? ARMOR_SLOTS[Math.floor(Math.random() * ARMOR_SLOTS.length)]
-            : slot,
-          rarity, monLv
-        );
-    if (mon.element && mon.element !== 'none' && Math.random() < 0.3) {
-      item.element = mon.element;
-    }
-    results.push(item);
-  }
-
-  // ── 卷軸（稀有，8%機率，幸運加成）
-  if (Math.random() < 0.08 * lukBonus) {
-    const scrollPool = [
-      {name:'普通強化卷軸', icon:'📜', type:'scroll', subtype:'enhance_normal', rarity:'green', desc:'強化裝備+1', effect:{action:'enhance', type:'normal'}},
-      {name:'鑑定卷軸',     icon:'🔍', type:'scroll', subtype:'identify',       rarity:'green', desc:'鑑定未知裝備', effect:{action:'identify'}},
-      {name:'幸運強化卷軸', icon:'🍀', type:'scroll', subtype:'enhance_lucky',  rarity:'blue',  desc:'成功率×150%，可跳級', effect:{action:'enhance', type:'lucky'}},
-      {name:'保護卷軸',     icon:'🛡', type:'scroll', subtype:'enhance_protect',rarity:'blue',  desc:'失敗不爆裝', effect:{action:'protect'}},
-      {name:'解咒卷軸',     icon:'✨', type:'scroll', subtype:'purify',         rarity:'blue',  desc:'解除裝備詛咒', effect:{action:'purify'}},
-      {name:'神聖強化卷軸', icon:'⚡', type:'scroll', subtype:'enhance_holy',   rarity:'gold',  desc:'+4~+6保證成功', effect:{action:'enhance', type:'holy'}},
-    ];
-    // Boss 才有機會掉神聖卷軸
-    const pool = mon?.special === 'boss' ? scrollPool : scrollPool.slice(0, 4);
-    const scroll = pool[Math.floor(Math.random() * pool.length)];
-    results.push({...scroll, id: Date.now() + Math.random() + 1});
-  }
-
-  return results.length > 0 ? results : null;
-}
-
-// ═══════════════════════════════════════════════
-// MODAL HELPERS
-// ═══════════════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.style.opacity = '1';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.style.opacity='0', 2400);
-}
-
-// ═══════════════════════════════════════════════
-// SAVE / LOAD
-// ═══════════════════════════════════════════════
 function save(silent=false) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
@@ -2796,6 +2917,7 @@ document.addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════
 // BACK TO LOBBY
 // ═══════════════════════════════════════════════
+
 function goBack() {
   save();
   const name = (() => { try { const d=JSON.parse(localStorage.getItem('game_lobby_v2')); return d?.name||null; } catch(e){return null;} })();
@@ -2842,5 +2964,42 @@ window.addEventListener('resize', () => {
   renderMap();
   updateUI();
 });
-</script>
+
+
+// ════════════════════════════════════════════════════════════
+// 🚀 INIT
+// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+load();
+
+// If no saved position, find start
+if (explored.size === 0) {
+  const sp = findStart();
+  px = sp.x; py = sp.y;
+  // Reveal 5×5 area on first load
+  for (let ey = -2; ey <= 2; ey++) {
+    for (let ex = -2; ex <= 2; ex++) {
+      explored.add(`${sp.x+ex},${sp.y+ey}`);
+    }
+  }
+  state.totalExplored = 25;
+}
+
+// Periodic auto-save
+setInterval(() => save(false), 30000);
+
+// 等 DOM 完整 layout 後再初始化 Canvas 尺寸
+requestAnimationFrame(() => {
+  initCanvas();
+  renderMap();
+  updateUI();
+});
+
+window.addEventListener('resize', () => {
+  initCanvas();
+  renderMap();
+  updateUI();
+});</script>
 </body></html>
