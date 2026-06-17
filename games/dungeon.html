@@ -51,7 +51,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   text-overflow:ellipsis;max-width:120px}
 
 /* MAP */
-.map-wrap{flex:1;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;background:#000;min-height:0}
+.map-wrap{flex:1;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;background:#000;min-height:0;border-top:2px solid #1a1a2e}
 #map-canvas{display:block;flex-shrink:0}
 
 /* CONTROLS */
@@ -337,8 +337,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     <div id="map-overlay-bar" style="
       position:absolute;top:0;left:0;right:0;
       display:flex;align-items:center;justify-content:space-between;
-      padding:4px 8px;
-      background:linear-gradient(180deg,rgba(0,0,0,.75) 0%,rgba(0,0,0,0) 100%);
+      padding:6px 8px 8px;
+      background:linear-gradient(180deg,rgba(0,0,0,.85) 0%,rgba(0,0,0,0) 100%);
       pointer-events:none;gap:6px;flex-wrap:wrap">
       <!-- 血量 -->
       <div style="display:flex;align-items:center;gap:4px;min-width:100px;flex:1">
@@ -2647,7 +2647,7 @@ function showSaveToast() {
   if (!t) {
     t = document.createElement('div');
     t.id = 'save-toast';
-    t.style.cssText = 'position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:.5px solid #4ade80;color:#4ade80;font-size:11px;padding:4px 12px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999';
+    t.style.cssText = 'position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 180px);left:50%;transform:translateX(-50%);background:#1a1a2e;border:.5px solid #4ade80;color:#4ade80;font-size:11px;padding:4px 12px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999';
     document.body.appendChild(t);
   }
   t.textContent = '💾 已存檔';
