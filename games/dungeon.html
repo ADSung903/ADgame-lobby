@@ -387,6 +387,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:11px;color:#f59e0b;white-space:nowrap" id="mo-gold">💰 0</span>
         <span style="font-size:11px;color:#60a5fa;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis" id="mo-wpn">⚔️ 空手</span>
+        <span style="font-size:10px;color:#888;white-space:nowrap" id="mo-continent">🌿 新手森林</span>
       </div>
     </div>
 
@@ -675,15 +676,160 @@ const MDEFS = {
   古樹守衛:  {icon:'🌳',hp:300,atk:18,def:25,agi:4,special:'regen',   drop:'multi',   exp:150,gold:100,elite:true,element:'earth'},
   森林詛咒者:{icon:'🧟',hp:800,atk:35,def:20,agi:12,special:'boss',   drop:'multi',   exp:500,gold:300,elite:true,element:'dark'},
 };
+// ── 新手森林 ──
 const FOREST_POOL   = ['毒牙蟲','憤怒蘑菇','森林野狼','藤蔓精靈','狡猾狐狸','毒沼蛙'];
 const PLAINS_POOL   = ['毒牙蟲','森林野狼','石頭哥布林','狡猾狐狸'];
 const MOUNTAIN_POOL = ['石頭哥布林','憤怒蘑菇','毒牙蟲'];
 const ELITE_POOL    = ['憤怒山豬王','古樹守衛'];
 
+// ── 沙漠遺跡 (Lv.20+) ──
+Object.assign(MDEFS, {
+  沙漠蠍:   {icon:'🦂',hp:90, atk:20,def:8, agi:14,special:'poison',  drop:'gloves', exp:55,gold:40,elite:false,element:'earth'},
+  木乃伊:   {icon:'🧟',hp:120,atk:18,def:18,agi:5, special:'highdef', drop:'armor',  exp:65,gold:50,elite:false,element:'dark'},
+  沙漠強盜: {icon:'🗡️',hp:80, atk:25,def:5, agi:20,special:'steal',   drop:null,     exp:50,gold:80,elite:false,element:'none'},
+  沙漠毒蛇: {icon:'🐍',hp:70, atk:22,def:4, agi:22,special:'poison',  drop:'ring',   exp:48,gold:35,elite:false,element:'earth'},
+  古墓衛士: {icon:'⚱️',hp:280,atk:35,def:30,agi:8, special:'highdef', drop:'multi',  exp:180,gold:120,elite:true,element:'dark'},
+  沙漠巨蠍王:{icon:'🦂',hp:600,atk:55,def:25,agi:18,special:'boss',   drop:'multi',  exp:600,gold:400,elite:true,element:'earth'},
+});
+const DESERT_POOL  = ['沙漠蠍','木乃伊','沙漠強盜','沙漠毒蛇'];
+const DESERT_ELITE = ['古墓衛士'];
+const DESERT_BOSS  = '沙漠巨蠍王';
+
+// ── 冰雪荒原 (Lv.25+) ──
+Object.assign(MDEFS, {
+  雪狼:     {icon:'🐺',hp:100,atk:26,def:8, agi:24,special:null,      drop:'boots',  exp:70,gold:45,elite:false,element:'ice'},
+  冰晶精靈: {icon:'❄️',hp:85, atk:22,def:12,agi:16,special:'slow',    drop:'necklace',exp:65,gold:42,elite:false,element:'ice'},
+  凍土熊:   {icon:'🐻',hp:150,atk:30,def:20,agi:8, special:'berserk', drop:'armor',  exp:88,gold:60,elite:false,element:'ice'},
+  冰霜蜘蛛: {icon:'🕷️',hp:90, atk:20,def:6, agi:26,special:'poison',  drop:'ring',   exp:62,gold:40,elite:false,element:'ice'},
+  霜龍幼體: {icon:'🐉',hp:400,atk:50,def:35,agi:12,special:'regen',   drop:'multi',  exp:220,gold:160,elite:true,element:'ice'},
+  冰原霸主: {icon:'🧊',hp:900,atk:65,def:40,agi:15,special:'boss',    drop:'multi',  exp:750,gold:500,elite:true,element:'ice'},
+});
+const ICE_POOL  = ['雪狼','冰晶精靈','凍土熊','冰霜蜘蛛'];
+const ICE_ELITE = ['霜龍幼體'];
+const ICE_BOSS  = '冰原霸主';
+
+// ── 熔岩地獄 (Lv.35+) ──
+Object.assign(MDEFS, {
+  岩漿獸:   {icon:'🔥',hp:130,atk:38,def:15,agi:10,special:null,      drop:'armor',  exp:100,gold:70,elite:false,element:'fire'},
+  火蜥蜴:   {icon:'🦎',hp:100,atk:32,def:8, agi:22,special:null,      drop:'boots',  exp:85, gold:58,elite:false,element:'fire'},
+  熔岩哥布林:{icon:'👺',hp:110,atk:35,def:12,agi:15,special:'steal',   drop:null,     exp:90, gold:110,elite:false,element:'fire'},
+  火焰蠍:   {icon:'🦂',hp:120,atk:40,def:10,agi:18,special:'poison',  drop:'ring',   exp:95, gold:65,elite:false,element:'fire'},
+  熔岩巨人: {icon:'🗿',hp:500,atk:60,def:45,agi:5, special:'highdef', drop:'multi',  exp:280,gold:200,elite:true,element:'fire'},
+  火山惡魔: {icon:'😈',hp:1200,atk:80,def:50,agi:20,special:'boss',   drop:'multi',  exp:900,gold:600,elite:true,element:'fire'},
+});
+const LAVA_POOL  = ['岩漿獸','火蜥蜴','熔岩哥布林','火焰蠍'];
+const LAVA_ELITE = ['熔岩巨人'];
+const LAVA_BOSS  = '火山惡魔';
+
+// ── 深海礦洞 (Lv.30+) ──
+Object.assign(MDEFS, {
+  深海魚人: {icon:'🐟',hp:110,atk:30,def:10,agi:20,special:'slow',    drop:'necklace',exp:80,gold:55,elite:false,element:'water'},
+  珊瑚怪:   {icon:'🪸',hp:140,atk:25,def:22,agi:6, special:'highdef', drop:'armor',  exp:90,gold:60,elite:false,element:'water'},
+  深海水母: {icon:'🪼',hp:80, atk:28,def:5, agi:18,special:'stackslow',drop:'ring',  exp:70,gold:45,elite:false,element:'water'},
+  海盜幽靈: {icon:'💀',hp:100,atk:35,def:8, agi:24,special:'steal',   drop:null,     exp:85,gold:120,elite:false,element:'dark'},
+  深海鯊王: {icon:'🦈',hp:450,atk:55,def:30,agi:18,special:'berserk', drop:'multi',  exp:260,gold:180,elite:true,element:'water'},
+  深淵之眼: {icon:'👁️',hp:1000,atk:70,def:40,agi:25,special:'boss',  drop:'multi',  exp:800,gold:550,elite:true,element:'dark'},
+});
+const SEA_POOL  = ['深海魚人','珊瑚怪','深海水母','海盜幽靈'];
+const SEA_ELITE = ['深海鯊王'];
+const SEA_BOSS  = '深淵之眼';
+
+// ── 天空浮島 (Lv.40+) ──
+Object.assign(MDEFS, {
+  風鷹:     {icon:'🦅',hp:120,atk:42,def:8, agi:32,special:null,      drop:'boots',  exp:110,gold:75,elite:false,element:'thunder'},
+  雷鳥:     {icon:'⚡',hp:100,atk:48,def:5, agi:28,special:'slow',    drop:'ring',   exp:105,gold:70,elite:false,element:'thunder'},
+  雲霧精靈: {icon:'☁️',hp:90, atk:38,def:12,agi:26,special:'slow',   drop:'necklace',exp:95,gold:65,elite:false,element:'none'},
+  天空騎士: {icon:'🪽',hp:150,atk:45,def:20,agi:22,special:null,      drop:'armor',  exp:120,gold:85,elite:false,element:'thunder'},
+  雷霆巨鵬: {icon:'🦉',hp:550,atk:70,def:38,agi:30,special:'berserk', drop:'multi',  exp:300,gold:220,elite:true,element:'thunder'},
+  天空之王: {icon:'🌩️',hp:1500,atk:90,def:55,agi:35,special:'boss',  drop:'multi',  exp:1000,gold:700,elite:true,element:'thunder'},
+});
+const SKY_POOL  = ['風鷹','雷鳥','雲霧精靈','天空騎士'];
+const SKY_ELITE = ['雷霆巨鵬'];
+const SKY_BOSS  = '天空之王';
+
+// ── 暗影次元 (Lv.45+) ──
+Object.assign(MDEFS, {
+  暗影獸:   {icon:'🐾',hp:140,atk:50,def:15,agi:30,special:null,      drop:'armor',  exp:130,gold:90,elite:false,element:'dark'},
+  幽靈:     {icon:'👻',hp:100,atk:45,def:5, agi:35,special:'steal',   drop:null,     exp:115,gold:130,elite:false,element:'dark'},
+  暗影刺客: {icon:'🥷',hp:120,atk:58,def:8, agi:38,special:null,      drop:'boots',  exp:125,gold:88,elite:false,element:'dark'},
+  詛咒騎士: {icon:'⚫',hp:170,atk:52,def:28,agi:15,special:'highdef', drop:'ring',   exp:140,gold:95,elite:false,element:'dark'},
+  暗影領主: {icon:'🌑',hp:650,atk:80,def:50,agi:25,special:'regen',   drop:'multi',  exp:350,gold:260,elite:true,element:'dark'},
+  虛空魔神: {icon:'🕳️',hp:1800,atk:100,def:60,agi:30,special:'boss', drop:'multi',  exp:1200,gold:800,elite:true,element:'dark'},
+});
+const SHADOW_POOL  = ['暗影獸','幽靈','暗影刺客','詛咒騎士'];
+const SHADOW_ELITE = ['暗影領主'];
+const SHADOW_BOSS  = '虛空魔神';
+
+// ── 機械廢都 (Lv.50+) ──
+Object.assign(MDEFS, {
+  機械蟲:   {icon:'🤖',hp:160,atk:55,def:20,agi:18,special:'highdef', drop:'armor',  exp:145,gold:100,elite:false,element:'thunder'},
+  廢棄守衛: {icon:'⚙️',hp:200,atk:50,def:35,agi:10,special:'highdef', drop:'ring',   exp:160,gold:110,elite:false,element:'none'},
+  電擊無人機:{icon:'🛸',hp:120,atk:60,def:8, agi:30,special:'slow',    drop:'necklace',exp:135,gold:92,elite:false,element:'thunder'},
+  機械劍士: {icon:'🗡️',hp:180,atk:65,def:25,agi:20,special:null,      drop:'boots',  exp:155,gold:108,elite:false,element:'none'},
+  廢都統帥: {icon:'🏭',hp:800,atk:90,def:60,agi:15,special:'berserk', drop:'multi',  exp:420,gold:300,elite:true,element:'thunder'},
+  機械神: {icon:'⚡',hp:2000,atk:110,def:70,agi:25,special:'boss',    drop:'multi',  exp:1500,gold:1000,elite:true,element:'thunder'},
+});
+const MECH_POOL  = ['機械蟲','廢棄守衛','電擊無人機','機械劍士'];
+const MECH_ELITE = ['廢都統帥'];
+const MECH_BOSS  = '機械神';
+
+// ── 隱藏大陸 (???) ──
+Object.assign(MDEFS, {
+  混沌使者: {icon:'🌀',hp:300,atk:120,def:80,agi:40,special:'boss',   drop:'multi',  exp:2000,gold:1500,elite:true,element:'none'},
+});
+const HIDDEN_POOL  = [...DESERT_POOL,...ICE_POOL,...LAVA_POOL,...SEA_POOL];
+const HIDDEN_ELITE = ['混沌使者'];
+
 
 // ════════════════════════════════════════════════════════════
 // 👾 MONSTER DEFINITIONS & SCALING
 // ════════════════════════════════════════════════════════════
+
+// ── 大陸判斷 ──
+function getContinent(wx, wy) {
+  const dx = wx - START_X, dy = wy - START_Y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const angle = Math.atan2(-dy, dx) * 180 / Math.PI; // 北=90, 東=0, 南=-90, 西=180
+
+  if (dist < 150) return 'forest';   // 新手森林：中心150格
+  if (dist >= 600 && dx > 0) return 'hidden';   // 隱藏：極東600+
+  if (dist >= 500 && dx < 0) return 'mech';     // 機械廢都：極西500+
+  if (dist >= 400 && dy < 0) return 'sky';      // 天空浮島：正北400+
+  if (dist >= 300 && angle > 120) return 'shadow';  // 暗影次元：西南300+
+  if (dist >= 300 && angle < -45 && dx > 0) return 'lava'; // 熔岩：東南300+
+  if (dist >= 250 && angle < -60 && Math.abs(dx) < 150) return 'sea'; // 深海：正南250+
+  if (dist >= 200 && dx > 0 && dy < 50) return 'desert';  // 沙漠：東北200+
+  if (dist >= 200 && dx < 0 && dy < 50) return 'ice';     // 冰雪：西北200+
+  return 'forest'; // 預設新手森林
+}
+
+// 各大陸建議等級
+const CONTINENT_INFO = {
+  forest:  {name:'🌿 新手森林', recLv:1,  color:'#1e6020'},
+  desert:  {name:'🏜️ 沙漠遺跡', recLv:20, color:'#8a6020'},
+  ice:     {name:'❄️ 冰雪荒原', recLv:25, color:'#4080a0'},
+  lava:    {name:'🌋 熔岩地獄', recLv:35, color:'#a03010'},
+  sea:     {name:'🌊 深海礦洞', recLv:30, color:'#1040a0'},
+  sky:     {name:'☁️ 天空浮島', recLv:40, color:'#6060a0'},
+  shadow:  {name:'🌑 暗影次元', recLv:45, color:'#301050'},
+  mech:    {name:'⚙️ 機械廢都', recLv:50, color:'#404040'},
+  hidden:  {name:'👑 ???',      recLv:99, color:'#806000'},
+};
+
+// 各大陸怪物池
+const CONTINENT_POOLS = {
+  forest: {normal:FOREST_POOL, elite:ELITE_POOL},
+  desert: {normal:DESERT_POOL, elite:DESERT_ELITE},
+  ice:    {normal:ICE_POOL,    elite:ICE_ELITE},
+  lava:   {normal:LAVA_POOL,   elite:LAVA_ELITE},
+  sea:    {normal:SEA_POOL,    elite:SEA_ELITE},
+  sky:    {normal:SKY_POOL,    elite:SKY_ELITE},
+  shadow: {normal:SHADOW_POOL, elite:SHADOW_ELITE},
+  mech:   {normal:MECH_POOL,   elite:MECH_ELITE},
+  hidden: {normal:HIDDEN_POOL, elite:HIDDEN_ELITE},
+};
+
+let lastContinent = 'forest';
 
 function getMonsterAt(wx, wy) {
   const k = `${wx},${wy}`;
@@ -692,19 +838,28 @@ function getMonsterAt(wx, wy) {
   if (!SPAWN_TERRAIN.includes(ter)) return null;
   const h3 = tileH(wx, wy, 3);
   if (h3 > SPAWN_RATE[ter]) return null;
-  // Elite check: ~5% of spawns
+
+  const continent = getContinent(wx, wy);
+  const pools = CONTINENT_POOLS[continent] || CONTINENT_POOLS.forest;
+
   const h4 = tileH(wx, wy, 4);
   if (h4 < 0.05) {
-    const idx = Math.floor(tileH(wx, wy, 5) * ELITE_POOL.length);
-    return { name: ELITE_POOL[idx], wx, wy };
+    const elitePool = pools.elite;
+    const idx = Math.floor(tileH(wx, wy, 5) * elitePool.length);
+    return { name: elitePool[idx], wx, wy };
   }
-  const pool = ter === T.FOREST ? FOREST_POOL : ter === T.PLAINS ? PLAINS_POOL : MOUNTAIN_POOL;
+  const pool = pools.normal;
   const idx = Math.floor(h4 * pool.length);
   return { name: pool[idx], wx, wy };
 }
 
 function scaledMonster(name, baseLevel) {
   const d = MDEFS[name];
+  if (!d) {
+    console.error('Unknown monster:', name);
+    // 回傳預設怪物避免崩潰
+    return scaledMonster('毒牙蟲', baseLevel);
+  }
   const lv = Math.max(1, baseLevel);
   return {
     name, icon:d.icon, maxHp: Math.floor(d.hp*(1+lv*0.08)), atk: Math.floor(d.atk*(1+lv*0.06)),
@@ -1657,6 +1812,44 @@ function move(dx, dy) {
   renderMap(); updateUI(); save(true);
 }
 
+function checkContinentChange() {
+  const cur = getContinent(px, py);
+  if (cur !== lastContinent) {
+    lastContinent = cur;
+    const info = CONTINENT_INFO[cur];
+    if (!info) return;
+    const isUnder = state.level < info.recLv;
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:500;pointer-events:auto;animation:fadeUp .4s ease';
+    modal.innerHTML = `
+      <div style="background:#0d0d22;border:1px solid ${info.color};border-radius:14px;
+        padding:.8rem 1.2rem;min-width:220px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.5)">
+        <div style="font-size:15px;font-weight:700;color:${info.color};margin-bottom:.3rem">${info.name}</div>
+        <div style="font-size:11px;color:#888;margin-bottom:.5rem">建議等級：Lv.${info.recLv}</div>
+        ${isUnder?`<div style="font-size:11px;color:#f87171;margin-bottom:.5rem">⚠️ 目前 Lv.${state.level}，此區域危險！</div>`:''}
+        <div style="display:flex;gap:.5rem;justify-content:center">
+          <button onclick="this.closest('[style*=fixed]').remove()"
+            style="padding:5px 14px;border-radius:8px;border:.5px solid #444;
+            background:transparent;color:#aaa;font-size:11px;cursor:pointer">繼續探索</button>
+          ${isUnder?`<button onclick="goBack2Forest();this.closest('[style*=fixed]').remove()"
+            style="padding:5px 14px;border-radius:8px;border:none;
+            background:#1a1a3a;color:#a78bfa;font-size:11px;cursor:pointer">← 回新手森林</button>`:''}
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    setTimeout(() => { if (modal.parentNode) modal.remove(); }, 6000);
+  }
+}
+
+function goBack2Forest() {
+  // 傳送回出發點附近
+  const sp = findStart();
+  px = sp.x; py = sp.y;
+  lastContinent = 'forest';
+  renderMap(); updateUI();
+  toast('🌿 已回到新手森林');
+}
+
 function tickEffects() {
   state.statusEffects = state.statusEffects.filter(e => {
     e.turns--;
@@ -1717,7 +1910,7 @@ function startCombat(monName, wx, wy, lv) {
   document.getElementById('cb-q').style.display = 'none';
   document.getElementById('cb-log').innerHTML = '';
   updateCombatHPDisplay();
-  renderCombatSkillBtns();
+  try { renderCombatSkillBtns(); } catch(e) { console.error('skillBtns error:', e); }
 
   // First strike check
   const monHasFirst = m.agi * 3 >= totalStat('agi');
@@ -1749,9 +1942,9 @@ function startCombatTurn(monGoesFirst) {
     updateStatusBar();
   }
 
-  // Monster goes first
-  if (monGoesFirst && combat.turn > 0) {
-    doMonsterAttack(() => { showQuestion(); });
+  // 只有第一回合才考慮先攻順序
+  if (combat.turn === 1 && monGoesFirst) {
+    doMonsterAttack(() => showQuestion());
     return;
   }
   showQuestion();
@@ -1760,14 +1953,27 @@ function startCombatTurn(monGoesFirst) {
 function showQuestion() {
   if (!combatActive) return;
   answerActive = false;
-  const q = genQuestion(state.level);
-  const choices = shuffleAnswers(q.answer);
+  let q, choices;
+  try {
+    q = genQuestion(state.level);
+    choices = shuffleAnswers(q.answer);
+  } catch(e) {
+    console.error('genQuestion error:', e);
+    toast('⚠️ 出題錯誤：' + e.message);
+    return;
+  }
   const corners = ['tl','tr','bl','br'];
-  corners.forEach((c, i) => {
-    document.getElementById(`ans-${c}`).classList.remove('correct','wrong');
-    document.getElementById(`ans-${c}-val`).textContent = choices[i];
-    document.getElementById(`ans-${c}`).dataset.correct = choices[i] === q.answer ? '1' : '0';
-  });
+  try {
+    corners.forEach((c, i) => {
+      document.getElementById(`ans-${c}`).classList.remove('correct','wrong');
+      document.getElementById(`ans-${c}-val`).textContent = choices[i];
+      document.getElementById(`ans-${c}`).dataset.correct = choices[i] === q.answer ? '1' : '0';
+    });
+  } catch(e) {
+    console.error('answer button error:', e);
+    toast('⚠️ 按鈕錯誤：' + e.message);
+    return;
+  }
 
   // Bee segment text
   const m = combat.monster;
@@ -2932,6 +3138,12 @@ function updateStatusBar() {
   document.getElementById('mo-gold').textContent = `💰 ${state.gold}`;
   document.getElementById('mo-wpn').textContent = w
     ? `${w.icon} ${w.name}${w.enhance>0?'+'+w.enhance:''}` : '⚔️ 空手';
+  const contEl = document.getElementById('mo-continent');
+  if (contEl) {
+    const ci = CONTINENT_INFO[getContinent(px,py)];
+    contEl.textContent = ci?.name || '🌿 新手森林';
+    contEl.style.color = ci?.color || '#888';
+  }
 }
 
 function updateUI() {
