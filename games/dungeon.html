@@ -1981,11 +1981,11 @@ function doMonsterAttack(cb) {
     cbLog('cl-o', `山豬王瀕死狂怒，攻擊力翻倍！`);
   }
 
-  // 陷阱（獵人，格擋一次）
-  if (hasSkill('hunter_5') && !skillUsedThisCombat('hunter_5_trap')) {
+  // 陷阱（獵人 Lv.5，預置後才觸發）
+  if (hasSkill('hunter_5') && skillUsedThisCombat('hunter_5') && !skillUsedThisCombat('hunter_5_trap')) {
     markSkillUsed('hunter_5_trap');
     cbLog('cl-g', `🏹 陷阱！${m.name}的攻擊被格擋！`);
-    if (!checkPlayerDead()) cb();
+    if (cb && !checkPlayerDead()) cb();
     return;
   }
   // 死亡騎士死亡凝視
@@ -1997,18 +1997,19 @@ function doMonsterAttack(cb) {
     setSkillCD('mage_5', 3);
     cbLog('cl-p', `🛡 魔法護盾！吸收20%傷害`);
   }
-  // 神聖護盾（聖騎士，免疫一次）
-  if (hasSkill('paladin_1') && !skillOnCD('paladin_1')) {
+  // 神聖護盾（聖騎士，免疫一次，CD保護）
+  if (hasSkill('paladin_1') && !skillOnCD('paladin_1') && !skillUsedThisCombat('paladin_shield')) {
     setSkillCD('paladin_1', 5);
+    markSkillUsed('paladin_shield');
     cbLog('cl-g', `✨ 神聖護盾！完全格擋此次攻擊！`);
     showFloatingText('BLOCK!', '#f59e0b', 'player');
-    if (!checkPlayerDead()) cb();
+    if (cb && !checkPlayerDead()) cb();
     return;
   }
   cbLog('cl-w', `${m.icon} ${m.name}發起攻擊，造成 ${wrapCol('cl-r',actualDmg)} 點傷害！${specialText?'　'+specialText:''}`);
   showFloatingDmg(actualDmg, false, true);
   applyDmgToPlayer(actualDmg);
-  if (!checkPlayerDead()) cb();
+  if (cb && !checkPlayerDead()) cb();
 }
 
 function nextTurnOrEnd() {
