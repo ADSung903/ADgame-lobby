@@ -532,6 +532,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     </div>
     <div class="cb-footer">
       <div class="cb-player-hp" id="cb-player-hp">❤️ 100</div>
+      <div id="cb-skill-btns" style="display:flex;gap:4px"></div>
       <button class="cb-escape" id="cb-escape" onclick="tryEscape()">🏃 逃跑</button>
     </div>
   </div>
@@ -969,17 +970,108 @@ const SET_DEFS = {
 
 // Ch5: 職業系統
 const JOB_DEFS = {
-  miner:       {name:'⛏️ 礦工',   desc:'初始職業，均衡成長',           passive:{}, canChangeTo:['warrior','mage','rogue'], reqLevel:0},
-  warrior:     {name:'⚔️ 戰士',   desc:'力量型，近戰爆發強',           passive:{strMult:1.2, defBonus:5}, canChangeTo:['paladin','death_knight'], reqLevel:10, reqJob:'miner', reqJobLevel:5},
-  mage:        {name:'🧙 法師',   desc:'智力型，魔杖傷害大幅提升',     passive:{intMult:1.3, atkWandMult:1.5}, canChangeTo:['ice_mage','fire_mage'], reqLevel:10, reqJob:'miner', reqJobLevel:5},
-  rogue:       {name:'🗡️ 盜賊',   desc:'敏捷+幸運，暴擊流',           passive:{agiMult:1.2, lukMult:1.2, critBonus:0.05}, canChangeTo:['hunter','gambler'], reqLevel:10, reqJob:'miner', reqJobLevel:5},
-  paladin:     {name:'🛡️ 聖騎士', desc:'防禦+治癒，每回合自動回血',   passive:{defMult:1.3, regenPerTurn:3}, canChangeTo:[], reqLevel:30, reqJob:'warrior', reqJobLevel:15},
-  death_knight:{name:'💀 死亡騎士',desc:'暗屬性加成，吸血攻擊',       passive:{darkBonus:1.5, lifeSteal:0.1}, canChangeTo:[], reqLevel:30, reqJob:'warrior', reqJobLevel:15},
-  ice_mage:    {name:'❄️ 冰法師', desc:'冰屬性大幅加成',              passive:{iceBonus:1.6}, canChangeTo:[], reqLevel:30, reqJob:'mage', reqJobLevel:15},
-  fire_mage:   {name:'🔥 火法師', desc:'火屬性大幅加成',              passive:{fireBonus:1.6}, canChangeTo:[], reqLevel:30, reqJob:'mage', reqJobLevel:15},
-  hunter:      {name:'🏹 獵人',   desc:'弓傷害大幅提升',              passive:{bowMult:1.5, agiMult:1.3}, canChangeTo:[], reqLevel:30, reqJob:'rogue', reqJobLevel:15},
-  gambler:     {name:'🃏 賭徒',   desc:'隨機暴擊，高風險高回報',      passive:{critMult:3.0, critChance:0.3}, canChangeTo:[], reqLevel:30, reqJob:'rogue', reqJobLevel:15},
+  miner: {
+    name:'⛏️ 礦工', desc:'初始職業，均衡成長',
+    passive:{},
+    skills:[
+      {id:'miner_1', name:'挖礦直覺', desc:'掉落率+15%', lv:1, type:'passive', effect:{dropBonus:0.15}},
+    ],
+    canChangeTo:['warrior','mage','rogue'], reqLevel:0,
+  },
+  warrior: {
+    name:'⚔️ 戰士', desc:'力量型，近戰爆發強',
+    passive:{strMult:1.2, defBonus:5},
+    skills:[
+      {id:'warrior_1', name:'破甲', desc:'每回合降低怪物防禦5%（疊3層）', lv:1, type:'auto', effect:{armorBreak:0.05, maxStack:3}},
+      {id:'warrior_5', name:'狂暴', desc:'血量<30%自動觸發，攻擊×1.5但防禦歸零，持續3回合', lv:5, type:'trigger', effect:{atkMult:1.5, defZero:true, turns:3}, cd:5},
+    ],
+    canChangeTo:['paladin','death_knight'], reqLevel:10, reqJob:'miner',
+  },
+  mage: {
+    name:'🧙 法師', desc:'智力型，魔杖傷害大幅提升',
+    passive:{intMult:1.3, atkWandMult:1.5},
+    skills:[
+      {id:'mage_1', name:'元素爆發', desc:'答題3秒內，傷害額外+30%元素加成', lv:1, type:'passive', effect:{fastAnswerElemBonus:0.3}},
+      {id:'mage_5', name:'魔法護盾', desc:'受傷時吸收20%傷害，3回合CD', lv:5, type:'trigger', effect:{dmgAbsorb:0.2}, cd:3},
+    ],
+    canChangeTo:['ice_mage','fire_mage'], reqLevel:10, reqJob:'miner',
+  },
+  rogue: {
+    name:'🗡️ 盜賊', desc:'敏捷+幸運，暴擊流',
+    passive:{agiMult:1.2, lukMult:1.2, critBonus:0.05},
+    skills:[
+      {id:'rogue_1', name:'先手必殺', desc:'先攻時傷害+60%', lv:1, type:'passive', effect:{firstStrikeBonus:0.6}},
+      {id:'rogue_5', name:'毒刃', desc:'攻擊附加中毒，每回合-8血', lv:5, type:'auto', effect:{poisonOnHit:8}},
+    ],
+    canChangeTo:['hunter','gambler'], reqLevel:10, reqJob:'miner',
+  },
+  paladin: {
+    name:'🛡️ 聖騎士', desc:'防禦+治癒，每回合自動回血',
+    passive:{defMult:1.3, regenPerTurn:3},
+    skills:[
+      {id:'paladin_1', name:'神聖護盾', desc:'自動觸發，免疫一次傷害，5回合CD', lv:1, type:'trigger', effect:{immuneOnce:true}, cd:5},
+      {id:'paladin_5', name:'聖光治癒', desc:'每回合額外回血5點', lv:5, type:'passive', effect:{regenBonus:5}},
+    ],
+    canChangeTo:[], reqLevel:30, reqJob:'warrior',
+  },
+  death_knight: {
+    name:'💀 死亡騎士', desc:'暗屬性加成，吸血攻擊',
+    passive:{darkBonus:1.5, lifeSteal:0.1},
+    skills:[
+      {id:'dk_1', name:'吸血打擊', desc:'攻擊回復傷害10%的血量', lv:1, type:'passive', effect:{lifeSteal:0.1}},
+      {id:'dk_5', name:'死亡凝視', desc:'每場戰鬥1次，怪物攻擊-30%持續3回合', lv:5, type:'once', effect:{monAtkReduce:0.3, turns:3}},
+    ],
+    canChangeTo:[], reqLevel:30, reqJob:'warrior',
+  },
+  ice_mage: {
+    name:'❄️ 冰法師', desc:'冰屬性大幅加成，凍結怪物',
+    passive:{iceBonus:1.6},
+    skills:[
+      {id:'ice_1', name:'寒冰護甲', desc:'受冰屬性傷害完全免疫', lv:1, type:'passive', effect:{iceImmune:true}},
+      {id:'ice_5', name:'絕對零度', desc:'每場1次，凍結怪物2回合（跳過怪物攻擊）', lv:5, type:'once', effect:{freeze:2}},
+    ],
+    canChangeTo:[], reqLevel:30, reqJob:'mage',
+  },
+  fire_mage: {
+    name:'🔥 火法師', desc:'火屬性大幅加成，持續灼傷',
+    passive:{fireBonus:1.6},
+    skills:[
+      {id:'fire_1', name:'燃燒', desc:'攻擊附加灼傷，每回合-10血', lv:1, type:'auto', effect:{burnOnHit:10}},
+      {id:'fire_5', name:'爆炎', desc:'血量>70%時可用，一次×2.5傷害，4回合CD', lv:5, type:'trigger', effect:{burstMult:2.5, reqHpPct:0.7}, cd:4},
+    ],
+    canChangeTo:[], reqLevel:30, reqJob:'mage',
+  },
+  hunter: {
+    name:'🏹 獵人', desc:'弓傷害大幅提升，先手優勢',
+    passive:{bowMult:1.5, agiMult:1.3},
+    skills:[
+      {id:'hunter_1', name:'弓箭強化', desc:'弓攻擊額外+30%，先攻機率大幅提升', lv:1, type:'passive', effect:{bowBonus:0.3}},
+      {id:'hunter_5', name:'陷阱', desc:'每場1次，怪物下一次攻擊完全失效', lv:5, type:'once', effect:{trapNextAtk:true}},
+    ],
+    canChangeTo:[], reqLevel:30, reqJob:'rogue',
+  },
+  gambler: {
+    name:'🃏 賭徒', desc:'隨機暴擊，高風險高回報',
+    passive:{critMult:3.0, critChance:0.3},
+    skills:[
+      {id:'gambler_1', name:'幸運一擲', desc:'每次攻擊30%機率觸發×5暴擊', lv:1, type:'passive', effect:{luckyStrike:0.3, luckyMult:5}},
+      {id:'gambler_5', name:'豪賭', desc:'每場1次，50%機率×4傷害，50%機率自傷30%血量', lv:5, type:'once', effect:{gambleWinMult:4, gambleLosePct:0.3}},
+    ],
+    canChangeTo:[], reqLevel:30, reqJob:'miner',
+  },
 };
+
+// 職業等級經驗需求
+function jobExpForLevel(lv) {
+  return lv * 10; // Lv.1→2需10場，Lv.2→3需20場...
+}
+
+// 取得當前職業已解鎖的技能
+function getUnlockedSkills() {
+  const jd = JOB_DEFS[state.job || 'miner'];
+  if (!jd?.skills) return [];
+  return jd.skills.filter(s => (state.jobLevel||1) >= s.lv);
+}
 
 // ═══════════════════════════════════════════════
 // GAME STATE
@@ -1071,7 +1163,8 @@ function generateLoot(monName, monLv) {
 function initState() {
   return {
     generation:1, level:1, exp:0, expNext:100,
-    job:'miner', jobLevel:1, prevJobs:[],
+    job:'miner', jobLevel:1, jobExp:0, prevJobs:[],
+    skillCDs:{}, skillUsed:{}, // CD倒數 & 每場已使用
     stats:{ hp:100,maxHp:100,str:10,agi:8,luk:5,int:5,def:5 },
     freePoints:0,
     gold:50,
@@ -1616,15 +1709,19 @@ function startCombat(monName, wx, wy, lv) {
   combatActive = true;
   cbTextQ = []; cbTextRunning = false;
   answerActive = false;
+  resetCombatSkills();
+  tickSkillCDs();
 
   document.getElementById('combat-overlay').classList.add('active');
   document.getElementById('map-dim').classList.add('active');
   document.getElementById('cb-q').style.display = 'none';
   document.getElementById('cb-log').innerHTML = '';
   updateCombatHPDisplay();
+  renderCombatSkillBtns();
 
   // First strike check
   const monHasFirst = m.agi * 3 >= totalStat('agi');
+  combat.playerWentFirst = !monHasFirst;
   if (!monHasFirst) {
     cbLog('cl-w', `你眼疾手快，搶先一步出手！`);
   } else {
@@ -1743,6 +1840,40 @@ function resolvePlayerAttack(timeLeft, tl) {
   else if (timeLeft < 1)    { atk = Math.floor(atk * 0.8); sub = '險！勉強答對……'; }
   else                      { sub = CORRECT_MSGS[Math.floor(Math.random()*CORRECT_MSGS.length)]; }
 
+  // 先手必殺（盜賊）
+  if (combat.playerWentFirst && hasSkill('rogue_1')) {
+    const bonus = getSkillEffect('rogue_1').firstStrikeBonus;
+    atk = Math.floor(atk * (1 + bonus));
+    cbLog('cl-p', `🗡️ 先手必殺！傷害+${Math.round(bonus*100)}%`);
+  }
+
+  // 狂暴（戰士 Lv.5，血量<30%）
+  if (hasSkill('warrior_5') && !skillOnCD('warrior_5') &&
+      state.stats.hp < state.stats.maxHp * 0.3 && !combat.berserk) {
+    combat.berserk = true;
+    combat.buffAtk *= 1.5;
+    setSkillCD('warrior_5', 5);
+    cbLog('cl-r', `⚔️ 狂暴！攻擊×1.5，持續3回合！`);
+  }
+
+  // 爆炎（火法師 Lv.5，血量>70%）
+  if (hasSkill('fire_5') && !skillOnCD('fire_5') && !skillUsedThisCombat('fire_5') &&
+      state.stats.hp > state.stats.maxHp * 0.7) {
+    atk = Math.floor(atk * getSkillEffect('fire_5').burstMult);
+    setSkillCD('fire_5', 4);
+    markSkillUsed('fire_5');
+    cbLog('cl-r', `🔥 爆炎！×${getSkillEffect('fire_5').burstMult}傷害！`);
+  }
+
+  // 賭徒幸運一擲
+  if (hasSkill('gambler_1')) {
+    const ef = getSkillEffect('gambler_1');
+    if (Math.random() < ef.luckyStrike) {
+      atk = Math.floor(atk * ef.luckyMult);
+      cbLog('cl-y', `🃏 幸運一擲！×${ef.luckyMult}暴擊！`);
+    }
+  }
+
   // Crit (with job passives)
   const jp = getJobPassive();
   let critRate = (totalStat('luk') * 0.5) / 100 + (jp.critBonus || 0);
@@ -1789,6 +1920,19 @@ function resolvePlayerAttack(timeLeft, tl) {
   }
 
   m.hp = Math.max(0, m.hp - atk);
+  combat.lastPlayerDmg = atk;
+  // 燃燒標記（火法師）
+  if (hasSkill('fire_1')) combat.burned = true;
+  // 毒刃（盜賊 Lv.5）
+  if (hasSkill('rogue_5') && !combat.poisonApplied) {
+    combat.poisonApplied = true;
+    cbLog('cl-p', `🗡️ 毒刃！怪物中毒，每回合-8血`);
+  }
+  // 記錄破甲層數影響怪物防禦
+  if (combat.armorBreakStacks > 0) {
+    const reduction = combat.armorBreakStacks * 0.05;
+    m.def = Math.max(0, Math.floor(m.def * (1 - reduction)));
+  }
   showFloatingDmg(atk, isCrit, false);
   updateCombatHPDisplay();
 
@@ -1837,14 +1981,70 @@ function doMonsterAttack(cb) {
     cbLog('cl-o', `山豬王瀕死狂怒，攻擊力翻倍！`);
   }
 
-  cbLog('cl-w', `${m.icon} ${m.name}發起攻擊，造成 ${wrapCol('cl-r',dmg)} 點傷害！${specialText?'　'+specialText:''}`);
-  showFloatingDmg(dmg, false, true);
-  applyDmgToPlayer(dmg);
+  // 陷阱（獵人，格擋一次）
+  if (hasSkill('hunter_5') && !skillUsedThisCombat('hunter_5_trap')) {
+    markSkillUsed('hunter_5_trap');
+    cbLog('cl-g', `🏹 陷阱！${m.name}的攻擊被格擋！`);
+    if (!checkPlayerDead()) cb();
+    return;
+  }
+  // 死亡騎士死亡凝視
+  if (combat.deathGaze) dmg = Math.floor(dmg * (1 - 0.3));
+  // 魔法護盾（法師 Lv.5）
+  let actualDmg = dmg;
+  if (hasSkill('mage_5') && !skillOnCD('mage_5')) {
+    actualDmg = Math.floor(dmg * (1 - getSkillEffect('mage_5').dmgAbsorb));
+    setSkillCD('mage_5', 3);
+    cbLog('cl-p', `🛡 魔法護盾！吸收20%傷害`);
+  }
+  // 神聖護盾（聖騎士，免疫一次）
+  if (hasSkill('paladin_1') && !skillOnCD('paladin_1')) {
+    setSkillCD('paladin_1', 5);
+    cbLog('cl-g', `✨ 神聖護盾！完全格擋此次攻擊！`);
+    showFloatingText('BLOCK!', '#f59e0b', 'player');
+    if (!checkPlayerDead()) cb();
+    return;
+  }
+  cbLog('cl-w', `${m.icon} ${m.name}發起攻擊，造成 ${wrapCol('cl-r',actualDmg)} 點傷害！${specialText?'　'+specialText:''}`);
+  showFloatingDmg(actualDmg, false, true);
+  applyDmgToPlayer(actualDmg);
   if (!checkPlayerDead()) cb();
 }
 
 function nextTurnOrEnd() {
   if (!combatActive) return;
+  const m = combat.monster;
+
+  // 破甲（戰士 Lv.1，每回合疊加）
+  if (hasSkill('warrior_1')) {
+    const stacks = Math.min((combat.armorBreakStacks||0)+1, 3);
+    combat.armorBreakStacks = stacks;
+  }
+
+  // 燃燒（火法師）
+  if (hasSkill('fire_1') && combat.burned) {
+    const burn = getSkillEffect('fire_1').burnOnHit;
+    m.hp = Math.max(1, m.hp - burn);
+    cbLog('cl-r', `🔥 燃燒傷害：${wrapCol('cl-r', burn)}`);
+    updateCombatHPDisplay();
+  }
+
+  // 吸血（死亡騎士）
+  if (hasSkill('dk_1') && combat.lastPlayerDmg > 0) {
+    const heal = Math.floor(combat.lastPlayerDmg * 0.1);
+    if (heal > 0) {
+      state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + heal);
+      updateStatusBar();
+    }
+  }
+
+  // 聖騎士額外回血
+  if (hasSkill('paladin_5')) {
+    const regen = getSkillEffect('paladin_5').regenBonus;
+    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + regen);
+  }
+
+  if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 300); return; }
   setTimeout(() => showQuestion(), 600);
 }
 
@@ -1971,12 +2171,55 @@ function endCombatVictory() {
   killedSet.add(`${combat.wx},${combat.wy}`);
   state.killedMonsters = [...killedSet];
 
+  // 職業經驗
+  gainJobExp();
+
   setTimeout(() => {
     document.getElementById('combat-overlay').classList.remove('active');
     document.getElementById('map-dim').classList.remove('active');
     gainExp(exp);
     updateUI(); save();
   }, 1200);
+}
+
+// 死亡凝視、豪賭、陷阱、絕對零度 等「每場1次」主動技能
+function useJobSkill(skillId) {
+  if (!combatActive) return;
+  if (skillUsedThisCombat(skillId)) { toast('此技能本場已使用'); return; }
+  const m = combat.monster;
+  switch(skillId) {
+    case 'dk_5': // 死亡凝視
+      combat.deathGaze = true;
+      markSkillUsed('dk_5');
+      cbLog('cl-p', `💀 死亡凝視！${m.name}攻擊-30%，持續3回合`);
+      break;
+    case 'ice_5': // 絕對零度
+      combat.frozenTurns = 2;
+      markSkillUsed('ice_5');
+      cbLog('cl-p', `❄️ 絕對零度！${m.name}被凍結2回合！`);
+      break;
+    case 'gambler_5': // 豪賭
+      markSkillUsed('gambler_5');
+      if (Math.random() < 0.5) {
+        const bigDmg = Math.floor(calcAtk() * 4);
+        m.hp = Math.max(0, m.hp - bigDmg);
+        cbLog('cl-y', `🃏 豪賭大勝！造成 ${wrapCol('cl-y', bigDmg)} 傷害！`);
+        showFloatingDmg(bigDmg, true, false);
+        updateCombatHPDisplay();
+        if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 400); return; }
+      } else {
+        const selfDmg = Math.floor(state.stats.maxHp * 0.3);
+        applyDmgToPlayer(selfDmg);
+        cbLog('cl-r', `🃏 豪賭失敗！自傷 ${wrapCol('cl-r', selfDmg)}！`);
+        if (checkPlayerDead()) return;
+      }
+      break;
+    case 'hunter_5': // 陷阱（預置，下次攻擊時觸發）
+      markSkillUsed('hunter_5');
+      cbLog('cl-g', `🏹 陷阱設置！${m.name}下次攻擊將被格擋`);
+      break;
+  }
+  updateUI(); save(true);
 }
 
 function tryEscape() {
@@ -2116,6 +2359,61 @@ function gainExp(amount) {
 // INVENTORY
 // ═══════════════════════════════════════════════
 
+// ── 職業等級成長 ──
+function gainJobExp() {
+  if (!state.jobExp) state.jobExp = 0;
+  state.jobExp++;
+  const needed = jobExpForLevel(state.jobLevel || 1);
+  if (state.jobExp >= needed) {
+    state.jobExp -= needed;
+    state.jobLevel = (state.jobLevel||1) + 1;
+    const newSkill = JOB_DEFS[state.job]?.skills?.find(s => s.lv === state.jobLevel);
+    if (newSkill) toast(`🌟 職業升級！Lv.${state.jobLevel} 解鎖技能：${newSkill.name}`);
+    else toast(`⭐ 職業升級！${JOB_DEFS[state.job]?.name} Lv.${state.jobLevel}`);
+  }
+}
+
+// ── 技能效果 getter ──
+function getSkillEffect(skillId) {
+  const skills = getUnlockedSkills();
+  return skills.find(s => s.id === skillId)?.effect || null;
+}
+
+function hasSkill(skillId) {
+  return getUnlockedSkills().some(s => s.id === skillId);
+}
+
+// ── 技能CD管理 ──
+function skillOnCD(skillId) {
+  return (state.skillCDs?.[skillId] || 0) > 0;
+}
+
+function setSkillCD(skillId, turns) {
+  if (!state.skillCDs) state.skillCDs = {};
+  state.skillCDs[skillId] = turns;
+}
+
+function tickSkillCDs() {
+  if (!state.skillCDs) return;
+  for (const k in state.skillCDs) {
+    if (state.skillCDs[k] > 0) state.skillCDs[k]--;
+  }
+}
+
+function resetCombatSkills() {
+  // 重置每場戰鬥限用一次的技能
+  state.skillUsed = {};
+}
+
+function skillUsedThisCombat(skillId) {
+  return !!(state.skillUsed?.[skillId]);
+}
+
+function markSkillUsed(skillId) {
+  if (!state.skillUsed) state.skillUsed = {};
+  state.skillUsed[skillId] = true;
+}
+
 function getJobPassive() {
   return JOB_DEFS[state.job||'miner']?.passive || {};
 }
@@ -2138,7 +2436,7 @@ function changeJob(jobKey) {
   if (!jd) return;
   if (state.level < (jd.reqLevel||0)) { toast(`需要 Lv.${jd.reqLevel}`); return; }
   if (state.job !== jd.reqJob) { toast('職業條件不符'); return; }
-  if ((state.jobLevel||1) < (jd.reqJobLevel||0)) { toast(`需要目前職業 Lv.${jd.reqJobLevel}`); return; }
+
   if (!confirm(`確定轉職為「${jd.name}」？\n職業等級將重置為1，但前職業殘留30%被動加成。`)) return;
   if (!state.prevJobs) state.prevJobs = [];
   state.prevJobs.push({job:state.job, level:state.jobLevel||1, passive:JOB_DEFS[state.job]?.passive||{}});
@@ -2851,7 +3149,14 @@ function openStats() {
   const curJobDef = JOB_DEFS[state.job || 'miner'];
   html += `<div class="stat-section"><h3>職業</h3>
     <div class="stat-row"><span class="sn">目前職業</span><span class="sv">${curJobDef?.name||'⛏️ 礦工'}</span></div>
-    <div class="stat-row"><span class="sn">職業等級</span><span class="sv">${state.jobLevel||1}</span></div>
+    <div class="stat-row"><span class="sn">職業等級</span><span class="sv">${state.jobLevel||1}／20　exp ${state.jobExp||0}/${jobExpForLevel(state.jobLevel||1)}</span></div>
+    ${getUnlockedSkills().length>0?`
+    <div style="margin:.5rem 0 .3rem;font-size:11px;color:var(--sub)">⚡ 已解鎖技能</div>
+    ${getUnlockedSkills().map(s=>`
+      <div style="background:var(--bg3);border-radius:8px;padding:.35rem .6rem;margin-bottom:.25rem;border:.5px solid #2a2a4a">
+        <div style="font-size:12px;font-weight:700;color:#c4b5fd">${s.name}</div>
+        <div style="font-size:10px;color:var(--sub)">${s.desc}</div>
+      </div>`).join('')}`:''}
     ${state.prevJobs?.length?`<div class="stat-row"><span class="sn">前職業</span><span class="sv" style="font-size:11px">${state.prevJobs.map(p=>JOB_DEFS[p.job]?.name||p.job).join(' → ')}</span></div>`:''}
   </div>`;
 
@@ -2862,15 +3167,14 @@ function openStats() {
       const jd = JOB_DEFS[jobKey];
       if (!jd) continue;
       const reqMet = state.level >= (jd.reqLevel||0)
-        && state.job === jd.reqJob
-        && (state.jobLevel||1) >= (jd.reqJobLevel||0);
+        && state.job === jd.reqJob;
       html += `<div style="background:var(--bg3);border:.5px solid ${reqMet?'var(--accent)':'var(--border)'};
         border-radius:10px;padding:.6rem;margin-bottom:.4rem;
         display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:13px;font-weight:700">${jd.name}</div>
           <div style="font-size:10px;color:var(--sub)">${jd.desc}</div>
-          <div style="font-size:10px;color:#555">需求：Lv.${jd.reqLevel}・${JOB_DEFS[jd.reqJob]?.name||''}職業Lv.${jd.reqJobLevel}</div>
+          <div style="font-size:10px;color:${reqMet?'#4ade80':'#555'}">需求：Lv.${jd.reqLevel}・目前職業：${JOB_DEFS[jd.reqJob]?.name||''}</div>
         </div>
         <button onclick="changeJob('${jobKey}')"
           style="padding:6px 12px;border-radius:8px;border:none;cursor:${reqMet?'pointer':'default'};
@@ -3111,6 +3415,9 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
     ${compareHtml}
     ${statHtml?`<div class="ic-stats">${statHtml}</div>`:''}
     ${item.reqLevel>0?`<div class="ic-req">需求等級：<span class="${reqOk?'':'req-fail'}">Lv.${item.reqLevel}${reqOk?'':'（不足）'}</span></div>`:''}
+    ${item.reqStr?`<div class="ic-req">需求力量：<span class="${totalStat('str')>=item.reqStr?'':'req-fail'}">${item.reqStr}${totalStat('str')>=item.reqStr?'':' ⚠️不足'}</span></div>`:''}
+    ${item.reqAgi?`<div class="ic-req">需求敏捷：<span class="${totalStat('agi')>=item.reqAgi?'':'req-fail'}">${item.reqAgi}${totalStat('agi')>=item.reqAgi?'':' ⚠️不足'}</span></div>`:''}
+    ${item.reqInt?`<div class="ic-req">需求智力：<span class="${totalStat('int')>=item.reqInt?'':'req-fail'}">${item.reqInt}${totalStat('int')>=item.reqInt?'':' ⚠️不足'}</span></div>`:''}
     ${heirloomHtml}${setHtml}${enhHtml}
     <div class="ic-btns">${btns}</div>`;
   openModal('modal-item');
@@ -3163,6 +3470,16 @@ function openMerchant() {
   openModal('modal-merchant');
 }
 
+function expandBag() {
+  const cost = 100000;
+  if (state.gold < cost) { toast('金幣不足'); return; }
+  if (state.inventoryMax >= 100) { toast('背包已達上限 100 格'); return; }
+  state.gold -= cost;
+  state.inventoryMax += 10;
+  toast(`🎒 背包擴充至 ${state.inventoryMax} 格！`);
+  renderMerchant(); updateUI(); save(true);
+}
+
 function computeSellPrice(item) {
   if (item.type === 'potion' || item.type === 'scroll') {
     return Math.floor((item.price || 30) * 0.4);
@@ -3173,7 +3490,27 @@ function computeSellPrice(item) {
 
 function renderMerchant() {
   const body = document.getElementById('merchant-body');
+  const maxSlots = 100;
+  const curSlots = state.inventoryMax || 30;
+  const canExpand = curSlots < maxSlots;
+  const expandCost = 100000;
   let html = `<div style="font-size:11px;color:var(--sub);margin-bottom:.6rem">💰 你的金幣：${state.gold}</div>`;
+  // 背包擴充
+  if (canExpand) {
+    const canAfford = state.gold >= expandCost;
+    html += `<div style="background:#1a1a2e;border:.5px solid ${canAfford?'#f59e0b':'#333'};
+      border-radius:10px;padding:.6rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:12px;color:#f59e0b">🎒 擴充背包</div>
+        <div style="font-size:10px;color:#666">目前 ${curSlots} 格 → ${curSlots+10} 格（上限100）</div>
+      </div>
+      <button onclick="expandBag()" ${canAfford?'':'disabled'}
+        style="padding:6px 12px;border-radius:8px;border:none;font-size:11px;cursor:${canAfford?'pointer':'default'};
+        background:${canAfford?'#92400e':'#2a2a4a'};color:${canAfford?'#fde68a':'#555'}">
+        💰 ${(expandCost/1000).toFixed(0)}K
+      </button>
+    </div>`;
+  }
   merchantStock.forEach((stock, i) => {
     const it = stock.item;
     const canBuy = state.gold >= stock.price;
