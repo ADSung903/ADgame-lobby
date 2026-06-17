@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -206,7 +206,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
     <div style="font-size:10px;color:var(--sub);margin-top:.35rem;text-align:center">匯入後到 📈 股票市場 進行投資・匯回只剩 10%</div>
     <button onclick="window.location.href='stock.html'" style="width:100%;margin-top:.55rem;padding:8px;border-radius:8px;border:.5px solid #2a2040;background:#12122a;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer">📈 前往股票市場 →</button>
   </div>
-  <button class="action-btn submit-btn" onclick="submitToLB(true)">📤 提交成績到富比士榜</button>
+  <button class="action-btn submit-btn" id="submit-btn" onclick="handleSubmit()">📤 提交成績到富比士榜</button>
   <button class="action-btn reset-btn" onclick="confirmReset()">🗑️ 重置遊戲（無法復原）</button>
 </div>
 
@@ -639,9 +639,11 @@ async function submitToLB(showToast=true){
     if(!wCur||state.weekly>(wCur.amount||0)) await set(wRef,weeklyData);
   }catch(e){console.warn('fbWeekly',e);}
 
-  fbWriteEntry('alltime', name, alltimeData);
-  fbWriteEntry('cps',     name, cpsData);
-  fbWriteEntry('prestige',name, prestigeData);
+  await Promise.all([
+    fbWriteEntry('alltime', name, alltimeData),
+    fbWriteEntry('cps',     name, cpsData),
+    fbWriteEntry('prestige',name, prestigeData),
+  ]);
 
   // 同步更新 prevRanks 到 localStorage（用於漲跌箭頭）
   const lb=loadLBLocal();
@@ -651,6 +653,20 @@ async function submitToLB(showToast=true){
   saveLBLocal(lb);
 
   if(showToast)toast('✅ 已提交到富比士榜！');
+}
+
+async function handleSubmit(){
+  const btn=document.getElementById('submit-btn');
+  if(!btn||btn.disabled)return;
+  btn.disabled=true;
+  btn.textContent='⏳ 提交中...';
+  try{
+    await submitToLB(true);
+  }catch(e){
+    toast('❌ 提交失敗，請重試');
+  }
+  btn.disabled=false;
+  btn.textContent='📤 提交成績到富比士榜';
 }
 
 function switchLBTab(tab){
