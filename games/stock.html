@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -83,6 +83,20 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 .rec-item{background:var(--bg2);border:.5px solid var(--border);border-radius:8px;padding:.4rem .5rem;text-align:center}
 .rec-val{font-size:14px;font-weight:700}
 .rec-lbl{font-size:10px;color:var(--sub);margin-top:2px}
+.slb-tabs{display:flex;gap:5px;padding:.4rem .75rem .2rem;flex-shrink:0}
+.slb-tab{flex:1;font-size:11px;padding:5px 0;border-radius:8px;border:.5px solid var(--border);background:var(--bg2);color:var(--sub);cursor:pointer;text-align:center;font-weight:600}
+.slb-tab.active{background:#1a1a3a;border-color:#7c3aed;color:#c4b5fd}
+.slb-list{padding:.3rem .75rem .75rem;flex-shrink:0}
+.slb-row{display:flex;align-items:center;gap:.5rem;padding:.45rem .5rem;border-bottom:.5px solid var(--border)}
+.slb-row:last-child{border:none}
+.slb-row.me{background:#12122a;border-radius:8px;margin:-1px 0}
+.slb-rank{font-size:14px;width:28px;text-align:center;flex-shrink:0}
+.slb-name{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slb-val{font-size:13px;font-weight:700;white-space:nowrap}
+.slb-empty{text-align:center;padding:1.2rem;color:var(--sub);font-size:12px}
+.slb-loading{text-align:center;padding:1rem;color:var(--sub);font-size:12px}
+.slb-section{flex-shrink:0;border-top:.5px solid var(--border);margin-top:.25rem}
+.slb-hdr{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;padding:.5rem .75rem .1rem}
 </style>
 </head><body><div class="app">
 
@@ -128,6 +142,16 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
   <div id="record-list"></div>
 </div>
 
+<div class="slb-section" id="slb-section">
+  <div class="slb-hdr">📊 投報率排行榜</div>
+  <div class="slb-tabs">
+    <div class="slb-tab active" id="slb-tab-roi" onclick="switchSlbTab('roi')">整體投報率</div>
+    <div class="slb-tab" id="slb-tab-pnl" onclick="switchSlbTab('pnl')">已實現損益</div>
+    <div class="slb-tab" id="slb-tab-best" onclick="switchSlbTab('best')">最佳單筆</div>
+  </div>
+  <div class="slb-list" id="slb-list"><div class="slb-loading">載入排行中...</div></div>
+</div>
+
 <!-- Buy Modal -->
 <div class="modal-overlay" id="buy-modal" style="display:none">
   <div class="modal-card">
@@ -161,6 +185,113 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
     </div>
   </div>
 </div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const _fbApp = initializeApp({
+  apiKey:"AIzaSyD_tt8CQhFpUkJHP5nlpqw5lj9DfphEsRk",
+  authDomain:"adgame-lobby.firebaseapp.com",
+  databaseURL:"https://adgame-lobby-default-rtdb.firebaseio.com",
+  projectId:"adgame-lobby",storageBucket:"adgame-lobby.firebasestorage.app",
+  messagingSenderId:"327242677809",appId:"1:327242677809:web:c621472813882c40061f10"
+});
+const _db = getDatabase(_fbApp);
+
+function _playerKey(){
+  try{ const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}'); return(d.name||'').replace(/\./g,'_')||null; }catch{return null;}
+}
+function _playerName(){
+  try{ const d=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}'); return d.name||null; }catch{return null;}
+}
+
+// 上傳股票統計到 Firebase
+async function uploadStockStats(){
+  const key=_playerKey(); if(!key) return;
+  const s=JSON.parse(localStorage.getItem('shop24h_stock')||'{}');
+  const roi=s.totalInvested>0?s.realizedPnl/s.totalInvested*100:0;
+  const best=s.trades&&s.trades.length?s.trades.reduce((b,t)=>t.roi>b?t.roi:b,-Infinity):null;
+  try{
+    await set(ref(_db,`stock_stats/${key}`),{
+      name:_playerName()||key,
+      roi:+roi.toFixed(4),
+      pnl:s.realizedPnl||0,
+      best:best!==null?+best.toFixed(4):null,
+      totalInvested:s.totalInvested||0,
+      ts:Date.now()
+    });
+  }catch(e){console.warn('stock firebase:',e);}
+}
+
+// 讀取排行
+async function loadStockLB(){
+  try{
+    const snap=await Promise.race([
+      get(ref(_db,'stock_stats')),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),5000))
+    ]);
+    return snap.exists()?Object.values(snap.val()):[];
+  }catch{return[];}
+}
+
+let _slbTab='roi';
+let _slbData=[];
+
+async function initSlb(){
+  _slbData=await loadStockLB();
+  renderSlb();
+}
+
+function switchSlbTab(tab){
+  _slbTab=tab;
+  ['roi','pnl','best'].forEach(t=>{
+    document.getElementById('slb-tab-'+t).classList.toggle('active',t===tab);
+  });
+  renderSlb();
+}
+
+function slbRankEmoji(i){return i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1);}
+
+function renderSlb(){
+  const list=document.getElementById('slb-list');
+  const myName=_playerName();
+  let data=[..._slbData];
+  let valFn, unitStr, emptyMsg;
+  if(_slbTab==='roi'){
+    data=data.filter(d=>d.totalInvested>0).sort((a,b)=>b.roi-a.roi);
+    valFn=d=>(d.roi>=0?'+':'')+d.roi.toFixed(2)+'%';
+    unitStr='整體投報率';emptyMsg='還沒有人有投資紀錄';
+  } else if(_slbTab==='pnl'){
+    data=data.filter(d=>d.pnl!==undefined).sort((a,b)=>b.pnl-a.pnl);
+    valFn=d=>(d.pnl>=0?'+':'−')+'NT$'+fmtN(Math.abs(d.pnl));
+    unitStr='已實現損益';emptyMsg='還沒有人賣出過';
+  } else {
+    data=data.filter(d=>d.best!==null&&d.best!==undefined).sort((a,b)=>b.best-a.best);
+    valFn=d=>(d.best>=0?'+':'')+d.best.toFixed(2)+'%';
+    unitStr='最佳單筆';emptyMsg='還沒有人賣出過';
+  }
+  if(!data.length){list.innerHTML=`<div class="slb-empty">🌐 ${emptyMsg}</div>`;return;}
+  list.innerHTML=data.slice(0,20).map((d,i)=>`
+    <div class="slb-row${d.name===myName?' me':''}">
+      <div class="slb-rank">${slbRankEmoji(i)}</div>
+      <div class="slb-name">${d.name||'?'}${d.name===myName?' 👈':''}</div>
+      <div class="slb-val ${_slbTab==='pnl'?(d.pnl>=0?'up':'dn'):(parseFloat(valFn(d))>=0?'up':'dn')}">${valFn(d)}</div>
+    </div>`).join('');
+}
+
+function fmtN(n){
+  if(n>=1e6)return(n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return Math.floor(n).toLocaleString();
+}
+
+// 掛到 window 讓 onclick 用
+window.switchSlbTab=switchSlbTab;
+window._uploadStockStats=uploadStockStats;
+
+initSlb();
+</script>
 
 <script>
 const MARKETS=[
@@ -451,6 +582,7 @@ function executeSell(){
   state.positions[_sellId]=pos;save();
   closeSell();render();
   toast(`✅ 賣出 ${m.flag} NT$${fmt(sellVal)}（${roi>=0?'+':''}${roi.toFixed(1)}%）`);
+  if(window._uploadStockStats) window._uploadStockStats();
 }
 
 function goBack(){window.location.href='../';}
