@@ -3227,39 +3227,4 @@ window.addEventListener('resize', () => {
   renderMap();
   updateUI();
 });</script>
-<!-- COMBAT OVERLAY -->
-
-<!-- COMBAT OVERLAY -->
-<div class="combat-overlay" id="combat-overlay">
-  <button class="ans-btn" id="ans-tl" onclick="answerQ('tl')">
-    <span id="ans-tl-val">?</span><span class="ans-label">TL</span>
-  </button>
-  <button class="ans-btn" id="ans-tr" onclick="answerQ('tr')">
-    <span id="ans-tr-val">?</span><span class="ans-label">TR</span>
-  </button>
-  <button class="ans-btn" id="ans-bl" onclick="answerQ('bl')">
-    <span id="ans-bl-val">?</span><span class="ans-label">BL</span>
-  </button>
-  <button class="ans-btn" id="ans-br" onclick="answerQ('br')">
-    <span id="ans-br-val">?</span><span class="ans-label">BR</span>
-  </button>
-
-  <div class="combat-center">
-    <div class="cb-mon">
-      <div class="cb-mon-name" id="cb-name">???</div>
-      <div class="cb-mon-hp-track"><div class="cb-mon-hp-fill" id="cb-hp" style="width:100%"></div></div>
-      <div class="cb-mon-hp-txt" id="cb-hp-txt">❤️ ??/??</div>
-    </div>
-    <div class="cb-log" id="cb-log"></div>
-    <div class="cb-q" id="cb-q" style="display:none">
-      <div class="cb-q-text" id="cb-q-text">5 × 3 = ?</div>
-      <div class="cb-timer-track"><div class="cb-timer-fill" id="cb-timer"></div></div>
-    </div>
-    <div class="cb-footer">
-      <span class="cb-player-hp" id="cb-player-hp">❤️ 100/100</span>
-      <button class="cb-escape" id="cb-escape" onclick="tryEscape()">🏃 逃跑</button>
-    </div>
-  </div>
-</div>
-
 </body></html>
