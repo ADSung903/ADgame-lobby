@@ -10,8 +10,10 @@
   v0.6  Phase 2 修正：多樣掉落系統（金幣/藥水/裝備/卷軸）
   v0.7  修正：強化加成套用至攻擊/防禦計算
   v0.8  架構重整：97個函式分成17個獨立區塊，容器間以呼叫溝通
-  v0.9  道具說明完善；鑑定系統實作（藍色以上裝備70%待鑑定）；
-        解咒系統實作（選擇目標介面）；迷霧藥水實作
+  v0.9  道具說明完善；鑑定系統實作；解咒選擇介面；迷霧藥水
+  v1.0  戰鬥感重構：浮動傷害數字、迴避機制（敏捷決定閃避率上限35%）
+        武器差異化：法杖改為智力×3.5（遠高於物理）、弓純敏捷路線
+        智力與力量路線明確分開
   ════════════════════════════════
   SAVE_VERSION = 3
 -->
@@ -248,6 +250,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .cb-line{font-size:13px;line-height:1.65;animation:fadeUp .35s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @keyframes popIn{from{opacity:0;transform:translate(-50%,-50%) scale(.5)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-40px) scale(1.2)}100%{opacity:0;transform:translateY(-70px) scale(0.8)}}
 .cl-w{color:var(--text)}.cl-r{color:var(--red);font-weight:700}
 .cl-g{color:var(--green)}.cl-y{color:var(--gold);font-weight:700}
 .cl-p{color:#c084fc}.cl-o{color:#fb923c}.cl-s{color:var(--sub)}
@@ -1115,19 +1118,26 @@ function calcAtk() {
   const int__ = totalStat('int') * (jp.intMult||1) * (pj.intMult ? 1+(pj.intMult-1)*0.3 : 1);
   const luk_ = totalStat('luk') * (jp.lukMult||1) * (pj.lukMult ? 1+(pj.lukMult-1)*0.3 : 1);
   const def_ = totalStat('def');
-  const base = state.stats.str * 1.0 + state.level * 2;
+
+  // 每種武器的基礎計算都不同，體現差異化
+  // 物理系：力量/敏捷影響，智力無用
+  // 魔法系：智力決定一切，力量無用
+  const physBase = str_ * 2.0 + state.level * 2;   // 物理基礎
+  const magiBase = int__ * 3.5 + state.level * 2;   // 魔法基礎（智力加成更高）
+
   let baseAtk;
   if (!state.weapon) {
-    baseAtk = base;
+    baseAtk = physBase * 0.5; // 空手很弱
   } else {
     const sub = state.weapon.subtype;
-    if (sub==='sword')       baseAtk = base + str_*1.0 + agi_*0.5;
-    else if (sub==='axe')    baseAtk = base + str_*1.5;
-    else if (sub==='bow')    baseAtk = base + agi_*1.5;
-    else if (sub==='wand')   baseAtk = base + int__*2.0;
-    else if (sub==='dagger') baseAtk = base + agi_*2.0 + luk_*0.5;
-    else if (sub==='spear')  baseAtk = base + str_*1.0 + def_*0.3;
-    else baseAtk = base + str_;
+    if (sub==='sword')       baseAtk = physBase + agi_ * 0.8;          // 力量主，敏捷副
+    else if (sub==='axe')    baseAtk = physBase * 1.4;                  // 純力量爆發
+    else if (sub==='bow')    baseAtk = agi_ * 3.5 + state.level * 2;   // 純敏捷，不看力量
+    else if (sub==='wand')   baseAtk = magiBase;                        // 純智力，遠高於物理
+    else if (sub==='dagger') baseAtk = agi_ * 2.5 + luk_ * 1.0 + state.level * 2; // 敏捷+幸運
+    else if (sub==='spear')  baseAtk = physBase * 0.9 + def_ * 0.8;    // 攻防兼備
+    else baseAtk = physBase;
+
     if (sub==='wand' && jp.atkWandMult) baseAtk *= jp.atkWandMult;
     if (sub==='bow'  && jp.bowMult)     baseAtk *= jp.bowMult;
     if (sub==='wand' && pj.atkWandMult) baseAtk *= 1+(pj.atkWandMult-1)*0.3;
@@ -1140,7 +1150,7 @@ function calcAtk() {
   const setBonuses = getSetBonuses();
   let setAtkMult = 1.0;
   for (const b of setBonuses) { if (b.atkMult) setAtkMult *= b.atkMult; }
-  return (baseAtk || base) * setAtkMult;
+  return Math.floor((baseAtk || 1) * setAtkMult);
 }
 
 function timeLimit() { return 8 + totalStat('int') * 0.1; }
@@ -1534,6 +1544,7 @@ function resolvePlayerAttack(timeLeft, tl) {
   }
 
   m.hp = Math.max(0, m.hp - atk);
+  showFloatingDmg(atk, isCrit, false);
   updateCombatHPDisplay();
 
   if (m.hp <= 0) {
@@ -1582,6 +1593,7 @@ function doMonsterAttack(cb) {
   }
 
   cbLog('cl-w', `${m.icon} ${m.name}發起攻擊，造成 ${wrapCol('cl-r',dmg)} 點傷害！${specialText?'　'+specialText:''}`);
+  showFloatingDmg(dmg, false, true);
   applyDmgToPlayer(dmg);
   if (!checkPlayerDead()) cb();
 }
@@ -1595,6 +1607,16 @@ function applyDmgToPlayer(dmg) {
   const jp = getJobPassive();
   const pj = getPrevJobBonus();
   const pDef = totalStat('def');
+  const pAgi = totalStat('agi');
+
+  // 迴避判斷：敏捷決定閃避率，上限35%
+  const dodgeRate = Math.min(0.35, pAgi * 0.008);
+  if (Math.random() < dodgeRate) {
+    cbLog('cl-g', `⚡ 閃避成功！你靈巧地躲開了攻擊！`);
+    showFloatingText('DODGE!', '#4ade80', 'player');
+    return; // 完全不扣血
+  }
+
   let reduction = Math.min(0.6, pDef / (pDef + 20));
   if (jp.defMult) reduction = Math.min(0.75, reduction * jp.defMult);
   if (pj.defMult) reduction = Math.min(0.75, reduction * (1+(pj.defMult-1)*0.3));
@@ -1605,7 +1627,38 @@ function applyDmgToPlayer(dmg) {
   dmg = Math.max(1, Math.floor(dmg * (1 - reduction)));
   state.stats.hp = Math.max(0, state.stats.hp - dmg);
   document.getElementById('cb-player-hp').textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
+  showFloatingText(`-${dmg}`, '#f87171', 'player');
   updateStatusBar();
+}
+
+// 浮動傷害數字
+function showFloatingText(text, color, target) {
+  const combatEl = document.getElementById('combat-overlay');
+  if (!combatEl || !combatEl.classList.contains('active')) return;
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.style.cssText = `
+    position:absolute;
+    ${target==='player' ? 'left:25%;' : 'right:25%;'}
+    top:35%;
+    color:${color};
+    font-size:${text.includes('DODGE') || text.includes('MISS') ? '1.1rem' : '1.8rem'};
+    font-weight:900;
+    text-shadow:0 2px 8px ${color}88;
+    pointer-events:none;
+    z-index:10;
+    animation:floatUp .9s ease-out forwards;
+  `;
+  combatEl.style.position = 'relative';
+  combatEl.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// 同時讓玩家攻擊也顯示浮動數字
+function showFloatingDmg(atk, isCrit, isMonster) {
+  const color = isCrit ? '#f59e0b' : isMonster ? '#f87171' : '#4ade80';
+  const text = isCrit ? `💥${atk}` : `${atk}`;
+  showFloatingText(text, color, isMonster ? 'player' : 'monster');
 }
 
 function checkPlayerDead() {
