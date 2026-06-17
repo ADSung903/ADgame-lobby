@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+<!--
+  ⛏️ 礦洞冒險 — Version History
+  ════════════════════════════════
+  v0.1  Phase 1 初版：地圖生成、基礎戰鬥、裝備系統、死亡傳承
+  v0.2  Phase 1 修正：Canvas 自適應、怪物等級距離修正、初始武器+藥水
+  v0.3  Phase 1 修正：SVG 主角、快速藥水欄、地圖 overlay 資訊列
+  v0.4  Phase 1 修正：賣東西功能、裝備數值比較、存檔版本號
+  v0.5  Phase 2 開始：8元素屬性、詛咒裝備、套件效果、職業轉職
+  v0.6  Phase 2 修正：多樣掉落系統（金幣/藥水/裝備/卷軸）
+  v0.7  修正：強化加成套用至攻擊/防禦計算、版本歷史加入
+  ════════════════════════════════
+  SAVE_VERSION = 3（v0.5起）
+-->
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -941,10 +954,13 @@ function eqStats() {
   const s = {str:0,agi:0,luk:0,int:0,def:0};
   for (const slot of ARMOR_SLOTS) {
     const it = state.equipment[slot]; if (!it) continue;
-    for (const k in it.stats) s[k] = (s[k]||0) + (it.stats[k]||0);
+    const enhMult = 1 + (it.enhance||0) * 0.06; // 防具每+1增加6%數值
+    for (const k in it.stats) s[k] = (s[k]||0) + Math.floor((it.stats[k]||0) * enhMult);
   }
   if (state.weapon) {
-    for (const k in state.weapon.stats) s[k] = (s[k]||0) + (state.weapon.stats[k]||0);
+    // 武器 stats（str/agi等）也套強化加成
+    const enhMult = 1 + (state.weapon.enhance||0) * 0.08;
+    for (const k in state.weapon.stats) s[k] = (s[k]||0) + Math.floor((state.weapon.stats[k]||0) * enhMult);
   }
   return s;
 }
@@ -975,6 +991,10 @@ function calcAtk() {
     if (sub==='bow'  && jp.bowMult)     baseAtk *= jp.bowMult;
     if (sub==='wand' && pj.atkWandMult) baseAtk *= 1+(pj.atkWandMult-1)*0.3;
     if (sub==='bow'  && pj.bowMult)     baseAtk *= 1+(pj.bowMult-1)*0.3;
+
+    // 強化加成：每+1增加8%攻擊
+    const enh = state.weapon.enhance || 0;
+    if (enh > 0) baseAtk *= (1 + enh * 0.08);
   }
   const setBonuses = getSetBonuses();
   let setAtkMult = 1.0;
