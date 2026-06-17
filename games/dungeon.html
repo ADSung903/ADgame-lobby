@@ -1462,17 +1462,25 @@ function endCombatVictory() {
   const exp  = m.exp;
   state.gold += gold;
   state.kills++; state.totalKills++;
-  cbLog('cl-y', `獲得 ${wrapCol('cl-y',gold)} 金幣！`);
   applyCurseEffects('combat_end');
 
-  // Item drop
-  const loot = generateLoot(m.name, m.lv);
-  if (loot) {
-    if (addToInventory(loot)) {
-      const elemTag = loot.element && loot.element !== 'none' ? ` ${ELEMENTS[loot.element]?.icon||''}` : '';
-      cbLog('cl-y', `掉落：${wrapCol('rarity-'+loot.rarity, loot.name)}${elemTag}`);
-    } else {
-      cbLog('cl-s', `${loot.name}因背包已滿而消失了……`);
+  // 多樣掉落
+  const loots = generateLoot(m.name, m.lv);
+  if (loots) {
+    for (const loot of loots) {
+      if (loot.type === 'gold') {
+        state.gold += loot.amount;
+        cbLog('cl-y', `💰 獲得 ${wrapCol('cl-y', loot.amount)} 金幣！`);
+      } else {
+        if (addToInventory(loot)) {
+          const elemTag = loot.element && loot.element !== 'none'
+            ? ` ${ELEMENTS[loot.element]?.icon || ''}` : '';
+          const cursedTag = loot.cursed ? ' <span style="color:#f87171">【腐化】</span>' : '';
+          cbLog('cl-y', `📦 掉落：${cursedTag}${wrapCol('rarity-'+loot.rarity, loot.name)}${elemTag}`);
+        } else {
+          cbLog('cl-s', `${loot.name} 因背包已滿而消失了……`);
+        }
+      }
     }
   }
 
@@ -2521,16 +2529,70 @@ function changeJob(jobKey) {
 // Ch6: 怪物掉落（含屬性繼承）
 function generateLoot(monName, monLv) {
   const mon = MDEFS[monName];
-  const slot = mon?.drop;
-  if (!slot || Math.random()>0.45) return null;
-  const rarity = rollRarity(monLv);
-  const item = (slot==='weapon' || Math.random()<0.4)
-    ? generateWeapon(rarity, monLv)
-    : generateArmor(slot==='multi' ? ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)] : slot, rarity, monLv);
-  if (mon.element && mon.element!=='none' && Math.random()<0.3) {
-    item.element = mon.element;
+  const luk = totalStat('luk');
+  const lukBonus = 1 + luk * 0.01; // 幸運影響掉落率
+
+  const results = [];
+
+  // ── 金幣（80%機率，狡猾狐狸必掉）
+  const goldChance = mon?.special === 'steal' ? 1.0 : 0.80;
+  if (Math.random() < goldChance) {
+    const base = mon?.gold || 10;
+    const gold = Math.floor(base * (0.8 + Math.random() * 0.6) * lukBonus);
+    results.push({type:'gold', amount: gold});
   }
-  return item;
+
+  // ── 藥水（30%機率）
+  if (Math.random() < 0.30 * lukBonus) {
+    const potPool = [
+      {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
+      {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m', rarity:'green', desc:'回復 80 HP', effect:{heal:80}},
+      {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'cure_poison', rarity:'white', desc:'解除中毒', effect:{cure:'poison'}},
+      {name:'力量藥水',   icon:'💪', type:'potion', subtype:'buff_str', rarity:'green', desc:'攻擊+30% 3回合', effect:{buff:'str', turns:3}},
+      {name:'迷霧藥水',   icon:'🌫', type:'potion', subtype:'fog_clear', rarity:'green', desc:'揭開周圍15格迷霧', effect:{action:'fog'}},
+    ];
+    // 較高等怪掉比較好的藥水
+    const pool = monLv >= 10 ? potPool : potPool.slice(0, 3);
+    const pot = pool[Math.floor(Math.random() * pool.length)];
+    results.push({...pot, id: Date.now() + Math.random()});
+  }
+
+  // ── 裝備（依怪物設定掉落率）
+  const slot = mon?.drop;
+  const eqChance = mon?.elite ? 0.85 : 0.40;
+  if (slot && Math.random() < eqChance * lukBonus) {
+    const rarity = rollRarity(monLv);
+    const item = (slot === 'weapon' || Math.random() < 0.35)
+      ? generateWeapon(rarity, monLv)
+      : generateArmor(
+          slot === 'multi'
+            ? ARMOR_SLOTS[Math.floor(Math.random() * ARMOR_SLOTS.length)]
+            : slot,
+          rarity, monLv
+        );
+    if (mon.element && mon.element !== 'none' && Math.random() < 0.3) {
+      item.element = mon.element;
+    }
+    results.push(item);
+  }
+
+  // ── 卷軸（稀有，8%機率，幸運加成）
+  if (Math.random() < 0.08 * lukBonus) {
+    const scrollPool = [
+      {name:'普通強化卷軸', icon:'📜', type:'scroll', subtype:'enhance_normal', rarity:'green', desc:'強化裝備+1', effect:{action:'enhance', type:'normal'}},
+      {name:'鑑定卷軸',     icon:'🔍', type:'scroll', subtype:'identify',       rarity:'green', desc:'鑑定未知裝備', effect:{action:'identify'}},
+      {name:'幸運強化卷軸', icon:'🍀', type:'scroll', subtype:'enhance_lucky',  rarity:'blue',  desc:'成功率×150%，可跳級', effect:{action:'enhance', type:'lucky'}},
+      {name:'保護卷軸',     icon:'🛡', type:'scroll', subtype:'enhance_protect',rarity:'blue',  desc:'失敗不爆裝', effect:{action:'protect'}},
+      {name:'解咒卷軸',     icon:'✨', type:'scroll', subtype:'purify',         rarity:'blue',  desc:'解除裝備詛咒', effect:{action:'purify'}},
+      {name:'神聖強化卷軸', icon:'⚡', type:'scroll', subtype:'enhance_holy',   rarity:'gold',  desc:'+4~+6保證成功', effect:{action:'enhance', type:'holy'}},
+    ];
+    // Boss 才有機會掉神聖卷軸
+    const pool = mon?.special === 'boss' ? scrollPool : scrollPool.slice(0, 4);
+    const scroll = pool[Math.floor(Math.random() * pool.length)];
+    results.push({...scroll, id: Date.now() + Math.random() + 1});
+  }
+
+  return results.length > 0 ? results : null;
 }
 
 // ═══════════════════════════════════════════════
