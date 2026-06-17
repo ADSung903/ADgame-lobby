@@ -264,8 +264,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .cb-mon-hp-fill{height:100%;background:linear-gradient(90deg,#dc2626,#ef4444);
   border-radius:4px;transition:width .4s}
 .cb-mon-hp-txt{font-size:10px;color:var(--sub);margin-top:.15rem}
-.cb-log{flex:1;overflow-y:auto;padding:.5rem 1rem;display:flex;
-  flex-direction:column;gap:.15rem;margin:4px 0}
+.cb-log{flex:none;overflow-y:auto;padding:.4rem 1rem;display:flex;
+  flex-direction:column;gap:.1rem;margin:4px 0;max-height:28vh}
 .cb-log::-webkit-scrollbar{width:3px}
 .cb-log::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
 .cb-line{font-size:13px;line-height:1.65;animation:fadeUp .35s ease}
@@ -282,7 +282,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   overflow:hidden;border:.5px solid var(--border)}
 .cb-timer-fill{height:100%;width:100%;border-radius:4px;
   background:linear-gradient(90deg,var(--green),var(--gold),var(--red))}
-.cb-footer{padding:.4rem 1rem calc(max(12px,env(safe-area-inset-bottom,0px)) + 56px);
+.cb-footer{padding:.4rem 1rem calc(max(12px,env(safe-area-inset-bottom,0px)) + 8px);
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .cb-player-hp{font-size:12px;color:var(--green);font-weight:700}
 .cb-escape{padding:6px 16px;border-radius:10px;border:.5px solid #333;
@@ -1941,6 +1941,7 @@ function endCombatVictory() {
   const exp  = m.exp;
   state.gold += gold;
   state.kills++; state.totalKills++;
+  cbLog('cl-p', `✨ 獲得 ${wrapCol('cl-p', exp)} 經驗值 · 💰 ${wrapCol('cl-y', gold)} 金幣`);
   // 記錄見過的怪物（解鎖真名和血量顯示）
   if (!state.seenMonsters) state.seenMonsters = [];
   if (!state.seenMonsters.includes(m.name)) state.seenMonsters.push(m.name);
@@ -2099,8 +2100,12 @@ function gainExp(amount) {
     state.exp -= state.expNext;
     state.level++;
     state.expNext = expForLevel(state.level);
-    state.stats.maxHp += 5;
-    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 20);
+    // 每升一級：+力量×1 + 敏捷×0.5 + 防禦×0.5
+    const hpGain = state.stats.str * 1
+      + Math.floor(state.stats.agi * 0.5)
+      + Math.floor(state.stats.def * 0.5);
+    state.stats.maxHp += hpGain;
+    state.stats.hp = Math.min(state.stats.hp + hpGain, state.stats.maxHp);
     state.freePoints += state.level % 10 === 0 ? 4 : 1;
     toast(`✨ 升級！Lv.${state.level}　獲得屬性點 +${state.level%10===0?4:1}`);
   }
@@ -2891,9 +2896,14 @@ function allocStat(k) {
   if (state.freePoints <= 0) return;
   state.freePoints--;
   state.stats[k] = (state.stats[k]||0) + 1;
-  if (k === 'vit' || k === 'def') {
-    state.stats.maxHp += 10;
-    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 5);
+  // 加點後重算 maxHp（力量×1、敏捷×0.5、防禦×0.5）
+  if (k === 'str' || k === 'agi' || k === 'def') {
+    // 加點時：+1血（力量）或+0.5血（敏捷/防禦）
+    const hpBonus = k==='str' ? 1 : 0; // 敏捷防禦每2點才+1，改在升級時累計
+    if (hpBonus > 0) {
+      state.stats.maxHp += hpBonus;
+      state.stats.hp = Math.min(state.stats.hp + hpBonus, state.stats.maxHp);
+    }
   }
   openStats(); updateUI(); save();
 }
