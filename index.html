@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -66,6 +66,9 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
 .lb-loading{text-align:center;padding:1.5rem;color:#445566;font-size:13px}
 .online-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:4px;animation:blink 1.5s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.slb-subtabs{display:flex;gap:5px;margin-bottom:.6rem}
+.slb-subtab{flex:1;font-size:11px;padding:5px 0;border-radius:8px;border:0.5px solid #2a2a4a;background:transparent;color:#7788aa;cursor:pointer;text-align:center;font-weight:600}
+.slb-subtab.active{background:#1a1a3a;border-color:#7c3aed;color:#c4b5fd}
 
 /* PROFILE */
 .section-box{background:#0d0d22;border:0.5px solid #1e1e3a;border-radius:14px;padding:1rem;margin-bottom:.75rem}
@@ -299,6 +302,11 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
       <button class="lb-mode-btn" id="lb-local-btn">📱 本機記錄</button>
     </div>
     <div class="tab-row" id="lb-tabs"></div>
+    <div id="slb-subtab-row" class="slb-subtabs" style="display:none">
+      <button class="slb-subtab active" id="slb-sub-roi" onclick="setSlbSub('roi')">整體投報率</button>
+      <button class="slb-subtab" id="slb-sub-pnl" onclick="setSlbSub('pnl')">已實現損益</button>
+      <button class="slb-subtab" id="slb-sub-best" onclick="setSlbSub('best')">最佳單筆</button>
+    </div>
     <div class="lb-box" id="lb-list"></div>
   </div>
 </div>
@@ -436,6 +444,57 @@ async function loadAllFromFirebase(){
   }catch(e){ return {}; }
 }
 
+async function loadStockStats(){
+  try{
+    const snap = await withTimeout(get(ref(db, 'stock_stats')));
+    return snap.exists() ? Object.values(snap.val()) : [];
+  }catch(e){ return []; }
+}
+
+let _slbSub = 'roi';
+let _slbCache = null;
+
+function setSlbSub(sub){
+  _slbSub = sub;
+  ['roi','pnl','best'].forEach(t=>{
+    document.getElementById('slb-sub-'+t).classList.toggle('active', t===sub);
+  });
+  if(_slbCache) renderStockLB(_slbCache);
+}
+window.setSlbSub = setSlbSub;
+
+function renderStockLB(data){
+  const list = document.getElementById('lb-list');
+  let rows = [...data];
+  let valFn, cls;
+  if(_slbSub==='roi'){
+    rows = rows.filter(d=>d.totalInvested>0).sort((a,b)=>b.roi-a.roi);
+    valFn = d=>(d.roi>=0?'+':'')+d.roi.toFixed(2)+'%';
+    cls = d=>d.roi>=0?'up':'dn';
+  } else if(_slbSub==='pnl'){
+    rows = rows.filter(d=>d.pnl!==undefined).sort((a,b)=>b.pnl-a.pnl);
+    valFn = d=>(d.pnl>=0?'+':'−')+'NT$'+fmtStock(Math.abs(d.pnl));
+    cls = d=>d.pnl>=0?'up':'dn';
+  } else {
+    rows = rows.filter(d=>d.best!==null&&d.best!==undefined).sort((a,b)=>b.best-a.best);
+    valFn = d=>(d.best>=0?'+':'')+d.best.toFixed(2)+'%';
+    cls = d=>d.best>=0?'up':'dn';
+  }
+  if(!rows.length){ list.innerHTML='<div class="lb-empty">還沒有人有投資紀錄</div>'; return; }
+  list.innerHTML = rows.slice(0,20).map((d,i)=>`
+    <div class="lb-row${d.name===DB.name?' me':''}">
+      <div class="lb-rank">${rankEmoji(i)}</div>
+      <div class="lb-name">${d.name||'?'}${d.name===DB.name?' 👈':''}</div>
+      <div class="lb-score ${cls(d)}" style="color:inherit;font-size:13px">${valFn(d)}</div>
+    </div>`).join('');
+}
+
+function fmtStock(n){
+  if(n>=1e6)return(n/1e6).toFixed(2)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return Math.floor(n).toLocaleString();
+}
+
 // ── 計分 ──────────────────────────────────────────────────
 function pts(g, score){ return g.lower ? Math.max(0, Math.round(1000 - score*8)) : score; }
 
@@ -543,7 +602,18 @@ function buildLBTabs(){
 
 async function renderLB(){
   const list = document.getElementById('lb-list');
+  const subtabRow = document.getElementById('slb-subtab-row');
   list.innerHTML = '<div class="lb-loading">載入中...</div>';
+
+  // stock tab：特殊投報率排行
+  if(lbTab === 'stock' && lbMode === 'online'){
+    document.getElementById('lb-title').textContent = '📈 股票投報率排行';
+    subtabRow.style.display = 'flex';
+    _slbCache = await loadStockStats();
+    renderStockLB(_slbCache);
+    return;
+  }
+  subtabRow.style.display = 'none';
 
   if(lbMode === 'online'){
     document.getElementById('lb-title').textContent = lbTab==='all' ? '🏆 全球總排行榜' : '🏆 全球排行榜';
@@ -589,6 +659,10 @@ async function renderLB(){
   } else {
     // 本機模式
     document.getElementById('lb-title').textContent = '📱 本機排行榜';
+    if(lbTab === 'stock'){
+      list.innerHTML='<div class="lb-empty">股票投報率排行僅支援線上模式<br><button class="btn" style="margin-top:.5rem" onclick="setLBMode(&apos;online&apos;)">切換線上排行</button></div>';
+      return;
+    }
     if(lbTab === 'all'){
       const totals = {};
       GAMES.forEach(g=>{
