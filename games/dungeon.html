@@ -2024,7 +2024,6 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
 
   // Compare header
   let compareHtml = '';
-  const compareTarget = isEquipped ? null : curItem;
   if (!isEquipped && canCompare) {
     if (compareTarget) {
       const curEnh = compareTarget.enhance > 0 ? ` +${compareTarget.enhance}` : '';
