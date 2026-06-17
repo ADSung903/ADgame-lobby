@@ -343,8 +343,13 @@ let msIdx=0, lbTab='weekly';
 allUpgrades().forEach(u=>state.counts[u.id]=0);
 
 function weekKey(){
-  const d=new Date(),j=new Date(d.getFullYear(),0,4);
-  return d.getFullYear()+'-W'+String(Math.ceil((((d-j)/864e5)+j.getDay()+1)/7)).padStart(2,'0');
+  const d=new Date();
+  const day=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const dow=day.getUTCDay()||7;
+  day.setUTCDate(day.getUTCDate()+4-dow);
+  const yearStart=new Date(Date.UTC(day.getUTCFullYear(),0,1));
+  const wk=Math.ceil(((day-yearStart)/864e5+1)/7);
+  return day.getUTCFullYear()+'-W'+String(wk).padStart(2,'0');
 }
 function daysToSun(){const d=new Date().getDay();return d===0?7:7-d;}
 
@@ -649,7 +654,6 @@ async function submitToLB(showToast=true){
   const lb=loadLBLocal();
   if(!lb.prevRanks)lb.prevRanks={};
   if(!lb.prevRanks[name])lb.prevRanks[name]={};
-  // 箭頭在下次 renderForbes 後更新
   saveLBLocal(lb);
 
   if(showToast)toast('✅ 已提交到富比士榜！');
@@ -660,11 +664,8 @@ async function handleSubmit(){
   if(!btn||btn.disabled)return;
   btn.disabled=true;
   btn.textContent='⏳ 提交中...';
-  try{
-    await submitToLB(true);
-  }catch(e){
-    toast('❌ 提交失敗，請重試');
-  }
+  try{ await submitToLB(true); }
+  catch(e){ toast('❌ 提交失敗，請重試'); }
   btn.disabled=false;
   btn.textContent='📤 提交成績到富比士榜';
 }
