@@ -627,8 +627,26 @@ const SPAWN_RATE = {[T.PLAINS]:0.22,[T.FOREST]:0.38,[T.MOUNTAIN]:0.15,[T.COAST]:
 function getTerrain(wx, wy) {
   const n = worldNoise(wx, wy);
   if (n >= 0.32 && n < 0.88) {
-    if (tileH(wx, wy, 1) < 0.012) return T.CAVE;
-    if (tileH(wx, wy, 2) < 0.009) return T.MERCHANT;
+    // 洞穴：約1%機率
+    if (tileH(wx, wy, 1) < 0.001) return T.CAVE;
+    // 商人：約0.5%機率，且周圍20格內不能有其他商人
+    if (tileH(wx, wy, 2) < 0.0009) {
+      // 間距檢查：用座標 hash 確保鄰近商人不會同時出現
+      let nearMerch = false;
+      for (let dy = -20; dy <= 20; dy++) {
+        for (let dx = -20; dx <= 20; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const dist = Math.abs(dx) + Math.abs(dy);
+          if (dist > 20) continue;
+          if (tileH(wx+dx, wy+dy, 2) < 0.0009 && worldNoise(wx+dx,wy+dy) >= 0.32 && worldNoise(wx+dx,wy+dy) < 0.88) {
+            // 只保留 hash 較大的那個，確保唯一性
+            if (tileH(wx+dx, wy+dy, 2) > tileH(wx, wy, 2)) { nearMerch = true; break; }
+          }
+        }
+        if (nearMerch) break;
+      }
+      if (!nearMerch) return T.MERCHANT;
+    }
   }
   if (n < 0.30) return T.OCEAN;
   if (n < 0.40) return T.COAST;
@@ -1211,62 +1229,266 @@ function initCanvas() {
   canvas.height = TILE * VIEW;
 }
 
+function drawTerrain(ctx, ter, cx, cy, size, wx, wy) {
+  // 用座標當 seed 做偽隨機，讓每格細節固定
+  const s1 = Math.sin(wx * 127.1 + wy * 311.7) * 43758.5453;
+  const s2 = Math.sin(wx * 269.5 + wy * 183.3) * 43758.5453;
+  const r1 = (s1 - Math.floor(s1));
+  const r2 = (s2 - Math.floor(s2));
+
+  switch(ter) {
+    case T.OCEAN: {
+      // 深藍漸層 + 波紋
+      const g = ctx.createLinearGradient(cx, cy, cx, cy+size);
+      g.addColorStop(0, '#0d2a4a');
+      g.addColorStop(1, '#0a1f38');
+      ctx.fillStyle = g;
+      ctx.fillRect(cx, cy, size, size);
+      // 波紋線
+      ctx.strokeStyle = 'rgba(100,160,255,0.15)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 2; i++) {
+        const wy2 = cy + size * (0.3 + i * 0.35 + r1 * 0.1);
+        ctx.beginPath();
+        ctx.moveTo(cx + 2, wy2);
+        ctx.bezierCurveTo(cx+size*0.3, wy2-2, cx+size*0.7, wy2+2, cx+size-2, wy2);
+        ctx.stroke();
+      }
+      break;
+    }
+    case T.COAST: {
+      // 沙灘色 + 小石子
+      ctx.fillStyle = '#8a6a2a';
+      ctx.fillRect(cx, cy, size, size);
+      ctx.fillStyle = '#a07a3a';
+      ctx.fillRect(cx+1, cy+1, size-2, size-2);
+      // 小石子
+      ctx.fillStyle = 'rgba(180,140,80,0.6)';
+      for (let i = 0; i < 3; i++) {
+        const sx = Math.sin(wx*17+wy*31+i*53) * 43758.5;
+        const sy = Math.sin(wx*23+wy*47+i*71) * 43758.5;
+        const rx = cx + 3 + ((sx-Math.floor(sx)) * (size-6));
+        const ry = cy + 3 + ((sy-Math.floor(sy)) * (size-6));
+        ctx.beginPath();
+        ctx.arc(rx, ry, 1.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      break;
+    }
+    case T.PLAINS: {
+      ctx.fillStyle = '#1a4020'; ctx.fillRect(cx, cy, size, size);
+      ctx.fillStyle = '#142e18'; ctx.fillRect(cx, cy+size*0.65, size, size*0.35);
+      // 密集草葉 12根
+      for (let i = 0; i < 12; i++) {
+        const bx2 = cx + 2 + (Math.sin(wx*13+i*41)*43758.5 - Math.floor(Math.sin(wx*13+i*41)*43758.5)) * (size-4);
+        const by2 = cy + size - 2;
+        const hh = 3 + (Math.sin(i*17+wy*43)*43758.5 - Math.floor(Math.sin(i*17+wy*43)*43758.5)) * 8;
+        const lean = ((Math.sin(wx*7+i*13)*43758.5 - Math.floor(Math.sin(wx*7+i*13)*43758.5)) - 0.5) * 4;
+        const g = Math.floor(110 + (Math.sin(i*7+wy*11)*43758.5 - Math.floor(Math.sin(i*7+wy*11)*43758.5)) * 50);
+        ctx.strokeStyle = `rgba(40,${g},30,0.85)`;
+        ctx.lineWidth = 0.8 + (Math.sin(i*3+wx)*43758.5 - Math.floor(Math.sin(i*3+wx)*43758.5)) * 0.8;
+        ctx.beginPath(); ctx.moveTo(bx2, by2);
+        ctx.quadraticCurveTo(bx2+lean, by2-hh*0.5, bx2+lean*1.5, by2-hh);
+        ctx.stroke();
+      }
+      // 小花點
+      for (let i = 0; i < 4; i++) {
+        const fx = cx + 4 + (Math.sin(wx*31+i*57)*43758.5 - Math.floor(Math.sin(wx*31+i*57)*43758.5)) * (size-8);
+        const fy = cy + size*0.4 + (Math.sin(i*43+wy*37)*43758.5 - Math.floor(Math.sin(i*43+wy*37)*43758.5)) * size*0.35;
+        ctx.fillStyle = 'rgba(180,200,80,0.5)';
+        ctx.beginPath(); ctx.arc(fx, fy, 1.2, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+    }
+    case T.FOREST: {
+      ctx.fillStyle = '#091a0a'; ctx.fillRect(cx, cy, size, size);
+      // 樹幹
+      const trx = cx + size*0.5, tryy = cy + size*0.82;
+      const tw = size*0.1, th = size*0.35;
+      ctx.fillStyle = '#3a2008';
+      ctx.fillRect(trx-tw/2, tryy-th, tw, th);
+      // 三層樹冠（下→上越來越窄）
+      const layers = [
+        {yf:0.64, w:size*0.48, h:size*0.28, col:'#1a5018'},
+        {yf:0.46, w:size*0.38, h:size*0.25, col:'#1e6020'},
+        {yf:0.30, w:size*0.27, h:size*0.22, col:'#226822'},
+      ];
+      for (const l of layers) {
+        ctx.fillStyle = l.col;
+        ctx.beginPath();
+        ctx.moveTo(trx, cy+size*l.yf-l.h);
+        ctx.lineTo(trx+l.w/2, cy+size*l.yf);
+        ctx.lineTo(trx-l.w/2, cy+size*l.yf);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(50,120,40,0.25)'; ctx.lineWidth = 0.5; ctx.stroke();
+      }
+      // 頂尖
+      ctx.fillStyle = '#28702a';
+      ctx.beginPath();
+      ctx.moveTo(trx, cy+size*0.14);
+      ctx.lineTo(trx+size*0.1, cy+size*0.28);
+      ctx.lineTo(trx-size*0.1, cy+size*0.28);
+      ctx.closePath(); ctx.fill();
+      // 地面陰影
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(trx, tryy+2, size*0.18, size*0.05, 0, 0, Math.PI*2); ctx.fill();
+      break;
+    }
+    case T.MOUNTAIN: {
+      // 黃土色底 + 岩石顆粒
+      ctx.fillStyle = '#4a3a20';
+      ctx.fillRect(cx, cy, size, size);
+      // 岩石顆粒
+      const grains = 6 + (r1 * 4 | 0);
+      for (let i = 0; i < grains; i++) {
+        const gx = Math.sin(wx*11+wy*37+i*59) * 43758.5;
+        const gy = Math.sin(wx*17+wy*53+i*73) * 43758.5;
+        const grx = cx + 1 + ((gx-Math.floor(gx)) * (size-2));
+        const gry = cy + 1 + ((gy-Math.floor(gy)) * (size-2));
+        const gs = 1 + ((Math.sin(i*31)*0.5+0.5) * 2.5);
+        const bright = 0.3 + (Math.sin(i*17)*0.5+0.5) * 0.4;
+        ctx.fillStyle = `rgba(${(140+bright*60)|0},${(110+bright*40)|0},${(60+bright*30)|0},0.8)`;
+        ctx.fillRect(grx, gry, gs, gs);
+      }
+      // 山峰輪廓
+      ctx.fillStyle = 'rgba(100,80,40,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(cx + size*0.5, cy + size*0.1);
+      ctx.lineTo(cx + size*0.85, cy + size*0.75);
+      ctx.lineTo(cx + size*0.15, cy + size*0.75);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case T.HIGH: {
+      // 深灰 + 雪頂
+      ctx.fillStyle = '#252520';
+      ctx.fillRect(cx, cy, size, size);
+      // 岩石顆粒（更深）
+      for (let i = 0; i < 8; i++) {
+        const gx = Math.sin(wx*7+wy*41+i*61) * 43758.5;
+        const gy = Math.sin(wx*13+wy*67+i*79) * 43758.5;
+        const grx = cx + 1 + ((gx-Math.floor(gx)) * (size-2));
+        const gry = cy + 1 + ((gy-Math.floor(gy)) * (size-2));
+        ctx.fillStyle = `rgba(80,75,70,0.7)`;
+        ctx.fillRect(grx, gry, 1.5, 1.5);
+      }
+      // 雪頂
+      ctx.fillStyle = 'rgba(230,235,240,0.7)';
+      ctx.beginPath();
+      ctx.moveTo(cx + size*0.5, cy + size*0.05);
+      ctx.lineTo(cx + size*0.65, cy + size*0.35);
+      ctx.lineTo(cx + size*0.35, cy + size*0.35);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case T.CAVE: {
+      // 紫黑 + 洞口
+      ctx.fillStyle = '#120820';
+      ctx.fillRect(cx, cy, size, size);
+      const cg = ctx.createRadialGradient(cx+size/2, cy+size/2, 1, cx+size/2, cy+size/2, size*0.4);
+      cg.addColorStop(0, 'rgba(0,0,0,0.9)');
+      cg.addColorStop(1, 'rgba(50,10,80,0)');
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.ellipse(cx+size/2, cy+size*0.55, size*0.3, size*0.25, 0, 0, Math.PI*2);
+      ctx.fill();
+      // 洞口邊石
+      ctx.strokeStyle = 'rgba(100,60,140,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(cx+size/2, cy+size*0.55, size*0.3, size*0.25, 0, 0, Math.PI*2);
+      ctx.stroke();
+      break;
+    }
+    case T.MERCHANT: {
+      // 暖黃色帳篷
+      ctx.fillStyle = '#2a1a08';
+      ctx.fillRect(cx, cy, size, size);
+      // 帳篷
+      ctx.fillStyle = 'rgba(200,150,50,0.85)';
+      ctx.beginPath();
+      ctx.moveTo(cx+size*0.5, cy+size*0.1);
+      ctx.lineTo(cx+size*0.9, cy+size*0.75);
+      ctx.lineTo(cx+size*0.1, cy+size*0.75);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(160,100,20,0.9)';
+      ctx.fillRect(cx+size*0.35, cy+size*0.5, size*0.3, size*0.25);
+      // 燈光
+      ctx.fillStyle = 'rgba(255,220,100,0.3)';
+      ctx.beginPath();
+      ctx.arc(cx+size/2, cy+size*0.4, size*0.15, 0, Math.PI*2);
+      ctx.fill();
+      break;
+    }
+    default: {
+      ctx.fillStyle = '#1e4a1e';
+      ctx.fillRect(cx, cy, size, size);
+    }
+  }
+}
+
 function getTile(wx, wy) {
   const ter = getTerrain(wx, wy);
   const ti = TERRAIN_INFO[ter] || TERRAIN_INFO[2];
-  return { color: ti.col, emoji: ti.emoji, walkable: ti.pass !== false, terrain: ter };
+  return { color: ti.col, walkable: ti.pass !== false, terrain: ter };
 }
 
 function renderMap() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const camX = px - 7, camY = py - 7;
 
-  // Pass 1: terrain + nearby monster indicators
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = `${Math.floor(TILE * 0.7)}px serif`;
+
+  // Pass 1: terrain
   for (let row = 0; row < VIEW; row++) {
     for (let col = 0; col < VIEW; col++) {
       const worldX = camX + col, worldY = camY + row;
       const tile = getTile(worldX, worldY);
-      ctx.fillStyle = tile.color;
-      ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
+      const cx = col * TILE, cy = row * TILE;
+
+      // Draw terrain with canvas detail
+      drawTerrain(ctx, tile.terrain, cx, cy, TILE, worldX, worldY);
+
+      // Monster indicator
       if (col !== 7 || row !== 7) {
-        ctx.fillText(tile.emoji, col * TILE + 4, row * TILE + TILE - 4);
-        if (Math.abs(col - 7) <= 2 && Math.abs(row - 7) <= 2) {
+        if (Math.abs(col - 7) <= 3 && Math.abs(row - 7) <= 3) {
           const mon = getMonsterAt(worldX, worldY);
           if (mon) {
-            ctx.fillStyle = MDEFS[mon.name]?.elite ? '#f59e0b55' : '#f8717155';
-            ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
-            ctx.fillText(MDEFS[mon.name]?.icon || '👾', col * TILE + 4, row * TILE + TILE - 4);
+            ctx.fillStyle = MDEFS[mon.name]?.elite ? 'rgba(245,158,11,0.35)' : 'rgba(248,113,113,0.35)';
+            ctx.fillRect(cx, cy, TILE, TILE);
+            ctx.font = `${Math.floor(TILE * 0.65)}px serif`;
+            ctx.fillText(MDEFS[mon.name]?.icon || '👾', cx + 3, cy + TILE - 3);
           }
         }
       }
     }
   }
 
-  // Player fixed at center (col=7, row=7) - 背景格
+  // Player fixed at center (col=7, row=7)
   ctx.fillStyle = '#3b0764';
   ctx.fillRect(7 * TILE, 7 * TILE, TILE, TILE);
   ctx.strokeStyle = '#a855f7';
   ctx.lineWidth = 2;
   ctx.strokeRect(7 * TILE + 1, 7 * TILE + 1, TILE - 2, TILE - 2);
-  // SVG 小人由 overlay div 負責，這裡只畫背景
 
-  // Pass 2: fog (unexplored tiles)
+  // Pass 2: fog
   for (let row = 0; row < VIEW; row++) {
     for (let col = 0; col < VIEW; col++) {
       if (col === 7 && row === 7) continue;
       const worldX = camX + col, worldY = camY + row;
       if (!explored.has(`${worldX},${worldY}`)) {
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillStyle = 'rgba(0,0,0,0.88)';
         ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
       }
     }
   }
 
-  // Grid lines
-  ctx.strokeStyle = 'rgba(30,30,58,0.4)';
+  // Grid lines (subtle)
+  ctx.strokeStyle = 'rgba(20,20,40,0.3)';
   ctx.lineWidth = 0.5;
   for (let i = 0; i <= VIEW; i++) {
     ctx.beginPath(); ctx.moveTo(i * TILE, 0); ctx.lineTo(i * TILE, canvas.height); ctx.stroke();
