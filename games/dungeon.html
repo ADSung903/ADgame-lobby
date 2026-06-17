@@ -958,9 +958,8 @@ function eqStats() {
     for (const k in it.stats) s[k] = (s[k]||0) + Math.floor((it.stats[k]||0) * enhMult);
   }
   if (state.weapon) {
-    // 武器 stats（str/agi等）也套強化加成
-    const enhMult = 1 + (state.weapon.enhance||0) * 0.08;
-    for (const k in state.weapon.stats) s[k] = (s[k]||0) + Math.floor((state.weapon.stats[k]||0) * enhMult);
+    // 武器 stats 不在這裡套強化，calcAtk() 會統一處理
+    for (const k in state.weapon.stats) s[k] = (s[k]||0) + (state.weapon.stats[k]||0);
   }
   return s;
 }
@@ -2014,21 +2013,25 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
   const elemStr = (elemInfo && elemInfo.name !== '無')
     ? `・<span style="color:${elemInfo.color}">${elemInfo.icon} ${elemInfo.name}</span>` : '';
 
-  // Current equipped item for comparison (only when viewing from inventory or merchant)
-  const canCompare = (item.type === 'weapon' || item.type === 'armor') && (fromInv || atMerchant);
-  const curItem = canCompare
-    ? (item.type === 'weapon' ? state.weapon : state.equipment[item.subtype] || null)
-    : null;
+  // 任何情況都可以比較（從背包、裝備欄、商店都顯示差異）
+  const canCompare = (item.type === 'weapon' || item.type === 'armor');
+  const curItem = item.type === 'weapon'
+    ? (fromInv || atMerchant ? state.weapon : null) // 從裝備欄看自己，不需要比較自己
+    : (state.equipment[item.subtype] || null);
+  // 從裝備欄看已穿著的武器，curItem 應該是 null（因為比的就是自己）
+  const isEquipped = !fromInv && !atMerchant;
+  const compareTarget = isEquipped ? null : curItem;
 
   // Compare header
   let compareHtml = '';
-  if (canCompare) {
-    if (curItem) {
-      const curEnh = curItem.enhance > 0 ? ` +${curItem.enhance}` : '';
-      const curElemInfo = ELEMENTS[curItem.element || 'none'];
+  const compareTarget = isEquipped ? null : curItem;
+  if (!isEquipped && canCompare) {
+    if (compareTarget) {
+      const curEnh = compareTarget.enhance > 0 ? ` +${compareTarget.enhance}` : '';
+      const curElemInfo = ELEMENTS[compareTarget.element || 'none'];
       const curElemIco = (curElemInfo && curElemInfo.name !== '無') ? ` ${curElemInfo.icon}` : '';
       compareHtml = `<div style="font-size:11px;color:var(--sub);background:var(--bg3);border:.5px solid var(--border);border-radius:8px;padding:.35rem .6rem;margin-bottom:.4rem">
-        🔄 目前裝備：<span class="rarity-${curItem.rarity}">${curItem.name}${curEnh}</span>${curElemIco}
+        🔄 目前裝備：<span class="rarity-${compareTarget.rarity}">${compareTarget.name}${curEnh}</span>${curElemIco}
       </div>`;
     } else {
       compareHtml = `<div style="font-size:11px;color:#555;padding:.1rem 0;margin-bottom:.3rem">🔄 目前該部位未裝備</div>`;
@@ -2039,10 +2042,10 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
   const statLabels = {str:'💪力量',agi:'⚡敏捷',luk:'🍀幸運',int:'🧠智力',def:'🛡️防禦'};
   let statHtml = '';
 
-  // 武器額外顯示「攻擊力預估」差異
-  if (item.type === 'weapon' && canCompare) {
+  // 武器永遠顯示「預估攻擊力」
+  if (item.type === 'weapon') {
     const calcWpnAtk = (wpn) => {
-      if (!wpn) return state.stats.str * 1.0 + state.level * 2;
+      if (!wpn) return Math.floor(state.stats.str * 1.0 + state.level * 2);
       const str_ = totalStat('str'), agi_ = totalStat('agi');
       const int__ = totalStat('int'), luk_ = totalStat('luk'), def_ = totalStat('def');
       const base = state.stats.str * 1.0 + state.level * 2;
@@ -2059,37 +2062,39 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
       return Math.floor(atk);
     };
     const newAtk = calcWpnAtk(item);
-    const curAtk = calcWpnAtk(curItem);
-    const diff = newAtk - curAtk;
-    const diffStr = diff > 0
-      ? `<span style="color:#4ade80;font-size:10px;margin-left:4px">▲+${diff}</span>`
-      : diff < 0
-        ? `<span style="color:#f87171;font-size:10px;margin-left:4px">▼${diff}</span>`
-        : `<span style="color:#888;font-size:10px;margin-left:4px">→ 相同</span>`;
+    let diffStr = '';
+    if (!isEquipped) {
+      if (compareTarget) {
+        const curAtk = calcWpnAtk(compareTarget);
+        const diff = newAtk - curAtk;
+        diffStr = diff > 0
+          ? `<span style="color:#4ade80;font-size:10px;margin-left:4px">▲+${diff}</span>`
+          : diff < 0
+            ? `<span style="color:#f87171;font-size:10px;margin-left:4px">▼${diff}</span>`
+            : `<span style="color:#888;font-size:10px;margin-left:4px">→ 相同</span>`;
+      } else {
+        diffStr = `<span style="color:#4ade80;font-size:10px;margin-left:4px">▲ 新裝備</span>`;
+      }
+    }
     statHtml += `<div class="ic-stat"><span>⚔️ 預估攻擊</span><span class="ics-pos">${newAtk}${diffStr}</span></div>`;
   }
 
-  if (canCompare) {
+  {
     const allKeys = new Set([
       ...Object.keys(item.stats || {}),
-      ...Object.keys(curItem?.stats || {}),
+      ...Object.keys(compareTarget?.stats || {}),
     ]);
     for (const k of allKeys) {
       const newV = item.stats?.[k] || 0;
-      const curV = curItem?.stats?.[k] || 0;
+      const curV = compareTarget?.stats?.[k] || 0;
       if (newV === 0 && curV === 0) continue;
-      const diff = newV - curV;
-      const diffStr = diff > 0
-        ? `<span style="color:#4ade80;font-size:10px;margin-left:4px">▲+${diff}</span>`
-        : diff < 0
-          ? `<span style="color:#f87171;font-size:10px;margin-left:4px">▼${diff}</span>`
-          : '';
+      const diff = isEquipped ? 0 : newV - curV;
+      const diffStr = !isEquipped && diff !== 0
+        ? diff > 0
+          ? `<span style="color:#4ade80;font-size:10px;margin-left:4px">▲+${diff}</span>`
+          : `<span style="color:#f87171;font-size:10px;margin-left:4px">▼${diff}</span>`
+        : '';
       statHtml += `<div class="ic-stat"><span>${statLabels[k]||k}</span><span class="${newV>0?'ics-pos':'ics-neg'}">${newV>0?'+':''}${newV}${diffStr}</span></div>`;
-    }
-  } else {
-    for (const [k, v] of Object.entries(item.stats||{})) {
-      if (v===0) continue;
-      statHtml += `<div class="ic-stat"><span>${statLabels[k]||k}</span><span class="${v>0?'ics-pos':'ics-neg'}">${v>0?'+':''}${v}</span></div>`;
     }
   }
 
