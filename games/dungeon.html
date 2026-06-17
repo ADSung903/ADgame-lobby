@@ -9,11 +9,15 @@
   v0.5  Phase 2 開始：8元素屬性、詛咒裝備、套件效果、職業轉職
   v0.6  Phase 2 修正：多樣掉落系統（金幣/藥水/裝備/卷軸）
   v0.7  修正：強化加成套用至攻擊/防禦計算
-  v0.8  架構重整：97個函式分成17個獨立區塊，容器間以呼叫溝通
+  v0.8  架構重整：17個獨立區塊，容器間以呼叫溝通
   v0.9  道具說明完善；鑑定系統實作；解咒選擇介面；迷霧藥水
-  v1.0  戰鬥感重構：浮動傷害數字、迴避機制（敏捷決定閃避率上限35%）
-        武器差異化：法杖改為智力×3.5（遠高於物理）、弓純敏捷路線
-        智力與力量路線明確分開
+  v1.0  戰鬥感重構：浮動傷害數字、迴避、武器差異化
+        職業技能系統：每場勝利職業經驗、Lv.1/5技能解鎖、CD管理
+        裝備屬性門檻；背包擴至30格；商人可購買擴充
+  v1.1  9大陸系統：座標分區、各大陸專屬怪物（共50+種）
+        進入新大陸提示卡、建議等級警告、回森林傳送
+        地圖overlay顯示當前大陸；scaledMonster null guard
+        戰鬥先攻修正（只第一回合判斷）；版本號顯示於畫面下方
   ════════════════════════════════
   SAVE_VERSION = 3
 -->
@@ -445,6 +449,9 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
         <button class="dpad-btn" ontouchstart="move(1,0)" onclick="move(1,0)">▶</button>
       </div>
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.1</div>
     </div>
     <div class="act-btns">
       <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
