@@ -2208,25 +2208,37 @@ function removeItemFromGame(item) {
 }
 
 function doEnhance(itemId, fromInv, invIdx, slot) {
-  let item = fromInv ? state.inventory.find(i=>String(i.id)===String(itemId))
+  // 保留舊函式相容性，不再用
+}
+
+function doEnhanceDirect(itemId, fromInv, invIdx, slot, scrollSubtype) {
+  const item = fromInv ? state.inventory.find(i=>String(i.id)===String(itemId))
     : (slot==='weapon' ? state.weapon : state.equipment[slot]);
   if (!item) return;
-  const sel = document.getElementById('enh-scroll-sel');
-  if (!sel) return;
-  const scrollIdx = parseInt(sel.value);
-  const scrolls = state.inventory.filter(i=>i.type==='scroll'&&i.effect?.action==='enhance');
-  const scroll = scrolls[scrollIdx];
-  if (!scroll) return;
-  const protectIdx = state.inventory.findIndex(i=>i.subtype==='enhance_protect');
-  const hasProtect = protectIdx>=0;
-  const realScrollIdx = state.inventory.findIndex(i=>i.id===scroll.id);
-  if (realScrollIdx>=0) state.inventory.splice(realScrollIdx,1);
+  const scrollIdx = state.inventory.findIndex(i=>i.subtype===scrollSubtype&&i.type==='scroll');
+  if (scrollIdx < 0) { toast('找不到卷軸'); return; }
+  const scroll = state.inventory[scrollIdx];
+  const hasProtect = !!item._protected;
+  // 消耗卷軸
+  state.inventory.splice(scrollIdx, 1);
+  // 執行強化
   tryEnhance(item, scroll.effect?.type, hasProtect);
-  if (hasProtect) {
-    const pi = state.inventory.findIndex(i=>i.subtype==='enhance_protect');
-    if (pi>=0) state.inventory.splice(pi,1);
-  }
+  // 保護卷軸用完後清除
+  if (hasProtect) item._protected = false;
   closeModal('modal-item');
+  updateUI(); save(true);
+}
+
+function applyProtectToItem(itemId, fromInv, invIdx, slot) {
+  const item = fromInv ? state.inventory.find(i=>String(i.id)===String(itemId))
+    : (slot==='weapon' ? state.weapon : state.equipment[slot]);
+  if (!item) return;
+  const protectIdx = state.inventory.findIndex(i=>i.subtype==='enhance_protect');
+  if (protectIdx < 0) { toast('找不到保護卷軸'); return; }
+  item._protected = true;
+  state.inventory.splice(protectIdx, 1);
+  closeModal('modal-item');
+  toast(`🛡 ${item.name} 已套上保護卷軸`);
   updateUI(); save(true);
 }
 
@@ -2373,17 +2385,17 @@ function usePotion(item, invIdx) {
     removeFromInventory(invIdx);
     closeModal('modal-item');
     updateUI(); save(true);
+  } else if (ef.action === 'enhance') {
+    // 強化卷軸：選擇要強化的裝備
+    showScrollTargetPicker(item, invIdx, 'enhance');
+  } else if (ef.action === 'protect') {
+    // 保護卷軸：選擇要保護的裝備
+    showScrollTargetPicker(item, invIdx, 'protect');
   } else if (ef.action === 'identify') {
-    // 鑑定：需要選擇目標
     const unidItems = state.inventory.filter(i => i.unidentified);
-    if (unidItems.length === 0) {
-      toast(`🔍 背包中沒有待鑑定的裝備`);
-      return;
-    }
-    // 顯示待鑑定選擇介面
+    if (unidItems.length === 0) { toast(`🔍 背包中沒有待鑑定的裝備`); return; }
     showIdentifyPicker(invIdx);
   } else if (ef.action === 'purify') {
-    // 解咒：需要選擇目標
     const cursedItems = [
       ...(state.weapon?.cursed && !state.weapon?.purified ? [state.weapon] : []),
       ...ARMOR_SLOTS.map(s=>state.equipment[s]).filter(i=>i?.cursed && !i?.purified),
@@ -2392,11 +2404,8 @@ function usePotion(item, invIdx) {
     if (cursedItems.length === 0) { toast(`🌟 沒有可解咒的裝備`); return; }
     showPurifyPicker(invIdx);
   } else if (ef.action === 'fog') {
-    // 迷霧藥水：揭開周圍15格
     for (let dy = -7; dy <= 7; dy++) {
-      for (let dx = -7; dx <= 7; dx++) {
-        explored.add(`${px+dx},${py+dy}`);
-      }
+      for (let dx = -7; dx <= 7; dx++) { explored.add(`${px+dx},${py+dy}`); }
     }
     state.totalExplored = explored.size;
     toast(`🌫️ 迷霧消散，周圍地形已揭露`);
@@ -2407,6 +2416,80 @@ function usePotion(item, invIdx) {
     toast(`使用了 ${item.name}`);
     removeFromInventory(invIdx);
     closeModal('modal-item');
+    updateUI(); save(true);
+  }
+}
+
+function showScrollTargetPicker(scroll, scrollInvIdx, mode) {
+  // 收集所有可用裝備（武器 + 裝備欄 + 背包裝備）
+  const targets = [];
+  if (state.weapon) targets.push({item:state.weapon, loc:'weapon', label:'武器（已裝備）'});
+  ARMOR_SLOTS.forEach(s => {
+    if (state.equipment[s]) targets.push({item:state.equipment[s], loc:s, label:`${SLOT_LABEL[s]}（已裝備）`});
+  });
+  state.inventory.forEach((item, i) => {
+    if (item.type==='weapon'||item.type==='armor')
+      targets.push({item, loc:'inv', invIdx:i, label:'背包'});
+  });
+
+  if (targets.length === 0) { toast('沒有可用的裝備'); return; }
+
+  const isProtect = mode === 'protect';
+  const titleColor = isProtect ? '#60a5fa' : '#f59e0b';
+  const title = isProtect ? '🛡 選擇要保護的裝備' : `⚒️ 選擇要強化的裝備（${scroll.name}）`;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid ${titleColor};border-radius:16px;padding:1.2rem;width:100%;max-width:320px">
+      <div style="color:${titleColor};font-weight:700;margin-bottom:.75rem">${title}</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto">
+        ${targets.map((t,i) => `
+          <div onclick="doScrollApply(${i},${scrollInvIdx},'${mode}',this.closest('[style*=fixed]'))"
+            style="display:flex;align-items:center;gap:.5rem;padding:.5rem;
+            border:.5px solid #2a2a4a;border-radius:8px;cursor:pointer;background:#12122a">
+            <span style="font-size:1.2rem">${t.item.icon||'⚔️'}</span>
+            <div style="flex:1">
+              <div style="font-size:12px" class="rarity-${t.item.rarity}">${t.item.name}${t.item.enhance>0?' +'+t.item.enhance:''}</div>
+              <div style="font-size:10px;color:#555">${t.label}${isProtect&&t.item._protected?' · 🛡已保護':''}</div>
+            </div>
+            ${!isProtect?`<div style="font-size:10px;color:#888">+${(t.item.enhance||0)+1}試驗</div>`:''}
+          </div>`).join('')}
+      </div>
+      <button onclick="this.closest('[style*=fixed]').remove()"
+        style="margin-top:.75rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#888;cursor:pointer">取消</button>
+    </div>`;
+  modal._targets = targets;
+  document.body.appendChild(modal);
+}
+
+function doScrollApply(targetIdx, scrollInvIdx, mode, modal) {
+  const targets = modal._targets;
+  if (!targets || !targets[targetIdx]) return;
+  const {item} = targets[targetIdx];
+  const scroll = state.inventory[scrollInvIdx];
+  if (!scroll) return;
+
+  if (mode === 'protect') {
+    item._protected = true;
+    // 消耗卷軸
+    state.inventory.splice(scrollInvIdx, 1);
+    if (modal) modal.remove();
+    closeModal('modal-item');
+    toast(`🛡 ${item.name} 已套上保護卷軸，下次強化失敗不會爆裝`);
+    updateUI(); save(true);
+  } else {
+    // enhance mode
+    if (modal) modal.remove();
+    closeModal('modal-item');
+    const hasProtect = item._protected;
+    const result = tryEnhance(item, scroll.effect?.type, hasProtect);
+    // 消耗卷軸
+    state.inventory.splice(scrollInvIdx, 1);
+    if (hasProtect && result !== 'done') {
+      item._protected = false;
+    }
+    if (item._protected && result === 'done') item._protected = false;
     updateUI(); save(true);
   }
 }
@@ -2944,20 +3027,40 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
   // Enhance UI (weapons/armor only, not at merchant)
   let enhHtml = '';
   if (!atMerchant && (item.type==='weapon' || item.type==='armor')) {
-    const scrolls = state.inventory.filter(i=>i.type==='scroll'&&i.effect?.action==='enhance');
+    const enhScrolls = state.inventory.filter(i=>i.type==='scroll'&&i.effect?.action==='enhance');
     const protectScroll = state.inventory.find(i=>i.subtype==='enhance_protect');
-    if (scrolls.length > 0) {
-      const opts = scrolls.map((s,idx)=>
-        `<option value="${idx}">${s.icon} ${s.name}（剩${state.inventory.filter(x=>x.subtype===s.subtype).length}）</option>`
-      ).join('');
+    const hasProtect = !!item._protected;
+    const curEnh = item.enhance || 0;
+
+    if (enhScrolls.length > 0 || protectScroll || hasProtect) {
+      // 去重，每種卷軸只顯示一個按鈕
+      const seen = new Set();
+      const uniqueScrolls = enhScrolls.filter(s => {
+        if (seen.has(s.subtype)) return false;
+        seen.add(s.subtype); return true;
+      });
+      const scrollBtns = uniqueScrolls.map(s => {
+        const count = state.inventory.filter(x=>x.subtype===s.subtype).length;
+        const invIdx2 = state.inventory.findIndex(x=>x.id===s.id);
+        return `<button onclick="doEnhanceDirect('${item.id}',${fromInv},${fromInv?invIdx:'null'},'${item.type==='weapon'?'weapon':item.subtype}','${s.subtype}')"
+          style="flex:1;padding:6px 4px;border-radius:7px;border:.5px solid #f59e0b33;background:#1a1400;color:#f59e0b;font-size:10px;cursor:pointer;text-align:center">
+          ${s.icon} ${s.name.replace('強化卷軸','').replace('卷軸','').trim()}<br>
+          <span style="color:#555;font-size:9px">×${count}</span>
+        </button>`;
+      }).join('');
+
+      const protectBtn = protectScroll && !hasProtect
+        ? `<button onclick="applyProtectToItem('${item.id}',${fromInv},${fromInv?invIdx:'null'},'${item.type==='weapon'?'weapon':item.subtype}')"
+            style="flex:1;padding:6px 4px;border-radius:7px;border:.5px solid #60a5fa33;background:#0a1420;color:#60a5fa;font-size:10px;cursor:pointer;text-align:center">
+            🛡 保護<br><span style="color:#555;font-size:9px">失敗不爆裝</span>
+          </button>` : '';
+      const protectedTag = hasProtect
+        ? `<div style="font-size:10px;color:#60a5fa">🛡 已套保護卷軸</div>` : '';
+
       enhHtml = `<div style="margin:.4rem 0;border:.5px solid #333;border-radius:8px;padding:.5rem">
-        <div style="font-size:11px;color:var(--sub);margin-bottom:4px">⚒️ 強化裝備　目前 +${item.enhance||0}</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <select id="enh-scroll-sel" style="flex:1;padding:4px;border-radius:6px;background:#12122a;color:#eee;border:.5px solid #333;font-size:11px">${opts}</select>
-          <button class="ic-btn ic-btn-use" style="white-space:nowrap;flex:none;min-width:60px;padding:6px 8px"
-            onclick="doEnhance('${item.id}',${fromInv},${fromInv?invIdx:'null'},'${item.type==='weapon'?'weapon':item.subtype}')">⚒️ 強化</button>
-        </div>
-        ${protectScroll?`<div style="font-size:10px;color:#60a5fa;margin-top:2px">🛡 保護卷軸可用（失敗不爆裝）</div>`:''}
+        <div style="font-size:11px;color:var(--sub);margin-bottom:6px">⚒️ 強化裝備　目前 <span style="color:#f59e0b">+${curEnh}</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${scrollBtns}${protectBtn}</div>
+        ${protectedTag}
       </div>`;
     }
   }
