@@ -257,14 +257,14 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   pointer-events:none;max-width:420px;margin:0 auto}
 .combat-center>*{pointer-events:auto}
 .cb-mon{margin-top:calc(env(safe-area-inset-top,0px) + 4px);
-  padding:.5rem 110px;text-align:center;flex-shrink:0}
-.cb-mon-name{font-size:18px;font-weight:800;color:var(--red);margin-bottom:.3rem}
+  padding:.5rem 1rem;text-align:center;flex-shrink:0}
+.cb-mon-name{font-size:20px;font-weight:800;color:var(--red);margin-bottom:.3rem;text-align:center}
 .cb-mon-hp-track{height:8px;background:#2a0a0a;border-radius:4px;
   overflow:hidden;border:.5px solid #3a1a1a}
 .cb-mon-hp-fill{height:100%;background:linear-gradient(90deg,#dc2626,#ef4444);
   border-radius:4px;transition:width .4s}
 .cb-mon-hp-txt{font-size:10px;color:var(--sub);margin-top:.15rem}
-.cb-log{flex:1;overflow-y:auto;padding:.5rem 110px;display:flex;
+.cb-log{flex:1;overflow-y:auto;padding:.5rem 1rem;display:flex;
   flex-direction:column;gap:.15rem;margin:4px 0}
 .cb-log::-webkit-scrollbar{width:3px}
 .cb-log::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
@@ -276,13 +276,13 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .cl-g{color:var(--green)}.cl-y{color:var(--gold);font-weight:700}
 .cl-p{color:#c084fc}.cl-o{color:#fb923c}.cl-s{color:var(--sub)}
 
-.cb-q{padding:.4rem 110px;flex-shrink:0;text-align:center;pointer-events:none}
+.cb-q{padding:.4rem 1rem;flex-shrink:0;text-align:center;pointer-events:none}
 .cb-q-text{font-size:24px;font-weight:900;letter-spacing:1px;margin-bottom:.35rem}
 .cb-timer-track{height:8px;background:#1a1a2a;border-radius:4px;
   overflow:hidden;border:.5px solid var(--border)}
 .cb-timer-fill{height:100%;width:100%;border-radius:4px;
   background:linear-gradient(90deg,var(--green),var(--gold),var(--red))}
-.cb-footer{padding:.4rem 110px calc(max(12px,env(safe-area-inset-bottom,0px)) + 56px);
+.cb-footer{padding:.4rem 1rem calc(max(12px,env(safe-area-inset-bottom,0px)) + 56px);
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .cb-player-hp{font-size:12px;color:var(--green);font-weight:700}
 .cb-escape{padding:6px 16px;border-radius:10px;border:.5px solid #333;
@@ -1941,6 +1941,9 @@ function endCombatVictory() {
   const exp  = m.exp;
   state.gold += gold;
   state.kills++; state.totalKills++;
+  // 記錄見過的怪物（解鎖真名和血量顯示）
+  if (!state.seenMonsters) state.seenMonsters = [];
+  if (!state.seenMonsters.includes(m.name)) state.seenMonsters.push(m.name);
   applyCurseEffects('combat_end');
 
   // 多樣掉落
@@ -2017,8 +2020,12 @@ function updateCombatHPDisplay() {
   const m = combat.monster;
   const pct = Math.max(0, m.hp / m.maxHp * 100);
   document.getElementById('cb-hp').style.width = pct + '%';
-  document.getElementById('cb-name').textContent = `${m.icon} ${m.name}`;
-  document.getElementById('cb-hp-txt').textContent = `❤️ ${m.hp} / ${m.maxHp}`;
+  // 第一次遇到：顯示icon但名稱是???，打過一次後才顯示真名
+  const known = state.seenMonsters?.includes(m.name);
+  const nameStr = known ? `${m.icon} ${m.name}` : `${m.icon} ???`;
+  const hpStr = known ? `❤️ ${m.hp} / ${m.maxHp}` : `❤️ ?? / ??`;
+  document.getElementById('cb-name').textContent = nameStr;
+  document.getElementById('cb-hp-txt').textContent = hpStr;
   document.getElementById('cb-player-hp').textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
 }
 
