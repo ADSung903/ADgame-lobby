@@ -10,10 +10,8 @@
   v0.6  Phase 2 修正：多樣掉落系統（金幣/藥水/裝備/卷軸）
   v0.7  修正：強化加成套用至攻擊/防禦計算
   v0.8  架構重整：97個函式分成17個獨立區塊，容器間以呼叫溝通
-        區塊：WORLD_GEN / MONSTER_DEF / ITEM_GEN / LOOT / STATE /
-              STAT_CALC / MAP_RENDER / MOVEMENT / COMBAT /
-              PROGRESSION / ENHANCE / SET_JOB / INVENTORY /
-              UI_UPDATE / MODALS / DEATH / SAVE_LOAD
+  v0.9  道具說明完善；鑑定系統實作（藍色以上裝備70%待鑑定）；
+        解咒系統實作（選擇目標介面）；迷霧藥水實作
   ════════════════════════════════
   SAVE_VERSION = 3
 -->
@@ -766,12 +764,19 @@ function generateWeapon(rarity, level) {
   const isCursed = rollCurse(r2);
   const curseType = isCursed ? CURSE_EFFECTS[Math.floor(Math.random()*CURSE_EFFECTS.length)].type : null;
   if (isCursed) { for (const k in stats) if (stats[k]) stats[k] = Math.ceil(stats[k]*1.2); }
+  // 藍色以上有70%機率待鑑定
+  const unidentified = (r2 === 'blue' || r2 === 'gold' || r2 === 'red' || r2 === 'rainbow')
+    && Math.random() < 0.70;
   return {
-    id: Date.now()+Math.random(), type:'weapon', subtype:sub, rarity:r2, name,
-    icon:WPN_ICON[sub], enhance:0, element:rollElement(r2),
+    id: Date.now()+Math.random(), type:'weapon', subtype:sub, rarity:r2,
+    name: unidentified ? `【待鑑定】${['神秘武器','未知利器','古老兵器'][Math.floor(Math.random()*3)]}` : name,
+    realName: name,
+    icon: unidentified ? '❓' : WPN_ICON[sub], enhance:0, element:rollElement(r2),
     cursed:isCursed, purified:false, curseType,
-    stats, reqLevel:{white:0,green:10,blue:30}[r2]||0,
-    flavorText: WPN_FLAVOR[name] || `一把${name}，散發著冒險的氣息`,
+    stats: unidentified ? {} : stats, realStats: stats,
+    reqLevel:{white:0,green:10,blue:30}[r2]||0,
+    unidentified,
+    flavorText: unidentified ? '這件裝備散發著神秘的氣息，需要鑑定才能了解其真正能力。' : (WPN_FLAVOR[name] || `一把${name}，散發著冒險的氣息`),
     fromGeneration:null, deathLocation:null, deathKills:null,
   };
 }
@@ -798,12 +803,18 @@ function generateArmor(slot, rarity, level) {
   const isCursed = rollCurse(r2);
   const curseType = isCursed ? CURSE_EFFECTS[Math.floor(Math.random()*CURSE_EFFECTS.length)].type : null;
   if (isCursed) { for (const k in stats) if (stats[k]) stats[k] = Math.ceil(stats[k]*1.2); }
+  const unidentified = (r2 === 'blue' || r2 === 'gold' || r2 === 'red' || r2 === 'rainbow')
+    && Math.random() < 0.70;
   return {
-    id: Date.now()+Math.random(), type:'armor', subtype:slot, rarity:r2, name,
-    icon:SLOT_ICON[slot], enhance:0, element:rollElement(r2),
+    id: Date.now()+Math.random(), type:'armor', subtype:slot, rarity:r2,
+    name: unidentified ? `【待鑑定】${['神秘防具','古老護甲','未知寶物'][Math.floor(Math.random()*3)]}` : name,
+    realName: name,
+    icon: unidentified ? '❓' : SLOT_ICON[slot], enhance:0, element:rollElement(r2),
     cursed:isCursed, purified:false, curseType,
-    stats, reqLevel:{white:0,green:10,blue:30}[r2]||0,
-    flavorText: `一件${name}，防護著這一代勇者`,
+    stats: unidentified ? {} : stats, realStats: stats,
+    reqLevel:{white:0,green:10,blue:30}[r2]||0,
+    unidentified,
+    flavorText: unidentified ? '這件裝備散發著神秘的氣息，需要鑑定才能了解其真正能力。' : `一件${name}，防護著這一代勇者`,
     fromGeneration:null, deathLocation:null, deathKills:null,
   };
 }
@@ -826,16 +837,28 @@ function generateDrop(slot, monLv) {
 
 // Potions and scrolls (for merchant)
 const SHOP_ITEMS = [
-  {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', desc:'回復 30 HP', price:50, effect:{heal:30}},
-  {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m', desc:'回復 80 HP', price:150, effect:{heal:80}},
-  {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'antidote', desc:'解除中毒狀態', price:80, effect:{cure:'poison'}},
-  {name:'力量藥水',   icon:'💪', type:'potion', subtype:'str_boost', desc:'攻擊+30%（戰鬥3回合）', price:200, effect:{buff:'str',amt:0.3,turns:3}},
-  {name:'鑑定卷軸',   icon:'📜', type:'scroll', subtype:'identify', desc:'立即識別一件裝備', price:150, effect:{action:'identify'}},
-  {name:'普通強化卷軸', icon:'📜', type:'scroll', subtype:'enhance_normal',  desc:'強化裝備+1（依標準成功率）', price:300,  effect:{action:'enhance', type:'normal'}},
-  {name:'幸運強化卷軸', icon:'🍀', type:'scroll', subtype:'enhance_lucky',   desc:'成功率×150%，成功後50%機率跳級', price:2000, effect:{action:'enhance', type:'lucky'}},
-  {name:'神聖強化卷軸', icon:'✨', type:'scroll', subtype:'enhance_holy',    desc:'+4~+6區間100%成功，只能掉落', price:0, effect:{action:'enhance', type:'holy'}},
-  {name:'保護卷軸',     icon:'🛡', type:'scroll', subtype:'enhance_protect', desc:'強化失敗時不爆裝（一次性）', price:1500, effect:{action:'protect'}},
-  {name:'詛咒強化卷軸', icon:'💀', type:'scroll', subtype:'enhance_cursed',  desc:'成功率-30%，但價格低廉', price:80, effect:{action:'enhance', type:'cursed'}},
+  {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s',
+   desc:'立即回復 30 HP。背包使用或戰鬥中使用皆可。', price:50, effect:{heal:30}},
+  {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m',
+   desc:'立即回復 80 HP。低血量時的救命仙丹。', price:150, effect:{heal:80}},
+  {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'antidote',
+   desc:'立即解除「中毒」狀態，停止每回合持續扣血。', price:80, effect:{cure:'poison'}},
+  {name:'力量藥水',   icon:'💪', type:'potion', subtype:'str_boost',
+   desc:'戰鬥中使用，攻擊力+30%，持續 3 回合。回合結束後自動消退。', price:200, effect:{buff:'str',amt:0.3,turns:3}},
+  {name:'鑑定卷軸',   icon:'🔍', type:'scroll', subtype:'identify',
+   desc:'對一件【待鑑定】裝備使用，揭露其真實名稱、屬性與數值。藍色以上裝備掉落時為待鑑定狀態。', price:150, effect:{action:'identify'}},
+  {name:'普通強化卷軸', icon:'📜', type:'scroll', subtype:'enhance_normal',
+   desc:'對裝備進行強化。+1~+3 成功率100%；+4~+6 成功率80~60%（失敗維持）；+7以上失敗會爆裝摧毀裝備。', price:300, effect:{action:'enhance', type:'normal'}},
+  {name:'幸運強化卷軸', icon:'🍀', type:'scroll', subtype:'enhance_lucky',
+   desc:'強化成功率×150%。成功後額外50%機率跳級（+1跳50%／+2跳35%／+3跳15%）。+7以上失敗仍會爆裝。', price:2000, effect:{action:'enhance', type:'lucky'}},
+  {name:'神聖強化卷軸', icon:'✨', type:'scroll', subtype:'enhance_holy',
+   desc:'只能從怪物掉落，無法購買。使用於+4~+6時保證100%成功。+7以上無效果，請搭配保護卷軸使用。', price:0, effect:{action:'enhance', type:'holy'}},
+  {name:'保護卷軸',     icon:'🛡', type:'scroll', subtype:'enhance_protect',
+   desc:'使用後套在裝備上，下一次強化失敗時不會爆裝，裝備維持現狀。無論成功或失敗皆消耗。', price:1500, effect:{action:'protect'}},
+  {name:'詛咒強化卷軸', icon:'💀', type:'scroll', subtype:'enhance_cursed',
+   desc:'強化成功率-30%，但售價極低。適合在+1~+3安全區省錢用。失敗後裝備維持，不會爆裝。', price:80, effect:{action:'enhance', type:'cursed'}},
+  {name:'解咒卷軸',     icon:'🌟', type:'scroll', subtype:'purify',
+   desc:'對【腐化】裝備使用，解除詛咒並轉為【淨化】狀態，釋放被詛咒壓制的額外20%數值加成。', price:800, effect:{action:'purify'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -2033,13 +2056,149 @@ function usePotion(item, invIdx) {
   if (ef.heal) {
     state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + ef.heal);
     toast(`💊 ${item.name}：回復 ${ef.heal} HP`);
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    updateUI(); save(true);
   } else if (ef.cure === 'poison') {
     state.statusEffects = state.statusEffects.filter(e=>e.type!=='poison');
-    toast(`💚 解毒成功！`);
+    toast(`💚 解毒成功！中毒狀態已解除`);
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    updateUI(); save(true);
+  } else if (ef.action === 'identify') {
+    // 鑑定：需要選擇目標
+    const unidItems = state.inventory.filter(i => i.unidentified);
+    if (unidItems.length === 0) {
+      toast(`🔍 背包中沒有待鑑定的裝備`);
+      return;
+    }
+    // 顯示待鑑定選擇介面
+    showIdentifyPicker(invIdx);
+  } else if (ef.action === 'purify') {
+    // 解咒：需要選擇目標
+    const cursedItems = [
+      ...(state.weapon?.cursed && !state.weapon?.purified ? [state.weapon] : []),
+      ...ARMOR_SLOTS.map(s=>state.equipment[s]).filter(i=>i?.cursed && !i?.purified),
+      ...state.inventory.filter(i=>i?.cursed && !i?.purified),
+    ];
+    if (cursedItems.length === 0) { toast(`🌟 沒有可解咒的裝備`); return; }
+    showPurifyPicker(invIdx);
+  } else if (ef.action === 'fog') {
+    // 迷霧藥水：揭開周圍15格
+    for (let dy = -7; dy <= 7; dy++) {
+      for (let dx = -7; dx <= 7; dx++) {
+        explored.add(`${px+dx},${py+dy}`);
+      }
+    }
+    state.totalExplored = explored.size;
+    toast(`🌫️ 迷霧消散，周圍地形已揭露`);
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    renderMap(); updateUI(); save(true);
+  } else {
+    toast(`使用了 ${item.name}`);
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    updateUI(); save(true);
   }
-  removeFromInventory(invIdx);
+}
+
+function showIdentifyPicker(scrollInvIdx) {
+  const unidItems = state.inventory.map((item, i) => ({item, i})).filter(({item}) => item.unidentified);
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #60a5fa;border-radius:16px;padding:1.2rem;width:100%;max-width:320px">
+      <div style="color:#60a5fa;font-weight:700;margin-bottom:.75rem">🔍 選擇要鑑定的裝備</div>
+      <div id="identify-list" style="display:flex;flex-direction:column;gap:.4rem;max-height:300px;overflow-y:auto">
+        ${unidItems.map(({item, i}) => `
+          <div onclick="doIdentify(${i},${scrollInvIdx},this.closest('[style*=fixed]'))"
+            style="display:flex;align-items:center;gap:.5rem;padding:.5rem;border:.5px solid #2a2a4a;border-radius:8px;cursor:pointer;background:#12122a">
+            <span style="font-size:1.2rem">${item.icon}</span>
+            <div>
+              <div style="font-size:12px;color:var(--rarity-${item.rarity},#aaa)">${item.name}</div>
+              <div style="font-size:10px;color:#555">${item.type==='weapon'?'武器':SLOT_LABEL[item.subtype]||'裝備'}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button onclick="this.closest('[style*=fixed]').remove()"
+        style="margin-top:.75rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#888;cursor:pointer">取消</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function doIdentify(invIdx, scrollInvIdx, modal) {
+  const item = state.inventory[invIdx];
+  if (!item || !item.unidentified) return;
+  // 揭露真實資訊
+  item.name = item.realName || item.name.replace('【待鑑定】','');
+  item.icon = item.type === 'weapon' ? (WPN_ICON[item.subtype] || '⚔️') : (SLOT_ICON[item.subtype] || '🛡');
+  item.stats = item.realStats || item.stats;
+  item.unidentified = false;
+  item.flavorText = item.type === 'weapon'
+    ? (WPN_FLAVOR[item.name] || `一把${item.name}，散發著冒險的氣息`)
+    : `一件${item.name}，防護著這一代勇者`;
+  // 消耗鑑定卷軸
+  const scrollIdx = state.inventory.findIndex((i,idx) => idx === scrollInvIdx);
+  if (scrollIdx >= 0) state.inventory.splice(scrollIdx, 1);
+  if (modal) modal.remove();
   closeModal('modal-item');
-  updateUI(); save();
+  toast(`🔍 鑑定完成！【${item.name}】真面目揭曉！`);
+  updateUI(); save(true);
+  // 重新開啟鑑定後的裝備卡片
+  const newIdx = state.inventory.findIndex(i => i.id === item.id);
+  if (newIdx >= 0) setTimeout(() => openItemCard(item, true, newIdx, false), 300);
+}
+
+function showPurifyPicker(scrollInvIdx) {
+  const cursedItems = [];
+  if (state.weapon?.cursed && !state.weapon?.purified) cursedItems.push({item:state.weapon, slot:'weapon', fromInv:false});
+  ARMOR_SLOTS.forEach(s => {
+    if (state.equipment[s]?.cursed && !state.equipment[s]?.purified)
+      cursedItems.push({item:state.equipment[s], slot:s, fromInv:false});
+  });
+  state.inventory.forEach((item, i) => {
+    if (item?.cursed && !item?.purified) cursedItems.push({item, slot:null, fromInv:true, invIdx:i});
+  });
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #f87171;border-radius:16px;padding:1.2rem;width:100%;max-width:320px">
+      <div style="color:#f87171;font-weight:700;margin-bottom:.75rem">🌟 選擇要解咒的裝備</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;max-height:300px;overflow-y:auto">
+        ${cursedItems.map((c, ci) => `
+          <div onclick="doPurify(${ci},${scrollInvIdx},this.closest('[style*=fixed]'))"
+            style="display:flex;align-items:center;gap:.5rem;padding:.5rem;border:.5px solid #f8717155;border-radius:8px;cursor:pointer;background:#1a0a0a">
+            <span style="font-size:1.2rem">${c.item.icon}</span>
+            <div>
+              <div style="font-size:12px;color:#f87171">【腐化】${c.item.name}</div>
+              <div style="font-size:10px;color:#555">解咒後數值+20%完全釋放</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button onclick="this.closest('[style*=fixed]').remove()"
+        style="margin-top:.75rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#888;cursor:pointer">取消</button>
+    </div>`;
+  // Store cursedItems for doIdentify
+  modal._cursedItems = cursedItems;
+  document.body.appendChild(modal);
+  modal._cursedItems = cursedItems;
+}
+
+function doPurify(cursedIdx, scrollInvIdx, modal) {
+  // Find the modal and cursedItems
+  const cursedItems = modal._cursedItems;
+  if (!cursedItems || !cursedItems[cursedIdx]) return;
+  const {item} = cursedItems[cursedIdx];
+  item.purified = true;
+  item.cursed = false; // 完全解除
+  // 消耗解咒卷軸
+  const scrollIdx = state.inventory.findIndex((i,idx) => idx === scrollInvIdx);
+  if (scrollIdx >= 0) state.inventory.splice(scrollIdx, 1);
+  if (modal) modal.remove();
+  closeModal('modal-item');
+  toast(`🌟 【${item.name}】詛咒已解除！裝備數值完全釋放！`);
+  updateUI(); save(true);
 }
 
 // ═══════════════════════════════════════════════
@@ -2188,9 +2347,16 @@ function openInventory() {
     const el = document.createElement('div');
     el.className = `inv-slot ${item.rarity}`;
     const icon = item.icon || (item.type==='weapon' ? WPN_ICON[item.subtype]||'⚔️' : SLOT_ICON[item.subtype]||'📦');
+    const nameDisplay = item.unidentified
+      ? `<span style="color:#818cf8">【待鑑定】</span>`
+      : item.name;
+    const uidBadge = item.unidentified
+      ? `<div style="position:absolute;top:2px;right:2px;font-size:8px;background:#818cf8;color:#fff;border-radius:3px;padding:0 2px">?</div>` : '';
+    el.style.position = 'relative';
     el.innerHTML = `<div class="s-icon">${icon}</div>
-      <div class="s-name rarity-${item.rarity}">${item.name}</div>
-      ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}`;
+      <div class="s-name rarity-${item.rarity}">${nameDisplay}</div>
+      ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}
+      ${uidBadge}`;
     el.onclick = () => openItemCard(item, true, i, false);
     grid.appendChild(el);
   });
