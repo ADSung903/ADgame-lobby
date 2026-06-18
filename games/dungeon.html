@@ -454,13 +454,18 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.2</div>
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.3</div>
     </div>
-    <div class="act-btns">
-      <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
-      <button class="act-btn" onclick="openEquipment()"><span>🛡️</span>裝備</button>
-      <button class="act-btn" onclick="openStats()"><span>📊</span>屬性</button>
-      <button class="act-btn" onclick="openWorldMap()"><span>🗺️</span>地圖</button>
+    <div class="act-btns" style="flex-direction:column;gap:4px">
+      <div style="display:flex;gap:3px">
+        <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
+        <button class="act-btn" onclick="openSkills()"><span>⚡</span>技能</button>
+      </div>
+      <div style="display:flex;gap:3px">
+        <button class="act-btn" onclick="openEquipment()"><span>🛡️</span>裝備</button>
+        <button class="act-btn" onclick="openStats()"><span>📊</span>屬性</button>
+        <button class="act-btn" onclick="openWorldMap()"><span>🗺️</span>地圖</button>
+      </div>
     </div>
   </div>
 </div>
@@ -551,6 +556,17 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   </div>
 </div>
 
+<!-- SKILL PAGE -->
+<div class="modal-back" id="modal-skills" onclick="if(event.target===this)closeModal('modal-skills')">
+  <div class="modal-sheet" style="max-height:92dvh">
+    <div class="modal-head">
+      <div class="modal-title" id="skill-modal-title">⚡ 技能</div>
+      <button class="modal-x" onclick="closeModal('modal-skills')">✕</button>
+    </div>
+    <div class="modal-body" id="skill-body" style="padding:.8rem"></div>
+  </div>
+</div>
+
 <!-- WORLD MAP -->
 <div class="modal-back" id="modal-worldmap" onclick="if(event.target===this)closeModal('modal-worldmap')">
   <div class="modal-sheet" style="max-height:92dvh">
@@ -638,16 +654,200 @@ function tileH(wx, wy, off) {
 // ═══════════════════════════════════════════════
 // TERRAIN
 // ═══════════════════════════════════════════════
-const T = { OCEAN:0, COAST:1, PLAINS:2, FOREST:3, MOUNTAIN:4, HIGH:5, CAVE:6, MERCHANT:8 };
+const T = { OCEAN:0, COAST:1, PLAINS:2, FOREST:3, MOUNTAIN:4, HIGH:5, CAVE:6, MERCHANT:8, VILLAGE:9, CHEST:10, TELEPORT:11 };
+
+// 各大陸村莊固定位置（相對於 START_X/START_Y 的偏移）
+const VILLAGE_DEFS = {
+  forest: {name:'晨曦村', dx:60,  dy:-40, continent:'forest'},
+  desert: {name:'烈日城', dx:220, dy:-80, continent:'desert'},
+  ice:    {name:'霜風鎮', dx:-220,dy:-80, continent:'ice'},
+  sea:    {name:'珊瑚港', dx:20,  dy:270, continent:'sea'},
+  lava:   {name:'煉獄鎮', dx:220, dy:220, continent:'lava'},
+  sky:    {name:'雲端城', dx:30,  dy:-420,continent:'sky'},
+  shadow: {name:'虛空鎮', dx:-220,dy:220, continent:'shadow'},
+  mech:   {name:'齒輪城', dx:-520,dy:30,  continent:'mech'},
+};
+
+// 取得村莊中心世界座標
+function getVillageCenter(vid) {
+  const v = VILLAGE_DEFS[vid];
+  if (!v) return null;
+  return {x: START_X + v.dx, y: START_Y + v.dy};
+}
+
+// 判斷某格是否在某村莊範圍內（3格半徑）
+function getVillageAt(wx, wy) {
+  for (const [vid, v] of Object.entries(VILLAGE_DEFS)) {
+    const cx = START_X + v.dx, cy = START_Y + v.dy;
+    if (Math.abs(wx - cx) <= 2 && Math.abs(wy - cy) <= 2) return {vid, ...v, cx, cy};
+  }
+  return null;
+}
+
+// 傳送石位置 = 村莊中心
+// 每小時寶箱位置（每大陸 2~3 個）
+const CHEST_PER_CONT = 3;
+function getChestPositions() {
+  const hourSeed = Math.floor(Date.now() / 3600000);
+  const chests = [];
+  const contList = ['forest','desert','ice','sea','lava','sky','shadow','mech'];
+  const contBounds = {
+    forest:{cx:START_X,cy:START_Y,r:140},
+    desert:{cx:START_X+220,cy:START_Y-80,r:100},
+    ice:   {cx:START_X-220,cy:START_Y-80,r:100},
+    sea:   {cx:START_X+20, cy:START_Y+270,r:100},
+    lava:  {cx:START_X+220,cy:START_Y+220,r:100},
+    sky:   {cx:START_X+30, cy:START_Y-420,r:100},
+    shadow:{cx:START_X-220,cy:START_Y+220,r:100},
+    mech:  {cx:START_X-520,cy:START_Y+30, r:100},
+  };
+  for (const cont of contList) {
+    const b = contBounds[cont];
+    for (let i = 0; i < CHEST_PER_CONT; i++) {
+      const hv1 = Math.sin(hourSeed*127.1 + i*311.7 + cont.charCodeAt(0)*53) * 43758.5;
+      const hv2 = Math.sin(hourSeed*311.7 + i*127.1 + cont.charCodeAt(0)*71) * 43758.5;
+      const r1 = hv1 - Math.floor(hv1);
+      const r2 = hv2 - Math.floor(hv2);
+      const cx2 = Math.floor(b.cx + (r1*2-1)*b.r*0.7);
+      const cy2 = Math.floor(b.cy + (r2*2-1)*b.r*0.7);
+      chests.push({wx:cx2, wy:cy2, cont});
+    }
+  }
+  return chests;
+}
+
+let _chestCache = null, _chestHour = -1;
+function isChestAt(wx, wy) {
+  const hr = Math.floor(Date.now() / 3600000);
+  if (hr !== _chestHour) { _chestCache = getChestPositions(); _chestHour = hr; }
+  // 已撿走的
+  const key = `chest_${wx}_${wy}_${hr}`;
+  if (state.openedChests?.includes(key)) return false;
+  return _chestCache.some(c => c.wx === wx && c.wy === wy);
+}
+
+function openChest(wx, wy) {
+  const hr = Math.floor(Date.now() / 3600000);
+  const key = `chest_${wx}_${wy}_${hr}`;
+  if (!state.openedChests) state.openedChests = [];
+  if (state.openedChests.includes(key)) { toast('這個寶箱已經被開過了'); return; }
+  state.openedChests.push(key);
+
+  const cont = getContinent(wx, wy);
+  const contInfo = CONTINENT_INFO[cont];
+  const recLv = contInfo?.recLv || 1;
+
+  // 生成 2~5 樣內容
+  const count = 2 + Math.floor(Math.random() * 4);
+  const items = [];
+  const pool = ['gem','gem','weapon','armor','accessory','potion','potion','gold'];
+
+  for (let i = 0; i < count; i++) {
+    const type = pool[Math.floor(Math.random() * pool.length)];
+    if (type === 'gold') {
+      const g = (recLv + 1) * (50 + Math.floor(Math.random() * 100));
+      items.push({type:'gold', amount:g});
+    } else if (type === 'gem') {
+      const gems = ['💎','💎','💍','🔴','🟡'];
+      const gemNames = ['藍寶石','藍寶石','鑽石','紅寶石','黃玉'];
+      const gemPrices = [200,200,800,500,300];
+      const gi = Math.floor(Math.random() * gems.length);
+      items.push({id:Date.now()+Math.random(), type:'potion', subtype:'gem',
+        name:gemNames[gi], icon:gems[gi], rarity:'blue',
+        desc:`珍貴寶石，可賣給商人`, price:gemPrices[gi]*recLv,
+        effect:{sell_only:true}});
+    } else if (type === 'potion') {
+      const potIdx = Math.floor(Math.random() * 3);
+      const pots = [
+        {name:'回復藥水',icon:'🍶',subtype:'heal_m',effect:{heal:80}},
+        {name:'大回復藥水',icon:'💊',subtype:'heal_l',effect:{heal:200}},
+        {name:'敏捷藥水',icon:'⚡',subtype:'agi_boost',effect:{buff:'agi',amt:0.3,turns:3}},
+      ];
+      const p = pots[potIdx];
+      items.push({id:Date.now()+Math.random(), type:'potion', rarity:'green', price:100, desc:'',  ...p});
+    } else {
+      const rarity = ['white','green','blue'][Math.min(2,Math.floor(recLv/20))];
+      const it = type === 'weapon'
+        ? generateWeapon(rarity, recLv + Math.floor(Math.random()*5))
+        : generateArmor(ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)], rarity, recLv);
+      it.unidentified = true;
+      it.name = type === 'weapon' ? '【待鑑定】神秘武器' : '【待鑑定】神秘防具';
+      it.icon = '❓';
+      items.push(it);
+    }
+  }
+
+  // 顯示寶箱內容
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:400;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #f59e0b;border-radius:16px;padding:1.2rem;width:100%;max-width:300px">
+      <div style="text-align:center;font-size:18px;font-weight:700;color:#f59e0b;margin-bottom:.8rem">📦 寶箱！</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.8rem">
+        ${items.map(it => it.type==='gold'
+          ? `<div style="color:#f59e0b;font-size:13px">💰 金幣 × ${it.amount}</div>`
+          : `<div style="font-size:12px" class="rarity-${it.rarity||'white'}">${it.icon} ${it.name}</div>`
+        ).join('')}
+      </div>
+      <button onclick="collectChest(${JSON.stringify(items).replace(/"/g,'&quot;')},this.closest('[style*=fixed]'))"
+        style="width:100%;padding:10px;border-radius:10px;border:none;background:#92400e;color:#fde68a;font-size:13px;font-weight:700;cursor:pointer">
+        📦 收入背包
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function collectChest(items, modal) {
+  let goldGained = 0;
+  for (const it of items) {
+    if (it.type === 'gold') {
+      state.gold += it.amount;
+      goldGained += it.amount;
+    } else {
+      if (!addToInventory(it)) toast(`${it.name} 因背包已滿消失了`);
+    }
+  }
+  if (goldGained > 0) toast(`💰 獲得 ${goldGained} 金幣`);
+  if (modal) modal.remove();
+  updateUI(); save(true);
+}
+
+function getTeleportAt(wx, wy) {
+  for (const [vid, v] of Object.entries(VILLAGE_DEFS)) {
+    const cx = START_X + v.dx, cy = START_Y + v.dy;
+    if (wx === cx && wy === cy) return {vid, ...v};
+  }
+  return null;
+}
+
+// 寶箱位置（每小時刷新，每大陸 2~3 個）
+function getChestAt(wx, wy) {
+  const hourSeed = Math.floor(Date.now() / 3600000);
+  const continent = getContinent(wx, wy);
+  if (continent === 'forest') {
+    // 只在大陸內生成
+    for (let i = 0; i < 3; i++) {
+      const hx = Math.sin(hourSeed * 127 + i * 311 + wx * 0) * 43758.5;
+      const hy = Math.sin(hourSeed * 311 + i * 127 + wy * 0) * 43758.5;
+      const chestX = START_X + Math.floor(((hx - Math.floor(hx)) * 2 - 1) * 120);
+      const chestY = START_Y + Math.floor(((hy - Math.floor(hy)) * 2 - 1) * 120);
+      if (wx === chestX && wy === chestY) return true;
+    }
+  }
+  return false;
+}
 const TERRAIN_INFO = {
-  0:{col:'#0a1f3a',emoji:'🌊',pass:false},
-  1:{col:'#5c3d11',emoji:'🏖️',pass:true},
-  2:{col:'#1a3a1a',emoji:'🌿',pass:true},
-  3:{col:'#0d250d',emoji:'🌲',pass:true},
-  4:{col:'#252525',emoji:'🪨',pass:true},
-  5:{col:'#131313',emoji:'⛰️',pass:false},
-  6:{col:'#1a0a2a',emoji:'🕳️',pass:true},
-  8:{col:'#2a1a0a',emoji:'🧑‍💼',pass:true},
+  0: {col:'#0a1f3a',emoji:'🌊', pass:false},
+  1: {col:'#5c3d11',emoji:'🏖️', pass:true},
+  2: {col:'#1a3a1a',emoji:'🌿', pass:true},
+  3: {col:'#0d250d',emoji:'🌲', pass:true},
+  4: {col:'#252525',emoji:'🪨', pass:true},
+  5: {col:'#131313',emoji:'⛰️', pass:false},
+  6: {col:'#1a0a2a',emoji:'🕳️', pass:true},
+  8: {col:'#2a1a0a',emoji:'🧑‍💼',pass:true},
+  9: {col:'#2a1a08',emoji:'🏘️', pass:true},  // 村莊
+  10:{col:'#1a1a0a',emoji:'📦', pass:true},  // 寶箱
+  11:{col:'#0a0a2a',emoji:'🔮', pass:true},  // 傳送石
 };
 const SPAWN_TERRAIN = [T.PLAINS, T.FOREST, T.MOUNTAIN, T.COAST];
 const SPAWN_RATE = {[T.PLAINS]:0.22,[T.FOREST]:0.38,[T.MOUNTAIN]:0.15,[T.COAST]:0.06};
@@ -655,6 +855,17 @@ const SPAWN_RATE = {[T.PLAINS]:0.22,[T.FOREST]:0.38,[T.MOUNTAIN]:0.15,[T.COAST]:
 function getTerrain(wx, wy) {
   const n = worldNoise(wx, wy);
   if (n >= 0.32 && n < 0.88) {
+    // 村莊特殊格子（5×5範圍）
+    const village = getVillageAt(wx, wy);
+    if (village) {
+      const dx = wx - village.cx, dy = wy - village.cy;
+      if (dx === 0  && dy === 0)  return T.TELEPORT; // 中央傳送石
+      if (dx === -1 && dy === -1) return T.MERCHANT; // 左上 = 商人
+      if (dx === 1  && dy === -1) return T.VILLAGE;  // 右上 = 旅館
+      // 5×5其他格 = 普通平原（有回血效果，在移動邏輯判斷）
+    }
+    // 寶箱（每小時刷新）
+    if (isChestAt(wx, wy)) return T.CHEST;
     // 洞穴：約1%機率
     if (tileH(wx, wy, 1) < 0.001) return T.CAVE;
     // 商人：約0.5%機率，且周圍20格內不能有其他商人
@@ -1062,14 +1273,29 @@ function generateDrop(slot, monLv) {
 
 // Potions and scrolls (for merchant)
 const SHOP_ITEMS = [
-  {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s',
-   desc:'立即回復 30 HP。背包使用或戰鬥中使用皆可。', price:50, effect:{heal:30}},
-  {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m',
+  // ── 回復藥水 ──
+  {name:'小回復藥水',   icon:'🧪', type:'potion', subtype:'heal_s',  rarity:'white',
+   desc:'立即回復 30 HP。適合初期使用。', price:50, effect:{heal:30}},
+  {name:'回復藥水',     icon:'🍶', type:'potion', subtype:'heal_m',  rarity:'white',
    desc:'立即回復 80 HP。低血量時的救命仙丹。', price:150, effect:{heal:80}},
-  {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'antidote',
+  {name:'大回復藥水',   icon:'💊', type:'potion', subtype:'heal_l',  rarity:'green',
+   desc:'立即回復 200 HP。中後期主力回復藥水。', price:400, effect:{heal:200}},
+  // ── 解除/輔助 ──
+  {name:'解毒藥水',     icon:'💚', type:'potion', subtype:'antidote', rarity:'white',
    desc:'立即解除「中毒」狀態，停止每回合持續扣血。', price:80, effect:{cure:'poison'}},
-  {name:'力量藥水',   icon:'💪', type:'potion', subtype:'str_boost',
-   desc:'戰鬥中使用，攻擊力+30%，持續 3 回合。回合結束後自動消退。', price:200, effect:{buff:'str',amt:0.3,turns:3}},
+  {name:'萬能解藥',     icon:'🌈', type:'potion', subtype:'cure_all', rarity:'green',
+   desc:'立即解除所有負面狀態（中毒/減速/詛咒效果）。', price:300, effect:{cure:'all'}},
+  // ── 強化藥水 ──
+  {name:'力量藥水',     icon:'💪', type:'potion', subtype:'str_boost', rarity:'green',
+   desc:'攻擊力+30%，持續 3 回合。', price:200, effect:{buff:'str', amt:0.3, turns:3}},
+  {name:'敏捷藥水',     icon:'⚡', type:'potion', subtype:'agi_boost', rarity:'green',
+   desc:'敏捷+30%（閃避提升），持續 3 回合。', price:250, effect:{buff:'agi', amt:0.3, turns:3}},
+  {name:'幸運藥水',     icon:'🍀', type:'potion', subtype:'luk_boost', rarity:'green',
+   desc:'幸運+50%（掉落率+暴擊率提升），持續 3 回合。', price:250, effect:{buff:'luk', amt:0.5, turns:3}},
+  {name:'智慧藥水',     icon:'🧠', type:'potion', subtype:'int_boost', rarity:'green',
+   desc:'智力+30%（魔杖傷害+答題時間提升），持續 3 回合。', price:250, effect:{buff:'int', amt:0.3, turns:3}},
+  {name:'狂暴藥水',     icon:'🔥', type:'potion', subtype:'berserk',  rarity:'blue',
+   desc:'攻擊×2但防禦歸零，持續 3 回合。高風險高報酬。', price:600, effect:{buff:'berserk', turns:3}},
   {name:'鑑定卷軸',   icon:'🔍', type:'scroll', subtype:'identify',
    desc:'對一件【待鑑定】裝備使用，揭露其真實名稱、屬性與數值。藍色以上裝備掉落時為待鑑定狀態。', price:150, effect:{action:'identify'}},
   {name:'普通強化卷軸', icon:'📜', type:'scroll', subtype:'enhance_normal',
@@ -1084,6 +1310,11 @@ const SHOP_ITEMS = [
    desc:'強化成功率-30%，但售價極低。適合在+1~+3安全區省錢用。失敗後裝備維持，不會爆裝。', price:80, effect:{action:'enhance', type:'cursed'}},
   {name:'解咒卷軸',     icon:'🌟', type:'scroll', subtype:'purify',
    desc:'對【腐化】裝備使用，解除詛咒並轉為【淨化】狀態，釋放被詛咒壓制的額外20%數值加成。', price:800, effect:{action:'purify'}},
+  // 傳送券
+  {name:'傳送券',     icon:'🎫', type:'scroll', subtype:'teleport_near',
+   desc:'立即傳送回最近一個已激活的傳送石（村莊）。緊急逃脫用。', price:500, effect:{action:'teleport_near'}},
+  {name:'定點傳送券', icon:'🎟️', type:'scroll', subtype:'teleport_any',
+   desc:'打開傳送選單，選擇任意已激活的傳送石。', price:2000, effect:{action:'teleport_any'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -1152,91 +1383,149 @@ const SET_DEFS = {
 // Ch5: 職業系統
 const JOB_DEFS = {
   miner: {
-    name:'⛏️ 礦工', desc:'初始職業，均衡成長',
+    name:'⛏️ 礦工', desc:'均衡成長，深度路線。不轉職可練到最高等，技能持續解鎖。',
     passive:{},
     skills:[
-      {id:'miner_1', name:'挖礦直覺', desc:'掉落率+15%', lv:1, type:'passive', effect:{dropBonus:0.15}},
+      {id:'miner_1',  name:'挖礦直覺',   desc:'掉落率+15%',                                      lv:1,  type:'passive', effect:{dropBonus:0.15}},
+      {id:'miner_3',  name:'礦工體魄',   desc:'每次角色升級額外+5 maxHP',                          lv:3,  type:'passive', effect:{hpPerLevel:5}},
+      {id:'miner_5',  name:'粗糙重擊',   desc:'所有武器攻擊+10%',                                  lv:5,  type:'passive', effect:{atkBonus:0.10}},
+      {id:'miner_8',  name:'石皮',       desc:'防禦+5，受到傷害-8%',                               lv:8,  type:'passive', effect:{defBonus:5, dmgReduce:0.08}},
+      {id:'miner_10', name:'採礦大師',   desc:'金幣掉落+20%，掉落率再+10%',                        lv:10, type:'passive', effect:{goldBonus:0.20, dropBonus:0.10}},
+      {id:'miner_13', name:'礦工本能',   desc:'先攻機率+20%，閃避+5%',                             lv:13, type:'passive', effect:{firstStrikeBonus:0.20, dodgeBonus:0.05}},
+      {id:'miner_15', name:'礦脈感知',   desc:'進入戰鬥自動偵測怪物元素屬性',                       lv:15, type:'passive', effect:{revealElement:true}},
+      {id:'miner_18', name:'鑿山之力',   desc:'所有武器攻擊再+15%（與粗糙重擊疊加）',               lv:18, type:'passive', effect:{atkBonus:0.15}},
+      {id:'miner_20', name:'礦王',       desc:'全屬性+10',                                         lv:20, type:'passive', effect:{allStats:10}},
+      {id:'miner_25', name:'地脈共鳴',   desc:'所有屬性額外+5%',                                   lv:25, type:'passive', effect:{allStatsMult:0.05}},
+      {id:'miner_30', name:'鐵壁',       desc:'防禦值翻倍計算（減傷公式中防禦×2）',                 lv:30, type:'passive', effect:{defDouble:true}},
+      {id:'miner_35', name:'礦神之眼',   desc:'所有掉落裝備自動鑑定',                               lv:35, type:'passive', effect:{autoIdentify:true}},
+      {id:'miner_40', name:'不屈意志',   desc:'血量低於20%時攻擊力×2',                             lv:40, type:'passive', effect:{lowHpAtkMult:2.0, threshold:0.20}},
+      {id:'miner_50', name:'傳說礦工',   desc:'全屬性+20，掉落率再+20%，解鎖隱藏大陸入口',         lv:50, type:'passive', effect:{allStats:20, dropBonus:0.20, unlockHidden:true}},
     ],
     canChangeTo:['warrior','mage','rogue'], reqLevel:0,
   },
   warrior: {
-    name:'⚔️ 戰士', desc:'力量型，近戰爆發強',
+    name:'⚔️ 戰士', desc:'力量型，近戰爆發強，越打越強。',
     passive:{strMult:1.2, defBonus:5},
     skills:[
-      {id:'warrior_1', name:'破甲', desc:'每回合降低怪物防禦5%（疊3層）', lv:1, type:'auto', effect:{armorBreak:0.05, maxStack:3}},
-      {id:'warrior_5', name:'狂暴', desc:'血量<30%自動觸發，攻擊×1.5但防禦歸零，持續3回合', lv:5, type:'trigger', effect:{atkMult:1.5, defZero:true, turns:3}, cd:5},
+      {id:'warrior_1',  name:'破甲',     desc:'每回合降低怪物防禦5%（最多疊3層）',                  lv:1,  type:'auto',    effect:{armorBreak:0.05, maxStack:3}},
+      {id:'warrior_3',  name:'戰士意志', desc:'血量低於50%時防禦+20%',                             lv:3,  type:'passive', effect:{lowHpDefBonus:0.20, threshold:0.50}},
+      {id:'warrior_5',  name:'狂暴',     desc:'血量<30%自動觸發，攻擊×1.5但防禦歸零，3回合',       lv:5,  type:'trigger', effect:{atkMult:1.5, defZero:true, turns:3}, cd:5},
+      {id:'warrior_8',  name:'重擊',     desc:'每3回合觸發一次×1.8傷害的重擊',                     lv:8,  type:'auto',    effect:{heavyHit:1.8, every:3}},
+      {id:'warrior_10', name:'鐵甲術',   desc:'防禦+10，受傷-10%',                                 lv:10, type:'passive', effect:{defBonus:10, dmgReduce:0.10}},
+      {id:'warrior_15', name:'戰場霸者', desc:'破甲效果提升（最多疊5層），每層-8%',                 lv:15, type:'passive', effect:{armorBreak:0.08, maxStack:5}},
+      {id:'warrior_20', name:'無敵斬',   desc:'每場1次，造成當前攻擊力×3的傷害',                   lv:20, type:'once',    effect:{burstMult:3.0}},
     ],
     canChangeTo:['paladin','death_knight'], reqLevel:10, reqJob:'miner',
   },
   mage: {
-    name:'🧙 法師', desc:'智力型，魔杖傷害大幅提升',
+    name:'🧙 法師', desc:'智力型，答題越快傷害越高。',
     passive:{intMult:1.3, atkWandMult:1.5},
     skills:[
-      {id:'mage_1', name:'元素爆發', desc:'答題3秒內，傷害額外+30%元素加成', lv:1, type:'passive', effect:{fastAnswerElemBonus:0.3}},
-      {id:'mage_5', name:'魔法護盾', desc:'受傷時吸收20%傷害，3回合CD', lv:5, type:'trigger', effect:{dmgAbsorb:0.2}, cd:3},
+      {id:'mage_1',  name:'元素爆發',   desc:'答題3秒內，傷害+30%元素加成',                        lv:1,  type:'passive', effect:{fastAnswerElemBonus:0.3}},
+      {id:'mage_3',  name:'魔力感知',   desc:'智力每10點額外提升答題時間0.5秒',                    lv:3,  type:'passive', effect:{intTimeBonus:0.05}},
+      {id:'mage_5',  name:'魔法護盾',   desc:'受傷時吸收20%傷害，3回合CD',                         lv:5,  type:'trigger', effect:{dmgAbsorb:0.2}, cd:3},
+      {id:'mage_8',  name:'魔力爆發',   desc:'連續答對3題後下一擊×2傷害',                          lv:8,  type:'auto',    effect:{comboMult:2.0, comboRequired:3}},
+      {id:'mage_10', name:'魔法精通',   desc:'法杖攻擊再+20%，元素相剋加成+10%',                   lv:10, type:'passive', effect:{wandBonus:0.20, elemBonus:0.10}},
+      {id:'mage_15', name:'時間掌控',   desc:'答題時間+3秒',                                       lv:15, type:'passive', effect:{timeBonus:3}},
+      {id:'mage_20', name:'大魔導師',   desc:'每場1次，下一擊無視防禦並造成×4傷害',               lv:20, type:'once',    effect:{ignoreDef:true, burstMult:4.0}},
     ],
     canChangeTo:['ice_mage','fire_mage'], reqLevel:10, reqJob:'miner',
   },
   rogue: {
-    name:'🗡️ 盜賊', desc:'敏捷+幸運，暴擊流',
+    name:'🗡️ 盜賊', desc:'敏捷+幸運，先手爆發。',
     passive:{agiMult:1.2, lukMult:1.2, critBonus:0.05},
     skills:[
-      {id:'rogue_1', name:'先手必殺', desc:'先攻時傷害+60%', lv:1, type:'passive', effect:{firstStrikeBonus:0.6}},
-      {id:'rogue_5', name:'毒刃', desc:'攻擊附加中毒，每回合-8血', lv:5, type:'auto', effect:{poisonOnHit:8}},
+      {id:'rogue_1',  name:'先手必殺',  desc:'先攻時傷害+60%',                                     lv:1,  type:'passive', effect:{firstStrikeBonus:0.6}},
+      {id:'rogue_3',  name:'身法',      desc:'閃避率+8%',                                          lv:3,  type:'passive', effect:{dodgeBonus:0.08}},
+      {id:'rogue_5',  name:'毒刃',      desc:'攻擊附加中毒，每回合-8血',                            lv:5,  type:'auto',    effect:{poisonOnHit:8}},
+      {id:'rogue_8',  name:'暗殺',      desc:'先攻時額外30%機率即死（對菁英無效）',                  lv:8,  type:'passive', effect:{assassinate:0.30}},
+      {id:'rogue_10', name:'幸運之神',  desc:'暴擊率+10%，暴擊傷害×2.5',                           lv:10, type:'passive', effect:{critBonus:0.10, critMult:2.5}},
+      {id:'rogue_15', name:'影遁',      desc:'每場1次，完全閃避下一次攻擊',                         lv:15, type:'once',    effect:{dodgeNext:true}},
+      {id:'rogue_20', name:'影殺者',    desc:'每場1次，對怪物造成當前HP×30%的真實傷害',             lv:20, type:'once',    effect:{trueHpDmg:0.30}},
     ],
     canChangeTo:['hunter','gambler'], reqLevel:10, reqJob:'miner',
   },
   paladin: {
-    name:'🛡️ 聖騎士', desc:'防禦+治癒，每回合自動回血',
+    name:'🛡️ 聖騎士', desc:'防禦+治癒，近乎不死的路線。',
     passive:{defMult:1.3, regenPerTurn:3},
     skills:[
-      {id:'paladin_1', name:'神聖護盾', desc:'自動觸發，免疫一次傷害，5回合CD', lv:1, type:'trigger', effect:{immuneOnce:true}, cd:5},
-      {id:'paladin_5', name:'聖光治癒', desc:'每回合額外回血5點', lv:5, type:'passive', effect:{regenBonus:5}},
+      {id:'paladin_1', name:'神聖護盾',  desc:'自動觸發，免疫一次傷害，5回合CD',              lv:1,  type:'trigger', effect:{immuneOnce:true}, cd:5},
+      {id:'paladin_3', name:'聖光祝福',  desc:'每回合回血3點（與職業被動疊加）',               lv:3,  type:'passive', effect:{regenBonus:3}},
+      {id:'paladin_5', name:'聖光治癒',  desc:'每回合額外回血5點',                             lv:5,  type:'passive', effect:{regenBonus:5}},
+      {id:'paladin_8', name:'神聖烙印',  desc:'攻擊附加光屬性，對暗屬性怪物+50%傷害',          lv:8,  type:'passive', effect:{holyBrand:true}},
+      {id:'paladin_10',name:'堅不可摧',  desc:'護盾CD縮短至3回合',                             lv:10, type:'passive', effect:{shieldCDReduce:2}},
+      {id:'paladin_15',name:'聖光審判',  desc:'每場1次，回復50%最大HP並清除所有負面狀態',      lv:15, type:'once',    effect:{healPct:0.5, cleanse:true}},
+      {id:'paladin_20',name:'不死聖者',  desc:'一場戰鬥中，血量歸零時自動回復30%HP（1次）',   lv:20, type:'passive', effect:{deathSave:0.30}},
     ],
     canChangeTo:[], reqLevel:30, reqJob:'warrior',
   },
   death_knight: {
-    name:'💀 死亡騎士', desc:'暗屬性加成，吸血攻擊',
+    name:'💀 死亡騎士', desc:'暗屬性，越殺越強，吸血流。',
     passive:{darkBonus:1.5, lifeSteal:0.1},
     skills:[
-      {id:'dk_1', name:'吸血打擊', desc:'攻擊回復傷害10%的血量', lv:1, type:'passive', effect:{lifeSteal:0.1}},
-      {id:'dk_5', name:'死亡凝視', desc:'每場戰鬥1次，怪物攻擊-30%持續3回合', lv:5, type:'once', effect:{monAtkReduce:0.3, turns:3}},
+      {id:'dk_1', name:'吸血打擊',    desc:'攻擊回復傷害10%的血量',                          lv:1,  type:'passive', effect:{lifeSteal:0.10}},
+      {id:'dk_3', name:'死靈之力',    desc:'每擊殺一隻怪物，攻擊+5%（最多疊5層，每場重置）', lv:3,  type:'passive', effect:{killStack:0.05, maxKillStack:5}},
+      {id:'dk_5', name:'死亡凝視',    desc:'每場1次，怪物攻擊-30%持續3回合',                 lv:5,  type:'once',    effect:{monAtkReduce:0.3, turns:3}},
+      {id:'dk_8', name:'靈魂吞噬',    desc:'吸血量提升至15%',                                lv:8,  type:'passive', effect:{lifeSteal:0.15}},
+      {id:'dk_10',name:'死亡氣息',    desc:'攻擊附加暗屬性詛咒，-5防禦（疊加）',             lv:10, type:'auto',    effect:{darkCurse:5}},
+      {id:'dk_15',name:'不死軍團',    desc:'每場2次吸血爆擊（吸血×3）',                      lv:15, type:'passive', effect:{lifeStealCrit:3.0, lifeStealCritCount:2}},
+      {id:'dk_20',name:'死神降臨',    desc:'每場1次，對怪物造成其最大HP×40%的真實傷害',      lv:20, type:'once',    effect:{trueHpDmg:0.40}},
     ],
     canChangeTo:[], reqLevel:30, reqJob:'warrior',
   },
   ice_mage: {
-    name:'❄️ 冰法師', desc:'冰屬性大幅加成，凍結怪物',
+    name:'❄️ 冰法師', desc:'冰屬性，控制流，凍結一切。',
     passive:{iceBonus:1.6},
     skills:[
-      {id:'ice_1', name:'寒冰護甲', desc:'受冰屬性傷害完全免疫', lv:1, type:'passive', effect:{iceImmune:true}},
-      {id:'ice_5', name:'絕對零度', desc:'每場1次，凍結怪物2回合（跳過怪物攻擊）', lv:5, type:'once', effect:{freeze:2}},
+      {id:'ice_1',  name:'寒冰護甲',   desc:'受冰屬性傷害完全免疫',                          lv:1,  type:'passive', effect:{iceImmune:true}},
+      {id:'ice_3',  name:'冰霜觸碰',   desc:'攻擊有20%機率減速怪物（攻擊-15%，2回合）',      lv:3,  type:'auto',    effect:{slowChance:0.20, slowAmount:0.15, slowTurns:2}},
+      {id:'ice_5',  name:'絕對零度',   desc:'每場1次，凍結怪物2回合',                         lv:5,  type:'once',    effect:{freeze:2}},
+      {id:'ice_8',  name:'冰晶護盾',   desc:'受傷時有25%機率反彈10%傷害給怪物',              lv:8,  type:'passive', effect:{iceReflect:0.10, reflectChance:0.25}},
+      {id:'ice_10', name:'永凍之地',   desc:'冰屬性傷害再+20%，凍結持續+1回合',              lv:10, type:'passive', effect:{iceBonus:0.20, freezeExtra:1}},
+      {id:'ice_15', name:'冰河時代',   desc:'每場2次絕對零度',                                lv:15, type:'passive', effect:{freezeCount:2}},
+      {id:'ice_20', name:'冰封王座',   desc:'每場1次，造成×5冰屬性傷害並凍結3回合',          lv:20, type:'once',    effect:{iceBurst:5.0, freeze:3}},
     ],
     canChangeTo:[], reqLevel:30, reqJob:'mage',
   },
   fire_mage: {
-    name:'🔥 火法師', desc:'火屬性大幅加成，持續灼傷',
+    name:'🔥 火法師', desc:'火屬性，持續灼傷，越燒越旺。',
     passive:{fireBonus:1.6},
     skills:[
-      {id:'fire_1', name:'燃燒', desc:'攻擊附加灼傷，每回合-10血', lv:1, type:'auto', effect:{burnOnHit:10}},
-      {id:'fire_5', name:'爆炎', desc:'血量>70%時可用，一次×2.5傷害，4回合CD', lv:5, type:'trigger', effect:{burstMult:2.5, reqHpPct:0.7}, cd:4},
+      {id:'fire_1',  name:'燃燒',      desc:'攻擊附加灼傷，每回合-10血',                     lv:1,  type:'auto',    effect:{burnOnHit:10}},
+      {id:'fire_3',  name:'火焰強化',  desc:'灼傷傷害提升至每回合-15血',                     lv:3,  type:'passive', effect:{burnBonus:5}},
+      {id:'fire_5',  name:'爆炎',      desc:'血量>70%時可用，×2.5傷害，4回合CD',             lv:5,  type:'trigger', effect:{burstMult:2.5, reqHpPct:0.7}, cd:4},
+      {id:'fire_8',  name:'烈焰之心',  desc:'每回合爆炎CD-1（等效3回合CD）',                 lv:8,  type:'passive', effect:{burstCDReduce:1}},
+      {id:'fire_10', name:'焦土戰術',  desc:'灼傷層數可疊加（最多3層）',                     lv:10, type:'passive', effect:{burnStack:3}},
+      {id:'fire_15', name:'浴火重生',  desc:'血量低於20%時自動回復20%HP，每場1次',           lv:15, type:'trigger', effect:{phoenixHeal:0.20}, cd:99},
+      {id:'fire_20', name:'末日火焰',  desc:'每場1次，×6火屬性傷害並附加3層灼傷',            lv:20, type:'once',    effect:{fireBurst:6.0, burnStacks:3}},
     ],
     canChangeTo:[], reqLevel:30, reqJob:'mage',
   },
   hunter: {
-    name:'🏹 獵人', desc:'弓傷害大幅提升，先手優勢',
+    name:'🏹 獵人', desc:'弓專精，陷阱控場，先手必勝。',
     passive:{bowMult:1.5, agiMult:1.3},
     skills:[
-      {id:'hunter_1', name:'弓箭強化', desc:'弓攻擊額外+30%，先攻機率大幅提升', lv:1, type:'passive', effect:{bowBonus:0.3}},
-      {id:'hunter_5', name:'陷阱', desc:'每場1次，怪物下一次攻擊完全失效', lv:5, type:'once', effect:{trapNextAtk:true}},
+      {id:'hunter_1',  name:'弓箭強化', desc:'弓攻擊+30%，先攻機率大幅提升',                lv:1,  type:'passive', effect:{bowBonus:0.30}},
+      {id:'hunter_3',  name:'連射',     desc:'每3回合觸發一次雙重攻擊',                      lv:3,  type:'auto',    effect:{doubleShot:true, every:3}},
+      {id:'hunter_5',  name:'陷阱',     desc:'每場1次，怪物下一次攻擊完全失效',              lv:5,  type:'once',    effect:{trapNextAtk:true}},
+      {id:'hunter_8',  name:'瞄準',     desc:'答題2秒內暴擊率+30%',                          lv:8,  type:'passive', effect:{quickAimCrit:0.30}},
+      {id:'hunter_10', name:'毒箭',     desc:'弓攻擊附加中毒（每回合-10血）',               lv:10, type:'passive', effect:{poisonArrow:10}},
+      {id:'hunter_15', name:'多重陷阱', desc:'陷阱使用次數+1（每場2次）',                   lv:15, type:'passive', effect:{trapCount:2}},
+      {id:'hunter_20', name:'絕殺一箭', desc:'每場1次，穿透防禦造成×5弓攻擊傷害',          lv:20, type:'once',    effect:{piercingShot:5.0}},
     ],
     canChangeTo:[], reqLevel:30, reqJob:'rogue',
   },
   gambler: {
-    name:'🃏 賭徒', desc:'隨機暴擊，高風險高回報',
+    name:'🃏 賭徒', desc:'高風險高報酬，幸運決定一切。',
     passive:{critMult:3.0, critChance:0.3},
     skills:[
-      {id:'gambler_1', name:'幸運一擲', desc:'每次攻擊30%機率觸發×5暴擊', lv:1, type:'passive', effect:{luckyStrike:0.3, luckyMult:5}},
-      {id:'gambler_5', name:'豪賭', desc:'每場1次，50%機率×4傷害，50%機率自傷30%血量', lv:5, type:'once', effect:{gambleWinMult:4, gambleLosePct:0.3}},
+      {id:'gambler_1',  name:'幸運一擲', desc:'每次攻擊30%機率觸發×5暴擊',                  lv:1,  type:'passive', effect:{luckyStrike:0.30, luckyMult:5}},
+      {id:'gambler_3',  name:'賭徒直覺', desc:'幸運+5，暴擊率+5%',                           lv:3,  type:'passive', effect:{lukBonus:5, critBonus:0.05}},
+      {id:'gambler_5',  name:'豪賭',     desc:'每場1次，50%機率×4傷害，50%機率自傷30%',    lv:5,  type:'once',    effect:{gambleWinMult:4, gambleLosePct:0.3}},
+      {id:'gambler_8',  name:'命運之輪', desc:'每場開始隨機獲得一個增益（攻/防/閃各33%）', lv:8,  type:'passive', effect:{randomBuff:true}},
+      {id:'gambler_10', name:'千面梟雄', desc:'暴擊傷害×4（原本×3）',                       lv:10, type:'passive', effect:{critMult:4.0}},
+      {id:'gambler_15', name:'賭神附體', desc:'豪賭勝率提升至70%',                           lv:15, type:'passive', effect:{gambleWinRate:0.70}},
+      {id:'gambler_20', name:'奇蹟',     desc:'每場1次，100%觸發×10暴擊（無視一切限制）',  lv:20, type:'once',    effect:{miracleCrit:10.0}},
     ],
     canChangeTo:[], reqLevel:30, reqJob:'miner',
   },
@@ -1267,7 +1556,22 @@ const LS_KEY = 'dungeon_v1';
 function generateLoot(monName, monLv) {
   const mon = MDEFS[monName];
   const luk = totalStat('luk');
-  const lukBonus = 1 + luk * 0.01; // 幸運影響掉落率
+  // 技能掉落率加成（挖礦直覺/採礦大師等）
+  let skillDropBonus = 0;
+  let skillGoldBonus = 0;
+  for (const s of getUnlockedSkills()) {
+    if (s.effect?.dropBonus) skillDropBonus += s.effect.dropBonus;
+    if (s.effect?.goldBonus) skillGoldBonus += s.effect.goldBonus;
+  }
+  for (const prev of (state.prevJobs||[])) {
+    const pjd = JOB_DEFS[prev.job];
+    for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
+      if (sk.effect?.dropBonus) skillDropBonus += sk.effect.dropBonus * 0.3;
+      if (sk.effect?.goldBonus) skillGoldBonus += sk.effect.goldBonus * 0.3;
+    }
+  }
+  const lukBonus = 1 + luk * 0.01 + skillDropBonus;
+  const goldMult = 1 + skillGoldBonus;
 
   const results = [];
 
@@ -1275,21 +1579,41 @@ function generateLoot(monName, monLv) {
   const goldChance = mon?.special === 'steal' ? 1.0 : 0.80;
   if (Math.random() < goldChance) {
     const base = mon?.gold || 10;
-    const gold = Math.floor(base * (0.8 + Math.random() * 0.6) * lukBonus);
+    const gold = Math.floor(base * (0.8 + Math.random() * 0.6) * lukBonus * goldMult);
     results.push({type:'gold', amount: gold});
   }
 
-  // ── 藥水（30%機率）
+  // ── 藥水（30%機率，依怪物等級分層）
   if (Math.random() < 0.30 * lukBonus) {
-    const potPool = [
-      {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
-      {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m', rarity:'green', desc:'回復 80 HP', effect:{heal:80}},
-      {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'cure_poison', rarity:'white', desc:'解除中毒', effect:{cure:'poison'}},
-      {name:'力量藥水',   icon:'💪', type:'potion', subtype:'buff_str', rarity:'green', desc:'攻擊+30% 3回合', effect:{buff:'str', turns:3}},
-      {name:'迷霧藥水',   icon:'🌫', type:'potion', subtype:'fog_clear', rarity:'green', desc:'揭開周圍15格迷霧', effect:{action:'fog'}},
+    const poolBase = [
+      {name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s',   rarity:'white', desc:'回復 30 HP',  effect:{heal:30}},
+      {name:'解毒藥水',   icon:'💚', type:'potion', subtype:'antidote', rarity:'white', desc:'解除中毒',    effect:{cure:'poison'}},
     ];
-    // 較高等怪掉比較好的藥水
-    const pool = monLv >= 10 ? potPool : potPool.slice(0, 3);
+    const poolMid = [
+      {name:'回復藥水',   icon:'🍶', type:'potion', subtype:'heal_m',    rarity:'white', desc:'回復 80 HP',      effect:{heal:80}},
+      {name:'力量藥水',   icon:'💪', type:'potion', subtype:'str_boost', rarity:'green', desc:'攻擊+30% 3回合',  effect:{buff:'str', amt:0.3, turns:3}},
+      {name:'敏捷藥水',   icon:'⚡', type:'potion', subtype:'agi_boost', rarity:'green', desc:'敏捷+30% 3回合',  effect:{buff:'agi', amt:0.3, turns:3}},
+      {name:'幸運藥水',   icon:'🍀', type:'potion', subtype:'luk_boost', rarity:'green', desc:'幸運+50% 3回合',  effect:{buff:'luk', amt:0.5, turns:3}},
+      {name:'智慧藥水',   icon:'🧠', type:'potion', subtype:'int_boost', rarity:'green', desc:'智力+30% 3回合',  effect:{buff:'int', amt:0.3, turns:3}},
+      {name:'迷霧藥水',   icon:'🌫', type:'potion', subtype:'fog_clear', rarity:'green', desc:'揭開周圍迷霧',    effect:{action:'fog'}},
+    ];
+    const poolHigh = [
+      {name:'大回復藥水', icon:'💊', type:'potion', subtype:'heal_l',   rarity:'green', desc:'回復 200 HP',      effect:{heal:200}},
+      {name:'萬能解藥',   icon:'🌈', type:'potion', subtype:'cure_all', rarity:'green', desc:'解除所有負面狀態',  effect:{cure:'all'}},
+      {name:'狂暴藥水',   icon:'🔥', type:'potion', subtype:'berserk',  rarity:'blue',  desc:'攻擊×2 3回合',    effect:{buff:'berserk', turns:3}},
+    ];
+    const poolRare = [
+      {name:'超級回復藥水', icon:'🫙', type:'potion', subtype:'heal_xl',    rarity:'blue', desc:'回復 500 HP',     effect:{heal:500}},
+      {name:'無敵藥水',     icon:'🛡️', type:'potion', subtype:'invincible', rarity:'gold', desc:'免疫傷害 1回合',  effect:{buff:'invincible', turns:1}},
+    ];
+    const poolLegend = [
+      {name:'不死藥', icon:'✨', type:'potion', subtype:'heal_full', rarity:'rainbow', desc:'完全回復所有 HP', effect:{heal:'full'}},
+    ];
+    let pool = [...poolBase];
+    if (monLv >= 10) pool = pool.concat(poolMid);
+    if (monLv >= 30) pool = pool.concat(poolHigh);
+    if (monLv >= 50) pool = pool.concat(poolRare);
+    if (monLv >= 70 && Math.random() < 0.1) pool = pool.concat(poolLegend);
     const pot = pool[Math.floor(Math.random() * pool.length)];
     results.push({...pot, id: Date.now() + Math.random()});
   }
@@ -1309,6 +1633,13 @@ function generateLoot(monName, monLv) {
         );
     if (mon.element && mon.element !== 'none' && Math.random() < 0.3) {
       item.element = mon.element;
+    }
+    // autoIdentify（礦神之眼）：自動鑑定
+    if (hasSkill('miner_35') && item.unidentified) {
+      item.unidentified = false;
+      item.name = item.realName || item.name;
+      item.icon = item.type === 'weapon' ? (WPN_ICON[item.subtype]||'⚔️') : (SLOT_ICON[item.subtype]||'🛡');
+      item.stats = item.realStats || item.stats;
     }
     results.push(item);
   }
@@ -1345,6 +1676,7 @@ function initState() {
   return {
     generation:1, level:1, exp:0, expNext:100,
     job:'miner', jobLevel:1, jobExp:0, prevJobs:[],
+    visitedContinents:['forest'],
     skillCDs:{}, skillUsed:{}, // CD倒數 & 每場已使用
     stats:{ hp:100,maxHp:100,str:10,agi:8,luk:5,int:5,def:5 },
     freePoints:0,
@@ -1374,7 +1706,7 @@ function initState() {
 let state = initState();
 let killedSet = new Set();
 const START_X = 500, START_Y = 500;
-let px = START_X, py = START_Y;   // player world coords
+let px = START_X + 60, py = START_Y - 40;   // 起始於晨曦村
 let explored = new Set(); // explored tile keys
 
 // ═══════════════════════════════════════════════
@@ -1382,8 +1714,9 @@ let explored = new Set(); // explored tile keys
 // ═══════════════════════════════════════════════
 
 function findStart() {
-  const ox = START_X, oy = START_Y;
-  for (let r = 0; r <= 40; r++) {
+  // 從晨曦村出發
+  const ox = START_X + 60, oy = START_Y - 40;
+  for (let r = 0; r <= 10; r++) {
     for (let dx = -r; dx <= r; dx++) {
       for (let dy = -r; dy <= r; dy++) {
         if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
@@ -1422,49 +1755,114 @@ function eqStats() {
   return s;
 }
 
-function totalStat(k) { return (state.stats[k]||0) + (eqStats()[k]||0); }
-
-function calcAtk() {
+function totalStat(k) {
+  const base = (state.stats[k]||0) + (eqStats()[k]||0);
   const jp = getJobPassive();
   const pj = getPrevJobBonus();
-  const str_ = totalStat('str') * (jp.strMult||1) * (pj.strMult ? 1+(pj.strMult-1)*0.3 : 1);
-  const agi_ = totalStat('agi') * (jp.agiMult||1) * (pj.agiMult ? 1+(pj.agiMult-1)*0.3 : 1);
-  const int__ = totalStat('int') * (jp.intMult||1) * (pj.intMult ? 1+(pj.intMult-1)*0.3 : 1);
-  const luk_ = totalStat('luk') * (jp.lukMult||1) * (pj.lukMult ? 1+(pj.lukMult-1)*0.3 : 1);
-  const def_ = totalStat('def');
 
-  // 每種武器的基礎計算都不同，體現差異化
-  // 物理系：力量/敏捷影響，智力無用
-  // 魔法系：智力決定一切，力量無用
-  const physBase = str_ * 2.0 + state.level * 2;   // 物理基礎
-  const magiBase = int__ * 3.5 + state.level * 2;   // 魔法基礎（智力加成更高）
+  // 職業固定加成（defBonus 等）
+  let bonus = 0;
+  if (k === 'def') bonus += (jp.defBonus||0) + (pj.defBonus||0);
+
+  // 技能固定加成（礦工石皮 defBonus:5 等）
+  const skills = getUnlockedSkills();
+  for (const s of skills) {
+    const ef = s.effect || {};
+    if (k === 'def' && ef.defBonus)  bonus += ef.defBonus;
+    if (ef.allStats) bonus += ef.allStats;
+    // 賭徒技能
+    if (k === 'luk' && ef.lukBonus) bonus += ef.lukBonus;
+  }
+  // 前職業技能殘留30%
+  for (const prev of (state.prevJobs||[])) {
+    const pjd = JOB_DEFS[prev.job];
+    for (const s of (pjd?.skills||[]).filter(sk => prev.level >= sk.lv)) {
+      const ef = s.effect || {};
+      if (k === 'def' && ef.defBonus)  bonus += Math.floor(ef.defBonus * 0.3);
+      if (ef.allStats) bonus += Math.floor(ef.allStats * 0.3);
+      if (k === 'luk' && ef.lukBonus) bonus += Math.floor(ef.lukBonus * 0.3);
+    }
+  }
+
+  // 職業乘數
+  const mult = k === 'str' ? (jp.strMult||1)
+             : k === 'agi' ? (jp.agiMult||1)
+             : k === 'luk' ? (jp.lukMult||1)
+             : k === 'int' ? (jp.intMult||1)
+             : k === 'def' ? (jp.defMult||1) : 1;
+
+  // allStatsMult（地脈共鳴）
+  let statMult = 1.0;
+  for (const s of skills) {
+    if (s.effect?.allStatsMult) statMult += s.effect.allStatsMult;
+  }
+  for (const prev of (state.prevJobs||[])) {
+    const pjd = JOB_DEFS[prev.job];
+    for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
+      if (sk.effect?.allStatsMult) statMult += sk.effect.allStatsMult * 0.3;
+    }
+  }
+
+  return Math.floor((base + bonus) * mult * statMult);
+}
+
+function calcAtk() {
+  // totalStat() 已包含職業乘數和加成，直接使用
+  const str_ = totalStat('str');
+  const agi_ = totalStat('agi');
+  const int__ = totalStat('int');
+  const luk_ = totalStat('luk');
+  const def_ = totalStat('def');
+  const lv = state.level;
 
   let baseAtk;
   if (!state.weapon) {
-    baseAtk = physBase * 0.5; // 空手很弱
+    baseAtk = str_ * 1.5 + lv;
   } else {
     const sub = state.weapon.subtype;
-    if (sub==='sword')       baseAtk = physBase + agi_ * 0.8;          // 力量主，敏捷副
-    else if (sub==='axe')    baseAtk = physBase * 1.4;                  // 純力量爆發
-    else if (sub==='bow')    baseAtk = agi_ * 3.5 + state.level * 2;   // 純敏捷，不看力量
-    else if (sub==='wand')   baseAtk = magiBase;                        // 純智力，遠高於物理
-    else if (sub==='dagger') baseAtk = agi_ * 2.5 + luk_ * 1.0 + state.level * 2; // 敏捷+幸運
-    else if (sub==='spear')  baseAtk = physBase * 0.9 + def_ * 0.8;    // 攻防兼備
-    else baseAtk = physBase;
+    if (sub==='sword')       baseAtk = str_ * 3.0 + lv * 2;
+    else if (sub==='axe')    baseAtk = str_ * 3.8 + lv * 2;
+    else if (sub==='bow')    baseAtk = agi_ * 3.5 + lv * 2;
+    else if (sub==='wand')   baseAtk = int__ * 4.0 + lv * 2;
+    else if (sub==='dagger') baseAtk = agi_ * 2.0 + luk_ * 0.5 + lv * 2;
+    else if (sub==='spear')  baseAtk = str_ * 2.0 + def_ * 1.5 + lv * 2;
+    else baseAtk = str_ * 2.0 + lv * 2;
 
-    if (sub==='wand' && jp.atkWandMult) baseAtk *= jp.atkWandMult;
-    if (sub==='bow'  && jp.bowMult)     baseAtk *= jp.bowMult;
-    if (sub==='wand' && pj.atkWandMult) baseAtk *= 1+(pj.atkWandMult-1)*0.3;
-    if (sub==='bow'  && pj.bowMult)     baseAtk *= 1+(pj.bowMult-1)*0.3;
+    // 技能攻擊加成
+    const skills = getUnlockedSkills();
+    let atkBonusMult = 1.0;
+    for (const s of skills) {
+      if (s.effect?.atkBonus) atkBonusMult += s.effect.atkBonus;
+      if (s.effect?.wandBonus && sub==='wand') atkBonusMult += s.effect.wandBonus;
+      if (s.effect?.bowBonus  && sub==='bow')  atkBonusMult += s.effect.bowBonus;
+    }
+    // 前職業技能殘留30%
+    for (const prev of (state.prevJobs||[])) {
+      const pjd = JOB_DEFS[prev.job];
+      for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
+        if (sk.effect?.atkBonus) atkBonusMult += sk.effect.atkBonus * 0.3;
+      }
+    }
+    baseAtk *= atkBonusMult;
 
-    // 強化加成：每+1增加8%攻擊
+    // 礦工 Lv.40 不屈意志：血量<20%攻擊×2
+    const lowHpSkill = skills.find(s => s.effect?.lowHpAtkMult);
+    if (lowHpSkill && state.stats.hp < state.stats.maxHp * lowHpSkill.effect.threshold) {
+      baseAtk *= lowHpSkill.effect.lowHpAtkMult;
+    }
+
+    // 強化加成
     const enh = state.weapon.enhance || 0;
     if (enh > 0) baseAtk *= (1 + enh * 0.08);
   }
+
   const setBonuses = getSetBonuses();
   let setAtkMult = 1.0;
   for (const b of setBonuses) { if (b.atkMult) setAtkMult *= b.atkMult; }
-  return Math.floor((baseAtk || 1) * setAtkMult);
+  let buffMult = 1.0;
+  if (hasBuff('str'))     buffMult *= (1 + (state.buffEffects?.find(b=>b.type==='str')?.amt||0));
+  if (hasBuff('berserk')) buffMult *= 2.0;
+  return Math.floor((baseAtk || 1) * setAtkMult * buffMult);
 }
 
 function timeLimit() { return 8 + totalStat('int') * 0.1; }
@@ -1697,9 +2095,32 @@ function drawTerrain(ctx, ter, cx, cy, size, wx, wy) {
       ctx.fill();
       break;
     }
+    case T.CHEST: {
+      ctx.fillStyle = '#1a1000'; ctx.fillRect(cx, cy, size, size);
+      // 箱體
+      ctx.fillStyle = 'rgba(120,70,20,0.95)';
+      ctx.fillRect(cx+size*.1,cy+size*.35,size*.8,size*.5);
+      // 蓋子
+      ctx.fillStyle = 'rgba(150,90,25,0.95)';
+      ctx.fillRect(cx+size*.1,cy+size*.25,size*.8,size*.15);
+      ctx.beginPath(); ctx.arc(cx+size/2,cy+size*.25,size*.35,Math.PI,0); ctx.fill();
+      // 金屬扣
+      ctx.fillStyle = 'rgba(255,200,50,0.9)';
+      ctx.fillRect(cx+size*.42,cy+size*.38,size*.16,size*.14);
+      // 光暈
+      ctx.fillStyle = 'rgba(255,200,50,0.15)';
+      ctx.beginPath(); ctx.arc(cx+size/2,cy+size*.45,size*.4,0,Math.PI*2); ctx.fill();
+      break;
+    }
     default: {
       ctx.fillStyle = '#1e4a1e';
       ctx.fillRect(cx, cy, size, size);
+      // 村莊範圍地板提示（淡黃色）
+      const vt = getVillageAt(wx, wy);
+      if (vt) {
+        ctx.fillStyle = 'rgba(80,60,20,0.25)';
+        ctx.fillRect(cx, cy, size, size);
+      }
     }
   }
 }
@@ -1777,10 +2198,11 @@ let moveCooldown = false;
 let nearMerchant = false;
 
 function checkNearMerchant() {
-  // 檢查玩家周圍3格內有沒有商人
+  // 檢查玩家周圍2格內有沒有商人或村莊
   for (let dy = -2; dy <= 2; dy++) {
     for (let dx = -2; dx <= 2; dx++) {
-      if (getTerrain(px+dx, py+dy) === T.MERCHANT) {
+      const ter = getTerrain(px+dx, py+dy);
+      if (ter === T.MERCHANT || ter === T.VILLAGE) {
         nearMerchant = true;
         return;
       }
@@ -1825,6 +2247,30 @@ function move(dx, dy) {
     openMerchant();
     renderMap(); updateUI(); return;
   }
+  if (ter === T.CHEST) {
+    openChest(px, py);
+    renderMap(); updateUI(); return;
+  }
+  if (ter === T.VILLAGE) {
+    // 旅館格子
+    const v = getVillageAt(px, py);
+    if (v) showInn(v);
+    renderMap(); updateUI(); return;
+  }
+  if (ter === T.TELEPORT) {
+    const v = getTeleportAt(px, py);
+    if (v) {
+      if (!state.unlockedTeleports) state.unlockedTeleports = [];
+      const isNew = !state.unlockedTeleports.includes(v.vid);
+      if (isNew) {
+        state.unlockedTeleports.push(v.vid);
+        toast(`🔮 ${v.name} 傳送石已激活！`);
+        save(true);
+      }
+      showTeleportMenu(v);
+    }
+    renderMap(); updateUI(); return;
+  }
 
   // Monster encounter
   const mon = getMonsterAt(nx, ny);
@@ -1838,15 +2284,48 @@ function move(dx, dy) {
   renderMap(); updateUI(); save(true);
 }
 
+function showArrivalAnim(title, subtitle, color) {
+  // 移除舊的
+  const existing = document.getElementById('arrival-overlay');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'arrival-overlay';
+  el.style.cssText = `position:fixed;inset:0;z-index:600;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0);transition:background .6s`;
+  el.innerHTML = `
+    <div id="arrival-text" style="text-align:center;opacity:0;transition:opacity .6s">
+      <div style="font-size:22px;font-weight:900;color:${color||'#fff'};
+        text-shadow:0 0 20px ${color||'#fff'}88;margin-bottom:.4rem">${title}</div>
+      ${subtitle?`<div style="font-size:13px;color:#aaa">${subtitle}</div>`:''}
+    </div>`;
+  document.body.appendChild(el);
+  // 漸暗
+  requestAnimationFrame(() => {
+    el.style.background = 'rgba(0,0,0,0.75)';
+    setTimeout(() => {
+      document.getElementById('arrival-text').style.opacity = '1';
+      setTimeout(() => {
+        document.getElementById('arrival-text').style.opacity = '0';
+        el.style.background = 'rgba(0,0,0,0)';
+        setTimeout(() => el.remove(), 700);
+      }, 2000);
+    }, 400);
+  });
+}
+
 function checkContinentChange() {
   const cur = getContinent(px, py);
-  if (cur !== lastContinent) {
+  if (!state.visitedContinents) state.visitedContinents = ['forest'];
+  if (!state.visitedContinents.includes(cur)) {
+    state.visitedContinents.push(cur);
     lastContinent = cur;
-    if (!state.visitedContinents) state.visitedContinents = [];
-    if (!state.visitedContinents.includes(cur)) state.visitedContinents.push(cur);
     const info = CONTINENT_INFO[cur];
     if (!info) return;
+    // 抵達動畫
+    showArrivalAnim(info.name, `建議等級：Lv.${info.recLv}`, info.color);
     const isUnder = state.level < info.recLv;
+    if (!isUnder) return; // 等級夠不用彈提示卡
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:500;pointer-events:auto;animation:fadeUp .4s ease';
     modal.innerHTML = `
@@ -1869,6 +2348,43 @@ function checkContinentChange() {
   }
 }
 
+// ── 村莊回血計時器 ──
+let villageRegenTimer = null;
+
+function checkVillageRegen() {
+  const inVillage = !!getVillageAt(px, py);
+  if (inVillage) {
+    // 第一次進入村莊顯示抵達動畫
+    const v = getVillageAt(px, py);
+    if (v) {
+      if (!state.visitedVillages) state.visitedVillages = [];
+      if (!state.visitedVillages.includes(v.vid)) {
+        state.visitedVillages.push(v.vid);
+        showArrivalAnim(`🏘️ ${v.name}`, '村莊', '#f59e0b');
+        save(true);
+      }
+    }
+    if (!villageRegenTimer) {
+      villageRegenTimer = setInterval(() => {
+        if (!getVillageAt(px, py)) {
+          clearInterval(villageRegenTimer);
+          villageRegenTimer = null;
+          return;
+        }
+        if (state.stats.hp < state.stats.maxHp) {
+          state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + 1);
+          updateStatusBar();
+        }
+      }, 2000);
+    }
+  } else {
+    if (villageRegenTimer) {
+      clearInterval(villageRegenTimer);
+      villageRegenTimer = null;
+    }
+  }
+}
+
 function goBack2Forest() {
   // 傳送回出發點附近
   const sp = findStart();
@@ -1888,6 +2404,25 @@ function tickEffects() {
     }
     return e.turns > 0;
   });
+  // Buff 倒數
+  if (state.buffEffects) {
+    state.buffEffects = state.buffEffects.filter(b => {
+      b.turns--;
+      if (b.turns <= 0) toast(`⏰ ${b.type} 效果消退`);
+      return b.turns > 0;
+    });
+  }
+}
+
+// 取得當前 buff 倍率
+function getBuffMult(type) {
+  if (!state.buffEffects) return 1;
+  const b = state.buffEffects.find(b => b.type === type);
+  return b ? (1 + (b.amt || 0)) : 1;
+}
+
+function hasBuff(type) {
+  return !!(state.buffEffects?.find(b => b.type === type && b.turns > 0));
 }
 
 // ═══════════════════════════════════════════════
@@ -1939,6 +2474,14 @@ function startCombat(monName, wx, wy, lv) {
   document.getElementById('cb-log').innerHTML = '';
   updateCombatHPDisplay();
   try { renderCombatSkillBtns(); } catch(e) { console.error('skillBtns error:', e); }
+  // revealElement（礦脈感知）：自動偵測怪物屬性
+  if (hasSkill('miner_15')) {
+    const elem = combat.monster.element || 'none';
+    if (elem !== 'none') {
+      const ei = ELEMENTS[elem];
+      cbLog('cl-p', `🔍 礦脈感知：${combat.monster.name} 屬性為 ${ei?.icon||''} ${ei?.name||elem}`);
+    }
+  }
 
   // First strike check
   const monHasFirst = m.agi * 3 >= totalStat('agi');
@@ -2108,13 +2651,25 @@ function resolvePlayerAttack(timeLeft, tl) {
     }
   }
 
-  // Crit (with job passives)
+  // 暴擊率：各武器路線不同
   const jp = getJobPassive();
-  let critRate = (totalStat('luk') * 0.5) / 100 + (jp.critBonus || 0);
+  const luk_ = totalStat('luk');
+  const str_ = totalStat('str');
+  const agi_ = totalStat('agi');
+  const int__ = totalStat('int');
+  const wpnSub = state.weapon?.subtype;
+  let critRate;
+  if (wpnSub === 'dagger') critRate = luk_ * 0.005 + agi_ * 0.002;
+  else if (wpnSub === 'bow') critRate = luk_ * 0.003 + agi_ * 0.002;
+  else if (wpnSub === 'sword' || wpnSub === 'axe') critRate = luk_ * 0.003 + str_ * 0.001;
+  else if (wpnSub === 'wand') critRate = luk_ * 0.003 + int__ * 0.001;
+  else critRate = luk_ * 0.003;
+  critRate = Math.min(0.6, critRate + (jp.critBonus||0));
   if (jp.critChance) critRate = jp.critChance;
   const critMult = jp.critMult || 2;
   let isCrit = false;
   if (Math.random() < critRate) { atk = Math.floor(atk * critMult); isCrit = true; }
+  if (wpnSub === 'axe') isCrit = false;
 
   // Element multiplier
   const wpnElem = state.weapon?.element || 'none';
@@ -2284,25 +2839,53 @@ function nextTurnOrEnd() {
 }
 
 function applyDmgToPlayer(dmg) {
+  // 無敵藥水：完全免疫
+  if (hasBuff('invincible')) {
+    showFloatingText('無敵!', '#f59e0b', 'player');
+    cbLog('cl-g', `🛡️ 無敵狀態！傷害完全格擋！`);
+    return;
+  }
   const jp = getJobPassive();
   const pj = getPrevJobBonus();
-  const pDef = totalStat('def');
+  // 狂暴藥水：防禦歸零
+  const pDef = hasBuff('berserk') ? 0 : totalStat('def');
   const pAgi = totalStat('agi');
 
-  // 迴避判斷：敏捷決定閃避率，上限35%
-  const dodgeRate = Math.min(0.35, pAgi * 0.008);
+  // 迴避判斷：敏捷×0.5% + 防禦×0.3% + 技能加成
+  let dodgeBonus = 0;
+  for (const s of getUnlockedSkills()) {
+    if (s.effect?.dodgeBonus) dodgeBonus += s.effect.dodgeBonus;
+  }
+  for (const prev of (state.prevJobs||[])) {
+    const pjd = JOB_DEFS[prev.job];
+    for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
+      if (sk.effect?.dodgeBonus) dodgeBonus += sk.effect.dodgeBonus * 0.3;
+    }
+  }
+  if (hasBuff('agi')) dodgeBonus += 0.05;
+  const dodgeRate = Math.min(0.50, pAgi * 0.005 + pDef * 0.003 + dodgeBonus);
   if (Math.random() < dodgeRate) {
     cbLog('cl-g', `⚡ 閃避成功！你靈巧地躲開了攻擊！`);
     showFloatingText('DODGE!', '#4ade80', 'player');
-    return; // 完全不扣血
+    return;
   }
 
-  let reduction = Math.min(0.6, pDef / (pDef + 20));
-  if (jp.defMult) reduction = Math.min(0.75, reduction * jp.defMult);
-  if (pj.defMult) reduction = Math.min(0.75, reduction * (1+(pj.defMult-1)*0.3));
+  // defDouble（礦工鐵壁）：防禦翻倍計算
+  const defVal = hasSkill('miner_30') ? pDef * 2 : pDef;
+  let reduction = Math.min(0.75, defVal / (defVal + 20));
   const setBonuses = getSetBonuses();
   for (const b of setBonuses) {
-    if (b.defMult) reduction = Math.min(0.75, reduction * b.defMult);
+    if (b.defMult) reduction = Math.min(0.80, reduction * b.defMult);
+  }
+  // dmgReduce 技能（石皮/鐵甲術等）
+  const dmgReduceSkills = getUnlockedSkills().filter(s => s.effect?.dmgReduce);
+  for (const s of dmgReduceSkills) reduction = Math.min(0.80, reduction + s.effect.dmgReduce);
+  // 前職業殘留 dmgReduce
+  for (const prev of (state.prevJobs||[])) {
+    const pjd = JOB_DEFS[prev.job];
+    for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
+      if (sk.effect?.dmgReduce) reduction = Math.min(0.80, reduction + sk.effect.dmgReduce * 0.3);
+    }
   }
   dmg = Math.max(1, Math.floor(dmg * (1 - reduction)));
   state.stats.hp = Math.max(0, state.stats.hp - dmg);
@@ -2481,6 +3064,21 @@ function tryEscape() {
   }
 }
 
+function renderCombatSkillBtns() {
+  const area = document.getElementById('cb-skill-btns');
+  if (!area) return;
+  const onceSkills = getUnlockedSkills().filter(s => s.type === 'once');
+  if (onceSkills.length === 0) { area.innerHTML = ''; return; }
+  area.innerHTML = onceSkills.map(s => {
+    const used = skillUsedThisCombat(s.id);
+    return `<button onclick="useJobSkill('${s.id}')"
+      style="padding:4px 8px;border-radius:6px;border:.5px solid ${used?'#333':'#7c3aed'};
+      background:${used?'#1a1a2e':'#2d1b69'};color:${used?'#555':'#c4b5fd'};
+      font-size:10px;cursor:${used?'default':'pointer'};white-space:nowrap"
+      ${used?'disabled':''}>${s.name}${used?' ✓':''}</button>`;
+  }).join('');
+}
+
 function cbLog(cls, html) {
   const log = document.getElementById('cb-log');
   const line = document.createElement('div');
@@ -2578,10 +3176,21 @@ function gainExp(amount) {
     state.exp -= state.expNext;
     state.level++;
     state.expNext = expForLevel(state.level);
-    // 每升一級：+力量×1 + 敏捷×0.5 + 防禦×0.5
+    // 每升一級：+力量×1 + 敏捷×0.5 + 防禦×0.5 + 技能加成
+    let hpPerLvBonus = 0;
+    for (const s of getUnlockedSkills()) {
+      if (s.effect?.hpPerLevel) hpPerLvBonus += s.effect.hpPerLevel;
+    }
+    for (const prev of (state.prevJobs||[])) {
+      const pjd = JOB_DEFS[prev.job];
+      for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
+        if (sk.effect?.hpPerLevel) hpPerLvBonus += Math.floor(sk.effect.hpPerLevel * 0.3);
+      }
+    }
     const hpGain = state.stats.str * 1
       + Math.floor(state.stats.agi * 0.5)
-      + Math.floor(state.stats.def * 0.5);
+      + Math.floor(state.stats.def * 0.5)
+      + hpPerLvBonus;
     state.stats.maxHp += hpGain;
     state.stats.hp = Math.min(state.stats.hp + hpGain, state.stats.maxHp);
     state.freePoints += state.level % 10 === 0 ? 4 : 1;
@@ -2666,19 +3275,140 @@ function getPrevJobBonus() {
   return combined;
 }
 
+// 計算職業累積總場數
+function calcTotalJobExp(jobLv) {
+  // Lv.N→N+1需N×10場，所以到達Lv.N累積了 Σi×10 for i=1 to N-1
+  let total = 0;
+  for (let i = 1; i < jobLv; i++) total += i * 10;
+  total += (state.jobExp || 0); // 加上當前等級已累積的
+  return total;
+}
+
+// 用場數反算職業等級
+function calcJobLvFromExp(totalExp) {
+  let lv = 1, remaining = totalExp;
+  while (remaining >= lv * 10) {
+    remaining -= lv * 10;
+    lv++;
+  }
+  return {lv, exp: remaining};
+}
+
+function openSkills() {
+  const jd = JOB_DEFS[state.job || 'miner'];
+  const curLv = state.jobLevel || 1;
+  const curExp = state.jobExp || 0;
+  const needed = jobExpForLevel(curLv);
+  const pct = Math.min(100, Math.floor(curExp / needed * 100));
+
+  const title = document.getElementById('skill-modal-title');
+  if (title) title.textContent = `${jd.name} 技能`;
+
+  const body = document.getElementById('skill-body');
+  const allSkills = jd.skills || [];
+
+  // 進度條
+  let html = `
+    <div style="background:#12122a;border-radius:10px;padding:.6rem .8rem;margin-bottom:.8rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+        <span style="font-size:13px;font-weight:700;color:#c4b5fd">${jd.name}</span>
+        <span style="font-size:12px;color:#888">職業 Lv.${curLv}</span>
+      </div>
+      <div style="background:#1a1a2e;border-radius:4px;height:6px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#7c3aed,#c084fc);transition:width .3s"></div>
+      </div>
+      <div style="font-size:10px;color:#555;margin-top:3px">${curExp}/${needed} 場　距下一級還需 ${needed-curExp} 場</div>
+    </div>`;
+
+  // 技能列表
+  html += '<div style="display:flex;flex-direction:column;gap:.5rem">';
+  for (const sk of allSkills) {
+    const unlocked = curLv >= sk.lv;
+    const isCurrent = curLv === sk.lv;
+    const borderColor = unlocked ? '#7c3aed' : '#2a2a4a';
+    const nameColor = unlocked ? '#c4b5fd' : '#444';
+    const typeTag = {passive:'被動',auto:'自動',trigger:'觸發',once:'每場1次',trigger:'觸發'}[sk.type] || sk.type;
+    const typeColor = {passive:'#6b7280',auto:'#3b82f6',trigger:'#f59e0b',once:'#ef4444'}[sk.type] || '#888';
+
+    html += `
+      <div style="background:${unlocked?'#12122a':'#0a0a16'};border:.5px solid ${borderColor};
+        border-radius:10px;padding:.6rem .8rem;${isCurrent?'box-shadow:0 0 8px #7c3aed44':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.2rem">
+          <div style="display:flex;align-items:center;gap:.4rem">
+            <span style="font-size:13px;font-weight:700;color:${nameColor}">
+              ${unlocked?'✅':'🔒'} ${sk.name}
+            </span>
+            <span style="font-size:9px;padding:1px 5px;border-radius:4px;background:${typeColor}22;color:${typeColor}">${typeTag}</span>
+          </div>
+          <span style="font-size:11px;color:${unlocked?'#7c3aed':'#333'}">Lv.${sk.lv}</span>
+        </div>
+        <div style="font-size:11px;color:${unlocked?'#888':'#333'}">${sk.desc}</div>
+        ${!unlocked ? `<div style="font-size:10px;color:#555;margin-top:3px">還需職業 Lv.${sk.lv}（差 ${sk.lv-curLv} 級）</div>` : ''}
+      </div>`;
+  }
+  html += '</div>';
+
+  // 殘留技能（前職業）
+  if (state.prevJobs?.length > 0) {
+    html += `<div style="margin-top:1rem;border-top:.5px solid #1a1a2e;padding-top:.8rem">
+      <div style="font-size:11px;color:#555;margin-bottom:.5rem">📜 殘留技能（前職業 × 30%）</div>`;
+    for (const prev of state.prevJobs) {
+      const pjd = JOB_DEFS[prev.job];
+      if (!pjd) continue;
+      const prevSkills = (pjd.skills||[]).filter(s => prev.level >= s.lv);
+      html += `<div style="margin-bottom:.4rem">
+        <div style="font-size:11px;color:#555;margin-bottom:.2rem">${pjd.name} Lv.${prev.level}</div>`;
+      for (const sk of prevSkills) {
+        html += `<div style="font-size:10px;color:#3a3a5a;padding:.2rem .5rem">
+          · ${sk.name} <span style="color:#555">（30%效果）</span>
+        </div>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+  openModal('modal-skills');
+}
+
 function changeJob(jobKey) {
   const jd = JOB_DEFS[jobKey];
   if (!jd) return;
-  if (state.level < (jd.reqLevel||0)) { toast(`需要 Lv.${jd.reqLevel}`); return; }
+  if (state.level < (jd.reqLevel||0)) { toast(`需要角色 Lv.${jd.reqLevel}`); return; }
   if (state.job !== jd.reqJob) { toast('職業條件不符'); return; }
 
-  if (!confirm(`確定轉職為「${jd.name}」？\n職業等級將重置為1，但前職業殘留30%被動加成。`)) return;
+  const oldJob = state.job;
+  const oldJd = JOB_DEFS[oldJob];
+  const oldLv = state.jobLevel || 1;
+  const totalExp = calcTotalJobExp(oldLv);
+  const transferExp = Math.floor(totalExp * 0.3);
+  const {lv: newStartLv, exp: newStartExp} = calcJobLvFromExp(transferExp);
+  const oldSkills = (oldJd?.skills||[]).filter(s => oldLv >= s.lv).map(s => s.name).join('、') || '無';
+
+  const msg = `確定轉職為「${jd.name}」？\n\n` +
+    `【舊職業技能全部停用】\n${oldJd?.name} Lv.${oldLv} 解鎖：${oldSkills}\n\n` +
+    `【被動效果 ×30% 永久殘留】\n\n` +
+    `【職業經驗轉換】\n累積${totalExp}場 × 30% → ${jd.name} 從 Lv.${newStartLv} 開始`;
+
+  if (!confirm(msg)) return;
+
   if (!state.prevJobs) state.prevJobs = [];
-  state.prevJobs.push({job:state.job, level:state.jobLevel||1, passive:JOB_DEFS[state.job]?.passive||{}});
+  state.prevJobs.push({
+    job: oldJob, level: oldLv,
+    passive: oldJd?.passive || {},
+    skills: (oldJd?.skills||[]).filter(s => oldLv >= s.lv),
+  });
+
   state.job = jobKey;
-  state.jobLevel = 1;
+  state.jobLevel = newStartLv;
+  state.jobExp = newStartExp;
+  state.skillCDs = {};
+  state.skillUsed = {};
+
   closeModal('modal-stats');
-  toast(`🎉 成功轉職為 ${jd.name}！`);
+  toast(`🎉 轉職為 ${jd.name}！職業 Lv.${newStartLv} 開始`);
+  openSkills();
   updateUI(); save(true);
 }
 
@@ -2878,8 +3608,50 @@ function equipItem(item, fromInv, invIdx) {
   if (fromInv) removeFromInventory(invIdx);
   if (oldItem) { if (!addToInventory(oldItem)) toast('背包已滿，舊裝備消失'); }
   toast(`✅ 裝備了 ${item.name}`);
-  closeModal('modal-item'); openInventory();
+  closeModal('modal-item');
+  refreshInventoryIfOpen();
   updateUI();
+}
+
+function findItemById(id) {
+  const invIdx = state.inventory.findIndex(i => String(i.id) === String(id));
+  if (invIdx >= 0) return {item: state.inventory[invIdx], fromInv: true, invIdx, slot: null};
+  if (state.weapon && String(state.weapon.id) === String(id))
+    return {item: state.weapon, fromInv: false, invIdx: null, slot: 'weapon'};
+  for (const slot of ARMOR_SLOTS) {
+    if (state.equipment[slot] && String(state.equipment[slot].id) === String(id))
+      return {item: state.equipment[slot], fromInv: false, invIdx: null, slot};
+  }
+  return null;
+}
+
+function sellItemById(id) {
+  const found = findItemById(id);
+  if (!found) {
+    // debug：列出所有物品 id
+    const ids = state.inventory.map(i => String(i.id)).join(', ');
+    toast('找不到:' + id + ' 現有:' + ids.slice(0,40));
+    return;
+  }
+  sellItem(found.fromInv, found.invIdx, found.slot);
+}
+
+function dropItemById(id) {
+  const found = findItemById(id);
+  if (!found) { toast('找不到物品'); return; }
+  dropItem(found.item, found.fromInv, found.invIdx);
+}
+
+function usePotionById(id) {
+  const invIdx = state.inventory.findIndex(i => String(i.id) === String(id));
+  if (invIdx < 0) { toast('找不到物品'); return; }
+  usePotion(state.inventory[invIdx], invIdx);
+}
+
+function equipItemById(id) {
+  const invIdx = state.inventory.findIndex(i => String(i.id) === String(id));
+  if (invIdx < 0) { toast('找不到物品'); return; }
+  equipItem(state.inventory[invIdx], true, invIdx);
 }
 
 function dropItem(item, fromInv, invIdx) {
@@ -2920,13 +3692,19 @@ function sellItem(fromInv, invIdx, slot) {
 
 function usePotion(item, invIdx) {
   const ef = item.effect;
+
+  // 回復類
   if (ef.heal) {
-    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + ef.heal);
-    toast(`💊 ${item.name}：回復 ${ef.heal} HP`);
+    const healAmt = ef.heal === 'full' ? state.stats.maxHp : ef.heal;
+    const actual = Math.min(state.stats.maxHp - state.stats.hp, healAmt);
+    state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmt);
+    toast(`${item.icon} ${item.name}：回復 ${actual} HP`);
     removeFromInventory(invIdx);
     closeModal('modal-item');
     refreshInventoryIfOpen();
     updateUI(); save(true);
+
+  // 解毒
   } else if (ef.cure === 'poison') {
     state.statusEffects = state.statusEffects.filter(e=>e.type!=='poison');
     toast(`💚 解毒成功！中毒狀態已解除`);
@@ -2934,11 +3712,36 @@ function usePotion(item, invIdx) {
     closeModal('modal-item');
     refreshInventoryIfOpen();
     updateUI(); save(true);
+
+  // 萬能解藥
+  } else if (ef.cure === 'all') {
+    state.statusEffects = [];
+    toast(`🌈 萬能解藥！所有負面狀態已解除`);
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    refreshInventoryIfOpen();
+    updateUI(); save(true);
+
+  // Buff 類（str/agi/luk/int/berserk/invincible）
+  } else if (ef.buff) {
+    if (!state.buffEffects) state.buffEffects = [];
+    // 移除同類舊buff
+    state.buffEffects = state.buffEffects.filter(b => b.type !== ef.buff);
+    state.buffEffects.push({type: ef.buff, amt: ef.amt || 0, turns: ef.turns || 3});
+    const buffNames = {
+      str:'攻擊+30%', agi:'敏捷+30%', luk:'幸運+50%',
+      int:'智力+30%', berserk:'攻擊×2（防禦歸零）', invincible:'免疫傷害'
+    };
+    toast(`${item.icon} ${item.name}：${buffNames[ef.buff] || ef.buff}，持續 ${ef.turns} 回合`);
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    refreshInventoryIfOpen();
+    updateUI(); save(true);
+
+  // 卷軸類
   } else if (ef.action === 'enhance') {
-    // 強化卷軸：選擇要強化的裝備
     showScrollTargetPicker(item, invIdx, 'enhance');
   } else if (ef.action === 'protect') {
-    // 保護卷軸：選擇要保護的裝備
     showScrollTargetPicker(item, invIdx, 'protect');
   } else if (ef.action === 'identify') {
     const unidItems = state.inventory.filter(i => i.unidentified);
@@ -2952,6 +3755,28 @@ function usePotion(item, invIdx) {
     ];
     if (cursedItems.length === 0) { toast(`🌟 沒有可解咒的裝備`); return; }
     showPurifyPicker(invIdx);
+  } else if (ef.action === 'teleport_near') {
+    const unlocked = state.unlockedTeleports || [];
+    if (unlocked.length === 0) { toast('尚未激活任何傳送石！請前往村莊。'); return; }
+    // 找最近的已激活傳送石
+    let nearest = null, minDist = Infinity;
+    for (const vid of unlocked) {
+      const v = VILLAGE_DEFS[vid];
+      if (!v) continue;
+      const d = Math.abs(px-(START_X+v.dx)) + Math.abs(py-(START_Y+v.dy));
+      if (d < minDist) { minDist = d; nearest = vid; }
+    }
+    if (nearest) {
+      removeFromInventory(invIdx);
+      closeModal('modal-item');
+      doTeleport(nearest);
+    }
+  } else if (ef.action === 'teleport_any') {
+    const unlocked = state.unlockedTeleports || [];
+    if (unlocked.length === 0) { toast('尚未激活任何傳送石！請前往村莊。'); return; }
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    showTeleportMenu({vid:'__scroll__'});
   } else if (ef.action === 'fog') {
     for (let dy = -7; dy <= 7; dy++) {
       for (let dx = -7; dx <= 7; dx++) { explored.add(`${px+dx},${py+dy}`); }
@@ -3034,6 +3859,7 @@ function doScrollApply(targetIdx, scrollInvIdx, mode, modal) {
     // enhance mode
     if (modal) modal.remove();
     closeModal('modal-item');
+    refreshInventoryIfOpen();
     const hasProtect = item._protected;
     const result = tryEnhance(item, scroll.effect?.type, hasProtect);
     // 消耗卷軸
@@ -3292,6 +4118,7 @@ function updateQuickBar() {
 // ════════════════════════════════════════════════════════════
 
 function openInventory(filter) {
+  checkNearMerchant(); // 每次開背包都確認是否在商人/村莊附近
   filter = filter || state._invFilter || 'all';
   state._invFilter = filter;
   const grid = document.getElementById('inv-grid');
@@ -3528,6 +4355,10 @@ function allocStat(k) {
 }
 
 function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
+  checkNearMerchant();
+  // 確保物品有 id
+  if (!item.id) item.id = Date.now() + Math.random();
+  const iid = String(item.id);
   const rCol = `rarity-${item.rarity}`;
   const rarityLabel = RARITY_NAME[item.rarity] || '';
   const typeLabel = item.type==='weapon' ? `${WPN_ICON[item.subtype]} 武器·${item.subtype}` : `${SLOT_LABEL[item.subtype]||'裝備'}`;
@@ -3712,7 +4543,7 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
     btns = `<button class="ic-btn ic-btn-equip" onclick="(${buyFn.toString()})()">🛒 購買</button>
             <button class="ic-btn ic-btn-close" onclick="closeModal('modal-item')">關閉</button>`;
   } else if (item.type === 'potion' || item.type === 'scroll') {
-    const potSellPrice = Math.floor((item.price || 30) * 0.4); // 40% 回收價
+    const potSellPrice = Math.floor((item.price || 30) * 0.4);
     const potSellBtn = nearMerchant
       ? `<button class="ic-btn ic-btn-sell" onclick="sellItem(true,${invIdx},'potion')">💰 賣出 $${potSellPrice}</button>`
       : '';
@@ -3744,11 +4575,10 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
     ${item.reqStr?`<div class="ic-req">需求力量：<span class="${totalStat('str')>=item.reqStr?'':'req-fail'}">${item.reqStr}${totalStat('str')>=item.reqStr?'':' ⚠️不足'}</span></div>`:''}
     ${item.reqAgi?`<div class="ic-req">需求敏捷：<span class="${totalStat('agi')>=item.reqAgi?'':'req-fail'}">${item.reqAgi}${totalStat('agi')>=item.reqAgi?'':' ⚠️不足'}</span></div>`:''}
     ${item.reqInt?`<div class="ic-req">需求智力：<span class="${totalStat('int')>=item.reqInt?'':'req-fail'}">${item.reqInt}${totalStat('int')>=item.reqInt?'':' ⚠️不足'}</span></div>`:''}
-    ${heirloomHtml}${setHtml}${enhHtml}
+    ${setHtml}${enhHtml}
     <div class="ic-btns">${btns}</div>`;
   openModal('modal-item');
 }
-
 function unequipItem(slot) {
   const item = slot==='weapon' ? state.weapon : state.equipment[slot];
   if (!item) return;
@@ -3866,6 +4696,112 @@ function merchantBuy(idx) {
 }
 
 // ═══════════════════════════════════════════════
+// ── 村莊選單 ──
+function showVillageMenu(v) {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:400;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #f59e0b;border-radius:16px;padding:1.2rem;width:100%;max-width:300px">
+      <div style="text-align:center;margin-bottom:1rem">
+        <div style="font-size:18px;font-weight:700;color:#f59e0b">🏘️ ${v.name}</div>
+        <div style="font-size:11px;color:#666">${CONTINENT_INFO[v.continent]?.name||''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <button onclick="showInn(${JSON.stringify(v).replace(/"/g,'&quot;')});this.closest('[style*=fixed]').remove()"
+          style="padding:10px;border-radius:10px;border:.5px solid #333;background:#1a1a2e;color:#60a5fa;font-size:13px;cursor:pointer">
+          🏨 旅館　<span style="color:#f59e0b;font-size:11px">500 金</span>
+          <span style="float:right;font-size:11px;color:#888">❤️ ${state.stats.hp}/${state.stats.maxHp}</span>
+        </button>
+        <button onclick="showTeleportMenu(${JSON.stringify(v).replace(/"/g,'&quot;')});this.closest('[style*=fixed]').remove()"
+          style="padding:10px;border-radius:10px;border:.5px solid #333;background:#1a1a2e;color:#a78bfa;font-size:13px;cursor:pointer">
+          🔮 傳送石
+        </button>
+        <button onclick="this.closest('[style*=fixed]').remove()"
+          style="padding:8px;border-radius:10px;border:.5px solid #333;background:transparent;color:#555;font-size:12px;cursor:pointer">
+          離開村莊
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+// ── 旅館 ──
+function showInn(v) {
+  if (state.stats.hp >= state.stats.maxHp) { toast('你已經是滿血了！'); showVillageMenu(v); return; }
+  if (state.gold < 500) { toast('金幣不足（需要 500 金）'); showVillageMenu(v); return; }
+  state.gold -= 500;
+  // 動畫：漸暗 → 粉紅閃光 → 漸亮 → 滿血
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:800;pointer-events:none;background:rgba(0,0,0,0);transition:background .8s';
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.background = 'rgba(0,0,0,0.95)';
+    setTimeout(() => {
+      el.style.background = 'rgba(255,100,180,0.6)';
+      el.style.transition = 'background .15s';
+      setTimeout(() => {
+        el.style.background = 'rgba(0,0,0,0)';
+        el.style.transition = 'background .8s';
+        state.stats.hp = state.stats.maxHp;
+        updateUI(); save(true);
+        toast('🏨 好好休息了一晚，體力完全恢復！');
+        setTimeout(() => el.remove(), 900);
+      }, 200);
+    }, 900);
+  });
+}
+
+// ── 傳送選單 ──
+function showTeleportMenu(v) {
+  const unlocked = state.unlockedTeleports || [];
+  if (!unlocked.includes(v.vid)) {
+    toast('🔮 請先站在傳送石上激活！');
+    return;
+  }
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:400;padding:1rem';
+  const options = Object.entries(VILLAGE_DEFS)
+    .filter(([vid]) => unlocked.includes(vid) && vid !== v.vid)
+    .map(([vid, vd]) => `
+      <button onclick="doTeleport('${vid}');this.closest('[style*=fixed]').remove()"
+        style="padding:8px 12px;border-radius:8px;border:.5px solid #a78bfa33;background:#1a1030;
+        color:#c4b5fd;font-size:12px;cursor:pointer;text-align:left">
+        🔮 ${vd.name}
+        <span style="color:#555;font-size:10px;margin-left:4px">${CONTINENT_INFO[vd.continent]?.name||''}</span>
+      </button>`).join('');
+
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #a78bfa;border-radius:16px;padding:1.2rem;width:100%;max-width:300px">
+      <div style="color:#a78bfa;font-weight:700;margin-bottom:.8rem">🔮 傳送到...</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;max-height:300px;overflow-y:auto">
+        ${options || '<div style="color:#555;font-size:12px">尚未解鎖其他傳送石</div>'}
+      </div>
+      <button onclick="this.closest('[style*=fixed]').remove()"
+        style="margin-top:.8rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#555;cursor:pointer;font-size:12px">取消</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function doTeleport(vid) {
+  const v = VILLAGE_DEFS[vid];
+  if (!v) return;
+  // 傳送動畫
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:800;pointer-events:none;background:rgba(0,0,0,0);transition:background .5s';
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.background = 'rgba(100,20,200,0.9)';
+    setTimeout(() => {
+      px = START_X + v.dx;
+      py = START_Y + v.dy;
+      el.style.background = 'rgba(0,0,0,0)';
+      renderMap(); updateUI(); save(true);
+      toast(`🔮 傳送至 ${v.name}！`);
+      setTimeout(() => el.remove(), 600);
+    }, 500);
+  });
+}
+
 // CAVE EVENT
 // ═══════════════════════════════════════════════
 
