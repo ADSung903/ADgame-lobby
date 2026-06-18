@@ -14,7 +14,10 @@
   v1.0  戰鬥感重構：浮動傷害數字、迴避、武器差異化
         職業技能系統：每場勝利職業經驗、Lv.1/5技能解鎖、CD管理
         裝備屬性門檻；背包擴至30格；商人可購買擴充
-  v1.1  9大陸系統：座標分區、各大陸專屬怪物（共50+種）
+  v1.1  9大陸系統（見上）
+  v1.2  背包40格；篩選tab；藥水疊加×99；強化後數值顯示修正
+        裝備等級限距調整（每10級）；地圖頁獨立按鈕（世界地圖）
+        世界地圖：已探索縮略+玩家紅點+大陸方向+探索進度：座標分區、各大陸專屬怪物（共50+種）
         進入新大陸提示卡、建議等級警告、回森林傳送
         地圖overlay顯示當前大陸；scaledMonster null guard
         戰鬥先攻修正（只第一回合判斷）；版本號顯示於畫面下方
@@ -76,7 +79,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .dpad-btn:active{background:#1a1a3a;transform:scale(.93)}
 .dpad-center{width:46px;height:46px;display:flex;align-items:center;
   justify-content:center;font-size:22px}
-.act-btns{display:flex;gap:5px}
+.act-btns{display:flex;gap:3px}
 .act-btn{width:56px;height:54px;border-radius:10px;border:.5px solid #333;
   background:#0d0d1e;color:var(--text);font-size:11px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
@@ -451,12 +454,13 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.1</div>
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.2</div>
     </div>
     <div class="act-btns">
       <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
       <button class="act-btn" onclick="openEquipment()"><span>🛡️</span>裝備</button>
       <button class="act-btn" onclick="openStats()"><span>📊</span>屬性</button>
+      <button class="act-btn" onclick="openWorldMap()"><span>🗺️</span>地圖</button>
     </div>
   </div>
 </div>
@@ -469,7 +473,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="modal-x" onclick="closeModal('modal-inv')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="inv-count" id="inv-count">0/20</div>
+      <div id="inv-tabs" style="display:flex;gap:4px;margin-bottom:.4rem;flex-wrap:wrap"></div>
+      <div class="inv-count" id="inv-count">0/40</div>
       <div class="inv-grid" id="inv-grid"></div>
     </div>
   </div>
@@ -542,6 +547,20 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <div class="cb-player-hp" id="cb-player-hp">❤️ 100</div>
       <div id="cb-skill-btns" style="display:flex;gap:4px"></div>
       <button class="cb-escape" id="cb-escape" onclick="tryEscape()">🏃 逃跑</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORLD MAP -->
+<div class="modal-back" id="modal-worldmap" onclick="if(event.target===this)closeModal('modal-worldmap')">
+  <div class="modal-sheet" style="max-height:92dvh">
+    <div class="modal-head">
+      <div class="modal-title">🗺️ 世界地圖</div>
+      <button class="modal-x" onclick="closeModal('modal-worldmap')">✕</button>
+    </div>
+    <div class="modal-body" id="worldmap-body" style="padding:.8rem;display:flex;flex-direction:column;align-items:center;gap:.8rem">
+      <canvas id="wm-canvas" style="border-radius:10px;border:.5px solid #2a2a4a"></canvas>
+      <div id="wm-legend" style="width:100%;font-size:11px;color:#888"></div>
     </div>
   </div>
 </div>
@@ -980,7 +999,7 @@ function generateWeapon(rarity, level) {
     icon: unidentified ? '❓' : WPN_ICON[sub], enhance:0, element:rollElement(r2),
     cursed:isCursed, purified:false, curseType,
     stats: unidentified ? {} : stats, realStats: stats,
-    reqLevel:{white:0,green:10,blue:30}[r2]||0,
+    reqLevel:({white:0,green:10,blue:20,gold:30,red:50,rainbow:100}[r2]||0),
     unidentified,
     flavorText: unidentified ? '這件裝備散發著神秘的氣息，需要鑑定才能了解其真正能力。' : (WPN_FLAVOR[name] || `一把${name}，散發著冒險的氣息`),
     fromGeneration:null, deathLocation:null, deathKills:null,
@@ -1018,7 +1037,7 @@ function generateArmor(slot, rarity, level) {
     icon: unidentified ? '❓' : SLOT_ICON[slot], enhance:0, element:rollElement(r2),
     cursed:isCursed, purified:false, curseType,
     stats: unidentified ? {} : stats, realStats: stats,
-    reqLevel:{white:0,green:10,blue:30}[r2]||0,
+    reqLevel:({white:0,green:10,blue:20,gold:30,red:50,rainbow:100}[r2]||0),
     unidentified,
     flavorText: unidentified ? '這件裝備散發著神秘的氣息，需要鑑定才能了解其真正能力。' : `一件${name}，防護著這一代勇者`,
     fromGeneration:null, deathLocation:null, deathKills:null,
@@ -1343,7 +1362,7 @@ function initState() {
     inventory:[
       {id:'starter_potion_1', name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
       {id:'starter_potion_2', name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
-    ], inventoryMax:20,
+    ], inventoryMax:40,
     heirlooms:[],
     killedMonsters:[], totalExplored:0,
     kills:0, totalKills:0, totalGenerations:1,
@@ -1823,6 +1842,8 @@ function checkContinentChange() {
   const cur = getContinent(px, py);
   if (cur !== lastContinent) {
     lastContinent = cur;
+    if (!state.visitedContinents) state.visitedContinents = [];
+    if (!state.visitedContinents.includes(cur)) state.visitedContinents.push(cur);
     const info = CONTINENT_INFO[cur];
     if (!info) return;
     const isUnder = state.level < info.recLv;
@@ -2743,6 +2764,7 @@ function doEnhanceDirect(itemId, fromInv, invIdx, slot, scrollSubtype) {
   // 保護卷軸用完後清除
   if (hasProtect) item._protected = false;
   closeModal('modal-item');
+  refreshInventoryIfOpen();
   updateUI(); save(true);
 }
 
@@ -2755,6 +2777,7 @@ function applyProtectToItem(itemId, fromInv, invIdx, slot) {
   item._protected = true;
   state.inventory.splice(protectIdx, 1);
   closeModal('modal-item');
+  refreshInventoryIfOpen();
   toast(`🛡 ${item.name} 已套上保護卷軸`);
   updateUI(); save(true);
 }
@@ -2829,6 +2852,12 @@ function addToInventory(item) {
 
 function removeFromInventory(idx) {
   state.inventory.splice(idx, 1);
+  refreshInventoryIfOpen();
+}
+
+function refreshInventoryIfOpen() {
+  if (document.getElementById('modal-inv')?.classList.contains('open')) openInventory(state._invFilter);
+  if (document.getElementById('modal-eq')?.classList.contains('open')) openEquipment();
 }
 
 function equipItem(item, fromInv, invIdx) {
@@ -2863,8 +2892,7 @@ function dropItem(item, fromInv, invIdx) {
     else state.equipment[item.subtype] = null;
   }
   closeModal('modal-item');
-  if (document.getElementById('modal-inv')?.classList.contains('open')) openInventory();
-  if (document.getElementById('modal-eq')?.classList.contains('open')) openEquipment();
+  refreshInventoryIfOpen();
   updateUI(); save(true);
   toast('🗑️ 已丟棄');
 }
@@ -2885,9 +2913,7 @@ function sellItem(fromInv, invIdx, slot) {
     else state.equipment[slot] = null;
   }
   closeModal('modal-item');
-  // 強制重新渲染背包/裝備頁
-  if (document.getElementById('modal-inv')?.classList.contains('open')) openInventory();
-  if (document.getElementById('modal-eq')?.classList.contains('open')) openEquipment();
+  refreshInventoryIfOpen();
   updateUI(); save(true);
   toast(`💰 賣出 ${item.name}，獲得 $${price}`);
 }
@@ -2899,12 +2925,14 @@ function usePotion(item, invIdx) {
     toast(`💊 ${item.name}：回復 ${ef.heal} HP`);
     removeFromInventory(invIdx);
     closeModal('modal-item');
+    refreshInventoryIfOpen();
     updateUI(); save(true);
   } else if (ef.cure === 'poison') {
     state.statusEffects = state.statusEffects.filter(e=>e.type!=='poison');
     toast(`💚 解毒成功！中毒狀態已解除`);
     removeFromInventory(invIdx);
     closeModal('modal-item');
+    refreshInventoryIfOpen();
     updateUI(); save(true);
   } else if (ef.action === 'enhance') {
     // 強化卷軸：選擇要強化的裝備
@@ -2932,11 +2960,13 @@ function usePotion(item, invIdx) {
     toast(`🌫️ 迷霧消散，周圍地形已揭露`);
     removeFromInventory(invIdx);
     closeModal('modal-item');
+    refreshInventoryIfOpen();
     renderMap(); updateUI(); save(true);
   } else {
     toast(`使用了 ${item.name}`);
     removeFromInventory(invIdx);
     closeModal('modal-item');
+    refreshInventoryIfOpen();
     updateUI(); save(true);
   }
 }
@@ -2997,6 +3027,7 @@ function doScrollApply(targetIdx, scrollInvIdx, mode, modal) {
     state.inventory.splice(scrollInvIdx, 1);
     if (modal) modal.remove();
     closeModal('modal-item');
+    refreshInventoryIfOpen();
     toast(`🛡 ${item.name} 已套上保護卷軸，下次強化失敗不會爆裝`);
     updateUI(); save(true);
   } else {
@@ -3055,6 +3086,7 @@ function doIdentify(invIdx, scrollInvIdx, modal) {
   if (scrollIdx >= 0) state.inventory.splice(scrollIdx, 1);
   if (modal) modal.remove();
   closeModal('modal-item');
+  refreshInventoryIfOpen();
   toast(`🔍 鑑定完成！【${item.name}】真面目揭曉！`);
   updateUI(); save(true);
   // 重新開啟鑑定後的裝備卡片
@@ -3109,6 +3141,7 @@ function doPurify(cursedIdx, scrollInvIdx, modal) {
   if (scrollIdx >= 0) state.inventory.splice(scrollIdx, 1);
   if (modal) modal.remove();
   closeModal('modal-item');
+  refreshInventoryIfOpen();
   toast(`🌟 【${item.name}】詛咒已解除！裝備數值完全釋放！`);
   updateUI(); save(true);
 }
@@ -3121,6 +3154,7 @@ function quickUsePotion(invIdx) {
   const item = state.inventory[invIdx];
   if (!item || item.type !== 'potion') return;
   usePotion(item, invIdx);
+  refreshInventoryIfOpen();
   updateUI(); save(true);
 }
 
@@ -3257,11 +3291,60 @@ function updateQuickBar() {
 // 🪟 MODALS — Inventory, Equipment, Stats, ItemCard, Merchant
 // ════════════════════════════════════════════════════════════
 
-function openInventory() {
+function openInventory(filter) {
+  filter = filter || state._invFilter || 'all';
+  state._invFilter = filter;
   const grid = document.getElementById('inv-grid');
-  document.getElementById('inv-count').textContent = `${state.inventory.length}/${state.inventoryMax}`;
+  const countEl = document.getElementById('inv-count');
   grid.innerHTML = '';
+  countEl.textContent = `${state.inventory.length}/${state.inventoryMax}`;
+
+  // 篩選 tab
+  const tabs = [
+    {id:'all', label:'全部'},
+    {id:'weapon', label:'武器'},
+    {id:'armor', label:'防具'},
+    {id:'potion', label:'藥水'},
+    {id:'scroll', label:'卷軸'},
+  ];
+  const tabsEl = document.getElementById('inv-tabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = tabs.map(t => `
+      <button onclick="openInventory('${t.id}')"
+        style="padding:4px 8px;border-radius:6px;border:none;cursor:pointer;font-size:11px;
+        background:${filter===t.id?'var(--accent)':'#1a1a2e'};
+        color:${filter===t.id?'#fff':'#666'}">${t.label}</button>
+    `).join('');
+  }
+
+  // 藥水疊加：同 subtype 合併顯示
+  const stackedInv = [];
+  const potionMap = {};
   state.inventory.forEach((item, i) => {
+    if (item.type === 'potion' || item.type === 'scroll') {
+      const key = item.subtype;
+      if (potionMap[key]) {
+        potionMap[key].count++;
+      } else {
+        potionMap[key] = {item, count:1, firstIdx:i};
+        stackedInv.push(potionMap[key]);
+      }
+    } else {
+      stackedInv.push({item, count:1, firstIdx:i});
+    }
+  });
+
+  // 過濾
+  const filtered = stackedInv.filter(({item}) => {
+    if (filter === 'all') return true;
+    if (filter === 'weapon') return item.type === 'weapon';
+    if (filter === 'armor') return item.type === 'armor';
+    if (filter === 'potion') return item.type === 'potion';
+    if (filter === 'scroll') return item.type === 'scroll';
+    return true;
+  });
+
+  filtered.forEach(({item, count, firstIdx}) => {
     const el = document.createElement('div');
     el.className = `inv-slot ${item.rarity}`;
     const icon = item.icon || (item.type==='weapon' ? WPN_ICON[item.subtype]||'⚔️' : SLOT_ICON[item.subtype]||'📦');
@@ -3270,21 +3353,29 @@ function openInventory() {
       : item.name;
     const uidBadge = item.unidentified
       ? `<div style="position:absolute;top:2px;right:2px;font-size:8px;background:#818cf8;color:#fff;border-radius:3px;padding:0 2px">?</div>` : '';
+    const stackBadge = count > 1
+      ? `<div style="position:absolute;bottom:2px;right:3px;font-size:9px;color:#f59e0b;font-weight:700">×${count}</div>` : '';
     el.style.position = 'relative';
     el.innerHTML = `<div class="s-icon">${icon}</div>
       <div class="s-name rarity-${item.rarity}">${nameDisplay}</div>
       ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}
-      ${uidBadge}`;
-    el.onclick = () => openItemCard(item, true, i, false);
+      ${uidBadge}${stackBadge}`;
+    el.onclick = () => openItemCard(item, true, firstIdx, false);
     grid.appendChild(el);
   });
-  // Empty slots
-  for (let i = state.inventory.length; i < state.inventoryMax; i++) {
-    const el = document.createElement('div');
-    el.className = 'inv-slot empty';
-    el.innerHTML = '<div class="s-icon" style="font-size:14px;color:#333">·</div>';
-    grid.appendChild(el);
+
+  // Empty slots（顯示剩餘空格）
+  const usedSlots = filter === 'all' ? stackedInv.length : filtered.length;
+  const totalDisplay = filter === 'all' ? state.inventoryMax : 0;
+  if (filter === 'all') {
+    for (let i = stackedInv.length; i < state.inventoryMax; i++) {
+      const el = document.createElement('div');
+      el.className = 'inv-slot empty';
+      el.innerHTML = '<div class="s-icon" style="font-size:14px;color:#333">·</div>';
+      grid.appendChild(el);
+    }
   }
+
   openModal('modal-inv');
 }
 
@@ -3518,8 +3609,17 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
       ...Object.keys(compareTarget?.stats || {}),
     ]);
     for (const k of allKeys) {
-      const newV = item.stats?.[k] || 0;
-      const curV = compareTarget?.stats?.[k] || 0;
+      const rawV = item.stats?.[k] || 0;
+      // 顯示強化後的實際數值
+      const enhMult = (item.type === 'weapon')
+        ? (1 + (item.enhance||0) * 0.08)
+        : (1 + (item.enhance||0) * 0.06);
+      const newV = rawV > 0 ? Math.floor(rawV * enhMult) : rawV;
+      const curRaw = compareTarget?.stats?.[k] || 0;
+      const curEnhMult = compareTarget ? (compareTarget.type === 'weapon'
+        ? (1 + (compareTarget.enhance||0) * 0.08)
+        : (1 + (compareTarget.enhance||0) * 0.06)) : 1;
+      const curV = curRaw > 0 ? Math.floor(curRaw * curEnhMult) : curRaw;
       if (newV === 0 && curV === 0) continue;
       const diff = isEquipped ? 0 : newV - curV;
       const diffStr = !isEquipped && diff !== 0
@@ -3527,7 +3627,9 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
           ? `<span style="color:#4ade80;font-size:10px;margin-left:4px">▲+${diff}</span>`
           : `<span style="color:#f87171;font-size:10px;margin-left:4px">▼${diff}</span>`
         : '';
-      statHtml += `<div class="ic-stat"><span>${statLabels[k]||k}</span><span class="${newV>0?'ics-pos':'ics-neg'}">${newV>0?'+':''}${newV}${diffStr}</span></div>`;
+      const enhTag = (item.enhance||0) > 0 && rawV > 0
+        ? `<span style="color:#888;font-size:9px;margin-left:2px">(基${rawV>0?'+':''}${rawV})</span>` : '';
+      statHtml += `<div class="ic-stat"><span>${statLabels[k]||k}</span><span class="${newV>0?'ics-pos':'ics-neg'}">${newV>0?'+':''}${newV}${enhTag}${diffStr}</span></div>`;
     }
   }
 
@@ -3654,9 +3756,7 @@ function unequipItem(slot) {
   if (slot==='weapon') state.weapon=null; else state.equipment[slot]=null;
   toast(`↩️ 卸下 ${item.name}`);
   closeModal('modal-item');
-  // 強制重新渲染裝備欄
-  if (document.getElementById('modal-eq')?.classList.contains('open')) openEquipment();
-  if (document.getElementById('modal-inv')?.classList.contains('open')) openInventory();
+  refreshInventoryIfOpen();
   updateUI(); save(true);
 }
 
@@ -4065,6 +4165,93 @@ document.addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════
 // BACK TO LOBBY
 // ═══════════════════════════════════════════════
+
+function openWorldMap() {
+  openModal('modal-worldmap');
+  const canvas = document.getElementById('wm-canvas');
+  const legend = document.getElementById('wm-legend');
+  const size = Math.min(window.innerWidth - 32, 320);
+  canvas.width = size; canvas.height = size;
+  const ctx2 = canvas.getContext('2d');
+  const RANGE = 160; // ±160格範圍
+  const scale = size / (RANGE * 2);
+
+  ctx2.fillStyle = '#080818';
+  ctx2.fillRect(0, 0, size, size);
+
+  // 繪製已探索區域
+  const terrainColors = {
+    0:'#0d2a4a', 1:'#8a6020', 2:'#1a4020', 3:'#0d2a10',
+    4:'#3a2a14', 5:'#1e1e1e', 6:'#1a0830', 8:'#2a1508'
+  };
+  for (const key of explored) {
+    const [wx, wy] = key.split(',').map(Number);
+    const dx = wx - px, dy = wy - py;
+    if (Math.abs(dx) > RANGE || Math.abs(dy) > RANGE) continue;
+    const sx = Math.floor((dx + RANGE) * scale);
+    const sy = Math.floor((dy + RANGE) * scale);
+    const ter = getTerrain(wx, wy);
+    ctx2.fillStyle = terrainColors[ter] || '#1a1a2a';
+    ctx2.fillRect(sx, sy, Math.max(1, scale), Math.max(1, scale));
+  }
+
+  // 大陸方向標示
+  const contDirs = [
+    {id:'desert', dx:200, dy:-50, emoji:'🏜️'},
+    {id:'ice',    dx:-200,dy:-50, emoji:'❄️'},
+    {id:'sea',    dx:0,   dy:250, emoji:'🌊'},
+    {id:'lava',   dx:200, dy:200, emoji:'🌋'},
+    {id:'sky',    dx:0,   dy:-400,emoji:'☁️'},
+    {id:'shadow', dx:-200,dy:200, emoji:'🌑'},
+    {id:'mech',   dx:-500,dy:0,   emoji:'⚙️'},
+    {id:'hidden', dx:600, dy:0,   emoji:'👑'},
+  ];
+  ctx2.font = '12px serif';
+  ctx2.textAlign = 'center';
+  for (const c of contDirs) {
+    const angle = Math.atan2(c.dy, c.dx);
+    const ex = size/2 + Math.cos(angle) * (size/2 - 12);
+    const ey = size/2 + Math.sin(angle) * (size/2 - 12);
+    const visited = state.visitedContinents?.includes(c.id);
+    ctx2.globalAlpha = visited ? 1.0 : 0.35;
+    ctx2.fillText(c.emoji, ex, ey + 4);
+    // 距離
+    const dist = Math.floor(Math.sqrt(c.dx*c.dx + c.dy*c.dy));
+    ctx2.font = '8px sans-serif'; ctx2.globalAlpha = 0.6;
+    ctx2.fillStyle = '#aaa';
+    ctx2.fillText(`${dist}格`, ex, ey + 14);
+    ctx2.font = '12px serif';
+  }
+  ctx2.globalAlpha = 1.0;
+
+  // 出發點
+  const ox = Math.floor((START_X - px + RANGE) * scale);
+  const oy = Math.floor((START_Y - py + RANGE) * scale);
+  if (ox > 0 && ox < size && oy > 0 && oy < size) {
+    ctx2.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx2.beginPath(); ctx2.arc(ox, oy, 3, 0, Math.PI*2); ctx2.fill();
+  }
+
+  // 玩家位置（中心紅點）
+  const cx2 = size/2, cy2 = size/2;
+  const grd = ctx2.createRadialGradient(cx2,cy2,0, cx2,cy2,10);
+  grd.addColorStop(0,'rgba(255,80,80,1)');
+  grd.addColorStop(1,'rgba(255,80,80,0)');
+  ctx2.fillStyle = grd;
+  ctx2.beginPath(); ctx2.arc(cx2, cy2, 10, 0, Math.PI*2); ctx2.fill();
+  ctx2.fillStyle = '#ff5050';
+  ctx2.beginPath(); ctx2.arc(cx2, cy2, 3, 0, Math.PI*2); ctx2.fill();
+
+  // 圖例
+  const curCont = CONTINENT_INFO[getContinent(px,py)];
+  const visited = (state.visitedContinents||[]).length;
+  legend.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span>📍 目前位置：<span style="color:${curCont?.color||'#fff'}">${curCont?.name||'未知'}</span></span>
+      <span style="color:#888">探索 ${explored.size} 格</span>
+    </div>
+    <div style="margin-top:4px;color:#666">🌍 已進入大陸：${visited}/9　　暗色圖示=未探索</div>`;
+}
 
 function goBack() {
   save();
