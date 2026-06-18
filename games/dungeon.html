@@ -4106,6 +4106,7 @@ function load() {
     if (!state.freePoints) state.freePoints = 0;
     if (state.expNext === undefined) state.expNext = expForLevel(state.level);
     if (!state.prevJobs) state.prevJobs = [];
+    if (!state.inventoryMax || state.inventoryMax < 40) state.inventoryMax = 40;
     if (!state.job) state.job = 'miner';
     if (!state.jobLevel) state.jobLevel = 1;
   } catch(e) {}
