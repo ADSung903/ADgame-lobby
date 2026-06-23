@@ -265,6 +265,25 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .combat-center>*{pointer-events:auto}
 .cb-mon{margin-top:calc(env(safe-area-inset-top,0px) + 52px);
   padding:.5rem 1rem;text-align:center;flex-shrink:0}
+.cb-mon-group{margin-top:calc(env(safe-area-inset-top,0px) + 40px);
+  padding:.3rem 1rem;display:flex;justify-content:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.cb-mon-unit{display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:70px;transition:opacity .5s, transform .5s}
+.cb-mon-unit.dead{opacity:0;transform:scale(0.3) translateY(10px);pointer-events:none}
+.cb-mon-unit.targeted .cb-mon-sprite{filter:drop-shadow(0 0 8px #ef4444)}
+.cb-mon-sprite{font-size:32px;line-height:1;transition:transform .15s}
+.cb-mon-sprite.shake{animation:monShake .3s ease}
+@keyframes monShake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px) rotate(-5deg)}
+  40%{transform:translateX(5px) rotate(4deg)}
+  60%{transform:translateX(-4px) rotate(-3deg)}
+  80%{transform:translateX(3px) rotate(2deg)}
+}
+.cb-mon-unit-name{font-size:11px;font-weight:700;color:var(--red);text-align:center;max-width:75px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb-mon-unit-hptrack{width:65px;height:6px;background:#2a0a0a;border-radius:3px;overflow:hidden;border:.5px solid #3a1a1a}
+.cb-mon-unit-hpfill{height:100%;background:linear-gradient(90deg,#dc2626,#ef4444);border-radius:3px;transition:width .4s}
+.cb-mon-unit-hptxt{font-size:9px;color:var(--sub)}
 .cb-mon-name{font-size:20px;font-weight:800;color:var(--red);margin-bottom:.3rem;text-align:center}
 .cb-mon-hp-track{height:8px;background:#2a0a0a;border-radius:4px;
   overflow:hidden;border:.5px solid #3a1a1a}
@@ -538,11 +557,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     <span id="ans-br-val">?</span><span class="ans-label">BR</span>
   </button>
   <div class="combat-center">
-    <div class="cb-mon">
-      <div class="cb-mon-name" id="cb-name">???</div>
-      <div class="cb-mon-hp-track"><div class="cb-mon-hp-fill" id="cb-hp" style="width:100%"></div></div>
-      <div class="cb-mon-hp-txt" id="cb-hp-txt">❤️ ??/??</div>
-    </div>
+    <div class="cb-mon-group" id="cb-mon-group"></div>
     <div class="cb-log" id="cb-log"></div>
     <div class="cb-q" id="cb-q" style="display:none">
       <div class="cb-q-text" id="cb-q-text">5 × 3 = ?</div>
@@ -550,6 +565,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     </div>
     <div class="cb-footer">
       <div class="cb-player-hp" id="cb-player-hp">❤️ 100</div>
+      <div id="cb-quick-bar" style="display:flex;gap:4px"></div>
       <div id="cb-skill-btns" style="display:flex;gap:4px"></div>
       <button class="cb-escape" id="cb-escape" onclick="tryEscape()">🏃 逃跑</button>
     </div>
@@ -853,24 +869,24 @@ const SPAWN_TERRAIN = [T.PLAINS, T.FOREST, T.MOUNTAIN, T.COAST];
 const SPAWN_RATE = {[T.PLAINS]:0.22,[T.FOREST]:0.38,[T.MOUNTAIN]:0.15,[T.COAST]:0.06};
 
 function getTerrain(wx, wy) {
+  // 村莊特殊格子（5×5範圍）— 無條件存在，不受地形噪聲影響
+  const village = getVillageAt(wx, wy);
+  if (village) {
+    const vdx = wx - village.cx, vdy = wy - village.cy;
+    if (vdx === 0  && vdy === 0)  return T.TELEPORT;
+    if (vdx === -1 && vdy === -1) return T.MERCHANT;
+    if (vdx === 1  && vdy === -1) return T.VILLAGE;
+    return T.PLAINS;
+  }
+
   const n = worldNoise(wx, wy);
   if (n >= 0.32 && n < 0.88) {
-    // 村莊特殊格子（5×5範圍）
-    const village = getVillageAt(wx, wy);
-    if (village) {
-      const dx = wx - village.cx, dy = wy - village.cy;
-      if (dx === 0  && dy === 0)  return T.TELEPORT; // 中央傳送石
-      if (dx === -1 && dy === -1) return T.MERCHANT; // 左上 = 商人
-      if (dx === 1  && dy === -1) return T.VILLAGE;  // 右上 = 旅館
-      // 5×5其他格 = 普通平原（有回血效果，在移動邏輯判斷）
-    }
     // 寶箱（每小時刷新）
     if (isChestAt(wx, wy)) return T.CHEST;
     // 洞穴：約1%機率
     if (tileH(wx, wy, 1) < 0.001) return T.CAVE;
     // 商人：約0.5%機率，且周圍20格內不能有其他商人
     if (tileH(wx, wy, 2) < 0.0009) {
-      // 間距檢查：用座標 hash 確保鄰近商人不會同時出現
       let nearMerch = false;
       for (let dy = -20; dy <= 20; dy++) {
         for (let dx = -20; dx <= 20; dx++) {
@@ -1071,6 +1087,7 @@ let lastContinent = 'forest';
 function getMonsterAt(wx, wy) {
   const k = `${wx},${wy}`;
   if (killedSet.has(k)) return null;
+  if (getVillageAt(wx, wy)) return null; // 村莊5×5範圍內不生怪物
   const ter = getTerrain(wx, wy);
   if (!SPAWN_TERRAIN.includes(ter)) return null;
   const h3 = tileH(wx, wy, 3);
@@ -1217,17 +1234,17 @@ function generateWeapon(rarity, level) {
   };
 }
 
-function generateArmor(slot, rarity, level) {
-  const ri = Math.min(rarityIdx(rarity), 2);
+function generateArmor(slot, rarity, level, forceSetId) {
+  const ri = rarityIdx(rarity);
   const r2 = RARITY_ORDER[ri];
-  const tpl = ARMOR_TPL[slot]?.[ri] || ['普通裝備'];
+  const tpl = ARMOR_TPL[slot]?.[Math.min(ri,2)] || ['普通裝備'];
   const name = tpl[Math.floor(Math.random() * tpl.length)];
-  const base = {white:3,green:6,blue:12}[r2] || 3;
+  const base = {white:3,green:6,blue:12,gold:22,red:38,rainbow:60}[r2] || 3;
   const lm = 1 + level * 0.05;
   const v = () => Math.floor(base * lm * (0.8 + Math.random()*0.4));
   const stats = {};
   const mainStat = {
-    helmet:'def', armor:'def', legs:'def', gloves:'def', boots:'agi',
+    helmet:'def', armor:'def', legs:'def', gloves:'str', boots:'agi',
     necklace:'luk', ring1:'str', ring2:'int', earring1:'luk', earring2:'int',
   }[slot] || 'def';
   stats[mainStat] = v();
@@ -1236,21 +1253,37 @@ function generateArmor(slot, rarity, level) {
     const ek = extra[Math.floor(Math.random()*extra.length)];
     stats[ek] = Math.floor(v()/2);
   }
-  const isCursed = rollCurse(r2);
+
+  // 套裝判定：金裝以上、四個固定部位(helmet/armor/gloves/boots)，且等級符合套裝門檻
+  let setId = forceSetId || null;
+  if (!setId && (r2 === 'gold' || r2 === 'red' || r2 === 'rainbow') &&
+      ['helmet','armor','gloves','boots'].includes(slot) && Math.random() < 0.12) {
+    const candidates = Object.entries(SET_DEFS).filter(([_,d]) => level >= (d.minLv||0));
+    if (candidates.length > 0) {
+      setId = candidates[Math.floor(Math.random()*candidates.length)][0];
+    }
+  }
+  const setName = setId ? SET_DEFS[setId]?.name : null;
+  const finalName = setId ? `${setName}・${SLOT_LABEL[slot]||name}` : name;
+
+  const isCursed = !setId && rollCurse(r2);
   const curseType = isCursed ? CURSE_EFFECTS[Math.floor(Math.random()*CURSE_EFFECTS.length)].type : null;
   if (isCursed) { for (const k in stats) if (stats[k]) stats[k] = Math.ceil(stats[k]*1.2); }
-  const unidentified = (r2 === 'blue' || r2 === 'gold' || r2 === 'red' || r2 === 'rainbow')
+  const unidentified = !setId && (r2 === 'blue' || r2 === 'gold' || r2 === 'red' || r2 === 'rainbow')
     && Math.random() < 0.70;
   return {
     id: Date.now()+Math.random(), type:'armor', subtype:slot, rarity:r2,
-    name: unidentified ? `【待鑑定】${['神秘防具','古老護甲','未知寶物'][Math.floor(Math.random()*3)]}` : name,
-    realName: name,
-    icon: unidentified ? '❓' : SLOT_ICON[slot], enhance:0, element:rollElement(r2),
+    name: unidentified ? `【待鑑定】${['神秘防具','古老護甲','未知寶物'][Math.floor(Math.random()*3)]}` : finalName,
+    realName: finalName,
+    icon: unidentified ? '❓' : SLOT_ICON[slot], enhance:0, element:setId ? SET_DEFS[setId].element : rollElement(r2),
     cursed:isCursed, purified:false, curseType,
+    setId: unidentified ? null : setId,
     stats: unidentified ? {} : stats, realStats: stats,
     reqLevel:({white:0,green:10,blue:20,gold:30,red:50,rainbow:100}[r2]||0),
     unidentified,
-    flavorText: unidentified ? '這件裝備散發著神秘的氣息，需要鑑定才能了解其真正能力。' : `一件${name}，防護著這一代勇者`,
+    flavorText: unidentified ? '這件裝備散發著神秘的氣息，需要鑑定才能了解其真正能力。'
+              : setId ? `傳說中的${setName}套裝部位之一，蘊藏著強大的力量。`
+              : `一件${name}，防護著這一代勇者`,
     fromGeneration:null, deathLocation:null, deathKills:null,
   };
 }
@@ -1310,11 +1343,11 @@ const SHOP_ITEMS = [
    desc:'強化成功率-30%，但售價極低。適合在+1~+3安全區省錢用。失敗後裝備維持，不會爆裝。', price:80, effect:{action:'enhance', type:'cursed'}},
   {name:'解咒卷軸',     icon:'🌟', type:'scroll', subtype:'purify',
    desc:'對【腐化】裝備使用，解除詛咒並轉為【淨化】狀態，釋放被詛咒壓制的額外20%數值加成。', price:800, effect:{action:'purify'}},
-  // 傳送券
-  {name:'傳送券',     icon:'🎫', type:'scroll', subtype:'teleport_near',
-   desc:'立即傳送回最近一個已激活的傳送石（村莊）。緊急逃脫用。', price:500, effect:{action:'teleport_near'}},
-  {name:'定點傳送券', icon:'🎟️', type:'scroll', subtype:'teleport_any',
-   desc:'打開傳送選單，選擇任意已激活的傳送石。', price:2000, effect:{action:'teleport_any'}},
+  // 回家卷軸
+  {name:'回家卷軸',   icon:'🏠', type:'scroll', subtype:'teleport_near',
+   desc:'立即傳送回所在大陸的村莊。不需事先解鎖。', price:500, effect:{action:'teleport_near'}},
+  {name:'定點傳送卷軸', icon:'🎟️', type:'scroll', subtype:'teleport_any',
+   desc:'打開傳送選單，選擇任意已抵達過的大陸村莊。', price:2000, effect:{action:'teleport_any'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -1359,23 +1392,67 @@ const CURSE_EFFECTS = [
 // Ch4: 套件系統
 const SET_DEFS = {
   flame_conqueror: {
-    name:'烈焰征服者', element:'fire', color:'#f97316',
-    pieces:['flame_helmet','flame_armor','flame_legs','flame_gloves','flame_boots',
-            'flame_necklace','flame_ring1','flame_ring2','flame_earring1','flame_earring2'],
+    name:'🔥 烈焰征服者', element:'fire', color:'#f97316', minLv:30,
+    pieces:['helmet','armor','gloves','boots'],
     bonus:{
       2:{desc:'攻擊+15%，火屬性傷害+20%', atkMult:1.15, elemBonus:'fire'},
-      4:{desc:'每次攻擊10%機率引燃（每回合-5血）', igniteChance:0.10},
-      10:{desc:'技能「烈焰風暴」', skill:'flame_storm'},
+      4:{desc:'每次攻擊10%機率引燃（每回合-5血）；技能「烈焰風暴」：答對時10%機率引爆全屬性傷害', igniteChance:0.10, skill:'flame_storm'},
+    }
+  },
+  abyss_ruler: {
+    name:'💧 深海支配者', element:'water', color:'#22d3ee', minLv:30,
+    pieces:['helmet','armor','gloves','boots'],
+    bonus:{
+      2:{desc:'防禦+15%，水屬性傷害+20%', defMult:1.15, elemBonus:'water'},
+      4:{desc:'受攻擊10%機率反彈10%傷害；技能「洪流吞噬」：每場1次全體治癒+減速', reflectChance:0.10, skill:'tide_devour'},
     }
   },
   frost_dragon: {
-    name:'霜龍王者', element:'ice', color:'#a5f3fc',
-    pieces:['frost_helmet','frost_armor','frost_legs','frost_gloves','frost_boots',
-            'frost_necklace','frost_ring1','frost_ring2','frost_earring1','frost_earring2'],
+    name:'❄️ 霜龍王者', element:'ice', color:'#a5f3fc', minLv:35,
+    pieces:['helmet','armor','gloves','boots'],
     bonus:{
       2:{desc:'防禦+15%，受冰屬性傷害-30%', defMult:1.15},
-      4:{desc:'移動時有機率冰凍怪物', freezeChance:0.05},
-      10:{desc:'技能「絕對零度」', skill:'absolute_zero'},
+      4:{desc:'移動時5%機率冰凍怪物；技能「絕對零度」：每場1次凍結3回合', freezeChance:0.05, skill:'absolute_zero'},
+    }
+  },
+  thunder_judge: {
+    name:'⚡ 雷帝神裁', element:'thunder', color:'#fbbf24', minLv:40,
+    pieces:['helmet','armor','gloves','boots'],
+    bonus:{
+      2:{desc:'攻擊+20%，雷屬性傷害+25%', atkMult:1.20, elemBonus:'thunder'},
+      4:{desc:'連續答對2題觸發鏈式+30%傷害；技能「雷神降臨」：連答3題鏈式爆發', comboBonus:0.30, skill:'thunder_descent'},
+    }
+  },
+  earth_guardian: {
+    name:'🪨 大地守護者', element:'earth', color:'#a16207', minLv:25,
+    pieces:['helmet','armor','gloves','boots'],
+    bonus:{
+      2:{desc:'防禦+20%，HP上限+100', defMult:1.20, hpBonus:100},
+      4:{desc:'每回合回血3點；技能「磐石不滅」：每場1次免疫致死傷害', regenBonus:3, skill:'unbreakable'},
+    }
+  },
+  abyss_judge: {
+    name:'☠️ 深淵審判者', element:'dark', color:'#7e22ce', minLv:45,
+    pieces:['helmet','armor','gloves','boots'],
+    bonus:{
+      2:{desc:'暗屬性傷害+30%，吸血+5%', elemBonus:'dark', lifeSteal:0.05},
+      4:{desc:'擊殺怪物回復15%血量；技能「靈魂吞噬」：每場1次擊殺回復+詛咒敵人', killHeal:0.15, skill:'soul_devour'},
+    }
+  },
+  holy_judge: {
+    name:'✨ 聖光裁決者', element:'holy', color:'#fde047', minLv:40,
+    pieces:['helmet','armor','gloves','boots'],
+    bonus:{
+      2:{desc:'光屬性傷害+30%，免疫中毒', elemBonus:'holy', poisonImmune:true},
+      4:{desc:'每5回合自動解除一個負面狀態；技能「神聖審判」：每場1次解除所有詛咒', autoCleanse:5, skill:'holy_judgement'},
+    }
+  },
+  chaos_breaker: {
+    name:'⚪ 混沌破滅者', element:'none', color:'#e5e7eb', minLv:50,
+    pieces:['helmet','armor','gloves','boots'],
+    bonus:{
+      2:{desc:'全屬性+5%', allStatsMult:0.05},
+      4:{desc:'8屬性各額外+10%；技能「無屬性共鳴」', allStatsMult:0.10, skill:'chaos_resonance'},
     }
   },
 };
@@ -1401,7 +1478,7 @@ const JOB_DEFS = {
       {id:'miner_40', name:'不屈意志',   desc:'血量低於20%時攻擊力×2',                             lv:40, type:'passive', effect:{lowHpAtkMult:2.0, threshold:0.20}},
       {id:'miner_50', name:'傳說礦工',   desc:'全屬性+20，掉落率再+20%，解鎖隱藏大陸入口',         lv:50, type:'passive', effect:{allStats:20, dropBonus:0.20, unlockHidden:true}},
     ],
-    canChangeTo:['warrior','mage','rogue'], reqLevel:0,
+    canChangeTo:['warrior','mage','rogue','ranger'], reqLevel:0,
   },
   warrior: {
     name:'⚔️ 戰士', desc:'力量型，近戰爆發強，越打越強。',
@@ -1528,6 +1605,76 @@ const JOB_DEFS = {
       {id:'gambler_20', name:'奇蹟',     desc:'每場1次，100%觸發×10暴擊（無視一切限制）',  lv:20, type:'once',    effect:{miracleCrit:10.0}},
     ],
     canChangeTo:[], reqLevel:30, reqJob:'miner',
+  },
+  ranger: {
+    name:'🛡️🗡️ 遊俠', desc:'力量+防禦，長槍專精，攻防兼備。',
+    passive:{strMult:1.15, defMult:1.15},
+    skills:[
+      {id:'ranger_1',  name:'長槍精通', desc:'長槍攻擊+15%',                                lv:1,  type:'passive', effect:{spearBonus:0.15}},
+      {id:'ranger_3',  name:'穿刺',     desc:'攻擊有25%機率無視20%防禦',                    lv:3,  type:'auto',    effect:{pierceChance:0.25, pierceAmt:0.20}},
+      {id:'ranger_5',  name:'戰術後退', desc:'受傷後敏捷+10%，持續2回合',                   lv:5,  type:'auto',    effect:{agiOnHit:0.10, turns:2}},
+      {id:'ranger_8',  name:'銳利突刺', desc:'每3回合一次必定暴擊',                          lv:8,  type:'auto',    effect:{guaranteedCrit:true, every:3}},
+      {id:'ranger_10', name:'槍術大師', desc:'長槍攻擊再+20%，防禦+10',                      lv:10, type:'passive', effect:{spearBonus:0.20, defBonus:10}},
+      {id:'ranger_15', name:'不屈防線', desc:'受傷時防禦+15%，持續3回合',                    lv:15, type:'auto',    effect:{defOnHit:0.15, turns:3}},
+      {id:'ranger_20', name:'槍林戰陣', desc:'每場1次，造成3次連續攻擊',                     lv:20, type:'once',    effect:{multiHit:3}},
+    ],
+    canChangeTo:['bard','dragon_knight'], reqLevel:10, reqJob:'miner',
+  },
+  bard: {
+    name:'🎵 吟遊詩人', desc:'回血+自我增益，防守輔助型。',
+    passive:{regenPerTurn:5, defMult:1.10},
+    skills:[
+      {id:'bard_1',  name:'治癒之歌', desc:'每回合回血5點',                                 lv:1,  type:'passive', effect:{regenBonus:5}},
+      {id:'bard_3',  name:'士氣高揚', desc:'攻擊+10%',                                       lv:3,  type:'passive', effect:{atkBonus:0.10}},
+      {id:'bard_5',  name:'安魂曲',   desc:'每場1次，立即回復30%HP',                        lv:5,  type:'once',    effect:{healPct:0.30}},
+      {id:'bard_8',  name:'戰歌共鳴', desc:'閃避+10%',                                       lv:8,  type:'passive', effect:{dodgeBonus:0.10}},
+      {id:'bard_10', name:'英雄頌歌', desc:'全屬性+8%',                                      lv:10, type:'passive', effect:{allStatsMult:0.08}},
+      {id:'bard_15', name:'不滅旋律', desc:'每回合回血再+8點',                              lv:15, type:'passive', effect:{regenBonus:8}},
+      {id:'bard_20', name:'終章協奏', desc:'每場1次，回復50%HP並清除所有負面狀態',          lv:20, type:'once',    effect:{healPct:0.50, cleanse:true}},
+    ],
+    canChangeTo:['sage'], reqLevel:30, reqJob:'ranger',
+  },
+  dragon_knight: {
+    name:'🐉 龍騎士', desc:'龍息附加，爆發攻擊型。',
+    passive:{strMult:1.25, fireBonus:1.2},
+    skills:[
+      {id:'dk2_1',  name:'龍息',     desc:'攻擊附加火傷害',                                lv:1,  type:'auto',    effect:{dragonBreath:8}},
+      {id:'dk2_3',  name:'飛龍突襲', desc:'先攻時傷害+40%',                                 lv:3,  type:'passive', effect:{firstStrikeBonus:0.40}},
+      {id:'dk2_5',  name:'龍鱗甲',   desc:'受傷-10%',                                       lv:5,  type:'passive', effect:{dmgReduce:0.10}},
+      {id:'dk2_8',  name:'破甲突刺', desc:'每5回合一次，無視全部防禦',                      lv:8,  type:'auto',    effect:{ignoreDefEvery:5}},
+      {id:'dk2_10', name:'龍威',     desc:'攻擊+25%',                                       lv:10, type:'passive', effect:{atkBonus:0.25}},
+      {id:'dk2_15', name:'龍血覺醒', desc:'血量<40%時攻擊+30%',                            lv:15, type:'passive', effect:{lowHpAtkBonus:0.30, threshold:0.40}},
+      {id:'dk2_20', name:'龍王降臨', desc:'每場1次，×4傷害並附加灼傷',                     lv:20, type:'once',    effect:{burstMult:4.0, burnOnHit:15}},
+    ],
+    canChangeTo:['dragon_god'], reqLevel:30, reqJob:'ranger',
+  },
+  sage: {
+    name:'📜 詩聖', desc:'極限輔助，群體治療強化。',
+    passive:{regenPerTurn:8, allStatsMult:0.05},
+    skills:[
+      {id:'sage_1',  name:'聖詠',     desc:'每回合回血再+10點（與吟遊詩人疊加）',           lv:1,  type:'passive', effect:{regenBonus:10}},
+      {id:'sage_3',  name:'活力之歌', desc:'全屬性再+5%',                                    lv:3,  type:'passive', effect:{allStatsMult:0.05}},
+      {id:'sage_5',  name:'復生詠唱', desc:'每場1次，血量歸零時自動回復50%HP（觸發1次）',   lv:5,  type:'passive', effect:{deathSave:0.50}},
+      {id:'sage_8',  name:'無懈之盾', desc:'每3回合自動格擋一次攻擊',                       lv:8,  type:'auto',    effect:{autoBlockEvery:3}},
+      {id:'sage_10', name:'永恆韻律', desc:'回血效果全部+50%（含技能與buff）',              lv:10, type:'passive', effect:{healMult:1.50}},
+      {id:'sage_15', name:'天籟之力', desc:'閃避再+15%，攻擊再+15%',                        lv:15, type:'passive', effect:{dodgeBonus:0.15, atkBonus:0.15}},
+      {id:'sage_20', name:'萬物頌歌', desc:'每場1次，完全回復HP並免疫下回合所有傷害',       lv:20, type:'once',    effect:{healPct:1.0, immuneNext:true}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'bard',
+  },
+  dragon_god: {
+    name:'🐲 龍神', desc:'接近神格的破壞力。',
+    passive:{strMult:1.40, fireBonus:1.5},
+    skills:[
+      {id:'dg_1',  name:'龍神之息', desc:'龍息傷害提升至每次+15',                           lv:1,  type:'passive', effect:{dragonBreath:15}},
+      {id:'dg_3',  name:'龍鱗覺醒', desc:'受傷-18%（與龍鱗甲疊加）',                        lv:3,  type:'passive', effect:{dmgReduce:0.18}},
+      {id:'dg_5',  name:'龍威霸體', desc:'每場1次，免疫致死傷害並回復30%HP',               lv:5,  type:'passive', effect:{deathSave:0.30}},
+      {id:'dg_8',  name:'破滅突刺', desc:'破甲突刺改為每3回合一次',                         lv:8,  type:'passive', effect:{ignoreDefEvery:3}},
+      {id:'dg_10', name:'龍神之力', desc:'攻擊再+35%',                                      lv:10, type:'passive', effect:{atkBonus:0.35}},
+      {id:'dg_15', name:'血龍狂怒', desc:'血量<50%時攻擊+45%（取代龍血覺醒）',             lv:15, type:'passive', effect:{lowHpAtkBonus:0.45, threshold:0.50}},
+      {id:'dg_20', name:'真龍降世', desc:'每場1次，×6傷害並附加3層灼傷',                   lv:20, type:'once',    effect:{burstMult:6.0, burnStacks:3}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'dragon_knight',
   },
 };
 
@@ -1870,12 +2017,25 @@ function timeLimit() { return 8 + totalStat('int') * 0.1; }
 function expForLevel(lv) { return Math.floor(100 * Math.pow(lv, 1.3)); }
 
 function monsterLevel(wx, wy) {
-  // 用距離出生點的相對距離，而非世界原點
+  const continent = getContinent(wx, wy);
+  const info = CONTINENT_INFO[continent];
+  const recLv = info?.recLv || 1;
+
+  // 用大陸建議等級為基準，加上大陸內的微距離調整與隨機浮動
   const dx = wx - START_X, dy = wy - START_Y;
   const dist = Math.sqrt(dx*dx + dy*dy);
-  const base = Math.max(1, Math.floor(dist / 15));
-  const rand = Math.floor(tileH(wx, wy, 6) * 3);
-  return Math.min(50, base + rand);
+  const rand = Math.floor(tileH(wx, wy, 6) * 5) - 2; // -2~+2 隨機浮動
+
+  let lv;
+  if (continent === 'forest') {
+    // 新手森林：距離決定 1~20級
+    lv = Math.max(1, Math.floor(dist / 8)) + rand;
+  } else {
+    // 其他大陸：以建議等級為基準，範圍 recLv ~ recLv+20
+    const distIntoCont = Math.max(0, dist - 150); // 扣掉森林半徑
+    lv = recLv + Math.floor(distIntoCont / 12) + rand;
+  }
+  return Math.max(1, Math.min(150, lv));
 }
 
 // ═══════════════════════════════════════════════
@@ -1948,6 +2108,16 @@ function drawTerrain(ctx, ter, cx, cy, size, wx, wy) {
       break;
     }
     case T.PLAINS: {
+      const vInPlains = getVillageAt(wx, wy);
+      if (vInPlains) {
+        // 村莊範圍：淺綠色磚地，不畫草
+        ctx.fillStyle = '#1a3a22'; ctx.fillRect(cx, cy, size, size);
+        ctx.fillStyle = 'rgba(120,200,140,0.30)';
+        ctx.fillRect(cx, cy, size, size);
+        ctx.strokeStyle = 'rgba(160,220,170,0.35)'; ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx+1, cy+1, size-2, size-2);
+        break;
+      }
       ctx.fillStyle = '#1a4020'; ctx.fillRect(cx, cy, size, size);
       ctx.fillStyle = '#142e18'; ctx.fillRect(cx, cy+size*0.65, size, size*0.35);
       // 密集草葉 12根
@@ -2095,6 +2265,44 @@ function drawTerrain(ctx, ter, cx, cy, size, wx, wy) {
       ctx.fill();
       break;
     }
+    case T.VILLAGE: {
+      // 旅館建築（藍色屋頂）
+      ctx.fillStyle = '#1a1508'; ctx.fillRect(cx, cy, size, size);
+      ctx.fillStyle = 'rgba(80,55,20,0.4)'; ctx.fillRect(cx,cy+size*.62,size,size*.38);
+      ctx.fillStyle = 'rgba(100,65,30,0.95)';
+      ctx.fillRect(cx+size*.1,cy+size*.4,size*.8,size*.45);
+      ctx.fillStyle = 'rgba(40,80,160,0.95)';
+      ctx.beginPath();
+      ctx.moveTo(cx+size*.5,cy+size*.1); ctx.lineTo(cx+size*.92,cy+size*.42); ctx.lineTo(cx+size*.08,cy+size*.42);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(50,30,8,0.95)';
+      ctx.fillRect(cx+size*.4,cy+size*.62,size*.2,size*.23);
+      ctx.fillStyle = 'rgba(255,220,150,0.6)';
+      ctx.fillRect(cx+size*.18,cy+size*.5,size*.14,size*.13);
+      ctx.fillRect(cx+size*.68,cy+size*.5,size*.14,size*.13);
+      // 月亮標誌（旅館象徵）
+      ctx.fillStyle = 'rgba(220,200,120,0.85)';
+      ctx.beginPath(); ctx.arc(cx+size*.5,cy+size*.22,size*.07,0,Math.PI*2); ctx.fill();
+      break;
+    }
+    case T.TELEPORT: {
+      ctx.fillStyle = '#0a0820'; ctx.fillRect(cx, cy, size, size);
+      // 石台
+      ctx.fillStyle = 'rgba(90,50,140,0.85)';
+      ctx.fillRect(cx+size*.22,cy+size*.55,size*.56,size*.35);
+      // 寶石光柱
+      const tgX = cx+size/2, tgY = cy+size*.4;
+      const tgGrad = ctx.createRadialGradient(tgX,tgY,0,tgX,tgY,size*.4);
+      tgGrad.addColorStop(0,'rgba(180,120,255,0.9)');
+      tgGrad.addColorStop(1,'rgba(80,20,160,0)');
+      ctx.fillStyle = tgGrad;
+      ctx.beginPath(); ctx.arc(tgX,tgY,size*.38,0,Math.PI*2); ctx.fill();
+      // 符文圈
+      ctx.strokeStyle = 'rgba(200,150,255,0.8)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(tgX,tgY,size*.28,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(tgX,cy+size*.6,size*.15,0,Math.PI*2); ctx.stroke();
+      break;
+    }
     case T.CHEST: {
       ctx.fillStyle = '#1a1000'; ctx.fillRect(cx, cy, size, size);
       // 箱體
@@ -2115,11 +2323,13 @@ function drawTerrain(ctx, ter, cx, cy, size, wx, wy) {
     default: {
       ctx.fillStyle = '#1e4a1e';
       ctx.fillRect(cx, cy, size, size);
-      // 村莊範圍地板提示（淡黃色）
+      // 村莊範圍地板（淺綠色磚地，安全區無怪物）
       const vt = getVillageAt(wx, wy);
       if (vt) {
-        ctx.fillStyle = 'rgba(80,60,20,0.25)';
+        ctx.fillStyle = 'rgba(120,200,140,0.30)';
         ctx.fillRect(cx, cy, size, size);
+        ctx.strokeStyle = 'rgba(160,220,170,0.25)'; ctx.lineWidth = 0.5;
+        ctx.strokeRect(cx+1, cy+1, size-2, size-2);
       }
     }
   }
@@ -2237,6 +2447,8 @@ function move(dx, dy) {
 
   // Status effect tick
   tickEffects();
+  checkContinentChange();
+  checkVillageRegen();
 
   // Terrain interaction
   if (ter === T.CAVE) {
@@ -2404,15 +2616,20 @@ function tickEffects() {
     }
     return e.turns > 0;
   });
-  // Buff 倒數
-  if (state.buffEffects) {
-    state.buffEffects = state.buffEffects.filter(b => {
-      b.turns--;
-      if (b.turns <= 0) toast(`⏰ ${b.type} 效果消退`);
-      return b.turns > 0;
-    });
-  }
+  // Buff 不再逐回合倒數，改為逐「場」倒數（見 endCombatVictory / endCombatLoss / tryEscape）
 }
+
+// 戰鬥結束時呼叫：buff 戰鬥次數倒數
+function tickBuffBattles() {
+  if (!state.buffEffects) return;
+  state.buffEffects = state.buffEffects.filter(b => {
+    b.battles--;
+    if (b.battles <= 0) toast(`⏰ ${BUFF_NAMES[b.type]||b.type} 效果消退`);
+    return b.battles > 0;
+  });
+}
+
+const BUFF_NAMES = {str:'力量藥水', agi:'敏捷藥水', luk:'幸運藥水', int:'智慧藥水', berserk:'狂暴藥水', invincible:'無敵藥水'};
 
 // 取得當前 buff 倍率
 function getBuffMult(type) {
@@ -2422,7 +2639,7 @@ function getBuffMult(type) {
 }
 
 function hasBuff(type) {
-  return !!(state.buffEffects?.find(b => b.type === type && b.turns > 0));
+  return !!(state.buffEffects?.find(b => b.type === type && b.battles > 0));
 }
 
 // ═══════════════════════════════════════════════
@@ -2448,20 +2665,53 @@ const WRONG_MSGS = [
 // //       → nextTurnOrEnd → endCombatVictory / checkPlayerDead
 // ════════════════════════════════════════════════════════════
 
+function rollMonsterCount() {
+  const r = Math.random();
+  if (r < 0.20) return 3;
+  if (r < 0.50) return 2;
+  return 1;
+}
+
 function startCombat(monName, wx, wy, lv) {
-  const m = scaledMonster(monName, lv);
-  m.hp = m.maxHp;
+  const mainMon = scaledMonster(monName, lv);
+  mainMon.hp = mainMon.maxHp;
+  mainMon.uid = 0;
+
+  const monsters = [mainMon];
+  // 額外怪物：等級較低、同地圖怪物池
+  if (!mainMon.elite) {
+    const count = rollMonsterCount();
+    if (count > 1) {
+      const continent = getContinent(wx, wy);
+      const pool = (CONTINENT_POOLS[continent] || CONTINENT_POOLS.forest).normal;
+      for (let i = 1; i < count; i++) {
+        const extraName = pool[Math.floor(Math.random() * pool.length)];
+        const extraLv = Math.max(1, lv - 2 - Math.floor(Math.random()*3));
+        const extraMon = scaledMonster(extraName, extraLv);
+        extraMon.hp = extraMon.maxHp;
+        extraMon.uid = i;
+        monsters.push(extraMon);
+      }
+    }
+  }
+
   combat = {
-    monster: m, wx, wy,
+    monsters, wx, wy,
     turn: 0,
     timeLimit: timeLimit(),
-    slowPenalty: 0, // additional seconds removed
+    slowPenalty: 0,
     buffAtk: 1.0, buffDef: 1.0,
-    beesSeg: m.segments > 0 ? 0 : -1, // current bee segment
-    phase: 1, // for boss
+    beesSeg: mainMon.segments > 0 ? 0 : -1,
+    phase: 1,
     fled: false,
     answered: false,
   };
+  // get/set 相容：combat.monster 永遠指向「目前選定目標」或主怪
+  Object.defineProperty(combat, 'monster', {
+    get() { return this.monsters.find(m => m.uid === (this.targetUid ?? 0) && m.hp > 0) || this.monsters.find(m => m.hp > 0) || this.monsters[0]; },
+    configurable: true,
+  });
+
   combatActive = true;
   cbTextQ = []; cbTextRunning = false;
   answerActive = false;
@@ -2472,32 +2722,100 @@ function startCombat(monName, wx, wy, lv) {
   document.getElementById('map-dim').classList.add('active');
   document.getElementById('cb-q').style.display = 'none';
   document.getElementById('cb-log').innerHTML = '';
-  updateCombatHPDisplay();
+  renderMonsterGroup();
   try { renderCombatSkillBtns(); } catch(e) { console.error('skillBtns error:', e); }
-  // revealElement（礦脈感知）：自動偵測怪物屬性
+
   if (hasSkill('miner_15')) {
-    const elem = combat.monster.element || 'none';
+    const elem = mainMon.element || 'none';
     if (elem !== 'none') {
       const ei = ELEMENTS[elem];
-      cbLog('cl-p', `🔍 礦脈感知：${combat.monster.name} 屬性為 ${ei?.icon||''} ${ei?.name||elem}`);
+      cbLog('cl-p', `🔍 礦脈感知：${mainMon.name} 屬性為 ${ei?.icon||''} ${ei?.name||elem}`);
     }
   }
 
-  // First strike check
-  const monHasFirst = m.agi * 3 >= totalStat('agi');
+  const monHasFirst = mainMon.agi * 3 >= totalStat('agi');
   combat.playerWentFirst = !monHasFirst;
+  if (monsters.length > 1) {
+    cbLog('cl-o', `⚠️ 遭遇 ${monsters.length} 隻怪物的圍攻！`);
+  }
   if (!monHasFirst) {
     cbLog('cl-w', `你眼疾手快，搶先一步出手！`);
   } else {
-    cbLog('cl-w', `${m.icon} ${m.name}身形一閃，搶先出爪！`);
+    cbLog('cl-w', `${mainMon.icon} ${mainMon.name}身形一閃，搶先出爪！`);
   }
 
-  // Bee intro text
-  if (m.special === 'segments') {
+  if (mainMon.special === 'segments') {
     cbLog('cl-o', `蜂群！一波未平一波又起——`);
   }
 
   setTimeout(() => startCombatTurn(monHasFirst), 1200);
+}
+
+// 渲染多怪物群組顯示
+function renderMonsterGroup() {
+  const area = document.getElementById('cb-mon-group');
+  if (!area) return;
+  area.innerHTML = combat.monsters.map(m => {
+    const pct = Math.max(0, Math.floor(m.hp / m.maxHp * 100));
+    const isDead = m.hp <= 0;
+    return `<div class="cb-mon-unit ${isDead?'dead':''}" id="cb-mon-unit-${m.uid}" data-uid="${m.uid}">
+      <div class="cb-mon-sprite" id="cb-mon-sprite-${m.uid}">${m.icon}</div>
+      <div class="cb-mon-unit-name">${m.name}</div>
+      <div class="cb-mon-unit-hptrack"><div class="cb-mon-unit-hpfill" id="cb-mon-hpfill-${m.uid}" style="width:${pct}%"></div></div>
+      <div class="cb-mon-unit-hptxt" id="cb-mon-hptxt-${m.uid}">${Math.max(0,m.hp)}/${m.maxHp}</div>
+    </div>`;
+  }).join('');
+}
+
+// 更新單一怪物血條（不重繪整組，避免動畫被打斷）
+function updateMonsterHP(uid) {
+  const m = combat.monsters.find(mm => mm.uid === uid);
+  if (!m) return;
+  const pct = Math.max(0, Math.floor(m.hp / m.maxHp * 100));
+  const fill = document.getElementById(`cb-mon-hpfill-${uid}`);
+  const txt = document.getElementById(`cb-mon-hptxt-${uid}`);
+  if (fill) fill.style.width = pct + '%';
+  if (txt) txt.textContent = `${Math.max(0,m.hp)}/${m.maxHp}`;
+  if (m.hp <= 0) {
+    const unit = document.getElementById(`cb-mon-unit-${uid}`);
+    if (unit) setTimeout(() => unit.classList.add('dead'), 250);
+  }
+}
+
+// 受擊抖動效果
+function shakeMonster(uid) {
+  const sprite = document.getElementById(`cb-mon-sprite-${uid}`);
+  if (!sprite) return;
+  sprite.classList.remove('shake');
+  void sprite.offsetWidth; // reflow強制重啟動畫
+  sprite.classList.add('shake');
+}
+
+// 隨機選一個存活的怪物作為攻擊目標
+function pickRandomAliveMonster() {
+  const alive = combat.monsters.filter(m => m.hp > 0);
+  if (alive.length === 0) return null;
+  return alive[Math.floor(Math.random() * alive.length)];
+}
+
+function allMonstersDead() {
+  return combat.monsters.every(m => m.hp <= 0);
+}
+
+// AOE：對所有存活怪物造成傷害（法師系技能用）
+function attackAllMonsters(dmgEach, label) {
+  const alive = combat.monsters.filter(m => m.hp > 0);
+  alive.forEach(m => {
+    m.hp = Math.max(0, m.hp - dmgEach);
+    shakeMonster(m.uid);
+    updateMonsterHP(m.uid);
+  });
+  cbLog('cl-y', `💥 ${label||'範圍攻擊'}！對全體造成 ${wrapCol('cl-r', dmgEach)} 傷害`);
+  if (allMonstersDead()) {
+    setTimeout(() => endCombatVictory(), 600);
+    return true;
+  }
+  return false;
 }
 
 function startCombatTurn(monGoesFirst) {
@@ -2694,7 +3012,10 @@ function resolvePlayerAttack(timeLeft, tl) {
   atk = Math.floor(atk * elemMult);
 
   // Monster defense：防禦減傷最多50%，避免低等玩家完全打不動
-  const m = combat.monster;
+  // 一般攻擊：隨機選一個存活怪物作為目標
+  const m = combat.singleTarget || pickRandomAliveMonster();
+  combat.singleTarget = null;
+  if (!m) { setTimeout(() => endCombatVictory(), 300); return; }
   const defReduction = Math.min(0.5, m.def / (m.def + 30));
   // High defense special: if def > atk*2, damage = 1
   if ((m.special === 'highdef') && atk <= m.def * 0.5) {
@@ -2705,11 +3026,12 @@ function resolvePlayerAttack(timeLeft, tl) {
     atk = Math.max(1, Math.floor(atk * (1 - defReduction)));
     const critText = isCrit ? wrapCol('cl-y','暴擊！') + ' ' : '';
     cbLog('cl-w', `${sub}`);
-    cbLog('cl-w', `你的攻擊命中要害，${critText}造成 ${wrapCol('cl-r',atk)} 點傷害！`);
+    cbLog('cl-w', `你的攻擊命中 ${m.name}，${critText}造成 ${wrapCol('cl-r',atk)} 點傷害！`);
   }
 
   m.hp = Math.max(0, m.hp - atk);
   combat.lastPlayerDmg = atk;
+  shakeMonster(m.uid);
   // 燃燒標記（火法師）
   if (hasSkill('fire_1')) combat.burned = true;
   // 毒刃（盜賊 Lv.5）
@@ -2723,9 +3045,13 @@ function resolvePlayerAttack(timeLeft, tl) {
     m.def = Math.max(0, Math.floor(m.def * (1 - reduction)));
   }
   showFloatingDmg(atk, isCrit, false);
-  updateCombatHPDisplay();
+  updateMonsterHP(m.uid);
 
   if (m.hp <= 0) {
+    cbLog('cl-g', `${m.icon} ${m.name} 被擊敗了！`);
+  }
+
+  if (allMonstersDead()) {
     setTimeout(() => endCombatVictory(), 600);
   } else {
     setTimeout(() => doMonsterAttack(nextTurnOrEnd), 700);
@@ -2734,7 +3060,20 @@ function resolvePlayerAttack(timeLeft, tl) {
 
 function doMonsterAttack(cb) {
   if (!combatActive) return;
-  const m = combat.monster;
+  const aliveMonsters = combat.monsters.filter(mm => mm.hp > 0);
+  if (aliveMonsters.length === 0) { if (cb) cb(); return; }
+  attackSequence(aliveMonsters, 0, cb);
+}
+
+function attackSequence(list, idx, cb) {
+  if (!combatActive) return;
+  if (idx >= list.length) {
+    if (cb && !checkPlayerDead()) cb();
+    return;
+  }
+  const m = list[idx];
+  if (m.hp <= 0) { attackSequence(list, idx+1, cb); return; }
+
   let dmg = Math.max(1, m.atk - Math.floor(totalStat('def') * 0.4));
 
   // Special abilities
@@ -2749,7 +3088,7 @@ function doMonsterAttack(cb) {
   if (m.special === 'steal' && Math.random() < 0.45) {
     const stolen = Math.min(state.gold, Math.floor(10 + Math.random()*25));
     state.gold = Math.max(0, state.gold - stolen);
-    cbLog('cl-y', `狡猾狐狸趁你分神，叼走了你的 ${wrapCol('cl-y',stolen)} 枚金幣！`);
+    cbLog('cl-y', `${m.name}趁你分神，叼走了你的 ${wrapCol('cl-y',stolen)} 枚金幣！`);
   }
   if (m.special === 'slow' && Math.random() < 0.4) {
     combat.slowPenalty = Math.min(combat.slowPenalty + 2, combat.timeLimit - 2);
@@ -2762,43 +3101,43 @@ function doMonsterAttack(cb) {
   if (m.special === 'regen') {
     const regen = 15;
     m.hp = Math.min(m.maxHp, m.hp + regen);
-    cbLog('cl-g', `古樹守衛的樹根吸收大地能量，回復 ${regen} HP`);
-    updateCombatHPDisplay();
+    cbLog('cl-g', `${m.name}的樹根吸收大地能量，回復 ${regen} HP`);
+    updateMonsterHP(m.uid);
   }
   if (m.special === 'berserk' && m.hp < m.maxHp * 0.5) {
     dmg = Math.floor(dmg * 2);
-    cbLog('cl-o', `山豬王瀕死狂怒，攻擊力翻倍！`);
+    cbLog('cl-o', `${m.name}瀕死狂怒，攻擊力翻倍！`);
   }
 
-  // 陷阱（獵人 Lv.5，預置後才觸發）
+  // 陷阱（獵人 Lv.5，預置後才觸發，只對第一個攻擊者生效一次）
   if (hasSkill('hunter_5') && skillUsedThisCombat('hunter_5') && !skillUsedThisCombat('hunter_5_trap')) {
     markSkillUsed('hunter_5_trap');
     cbLog('cl-g', `🏹 陷阱！${m.name}的攻擊被格擋！`);
-    if (cb && !checkPlayerDead()) cb();
+    attackSequence(list, idx+1, cb);
     return;
   }
-  // 死亡騎士死亡凝視
   if (combat.deathGaze) dmg = Math.floor(dmg * (1 - 0.3));
-  // 魔法護盾（法師 Lv.5）
   let actualDmg = dmg;
   if (hasSkill('mage_5') && !skillOnCD('mage_5')) {
     actualDmg = Math.floor(dmg * (1 - getSkillEffect('mage_5').dmgAbsorb));
     setSkillCD('mage_5', 3);
     cbLog('cl-p', `🛡 魔法護盾！吸收20%傷害`);
   }
-  // 神聖護盾（聖騎士，免疫一次，CD保護）
   if (hasSkill('paladin_1') && !skillOnCD('paladin_1') && !skillUsedThisCombat('paladin_shield')) {
     setSkillCD('paladin_1', 5);
     markSkillUsed('paladin_shield');
     cbLog('cl-g', `✨ 神聖護盾！完全格擋此次攻擊！`);
     showFloatingText('BLOCK!', '#f59e0b', 'player');
-    if (cb && !checkPlayerDead()) cb();
+    attackSequence(list, idx+1, cb);
     return;
   }
   cbLog('cl-w', `${m.icon} ${m.name}發起攻擊，造成 ${wrapCol('cl-r',actualDmg)} 點傷害！${specialText?'　'+specialText:''}`);
   showFloatingDmg(actualDmg, false, true);
   applyDmgToPlayer(actualDmg);
-  if (cb && !checkPlayerDead()) cb();
+
+  if (checkPlayerDead()) return; // 死亡時中斷序列
+
+  setTimeout(() => attackSequence(list, idx+1, cb), list.length > 1 ? 450 : 0);
 }
 
 function nextTurnOrEnd() {
@@ -2834,7 +3173,7 @@ function nextTurnOrEnd() {
     state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + regen);
   }
 
-  if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 300); return; }
+  if (allMonstersDead()) { setTimeout(() => endCombatVictory(), 300); return; }
   setTimeout(() => showQuestion(), 600);
 }
 
@@ -2928,6 +3267,7 @@ function checkPlayerDead() {
   if (state.stats.hp > 0) return false;
   combatActive = false;
   clearTimeout(cbTimer);
+  tickBuffBattles();
   document.getElementById('combat-overlay').classList.remove('active');
     document.getElementById('map-dim').classList.remove('active');
   triggerDeath();
@@ -2935,9 +3275,9 @@ function checkPlayerDead() {
 }
 
 function endCombatVictory() {
-  const m = combat.monster;
   combatActive = false;
   clearTimeout(cbTimer);
+  tickBuffBattles();
 
   const victoryTexts = {
     毒牙蟲:'毒牙蟲發出最後的嘶鳴，癱倒在地。',
@@ -2952,34 +3292,37 @@ function endCombatVictory() {
     古樹守衛:'古樹守衛發出低沉的呻吟，緩緩枯萎。',
     森林詛咒者:'詛咒者轟然倒地，整片森林陷入詭異的寂靜……',
   };
-  cbLog('cl-g', victoryTexts[m.name] || `${m.icon} ${m.name}被擊敗了！`);
 
-  // Rewards
-  const gold = m.gold;
-  const exp  = m.exp;
-  state.gold += gold;
+  let totalGold = 0, totalExp = 0;
+  for (const m of combat.monsters) {
+    cbLog('cl-g', victoryTexts[m.name] || `${m.icon} ${m.name}被擊敗了！`);
+    totalGold += m.gold;
+    totalExp += m.exp;
+    if (!state.seenMonsters) state.seenMonsters = [];
+    if (!state.seenMonsters.includes(m.name)) state.seenMonsters.push(m.name);
+  }
+  state.gold += totalGold;
   state.kills++; state.totalKills++;
-  cbLog('cl-p', `✨ 獲得 ${wrapCol('cl-p', exp)} 經驗值 · 💰 ${wrapCol('cl-y', gold)} 金幣`);
-  // 記錄見過的怪物（解鎖真名和血量顯示）
-  if (!state.seenMonsters) state.seenMonsters = [];
-  if (!state.seenMonsters.includes(m.name)) state.seenMonsters.push(m.name);
+  cbLog('cl-p', `✨ 獲得 ${wrapCol('cl-p', totalExp)} 經驗值 · 💰 ${wrapCol('cl-y', totalGold)} 金幣`);
   applyCurseEffects('combat_end');
 
-  // 多樣掉落
-  const loots = generateLoot(m.name, m.lv);
-  if (loots) {
-    for (const loot of loots) {
-      if (loot.type === 'gold') {
-        state.gold += loot.amount;
-        cbLog('cl-y', `💰 獲得 ${wrapCol('cl-y', loot.amount)} 金幣！`);
-      } else {
-        if (addToInventory(loot)) {
-          const elemTag = loot.element && loot.element !== 'none'
-            ? ` ${ELEMENTS[loot.element]?.icon || ''}` : '';
-          const cursedTag = loot.cursed ? ' <span style="color:#f87171">【腐化】</span>' : '';
-          cbLog('cl-y', `📦 掉落：${cursedTag}${wrapCol('rarity-'+loot.rarity, loot.name)}${elemTag}`);
+  // 多樣掉落：每隻怪物各自掉落一次
+  for (const m of combat.monsters) {
+    const loots = generateLoot(m.name, m.lv);
+    if (loots) {
+      for (const loot of loots) {
+        if (loot.type === 'gold') {
+          state.gold += loot.amount;
+          cbLog('cl-y', `💰 獲得 ${wrapCol('cl-y', loot.amount)} 金幣！`);
         } else {
-          cbLog('cl-s', `${loot.name} 因背包已滿而消失了……`);
+          if (addToInventory(loot)) {
+            const elemTag = loot.element && loot.element !== 'none'
+              ? ` ${ELEMENTS[loot.element]?.icon || ''}` : '';
+            const cursedTag = loot.cursed ? ' <span style="color:#f87171">【腐化】</span>' : '';
+            cbLog('cl-y', `📦 掉落：${cursedTag}${wrapCol('rarity-'+loot.rarity, loot.name)}${elemTag}`);
+          } else {
+            cbLog('cl-s', `${loot.name} 因背包已滿而消失了……`);
+          }
         }
       }
     }
@@ -2995,7 +3338,7 @@ function endCombatVictory() {
   setTimeout(() => {
     document.getElementById('combat-overlay').classList.remove('active');
     document.getElementById('map-dim').classList.remove('active');
-    gainExp(exp);
+    gainExp(totalExp);
     updateUI(); save();
   }, 1200);
 }
@@ -3052,6 +3395,7 @@ function tryEscape() {
 
   if (Math.random() < escapeChance) {
     cbLog('cl-g', '你趁隙逃脫了！');
+    tickBuffBattles();
     setTimeout(() => {
       combatActive = false;
       document.getElementById('combat-overlay').classList.remove('active');
@@ -3094,16 +3438,9 @@ function wrapCol(cls, text) {
 
 function updateCombatHPDisplay() {
   if (!combat) return;
-  const m = combat.monster;
-  const pct = Math.max(0, m.hp / m.maxHp * 100);
-  document.getElementById('cb-hp').style.width = pct + '%';
-  // 第一次遇到：顯示icon但名稱是???，打過一次後才顯示真名
-  const known = state.seenMonsters?.includes(m.name);
-  const nameStr = known ? `${m.icon} ${m.name}` : `${m.icon} ???`;
-  const hpStr = known ? `❤️ ${m.hp} / ${m.maxHp}` : `❤️ ?? / ??`;
-  document.getElementById('cb-name').textContent = nameStr;
-  document.getElementById('cb-hp-txt').textContent = hpStr;
-  document.getElementById('cb-player-hp').textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
+  renderMonsterGroup();
+  const playerHpEl = document.getElementById('cb-player-hp');
+  if (playerHpEl) playerHpEl.textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
 }
 
 // ═══════════════════════════════════════════════
@@ -3725,14 +4062,14 @@ function usePotion(item, invIdx) {
   // Buff 類（str/agi/luk/int/berserk/invincible）
   } else if (ef.buff) {
     if (!state.buffEffects) state.buffEffects = [];
-    // 移除同類舊buff
     state.buffEffects = state.buffEffects.filter(b => b.type !== ef.buff);
-    state.buffEffects.push({type: ef.buff, amt: ef.amt || 0, turns: ef.turns || 3});
+    const battles = ef.buff === 'invincible' ? 1 : 3;
+    state.buffEffects.push({type: ef.buff, amt: ef.amt || 0, battles});
     const buffNames = {
       str:'攻擊+30%', agi:'敏捷+30%', luk:'幸運+50%',
       int:'智力+30%', berserk:'攻擊×2（防禦歸零）', invincible:'免疫傷害'
     };
-    toast(`${item.icon} ${item.name}：${buffNames[ef.buff] || ef.buff}，持續 ${ef.turns} 回合`);
+    toast(`${item.icon} ${item.name}：${buffNames[ef.buff] || ef.buff}，持續 ${battles} 場戰鬥`);
     removeFromInventory(invIdx);
     closeModal('modal-item');
     refreshInventoryIfOpen();
@@ -3756,24 +4093,18 @@ function usePotion(item, invIdx) {
     if (cursedItems.length === 0) { toast(`🌟 沒有可解咒的裝備`); return; }
     showPurifyPicker(invIdx);
   } else if (ef.action === 'teleport_near') {
-    const unlocked = state.unlockedTeleports || [];
-    if (unlocked.length === 0) { toast('尚未激活任何傳送石！請前往村莊。'); return; }
-    // 找最近的已激活傳送石
-    let nearest = null, minDist = Infinity;
-    for (const vid of unlocked) {
-      const v = VILLAGE_DEFS[vid];
-      if (!v) continue;
-      const d = Math.abs(px-(START_X+v.dx)) + Math.abs(py-(START_Y+v.dy));
-      if (d < minDist) { minDist = d; nearest = vid; }
-    }
-    if (nearest) {
-      removeFromInventory(invIdx);
-      closeModal('modal-item');
-      doTeleport(nearest);
-    }
+    // 回家卷軸：直接傳送到當前大陸的村莊，不需要事先解鎖
+    const curCont = getContinent(px, py);
+    const vid = Object.keys(VILLAGE_DEFS).find(k => VILLAGE_DEFS[k].continent === curCont);
+    if (!vid) { toast('找不到此大陸的村莊'); return; }
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    doTeleport(vid);
   } else if (ef.action === 'teleport_any') {
-    const unlocked = state.unlockedTeleports || [];
-    if (unlocked.length === 0) { toast('尚未激活任何傳送石！請前往村莊。'); return; }
+    // 定點傳送卷軸：選擇任意已抵達過的大陸村莊
+    const visited = state.visitedContinents || ['forest'];
+    const available = Object.keys(VILLAGE_DEFS).filter(vid => visited.includes(VILLAGE_DEFS[vid].continent));
+    if (available.length === 0) { toast('尚未抵達任何村莊所在的大陸'); return; }
     removeFromInventory(invIdx);
     closeModal('modal-item');
     showTeleportMenu({vid:'__scroll__'});
@@ -3982,6 +4313,7 @@ function quickUsePotion(invIdx) {
   usePotion(item, invIdx);
   refreshInventoryIfOpen();
   updateUI(); save(true);
+  if (combatActive) updateCombatHPDisplay();
 }
 
 
@@ -4097,8 +4429,17 @@ function updatePlayerSVG() {
 function updateQuickBar() {
   const bar = document.getElementById('quick-bar');
   if (!bar) return;
-  // 只顯示背包裡的藥水（最多4格）
-  const potions = state.inventory.filter(i => i.type === 'potion').slice(0, 4);
+  // 回復類藥水優先排序，再來是buff類，卷軸排最後
+  const healOrder = ['heal_s','heal_m','heal_l','heal_xl','heal_full','antidote','cure_all'];
+  const potions = state.inventory
+    .filter(i => i.type === 'potion')
+    .sort((a, b) => {
+      const ai = healOrder.indexOf(a.subtype), bi = healOrder.indexOf(b.subtype);
+      const aRank = ai >= 0 ? ai : 100;
+      const bRank = bi >= 0 ? bi : 100;
+      return aRank - bRank;
+    })
+    .slice(0, 4);
   bar.innerHTML = potions.map((p, idx) => {
     const invIdx = state.inventory.indexOf(p);
     return `<div onclick="quickUsePotion(${invIdx})" style="
@@ -4110,6 +4451,10 @@ function updateQuickBar() {
       <span style="font-size:8px;color:#aaa">${p.name.replace('藥水','').replace('卷軸','')}</span>
     </div>`;
   }).join('');
+
+  // 戰鬥畫面也同步顯示同一個快捷列內容
+  const cbBar = document.getElementById('cb-quick-bar');
+  if (cbBar) cbBar.innerHTML = bar.innerHTML;
 }
 
 
@@ -4665,6 +5010,22 @@ function renderMerchant() {
       </button>
     </div>`;
   }
+
+  // 一鍵批量銷售
+  const whiteCount = state.inventory.filter(i=>i.rarity==='white' && (i.type==='weapon'||i.type==='armor')).length;
+  const greenCount = state.inventory.filter(i=>i.rarity==='green' && (i.type==='weapon'||i.type==='armor')).length;
+  const blueCount  = state.inventory.filter(i=>i.rarity==='blue'  && (i.type==='weapon'||i.type==='armor')).length;
+  if (whiteCount + greenCount + blueCount > 0) {
+    html += `<div style="background:#1a1a2e;border:.5px solid #333;border-radius:10px;padding:.6rem;margin-bottom:.5rem">
+      <div style="font-size:12px;color:#f59e0b;margin-bottom:.4rem">📦 批量銷售</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${whiteCount>0?`<button onclick="bulkSell('white')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #888;background:#1a1a2e;color:#ccc;font-size:11px;cursor:pointer">⬜ 白裝 ×${whiteCount}</button>`:''}
+        ${greenCount>0?`<button onclick="bulkSell('green')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #4ade80;background:#1a1a2e;color:#4ade80;font-size:11px;cursor:pointer">🟩 綠裝 ×${greenCount}</button>`:''}
+        ${blueCount>0?`<button onclick="bulkSell('blue')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #60a5fa;background:#1a1a2e;color:#60a5fa;font-size:11px;cursor:pointer">🟦 藍裝 ×${blueCount}</button>`:''}
+      </div>
+    </div>`;
+  }
+
   merchantStock.forEach((stock, i) => {
     const it = stock.item;
     const canBuy = state.gold >= stock.price;
@@ -4681,6 +5042,20 @@ function renderMerchant() {
     </div>`;
   });
   body.innerHTML = html;
+}
+
+function bulkSell(rarity) {
+  const rarityNames = {white:'白裝', green:'綠裝', blue:'藍裝'};
+  const items = state.inventory.filter(i => i.rarity === rarity && (i.type==='weapon'||i.type==='armor'));
+  if (items.length === 0) { toast('沒有可賣的物品'); return; }
+  const totalGold = items.reduce((sum, it) => sum + computeSellPrice(it), 0);
+  if (!confirm(`確定賣出所有 ${rarityNames[rarity]}（${items.length}件）？\n共可獲得 ${totalGold} 金幣`)) return;
+  state.gold += totalGold;
+  state.inventory = state.inventory.filter(i => !(i.rarity === rarity && (i.type==='weapon'||i.type==='armor')));
+  toast(`💰 賣出 ${items.length} 件 ${rarityNames[rarity]}，獲得 ${totalGold} 金幣`);
+  renderMerchant();
+  refreshInventoryIfOpen();
+  updateUI(); save(true);
 }
 
 function merchantBuy(idx) {
@@ -4753,15 +5128,12 @@ function showInn(v) {
 
 // ── 傳送選單 ──
 function showTeleportMenu(v) {
-  const unlocked = state.unlockedTeleports || [];
-  if (!unlocked.includes(v.vid)) {
-    toast('🔮 請先站在傳送石上激活！');
-    return;
-  }
+  // 只要抵達過大陸即可選擇傳送（不需要先解鎖傳送石）
+  const visited = state.visitedContinents || ['forest'];
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:400;padding:1rem';
   const options = Object.entries(VILLAGE_DEFS)
-    .filter(([vid]) => unlocked.includes(vid) && vid !== v.vid)
+    .filter(([vid, vd]) => visited.includes(vd.continent) && vid !== v.vid)
     .map(([vid, vd]) => `
       <button onclick="doTeleport('${vid}');this.closest('[style*=fixed]').remove()"
         style="padding:8px 12px;border-radius:8px;border:.5px solid #a78bfa33;background:#1a1030;
@@ -4774,7 +5146,7 @@ function showTeleportMenu(v) {
     <div style="background:#0d0d22;border:1px solid #a78bfa;border-radius:16px;padding:1.2rem;width:100%;max-width:300px">
       <div style="color:#a78bfa;font-weight:700;margin-bottom:.8rem">🔮 傳送到...</div>
       <div style="display:flex;flex-direction:column;gap:.4rem;max-height:300px;overflow-y:auto">
-        ${options || '<div style="color:#555;font-size:12px">尚未解鎖其他傳送石</div>'}
+        ${options || '<div style="color:#555;font-size:12px">尚未抵達其他大陸</div>'}
       </div>
       <button onclick="this.closest('[style*=fixed]').remove()"
         style="margin-top:.8rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#555;cursor:pointer;font-size:12px">取消</button>
