@@ -1030,8 +1030,16 @@ const MECH_BOSS  = '機械神';
 Object.assign(MDEFS, {
   混沌使者: {icon:'🌀',hp:300,atk:120,def:80,agi:40,special:'boss',   drop:'multi',  exp:2000,gold:1500,elite:true,element:'none'},
 });
-const HIDDEN_POOL  = [...DESERT_POOL,...ICE_POOL,...LAVA_POOL,...SEA_POOL];
-const HIDDEN_ELITE = ['混沌使者'];
+// 隱藏大陸專屬怪物（比一般大陸更強）
+Object.assign(MDEFS, {
+  虛空行者: {icon:'👤',hp:280,atk:95, def:45,agi:50,special:'highdef', drop:'multi',  exp:280,gold:220,elite:false,element:'dark'},
+  混沌觸手: {icon:'🐙',hp:260,atk:100,def:35,agi:30,special:'poison',  drop:'multi',  exp:270,gold:210,elite:false,element:'none'},
+  時空裂隙獸:{icon:'🌌',hp:300,atk:90, def:50,agi:40,special:'slow',   drop:'multi',  exp:300,gold:240,elite:false,element:'thunder'},
+  禁忌守衛: {icon:'⚔️',hp:350,atk:110,def:60,agi:25,special:'berserk', drop:'multi',  exp:320,gold:260,elite:false,element:'earth'},
+  虛空領主: {icon:'👑',hp:900,atk:150,def:90,agi:45,special:'regen',   drop:'multi',  exp:1200,gold:900,elite:true,element:'dark'},
+});
+const HIDDEN_POOL  = ['虛空行者','混沌觸手','時空裂隙獸','禁忌守衛'];
+const HIDDEN_ELITE = ['虛空領主','混沌使者'];
 
 
 // ════════════════════════════════════════════════════════════
@@ -1199,12 +1207,12 @@ function rollCurse(rarity) {
 }
 
 function generateWeapon(rarity, level) {
-  const ri = Math.min(rarityIdx(rarity), 2);
+  const ri = rarityIdx(rarity);
   const r2 = RARITY_ORDER[ri];
   const sub = WPN_SUBTYPES[Math.floor(Math.random() * WPN_SUBTYPES.length)];
-  const tpl = WPN_TPL[sub][ri];
+  const tpl = WPN_TPL[sub][Math.min(ri,2)];
   const name = tpl[Math.floor(Math.random() * tpl.length)];
-  const base = {white:4,green:8,blue:16}[r2] || 4;
+  const base = {white:4,green:8,blue:16,gold:30,red:50,rainbow:80}[r2] || 4;
   const lm = 1 + level * 0.06;
   const v = () => Math.floor(base * lm * (0.8 + Math.random()*0.4));
   const stats = {str:0,agi:0,int:0,luk:0,def:0};
@@ -1255,9 +1263,11 @@ function generateArmor(slot, rarity, level, forceSetId) {
   }
 
   // 套裝判定：金裝以上、四個固定部位(helmet/armor/gloves/boots)，且等級符合套裝門檻
+  // 隱藏大陸機率大幅提升（0.12→0.35）
   let setId = forceSetId || null;
+  const setChance = (getContinent(px, py) === 'hidden') ? 0.35 : 0.12;
   if (!setId && (r2 === 'gold' || r2 === 'red' || r2 === 'rainbow') &&
-      ['helmet','armor','gloves','boots'].includes(slot) && Math.random() < 0.12) {
+      ['helmet','armor','gloves','boots'].includes(slot) && Math.random() < setChance) {
     const candidates = Object.entries(SET_DEFS).filter(([_,d]) => level >= (d.minLv||0));
     if (candidates.length > 0) {
       setId = candidates[Math.floor(Math.random()*candidates.length)][0];
@@ -1288,10 +1298,21 @@ function generateArmor(slot, rarity, level, forceSetId) {
   };
 }
 
-function rollRarity(monLv) {
+function rollRarity(monLv, isHiddenCont) {
   const r = Math.random();
-  if (monLv >= 25 && r < 0.08) return 'blue';
-  if (monLv >= 8  && r < 0.28) return 'green';
+  if (isHiddenCont) {
+    // 隱藏大陸：稀有度大幅提升
+    if (r < 0.04) return 'rainbow';
+    if (r < 0.12) return 'red';
+    if (r < 0.30) return 'gold';
+    if (r < 0.55) return 'blue';
+    if (r < 0.80) return 'green';
+    return 'white';
+  }
+  if (monLv >= 50 && r < 0.02) return 'red';
+  if (monLv >= 30 && r < 0.06) return 'gold';
+  if (monLv >= 25 && r < 0.14) return 'blue';
+  if (monLv >= 8  && r < 0.32) return 'green';
   return 'white';
 }
 
@@ -1766,10 +1787,11 @@ function generateLoot(monName, monLv) {
   }
 
   // ── 裝備（依怪物設定掉落率）
+  const isHiddenCont = getContinent(px, py) === 'hidden';
   const slot = mon?.drop;
   const eqChance = mon?.elite ? 0.85 : 0.40;
   if (slot && Math.random() < eqChance * lukBonus) {
-    const rarity = rollRarity(monLv);
+    const rarity = rollRarity(monLv, isHiddenCont);
     const item = (slot === 'weapon' || Math.random() < 0.35)
       ? generateWeapon(rarity, monLv)
       : generateArmor(
@@ -2426,9 +2448,27 @@ function checkNearMerchant() {
 // 🚶 MOVEMENT & TERRAIN EFFECTS
 // ════════════════════════════════════════════════════════════
 
+// 隱藏大陸解鎖條件：礦工Lv.50技能「傳說礦工」(unlockHidden) 或角色Lv.80以上
+function isHiddenUnlocked() {
+  if (state.level >= 80) return true;
+  if (hasSkill('miner_50')) return true;
+  // 前職業殘留也算
+  for (const prev of (state.prevJobs||[])) {
+    if (prev.job === 'miner' && prev.level >= 50) return true;
+  }
+  return false;
+}
+
 function move(dx, dy) {
   if (moveCooldown || combatActive || deathActive) return;
   const nx = px + dx, ny = py + dy;
+
+  // 隱藏大陸解鎖檢查：需礦工Lv.50技能或角色Lv.80+
+  if (getContinent(nx, ny) === 'hidden' && !isHiddenUnlocked()) {
+    toast('🔒 此區域被神秘力量封鎖，似乎需要某種「傳說」般的力量才能進入……');
+    return;
+  }
+
   const ter = getTerrain(nx, ny);
   if (!isPassable(ter)) { toast('⛔ 無法通行'); return; }
 
@@ -4093,10 +4133,17 @@ function usePotion(item, invIdx) {
     if (cursedItems.length === 0) { toast(`🌟 沒有可解咒的裝備`); return; }
     showPurifyPicker(invIdx);
   } else if (ef.action === 'teleport_near') {
-    // 回家卷軸：直接傳送到當前大陸的村莊，不需要事先解鎖
+    // 回家卷軸：傳送到當前大陸的村莊；若該大陸沒有村莊（如隱藏大陸），改傳送到距離最近的村莊
     const curCont = getContinent(px, py);
-    const vid = Object.keys(VILLAGE_DEFS).find(k => VILLAGE_DEFS[k].continent === curCont);
-    if (!vid) { toast('找不到此大陸的村莊'); return; }
+    let vid = Object.keys(VILLAGE_DEFS).find(k => VILLAGE_DEFS[k].continent === curCont);
+    if (!vid) {
+      let minDist = Infinity;
+      for (const [k, v] of Object.entries(VILLAGE_DEFS)) {
+        const d = Math.abs(px-(START_X+v.dx)) + Math.abs(py-(START_Y+v.dy));
+        if (d < minDist) { minDist = d; vid = k; }
+      }
+    }
+    if (!vid) { toast('找不到任何村莊'); return; }
     removeFromInventory(invIdx);
     closeModal('modal-item');
     doTeleport(vid);
