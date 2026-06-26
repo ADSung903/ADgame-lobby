@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.13</div>
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.14</div>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -1431,6 +1431,8 @@ const SHOP_ITEMS = [
    desc:'重新選擇目前職業的轉職路線（同主線內互轉）。已投入的職業等級與經驗保留。', price:50000, effect:{action:'job_reset'}},
   {name:'輪迴卷軸',   icon:'♻️', type:'scroll', subtype:'job_reincarnate',
    desc:'完全重新選擇主線（戰士/法師/盜賊/遊俠任選，亦可回到礦工），不限同主線。職業等級與經驗保留。', price:500000, effect:{action:'job_reincarnate'}},
+  {name:'副本券',     icon:'🎫', type:'scroll', subtype:'raid_ticket',
+   desc:'每日免費挑戰次數用完後，可消耗此券額外挑戰一次Boss副本。', price:10000, effect:{action:'none'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -2141,7 +2143,7 @@ function updateBGMForContext() {
   if (!audioState.bgmEnabled || !audioState.unlocked) return;
   if (deathActive) { playBGM('death'); return; }
   if (combatActive) {
-    const isBoss = combat?.monsters?.some(m => m.special === 'boss');
+    const isBoss = combat?.monsters?.some(m => m.special === 'boss') || raidState?.isBossFight;
     playBGM(isBoss ? 'boss' : 'battle');
     return;
   }
@@ -3048,6 +3050,202 @@ let combat = null;
 // ════════════════════════════════════════════════════════════
 const DUNGEON_SIZE = 15; // 15×15 迷宮
 let dungeonState = null; // {grid, px, py, exitX, exitY, depth, returnPos, monsters}
+
+// ════════════════════════════════════════════════════════════
+// 👑 BOSS RAID — 每日Boss副本
+// ════════════════════════════════════════════════════════════
+const RAID_BOSS_BY_CONTINENT = {
+  forest: '森林詛咒者',
+  desert: '沙漠巨蠍王',
+  ice: '冰原霸主',
+  sea: '深淵之眼',
+  lava: '火山惡魔',
+  sky: '天空之王',
+  shadow: '虛空魔神',
+  mech: '機械神',
+  hidden: '混沌使者',
+};
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0,10); // YYYY-MM-DD
+}
+
+function getRaidFreeUsedToday() {
+  return state.raidLastFreeDate === getTodayKey();
+}
+
+function canChallengeRaid() {
+  if (!getRaidFreeUsedToday()) return {ok:true, useTicket:false};
+  const ticketCount = state.inventory.filter(i => i.subtype === 'raid_ticket').length;
+  if (ticketCount > 0) return {ok:true, useTicket:true};
+  return {ok:false, useTicket:false};
+}
+
+function showRaidMenu() {
+  const visited = state.visitedContinents || ['forest'];
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem';
+  const freeUsed = getRaidFreeUsedToday();
+  const ticketCount = state.inventory.filter(i => i.subtype === 'raid_ticket').length;
+
+  const options = visited.map(cont => {
+    const bossName = RAID_BOSS_BY_CONTINENT[cont];
+    const info = CONTINENT_INFO[cont];
+    if (!bossName || !info) return '';
+    return `<button data-cont="${cont}"
+      style="padding:10px;border-radius:10px;border:.5px solid ${info.color}55;background:#1a1030;
+      color:#e5e7eb;font-size:13px;cursor:pointer;text-align:left">
+      ${info.name} — ${bossName}
+      <div style="font-size:10px;color:#888;margin-top:2px">建議 Lv.${info.recLv + 15}+</div>
+    </button>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #dc2626;border-radius:16px;padding:1.2rem;width:100%;max-width:320px;max-height:85vh;overflow-y:auto">
+      <div style="color:#f87171;font-weight:700;margin-bottom:.4rem">👑 每日Boss副本</div>
+      <div style="font-size:11px;color:#888;margin-bottom:.8rem">
+        每日免費挑戰：${freeUsed?'<span style="color:#f87171">今日已使用</span>':'<span style="color:#4ade80">可用</span>'}<br>
+        🎫 副本券：${ticketCount} 張
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">${options}</div>
+      <button id="raid-cancel" style="margin-top:.8rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#555;cursor:pointer;font-size:12px">取消</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  modal.querySelectorAll('[data-cont]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cont = btn.dataset.cont;
+      modal.remove();
+      startRaidChallenge(cont);
+    });
+  });
+  modal.querySelector('#raid-cancel').addEventListener('click', () => modal.remove());
+}
+
+function startRaidChallenge(cont) {
+  const check = canChallengeRaid();
+  if (!check.ok) {
+    toast('⚠️ 今日免費次數已用完，且沒有副本券。可在商店購買或擊敗野外Boss掉落。');
+    return;
+  }
+  const bossName = RAID_BOSS_BY_CONTINENT[cont];
+  if (!bossName) { toast('此大陸沒有對應的Boss'); return; }
+
+  if (check.useTicket) {
+    const idx = state.inventory.findIndex(i => i.subtype === 'raid_ticket');
+    if (idx >= 0) state.inventory.splice(idx, 1);
+    toast('🎫 使用副本券挑戰！');
+  } else {
+    state.raidLastFreeDate = getTodayKey();
+    toast('👑 使用今日免費挑戰機會！');
+  }
+  save(true);
+
+  const info = CONTINENT_INFO[cont];
+  raidState = {cont, bossName, wave: 0, totalWaves: 3, recLv: info.recLv};
+  startRaidWave();
+}
+
+let raidState = null;
+
+function startRaidWave() {
+  if (!raidState) return;
+  raidState.wave++;
+  if (raidState.wave > raidState.totalWaves) {
+    startRaidBoss();
+    return;
+  }
+  const pool = (CONTINENT_POOLS[raidState.cont] || CONTINENT_POOLS.forest).normal;
+  const monName = pool[Math.floor(Math.random() * pool.length)];
+  toast(`⚔️ 第 ${raidState.wave}/${raidState.totalWaves} 波小怪來襲！`);
+  startCombat(monName, px, py, raidState.recLv + 10);
+}
+
+function startRaidBoss() {
+  if (!raidState) return;
+  toast(`👑 ${raidState.bossName} 降臨！`);
+  const bossLv = raidState.recLv + 20;
+  startCombat(raidState.bossName, px, py, bossLv);
+  // Boss 強化：副本版血量/攻擊 ×1.5
+  setTimeout(() => {
+    if (combat?.monsters?.[0]) {
+      const m = combat.monsters[0];
+      m.maxHp = Math.floor(m.maxHp * 1.5);
+      m.hp = m.maxHp;
+      m.atk = Math.floor(m.atk * 1.5);
+      renderMonsterGroup();
+    }
+  }, 50);
+  raidState.isBossFight = true;
+}
+
+// 副本勝利後呼叫（在 endCombatVictory 裡掛鉤）
+function checkRaidProgress() {
+  if (!raidState) return;
+  if (raidState.isBossFight) {
+    giveRaidRewards(raidState.cont, raidState.recLv);
+    raidState = null;
+  } else {
+    setTimeout(() => startRaidWave(), 1500);
+  }
+}
+
+function giveRaidRewards(cont, recLv) {
+  const rewardLv = recLv + 20;
+  // 1. 套裝裝備（高機率）
+  const setItem = generateArmor(
+    ['helmet','armor','gloves','boots'][Math.floor(Math.random()*4)],
+    Math.random() < 0.6 ? 'red' : 'gold',
+    rewardLv
+  );
+  // 強制嘗試套裝（提高機率到70%）
+  if (!setItem.setId && Math.random() < 0.7) {
+    const candidates = Object.entries(SET_DEFS).filter(([_,d]) => rewardLv >= (d.minLv||0));
+    if (candidates.length > 0) {
+      const setId = candidates[Math.floor(Math.random()*candidates.length)][0];
+      setItem.setId = setId;
+      setItem.name = `${SET_DEFS[setId].name}・${SLOT_LABEL[setItem.subtype]||setItem.name}`;
+      setItem.realName = setItem.name;
+      setItem.element = SET_DEFS[setId].element;
+    }
+  }
+  // 2. 金幣+經驗
+  const goldReward = rewardLv * 500;
+  const expReward = rewardLv * 200;
+  state.gold += goldReward;
+  // 3. 隨機高級卷軸
+  const bonusScrolls = [
+    {name:'轉職卷軸', icon:'🔄', type:'scroll', subtype:'job_reset', desc:'重新選擇目前職業的轉職路線。', effect:{action:'job_reset'}},
+    {name:'強化卷軸', icon:'📜', type:'scroll', subtype:'enhance_normal', desc:'強化裝備+1。', effect:{action:'enhance', type:'normal'}},
+    {name:'解咒卷軸', icon:'🌟', type:'scroll', subtype:'purify', desc:'解除裝備詛咒。', effect:{action:'purify'}},
+  ];
+  const bonusScroll = {...bonusScrolls[Math.floor(Math.random()*bonusScrolls.length)], id:Date.now()+Math.random(), rarity:'blue'};
+
+  addToInventory(setItem);
+  addToInventory(bonusScroll);
+  gainExp(expReward);
+
+  if (!state.raidClears) state.raidClears = 0;
+  state.raidClears++;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:700;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #fbbf24;border-radius:16px;padding:1.4rem;width:100%;max-width:320px;text-align:center">
+      <div style="font-size:20px;font-weight:800;color:#fbbf24;margin-bottom:.8rem">👑 副本通關！</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;text-align:left;margin-bottom:1rem">
+        <div style="font-size:12px" class="rarity-${setItem.rarity}">${setItem.icon} ${setItem.name}</div>
+        <div style="font-size:12px;color:#60a5fa">${bonusScroll.icon} ${bonusScroll.name}</div>
+        <div style="font-size:12px;color:#f59e0b">💰 ${goldReward} 金幣</div>
+        <div style="font-size:12px;color:#a78bfa">✨ ${expReward} 經驗值</div>
+      </div>
+      <button id="raid-reward-close" style="width:100%;padding:10px;border-radius:10px;border:none;background:#92400e;color:#fde68a;font-size:13px;font-weight:700;cursor:pointer">收下獎勵</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#raid-reward-close').onclick = () => { modal.remove(); updateUI(); save(true); };
+}
+
+
 
 // 用座標+世界種子生成固定但看起來隨機的迷宮（每個洞穴入口對應一個固定迷宮版本，每天輪換）
 function getDungeonSeed(wx, wy) {
@@ -3988,6 +4186,7 @@ function checkPlayerDead() {
   combatActive = false;
   clearTimeout(cbTimer);
   tickBuffBattles();
+  if (raidState) { toast('💀 副本挑戰失敗！'); raidState = null; }
   document.getElementById('combat-overlay').classList.remove('active');
     document.getElementById('map-dim').classList.remove('active');
   triggerDeath();
@@ -4046,6 +4245,15 @@ function endCombatVictory() {
         }
       }
     }
+    // 副本券：菁英/Boss怪 5% 機率掉落
+    if (m.elite && Math.random() < 0.05) {
+      const ticket = {name:'副本券', icon:'🎫', type:'scroll', subtype:'raid_ticket',
+        desc:'每日免費挑戰次數用完後，可消耗此券額外挑戰一次Boss副本。',
+        effect:{action:'none'}, rarity:'gold', id:Date.now()+Math.random()};
+      if (addToInventory(ticket)) {
+        cbLog('cl-y', `🎫 稀有掉落：${wrapCol('rarity-gold','副本券')}！`);
+      }
+    }
   }
 
   // Mark killed
@@ -4061,6 +4269,7 @@ function endCombatVictory() {
     gainExp(totalExp);
     updateUI(); save();
     updateBGMForContext();
+    checkRaidProgress();
   }, 1200);
 }
 
@@ -4117,6 +4326,7 @@ function tryEscape() {
   if (Math.random() < escapeChance) {
     cbLog('cl-g', '你趁隙逃脫了！');
     tickBuffBattles();
+    if (raidState) { toast('🏃 副本挑戰中斷！'); raidState = null; }
     setTimeout(() => {
       combatActive = false;
       document.getElementById('combat-overlay').classList.remove('active');
@@ -5005,6 +5215,8 @@ function usePotion(item, invIdx) {
   } else if (ef.action === 'job_reincarnate') {
     closeModal('modal-item');
     showJobReincarnateMenu(invIdx);
+  } else if (ef.action === 'none') {
+    toast('🎫 此道具會在挑戰副本時自動使用，無需手動使用');
   } else if (ef.action === 'fog') {
     for (let dy = -7; dy <= 7; dy++) {
       for (let dx = -7; dx <= 7; dx++) { explored.add(`${px+dx},${py+dy}`); }
@@ -6018,6 +6230,10 @@ function showVillageMenu(v) {
         <button onclick="showTeleportMenu(${JSON.stringify(v).replace(/"/g,'&quot;')});this.closest('[style*=fixed]').remove()"
           style="padding:10px;border-radius:10px;border:.5px solid #333;background:#1a1a2e;color:#a78bfa;font-size:13px;cursor:pointer">
           🔮 傳送石
+        </button>
+        <button onclick="showRaidMenu();this.closest('[style*=fixed]').remove()"
+          style="padding:10px;border-radius:10px;border:.5px solid #dc2626;background:#1a1030;color:#f87171;font-size:13px;cursor:pointer">
+          👑 每日Boss副本
         </button>
         <button onclick="this.closest('[style*=fixed]').remove()"
           style="padding:8px;border-radius:10px;border:.5px solid #333;background:transparent;color:#555;font-size:12px;cursor:pointer">
