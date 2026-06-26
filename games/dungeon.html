@@ -26,7 +26,7 @@
         多怪物戰鬥（1~3隻）；DQ風格受擊抖動/死亡淡出；遊俠系職業樹×5
         武器/技能平衡調整；Buff改為戰鬥次數倒數
   v1.4  完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖
-  v1.6  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
+  v1.7  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
         狀態列UI、音效掛鉤、視覺飄字特效；各大陸怪物分配對應狀態
         萬能解藥真正解除全部狀態；解毒藥水僅解中毒
   ════════════════════════════════
@@ -518,7 +518,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     </div>
     <div class="modal-body">
       <div id="inv-tabs" style="display:flex;gap:4px;margin-bottom:.4rem;flex-wrap:wrap"></div>
-      <div class="inv-count" id="inv-count">0/40</div>
+      <div class="inv-count" id="inv-count">0/60</div>
       <div class="inv-grid" id="inv-grid"></div>
     </div>
   </div>
@@ -1392,7 +1392,9 @@ const SHOP_ITEMS = [
    desc:'打開傳送選單，選擇任意已抵達過的大陸村莊。', price:2000, effect:{action:'teleport_any'}},
   // 轉職卷軸
   {name:'轉職卷軸',   icon:'🔄', type:'scroll', subtype:'job_reset',
-   desc:'重新選擇目前職業的轉職路線。已投入的職業等級與經驗保留，立即可選擇新路線（不會回到礦工）。', price:5000, effect:{action:'job_reset'}},
+   desc:'重新選擇目前職業的轉職路線（同主線內互轉）。已投入的職業等級與經驗保留。', price:5000, effect:{action:'job_reset'}},
+  {name:'輪迴卷軸',   icon:'♻️', type:'scroll', subtype:'job_reincarnate',
+   desc:'完全重新選擇主線（戰士/法師/盜賊/遊俠任選），不限同主線。職業等級與經驗保留。【測試價】', price:500, effect:{action:'job_reincarnate'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -1971,7 +1973,7 @@ function initState() {
     inventory:[
       {id:'starter_potion_1', name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
       {id:'starter_potion_2', name:'小回復藥水', icon:'🧪', type:'potion', subtype:'heal_s', rarity:'white', desc:'回復 30 HP', effect:{heal:30}},
-    ], inventoryMax:40,
+    ], inventoryMax:60,
     heirlooms:[],
     killedMonsters:[], totalExplored:0,
     kills:0, totalKills:0, totalGenerations:1,
@@ -4198,6 +4200,59 @@ function doJobReset(newJob, invIdx) {
   if (document.getElementById('modal-skills')?.classList.contains('open')) openSkills();
 }
 
+// 輪迴卷軸：完全重新選擇主線（礦工的四個一轉分支）
+function showJobReincarnateMenu(invIdx) {
+  const curJd = JOB_DEFS[state.job];
+  const minerJd = JOB_DEFS['miner'];
+  const options = (minerJd.canChangeTo || []).filter(k => getRootJob(state.job) !== k);
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem';
+  const optHtml = options.map(k => {
+    const jd = JOB_DEFS[k];
+    return `<button data-job="${k}"
+      style="padding:10px;border-radius:10px;border:.5px solid #f59e0b55;background:#1a1408;
+      color:#fde68a;font-size:13px;cursor:pointer;text-align:left">
+      ${jd.name}
+      <div style="font-size:10px;color:#888;margin-top:2px">${jd.desc}</div>
+    </button>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #f59e0b;border-radius:16px;padding:1.2rem;width:100%;max-width:320px">
+      <div style="color:#fde68a;font-weight:700;margin-bottom:.4rem">♻️ 輪迴卷軸</div>
+      <div style="font-size:11px;color:#888;margin-bottom:.8rem">
+        目前：${curJd.name}（Lv.${state.jobLevel}）<br>
+        選擇全新主線，職業等級與經驗完整保留，立即解鎖該主線一轉技能。
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">${optHtml}</div>
+      <button id="job-reinc-cancel" style="margin-top:.8rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#555;cursor:pointer;font-size:12px">取消</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  modal.querySelectorAll('[data-job]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const newJob = btn.dataset.job;
+      doJobReincarnate(newJob, invIdx);
+      modal.remove();
+    });
+  });
+  modal.querySelector('#job-reinc-cancel').addEventListener('click', () => modal.remove());
+}
+
+function doJobReincarnate(newJob, invIdx) {
+  const jd = JOB_DEFS[newJob];
+  if (!jd) return;
+  state.job = newJob;
+  state.skillCDs = {};
+  state.skillUsed = {};
+  removeFromInventory(invIdx);
+  toast(`♻️ 輪迴卷軸生效！轉換為 ${jd.name}（職業等級與經驗保留）`);
+  refreshInventoryIfOpen();
+  updateUI(); save(true);
+  if (document.getElementById('modal-skills')?.classList.contains('open')) openSkills();
+}
+
 function changeJob(jobKey) {
   const jd = JOB_DEFS[jobKey];
   if (!jd) return;
@@ -4612,6 +4667,9 @@ function usePotion(item, invIdx) {
     if (state.job === 'miner') { toast('你目前是礦工，沒有可重置的轉職路線'); return; }
     closeModal('modal-item');
     showJobResetMenu(invIdx);
+  } else if (ef.action === 'job_reincarnate') {
+    closeModal('modal-item');
+    showJobReincarnateMenu(invIdx);
   } else if (ef.action === 'fog') {
     for (let dy = -7; dy <= 7; dy++) {
       for (let dx = -7; dx <= 7; dx++) { explored.add(`${px+dx},${py+dy}`); }
@@ -5476,9 +5534,9 @@ function openMerchant() {
 function expandBag() {
   const cost = 100000;
   if (state.gold < cost) { toast('金幣不足'); return; }
-  if (state.inventoryMax >= 100) { toast('背包已達上限 100 格'); return; }
+  if (state.inventoryMax >= 200) { toast('背包已達上限 200 格'); return; }
   state.gold -= cost;
-  state.inventoryMax += 10;
+  state.inventoryMax += 20;
   toast(`🎒 背包擴充至 ${state.inventoryMax} 格！`);
   renderMerchant(); updateUI(); save(true);
 }
@@ -5493,7 +5551,7 @@ function computeSellPrice(item) {
 
 function renderMerchant() {
   const body = document.getElementById('merchant-body');
-  const maxSlots = 100;
+  const maxSlots = 200;
   const curSlots = state.inventoryMax || 30;
   const canExpand = curSlots < maxSlots;
   const expandCost = 100000;
@@ -5505,7 +5563,7 @@ function renderMerchant() {
       border-radius:10px;padding:.6rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-size:12px;color:#f59e0b">🎒 擴充背包</div>
-        <div style="font-size:10px;color:#666">目前 ${curSlots} 格 → ${curSlots+10} 格（上限100）</div>
+        <div style="font-size:10px;color:#666">目前 ${curSlots} 格 → ${curSlots+20} 格（上限200）</div>
       </div>
       <button onclick="expandBag()" ${canAfford?'':'disabled'}
         style="padding:6px 12px;border-radius:8px;border:none;font-size:11px;cursor:${canAfford?'pointer':'default'};
