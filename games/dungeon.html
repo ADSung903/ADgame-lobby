@@ -26,7 +26,7 @@
         多怪物戰鬥（1~3隻）；DQ風格受擊抖動/死亡淡出；遊俠系職業樹×5
         武器/技能平衡調整；Buff改為戰鬥次數倒數
   v1.4  完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖
-  v1.8  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
+  v1.9  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
         狀態列UI、音效掛鉤、視覺飄字特效；各大陸怪物分配對應狀態
         萬能解藥真正解除全部狀態；解毒藥水僅解中毒
   ════════════════════════════════
@@ -1264,9 +1264,13 @@ function generateWeapon(rarity, level) {
 }
 
 function generateArmor(slot, rarity, level, forceSetId) {
+  if (!ARMOR_SLOTS.includes(slot)) {
+    console.warn('Invalid armor slot:', slot, '→ fallback to random slot');
+    slot = ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)];
+  }
   const ri = rarityIdx(rarity);
   const r2 = RARITY_ORDER[ri];
-  const tpl = ARMOR_TPL[slot]?.[Math.min(ri,2)] || ['普通裝備'];
+  const tpl = ARMOR_TPL[slot]?.[Math.min(ri,2)] || ARMOR_TPL.armor[0];
   const name = tpl[Math.floor(Math.random() * tpl.length)];
   const base = {white:3,green:6,blue:12,gold:22,red:38,rainbow:60}[r2] || 3;
   const lm = 1 + level * 0.05;
@@ -1340,9 +1344,16 @@ function rollRarity(monLv, isHiddenCont) {
 function generateDrop(slot, monLv) {
   const rarity = rollRarity(monLv);
   if (slot === 'weapon' || Math.random() < 0.4) return generateWeapon(rarity, monLv);
-  const armorSlot = slot === 'multi'
-    ? ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)]
-    : slot;
+  let armorSlot = slot;
+  if (slot === 'multi') {
+    armorSlot = ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)];
+  } else if (slot === 'ring') {
+    armorSlot = Math.random() < 0.5 ? 'ring1' : 'ring2';
+  } else if (slot === 'earring') {
+    armorSlot = Math.random() < 0.5 ? 'earring1' : 'earring2';
+  } else if (!ARMOR_SLOTS.includes(slot)) {
+    armorSlot = ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)];
+  }
   return generateArmor(armorSlot, rarity, monLv);
 }
 
