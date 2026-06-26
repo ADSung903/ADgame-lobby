@@ -26,7 +26,7 @@
         多怪物戰鬥（1~3隻）；DQ風格受擊抖動/死亡淡出；遊俠系職業樹×5
         武器/技能平衡調整；Buff改為戰鬥次數倒數
   v1.4  完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖
-  v1.5  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
+  v1.6  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
         狀態列UI、音效掛鉤、視覺飄字特效；各大陸怪物分配對應狀態
         萬能解藥真正解除全部狀態；解毒藥水僅解中毒
   ════════════════════════════════
@@ -1390,6 +1390,9 @@ const SHOP_ITEMS = [
    desc:'立即傳送回所在大陸的村莊。不需事先解鎖。', price:500, effect:{action:'teleport_near'}},
   {name:'定點傳送卷軸', icon:'🎟️', type:'scroll', subtype:'teleport_any',
    desc:'打開傳送選單，選擇任意已抵達過的大陸村莊。', price:2000, effect:{action:'teleport_any'}},
+  // 轉職卷軸
+  {name:'轉職卷軸',   icon:'🔄', type:'scroll', subtype:'job_reset',
+   desc:'重新選擇目前職業的轉職路線。已投入的職業等級與經驗保留，立即可選擇新路線（不會回到礦工）。', price:5000, effect:{action:'job_reset'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -1576,7 +1579,7 @@ const JOB_DEFS = {
       {id:'paladin_15',name:'聖光審判',  desc:'每場1次，回復50%最大HP並清除所有負面狀態',      lv:15, type:'once',    effect:{healPct:0.5, cleanse:true}},
       {id:'paladin_20',name:'不死聖者',  desc:'一場戰鬥中，血量歸零時自動回復30%HP（1次）',   lv:20, type:'passive', effect:{deathSave:0.30}},
     ],
-    canChangeTo:[], reqLevel:30, reqJob:'warrior',
+    canChangeTo:['holy_knight'], reqLevel:30, reqJob:'warrior',
   },
   death_knight: {
     name:'💀 死亡騎士', desc:'暗屬性，越殺越強，吸血流。',
@@ -1590,7 +1593,7 @@ const JOB_DEFS = {
       {id:'dk_15',name:'不死軍團',    desc:'每場2次吸血爆擊（吸血×3）',                      lv:15, type:'passive', effect:{lifeStealCrit:3.0, lifeStealCritCount:2}},
       {id:'dk_20',name:'死神降臨',    desc:'每場1次，對怪物造成其最大HP×40%的真實傷害',      lv:20, type:'once',    effect:{trueHpDmg:0.40}},
     ],
-    canChangeTo:[], reqLevel:30, reqJob:'warrior',
+    canChangeTo:['death_lord'], reqLevel:30, reqJob:'warrior',
   },
   ice_mage: {
     name:'❄️ 冰法師', desc:'冰屬性，控制流，凍結一切。',
@@ -1604,7 +1607,7 @@ const JOB_DEFS = {
       {id:'ice_15', name:'冰河時代',   desc:'每場2次絕對零度',                                lv:15, type:'passive', effect:{freezeCount:2}},
       {id:'ice_20', name:'冰封王座',   desc:'每場1次，造成×5冰屬性傷害並凍結3回合',          lv:20, type:'once',    effect:{iceBurst:5.0, freeze:3}},
     ],
-    canChangeTo:[], reqLevel:30, reqJob:'mage',
+    canChangeTo:['frost_lich'], reqLevel:30, reqJob:'mage',
   },
   fire_mage: {
     name:'🔥 火法師', desc:'火屬性，持續灼傷，越燒越旺。',
@@ -1618,7 +1621,7 @@ const JOB_DEFS = {
       {id:'fire_15', name:'浴火重生',  desc:'血量低於20%時自動回復20%HP，每場1次',           lv:15, type:'trigger', effect:{phoenixHeal:0.20}, cd:99},
       {id:'fire_20', name:'末日火焰',  desc:'每場1次，×6火屬性傷害並附加3層灼傷',            lv:20, type:'once',    effect:{fireBurst:6.0, burnStacks:3}},
     ],
-    canChangeTo:[], reqLevel:30, reqJob:'mage',
+    canChangeTo:['archmage'], reqLevel:30, reqJob:'mage',
   },
   hunter: {
     name:'🏹 獵人', desc:'弓專精，陷阱控場，先手必勝。',
@@ -1632,7 +1635,7 @@ const JOB_DEFS = {
       {id:'hunter_15', name:'多重陷阱', desc:'陷阱使用次數+1（每場2次）',                   lv:15, type:'passive', effect:{trapCount:2}},
       {id:'hunter_20', name:'絕殺一箭', desc:'每場1次，穿透防禦造成×5弓攻擊傷害',          lv:20, type:'once',    effect:{piercingShot:5.0}},
     ],
-    canChangeTo:[], reqLevel:30, reqJob:'rogue',
+    canChangeTo:['sniper_king'], reqLevel:30, reqJob:'rogue',
   },
   gambler: {
     name:'🃏 賭徒', desc:'高風險高報酬，幸運決定一切。',
@@ -1646,7 +1649,7 @@ const JOB_DEFS = {
       {id:'gambler_15', name:'賭神附體', desc:'豪賭勝率提升至70%',                           lv:15, type:'passive', effect:{gambleWinRate:0.70}},
       {id:'gambler_20', name:'奇蹟',     desc:'每場1次，100%觸發×10暴擊（無視一切限制）',  lv:20, type:'once',    effect:{miracleCrit:10.0}},
     ],
-    canChangeTo:[], reqLevel:30, reqJob:'miner',
+    canChangeTo:['fortune_god'], reqLevel:30, reqJob:'miner',
   },
   ranger: {
     name:'🛡️🗡️ 遊俠', desc:'力量+防禦，長槍專精，攻防兼備。',
@@ -1717,6 +1720,90 @@ const JOB_DEFS = {
       {id:'dg_20', name:'真龍降世', desc:'每場1次，×6傷害並附加3層灼傷',                   lv:20, type:'once',    effect:{burstMult:6.0, burnStacks:3}},
     ],
     canChangeTo:[], reqLevel:60, reqJob:'dragon_knight',
+  },
+  holy_knight: {
+    name:'⚜️ 聖光騎士', desc:'光屬性近乎無敵的守護者，三轉。',
+    passive:{defMult:1.5, regenPerTurn:8, holyBonus:1.4},
+    skills:[
+      {id:'hk_1',  name:'聖盾強化', desc:'神聖護盾CD再-1回合（等效2回合CD）',             lv:1,  type:'passive', effect:{shieldCDReduce:1}},
+      {id:'hk_3',  name:'光輝守護', desc:'防禦+15，受傷-12%',                              lv:3,  type:'passive', effect:{defBonus:15, dmgReduce:0.12}},
+      {id:'hk_5',  name:'聖光斬',   desc:'每場1次，造成×3傷害並回復20%HP',                lv:5,  type:'once',    effect:{burstMult:3.0, healPct:0.20}},
+      {id:'hk_8',  name:'光之壁',   desc:'每5回合自動格擋一次攻擊',                       lv:8,  type:'auto',    effect:{autoBlockEvery:5}},
+      {id:'hk_10', name:'聖徒之心', desc:'全屬性+12%',                                     lv:10, type:'passive', effect:{allStatsMult:0.12}},
+      {id:'hk_15', name:'不滅誓約', desc:'每場2次，血量歸零自動回復40%HP',                lv:15, type:'passive', effect:{deathSave:0.40, deathSaveCount:2}},
+      {id:'hk_20', name:'神聖降臨', desc:'每場1次，完全回復HP並免疫3回合所有傷害',        lv:20, type:'once',    effect:{healPct:1.0, immuneTurns:3}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'paladin',
+  },
+  death_lord: {
+    name:'⚰️ 死亡領主', desc:'統治死亡的暗黑君主，三轉。',
+    passive:{darkBonus:2.0, lifeSteal:0.20},
+    skills:[
+      {id:'dl_1',  name:'死域',     desc:'吸血量提升至25%',                                lv:1,  type:'passive', effect:{lifeSteal:0.25}},
+      {id:'dl_3',  name:'亡靈軍團', desc:'死靈之力疊層上限提升至8層',                     lv:3,  type:'passive', effect:{maxKillStack:8}},
+      {id:'dl_5',  name:'死亡支配', desc:'死亡凝視效果提升至-45%攻擊',                    lv:5,  type:'passive', effect:{monAtkReduce:0.45}},
+      {id:'dl_8',  name:'噬魂',     desc:'攻擊有20%機率造成雙倍吸血',                     lv:8,  type:'auto',    effect:{doubleStealChance:0.20}},
+      {id:'dl_10', name:'冥界之力', desc:'攻擊再+30%',                                     lv:10, type:'passive', effect:{atkBonus:0.30}},
+      {id:'dl_15', name:'死神契約', desc:'每場3次吸血爆擊（吸血×4）',                     lv:15, type:'passive', effect:{lifeStealCrit:4.0, lifeStealCritCount:3}},
+      {id:'dl_20', name:'終焉降臨', desc:'每場1次，造成怪物最大HP×60%真實傷害並完全回血', lv:20, type:'once',    effect:{trueHpDmg:0.60, fullHeal:true}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'death_knight',
+  },
+  frost_lich: {
+    name:'🧊 冰霜巫妖', desc:'永凍領域的絕對掌控者，三轉。',
+    passive:{iceBonus:2.2},
+    skills:[
+      {id:'fl_1',  name:'冰封禁地', desc:'冰霜觸碰機率提升至35%',                         lv:1,  type:'passive', effect:{slowChance:0.35}},
+      {id:'fl_3',  name:'寒冰之心', desc:'冰晶護盾反彈率提升至40%',                       lv:3,  type:'passive', effect:{reflectChance:0.40}},
+      {id:'fl_5',  name:'絕對凍結', desc:'每場2次絕對零度，凍結持續+1回合',               lv:5,  type:'passive', effect:{freezeCount:2, freezeExtra:1}},
+      {id:'fl_8',  name:'凜冬將至', desc:'冰屬性傷害再+25%',                              lv:8,  type:'passive', effect:{iceBonus:0.25}},
+      {id:'fl_10', name:'巫妖之力', desc:'智力+15%，攻擊+20%',                            lv:10, type:'passive', effect:{intMult:0.15, atkBonus:0.20}},
+      {id:'fl_15', name:'冰霜新星', desc:'每場1次，對全體造成×4冰屬性傷害並凍結全體2回合', lv:15, type:'once',    effect:{iceNova:4.0, freezeAll:2}},
+      {id:'fl_20', name:'永恆冰封', desc:'每場1次，×7冰屬性傷害並凍結4回合',             lv:20, type:'once',    effect:{iceBurst:7.0, freeze:4}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'ice_mage',
+  },
+  archmage: {
+    name:'🌋 大魔導士', desc:'掌控烈焰的至高法師，三轉。',
+    passive:{fireBonus:2.2},
+    skills:[
+      {id:'am_1',  name:'業火真意', desc:'灼傷傷害提升至每回合-22血',                     lv:1,  type:'passive', effect:{burnBonus:7}},
+      {id:'am_3',  name:'爆裂強化', desc:'爆炎CD再-1回合（等效2回合CD）',                 lv:3,  type:'passive', effect:{burstCDReduce:1}},
+      {id:'am_5',  name:'烈焰新星', desc:'每場1次，對全體造成×3.5火屬性傷害並附加灼傷',  lv:5,  type:'once',    effect:{fireNova:3.5, burnOnHit:15}},
+      {id:'am_8',  name:'焚天',     desc:'灼傷層數上限提升至5層',                         lv:8,  type:'passive', effect:{burnStack:5}},
+      {id:'am_10', name:'魔導真髓', desc:'智力+15%，攻擊+25%',                            lv:10, type:'passive', effect:{intMult:0.15, atkBonus:0.25}},
+      {id:'am_15', name:'不滅之火', desc:'浴火重生每場2次',                                lv:15, type:'passive', effect:{phoenixHealCount:2}},
+      {id:'am_20', name:'毀滅烈陽', desc:'每場1次，×8火屬性傷害並附加5層灼傷',           lv:20, type:'once',    effect:{fireBurst:8.0, burnStacks:5}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'fire_mage',
+  },
+  sniper_king: {
+    name:'🎯 狙擊之王', desc:'百發百中的絕對射手，三轉。',
+    passive:{bowMult:2.0, agiMult:1.5},
+    skills:[
+      {id:'sk_1',  name:'神射手',   desc:'弓攻擊再+25%',                                  lv:1,  type:'passive', effect:{bowBonus:0.25}},
+      {id:'sk_3',  name:'三重射',   desc:'連射改為每2回合觸發一次',                       lv:3,  type:'passive', effect:{doubleShotEvery:2}},
+      {id:'sk_5',  name:'死亡瞄準', desc:'每場2次陷阱',                                    lv:5,  type:'passive', effect:{trapCount:2}},
+      {id:'sk_8',  name:'絕對命中', desc:'答題2秒內暴擊率再+20%（總計+50%）',            lv:8,  type:'passive', effect:{quickAimCrit:0.20}},
+      {id:'sk_10', name:'劇毒箭矢', desc:'毒箭傷害提升至每回合-18血',                     lv:10, type:'passive', effect:{poisonArrow:18}},
+      {id:'sk_15', name:'千里之眼', desc:'先攻機率永久100%',                              lv:15, type:'passive', effect:{alwaysFirst:true}},
+      {id:'sk_20', name:'神之一箭', desc:'每場1次，穿透防禦造成×8弓攻擊傷害',            lv:20, type:'once',    effect:{piercingShot:8.0}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'hunter',
+  },
+  fortune_god: {
+    name:'🎰 幸運之神', desc:'命運完全掌控於手中，三轉。',
+    passive:{critMult:5.0, critChance:0.40},
+    skills:[
+      {id:'fg_1',  name:'天命眷顧', desc:'幸運一擲機率提升至45%',                         lv:1,  type:'passive', effect:{luckyStrike:0.45}},
+      {id:'fg_3',  name:'命運操控', desc:'幸運+10，暴擊率+8%',                            lv:3,  type:'passive', effect:{lukBonus:10, critBonus:0.08}},
+      {id:'fg_5',  name:'必勝賭局', desc:'豪賭勝率提升至85%',                             lv:5,  type:'passive', effect:{gambleWinRate:0.85}},
+      {id:'fg_8',  name:'幸運女神', desc:'命運之輪效果翻倍',                               lv:8,  type:'passive', effect:{randomBuffDouble:true}},
+      {id:'fg_10', name:'絕對暴擊', desc:'暴擊傷害×6（原本×4）',                          lv:10, type:'passive', effect:{critMult:6.0}},
+      {id:'fg_15', name:'逆轉命運', desc:'每場1次，瀕死時自動觸發奇蹟（免疫死亡並回滿血）',lv:15, type:'trigger', effect:{miracleSave:true}, cd:99},
+      {id:'fg_20', name:'神之骰子', desc:'每場1次，100%觸發×15暴擊',                      lv:20, type:'once',    effect:{miracleCrit:15.0}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'gambler',
   },
 };
 
@@ -4045,6 +4132,72 @@ function openSkills() {
   openModal('modal-skills');
 }
 
+// 找出某職業的「主線根職業」（例如 hunter/gambler 的根是 rogue）
+function getRootJob(jobKey) {
+  const jd = JOB_DEFS[jobKey];
+  if (!jd || !jd.reqJob) return jobKey; // 一轉職業（如rogue本身）以自己為根
+  return getRootJob(jd.reqJob) === 'miner' ? jd.reqJob : getRootJob(jd.reqJob);
+}
+
+// 轉職卷軸：重新選擇目前所屬主線的轉職路線
+function showJobResetMenu(invIdx) {
+  const curJob = state.job;
+  const curJd = JOB_DEFS[curJob];
+  // 找出目前職業的一轉父職業（例如 hunter→rogue, paladin→warrior）
+  const firstTierParent = curJd.reqJob === 'miner' ? curJob : curJd.reqJob;
+  const parentJd = JOB_DEFS[firstTierParent];
+  const options = (parentJd?.canChangeTo || []).filter(k => k !== curJob);
+
+  if (options.length === 0) { toast('目前職業沒有其他可選路線'); return; }
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem';
+  const optHtml = options.map(k => {
+    const jd = JOB_DEFS[k];
+    return `<button data-job="${k}"
+      style="padding:10px;border-radius:10px;border:.5px solid #7c3aed55;background:#1a1030;
+      color:#c4b5fd;font-size:13px;cursor:pointer;text-align:left">
+      ${jd.name}
+      <div style="font-size:10px;color:#888;margin-top:2px">${jd.desc}</div>
+    </button>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #7c3aed;border-radius:16px;padding:1.2rem;width:100%;max-width:320px">
+      <div style="color:#c084fc;font-weight:700;margin-bottom:.4rem">🔄 轉職卷軸</div>
+      <div style="font-size:11px;color:#888;margin-bottom:.8rem">
+        目前：${curJd.name}（Lv.${state.jobLevel}）<br>
+        選擇新路線後，職業等級與經驗完整保留，技能立即依新路線解鎖。
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">${optHtml}</div>
+      <button id="job-reset-cancel" style="margin-top:.8rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#555;cursor:pointer;font-size:12px">取消</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  modal.querySelectorAll('[data-job]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const newJob = btn.dataset.job;
+      doJobReset(newJob, invIdx);
+      modal.remove();
+    });
+  });
+  modal.querySelector('#job-reset-cancel').addEventListener('click', () => modal.remove());
+}
+
+function doJobReset(newJob, invIdx) {
+  const jd = JOB_DEFS[newJob];
+  if (!jd) return;
+  // 保留目前的職業等級與經驗，直接切換職業線（不走A+C衰減，因為是同一筆投資換路線）
+  state.job = newJob;
+  state.skillCDs = {};
+  state.skillUsed = {};
+  removeFromInventory(invIdx);
+  toast(`🔄 轉職卷軸生效！轉換為 ${jd.name}（職業等級與經驗保留）`);
+  refreshInventoryIfOpen();
+  updateUI(); save(true);
+  if (document.getElementById('modal-skills')?.classList.contains('open')) openSkills();
+}
+
 function changeJob(jobKey) {
   const jd = JOB_DEFS[jobKey];
   if (!jd) return;
@@ -4455,6 +4608,10 @@ function usePotion(item, invIdx) {
     removeFromInventory(invIdx);
     closeModal('modal-item');
     showTeleportMenu({vid:'__scroll__'});
+  } else if (ef.action === 'job_reset') {
+    if (state.job === 'miner') { toast('你目前是礦工，沒有可重置的轉職路線'); return; }
+    closeModal('modal-item');
+    showJobResetMenu(invIdx);
   } else if (ef.action === 'fog') {
     for (let dy = -7; dy <= 7; dy++) {
       for (let dx = -7; dx <= 7; dx++) { explored.add(`${px+dx},${py+dy}`); }
