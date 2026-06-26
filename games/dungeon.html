@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.18 📋</button>
+      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.19 📋</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -6174,7 +6174,7 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
     btns = `<button class="ic-btn ic-btn-equip" onclick="(${buyFn.toString()})()">🛒 購買</button>
             <button class="ic-btn ic-btn-close" onclick="closeModal('modal-item')">關閉</button>`;
   } else if (item.type === 'potion' || item.type === 'scroll') {
-    const potSellPrice = Math.floor((item.price || 30) * 0.4);
+    const potSellPrice = computeSellPrice(item);
     const potSellBtn = nearMerchant
       ? `<button class="ic-btn ic-btn-sell" onclick="sellItem(true,${invIdx},'potion')">💰 賣出 $${potSellPrice}</button>`
       : '';
