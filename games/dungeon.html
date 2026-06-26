@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.14</div>
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.15</div>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -4270,6 +4270,7 @@ function endCombatVictory() {
     updateUI(); save();
     updateBGMForContext();
     checkRaidProgress();
+    if (dungeonState) renderDungeon(); // 地下城內戰鬥結束，刷新地下城畫面
   }, 1200);
 }
 
@@ -4333,6 +4334,7 @@ function tryEscape() {
     document.getElementById('map-dim').classList.remove('active');
       updateUI();
       updateBGMForContext();
+      if (dungeonState) renderDungeon();
     }, 700);
   } else {
     cbLog('cl-r', '逃跑失敗！怪物攔住了你！');
@@ -6489,6 +6491,11 @@ function confirmInherit() {
     explored = new Set([`${sp.x},${sp.y}`]);
 
     deathActive = false;
+    // 修正：死亡若發生在地下城內，重生時要清除地下城狀態並隱藏其畫面
+    dungeonState = null;
+    document.getElementById('dungeon-overlay')?.classList.remove('active');
+    raidState = null;
+
     toast(`✨ 第${newGen}代勇者踏上旅途！`);
     renderMap(); updateUI(); save(true);
   }, 500);
