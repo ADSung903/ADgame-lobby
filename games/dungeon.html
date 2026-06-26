@@ -26,7 +26,7 @@
         多怪物戰鬥（1~3隻）；DQ風格受擊抖動/死亡淡出；遊俠系職業樹×5
         武器/技能平衡調整；Buff改為戰鬥次數倒數
   v1.4  完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖
-  v1.9  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
+  v1.10  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
         狀態列UI、音效掛鉤、視覺飄字特效；各大陸怪物分配對應狀態
         萬能解藥真正解除全部狀態；解毒藥水僅解中毒
   ════════════════════════════════
@@ -493,7 +493,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.5</div>
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.11</div>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -2964,12 +2964,12 @@ function showStatusFx(type, extraText) {
   if (!def) return;
   const area = document.querySelector('.combat-center') || document.body;
   const el = document.createElement('div');
-  el.style.cssText = `position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);
+  // 用 fixed 定位於畫面中央，避免修改 .combat-center 原有的 position（曾導致 fixed→relative 造成版面錯亂）
+  el.style.cssText = `position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);
     font-size:15px;font-weight:800;color:${def.color};text-shadow:0 0 8px ${def.color}aa;
-    z-index:300;pointer-events:none;animation:statusFxFloat 1.1s ease forwards`;
+    z-index:600;pointer-events:none;animation:statusFxFloat 1.1s ease forwards`;
   el.textContent = `${def.icon} ${def.name}${extraText?'：'+extraText:''}`;
-  area.style.position = area.style.position || 'relative';
-  area.appendChild(el);
+  document.body.appendChild(el);
   setTimeout(() => el.remove(), 1100);
 }
 
@@ -3089,6 +3089,9 @@ function startCombat(monName, wx, wy, lv) {
   tickSkillCDs();
 
   document.getElementById('combat-overlay').classList.add('active');
+  // 保護措施：清除可能殘留的 inline position 樣式（避免舊版bug造成畫面錯位）
+  const ccEl = document.querySelector('.combat-center');
+  if (ccEl) ccEl.style.position = '';
   document.getElementById('map-dim').classList.add('active');
   document.getElementById('cb-q').style.display = 'none';
   document.getElementById('cb-log').innerHTML = '';
@@ -4576,8 +4579,35 @@ function sellItem(fromInv, invIdx, slot) {
   const item = fromInv ? state.inventory[invIdx]
     : (slot === 'weapon' ? state.weapon : state.equipment[slot]);
   if (!item) return;
+
+  // 藥水/卷軸：偵測同 subtype 疊加數量，一次性全部賣出
+  if (fromInv && (item.type === 'potion' || item.type === 'scroll')) {
+    const sameStack = state.inventory.filter(i => i.type === item.type && i.subtype === item.subtype);
+    const count = sameStack.length;
+    const unitPrice = computeSellPrice(item);
+    const totalPrice = unitPrice * count;
+    const msg = count > 1
+      ? `賣出「${item.name}」× ${count} 個，共獲得 $${totalPrice}？`
+      : `賣出「${item.name}」獲得 $${unitPrice}？`;
+    if (!confirm(msg)) return;
+    playSFX('coin');
+    state.gold += totalPrice;
+    // 全部移除同 subtype 的堆疊
+    state.inventory = state.inventory.filter(i => !(i.type === item.type && i.subtype === item.subtype));
+    closeModal('modal-item');
+    refreshInventoryIfOpen();
+    updateUI(); save(true);
+    toast(`💰 賣出 ${item.name} × ${count}，獲得 $${totalPrice}`);
+    return;
+  }
+
+  // 裝備：強化過要二次警告
   const price = computeSellPrice(item);
-  if (!confirm(`賣出「${item.name}」獲得 $${price}？`)) return;
+  let msg = `賣出「${item.name}」獲得 $${price}？`;
+  if ((item.enhance||0) > 0) {
+    msg = `⚠️ 此裝備已強化 +${item.enhance}，賣出後強化值將永久消失！\n\n賣出「${item.name}」獲得 $${price}？`;
+  }
+  if (!confirm(msg)) return;
   playSFX('coin');
   state.gold += price;
   if (fromInv) {
@@ -5632,10 +5662,24 @@ function bulkSell(rarity) {
   const items = state.inventory.filter(i => i.rarity === rarity && (i.type==='weapon'||i.type==='armor'));
   if (items.length === 0) { toast('沒有可賣的物品'); return; }
   const totalGold = items.reduce((sum, it) => sum + computeSellPrice(it), 0);
-  if (!confirm(`確定賣出所有 ${rarityNames[rarity]}（${items.length}件）？\n共可獲得 ${totalGold} 金幣`)) return;
+  const enhancedCount = items.filter(it => (it.enhance||0) > 0).length;
+
+  const lines = items.map(it => {
+    const p = computeSellPrice(it);
+    const enhTag = (it.enhance||0) > 0 ? ' +' + it.enhance : '';
+    return '  ' + it.name + enhTag + ' — $' + p;
+  }).join('\n');
+
+  let msg = '確定賣出所有 ' + rarityNames[rarity] + '（' + items.length + '件）？\n\n' + lines + '\n\n共可獲得 ' + totalGold + ' 金幣';
+  if (enhancedCount > 0) {
+    msg = '⚠️ 其中 ' + enhancedCount + ' 件已強化，賣出後強化值將永久消失！\n\n' + msg;
+  }
+  if (!confirm(msg)) return;
+
+  playSFX('coin');
   state.gold += totalGold;
   state.inventory = state.inventory.filter(i => !(i.rarity === rarity && (i.type==='weapon'||i.type==='armor')));
-  toast(`💰 賣出 ${items.length} 件 ${rarityNames[rarity]}，獲得 ${totalGold} 金幣`);
+  toast('💰 賣出 ' + items.length + ' 件 ' + rarityNames[rarity] + '，獲得 ' + totalGold + ' 金幣');
   renderMerchant();
   refreshInventoryIfOpen();
   updateUI(); save(true);
