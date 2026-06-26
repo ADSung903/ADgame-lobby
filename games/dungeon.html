@@ -88,13 +88,13 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .dpad-center{width:46px;height:46px;display:flex;align-items:center;
   justify-content:center;font-size:22px}
 .act-btns{display:flex;gap:3px}
-.act-btn{width:56px;height:54px;border-radius:10px;border:.5px solid #333;
-  background:#0d0d1e;color:var(--text);font-size:11px;cursor:pointer;
+.act-btn{width:48px;height:54px;border-radius:10px;border:.5px solid #333;
+  background:#0d0d1e;color:var(--text);font-size:10px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   flex-direction:column;gap:2px;line-height:1;
   -webkit-user-select:none;user-select:none;transition:background .1s}
 .act-btn:active{background:#1a1a3a}
-.act-btn span{font-size:18px}
+.act-btn span{font-size:16px}
 
 /* TOAST */
 .toast{position:fixed;bottom:calc(100px + env(safe-area-inset-bottom,0px));
@@ -495,12 +495,13 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.15</div>
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.16</div>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
         <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
         <button class="act-btn" onclick="openSkills()"><span>⚡</span>技能</button>
+        <button class="act-btn" onclick="openBestiary()"><span>📖</span>圖鑑</button>
       </div>
       <div style="display:flex;gap:3px">
         <button class="act-btn" onclick="openEquipment()"><span>🛡️</span>裝備</button>
@@ -602,6 +603,17 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="modal-x" onclick="closeModal('modal-skills')">✕</button>
     </div>
     <div class="modal-body" id="skill-body" style="padding:.8rem"></div>
+  </div>
+</div>
+
+<!-- BESTIARY -->
+<div class="modal-back" id="modal-bestiary" onclick="if(event.target===this)closeModal('modal-bestiary')">
+  <div class="modal-sheet" style="max-height:92dvh">
+    <div class="modal-head">
+      <div class="modal-title">📖 怪物圖鑑</div>
+      <button class="modal-x" onclick="closeModal('modal-bestiary')">✕</button>
+    </div>
+    <div class="modal-body" id="bestiary-body" style="padding:.8rem"></div>
   </div>
 </div>
 
@@ -4564,6 +4576,121 @@ function calcJobLvFromExp(totalExp) {
     lv++;
   }
   return {lv, exp: remaining};
+}
+
+// ════════════════════════════════════════════════════════════
+// 📖 BESTIARY — 怪物圖鑑
+// ════════════════════════════════════════════════════════════
+const BESTIARY_GROUPS = [
+  {key:'forest', name:'🌿 新手森林', monsters:[...FOREST_POOL, ...ELITE_POOL, '森林詛咒者']},
+  {key:'desert', name:'🏜️ 沙漠遺跡', monsters:[...DESERT_POOL, ...DESERT_ELITE]},
+  {key:'ice',    name:'❄️ 冰雪荒原', monsters:[...ICE_POOL, ...ICE_ELITE]},
+  {key:'sea',    name:'🌊 深海礦洞', monsters:[...SEA_POOL, ...SEA_ELITE]},
+  {key:'lava',   name:'🌋 熔岩地獄', monsters:[...LAVA_POOL, ...LAVA_ELITE]},
+  {key:'sky',    name:'☁️ 天空浮島', monsters:[...SKY_POOL, ...SKY_ELITE]},
+  {key:'shadow', name:'🌑 暗影次元', monsters:[...SHADOW_POOL, ...SHADOW_ELITE]},
+  {key:'mech',   name:'⚙️ 機械廢都', monsters:[...MECH_POOL, ...MECH_ELITE]},
+  {key:'hidden', name:'👑 隱藏大陸', monsters:[...HIDDEN_POOL, ...HIDDEN_ELITE]},
+];
+
+const SPECIAL_LABELS = {
+  poison:'☠️ 中毒', steal:'💰 偷錢', slow:'🐌 緩速', stackslow:'🐌 疊加緩速',
+  petrify:'🗿 石化', confuse:'🌀 混亂', weaken:'💪⬇️ 力弱', armorbrk:'🛡️⬇️ 破甲',
+  paralyze:'⚡ 麻痺', blind:'🌫️ 致盲', regen:'💚 自我回復', berserk:'😡 瀕死狂暴',
+  highdef:'🛡️ 高防禦', boss:'👑 首領', segments:'🐝 分段戰',
+};
+
+let bestiaryFilter = 'all';
+
+function openBestiary(filterKey) {
+  bestiaryFilter = filterKey || bestiaryFilter || 'all';
+  const body = document.getElementById('bestiary-body');
+  const seen = state.seenMonsters || [];
+
+  // 統計進度
+  const allMonsterNames = new Set();
+  BESTIARY_GROUPS.forEach(g => g.monsters.forEach(n => allMonsterNames.add(n)));
+  const totalCount = allMonsterNames.size;
+  const seenCount = seen.filter(n => allMonsterNames.has(n)).length;
+
+  // Tab
+  const tabs = [{key:'all', name:'全部'}, ...BESTIARY_GROUPS.map(g=>({key:g.key, name:g.name}))];
+  let html = `
+    <div style="font-size:12px;color:#a78bfa;margin-bottom:.6rem;text-align:center">
+      📖 收集進度：${seenCount} / ${totalCount}
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:.8rem">
+      ${tabs.map(t => `<button onclick="openBestiary('${t.key}')"
+        style="padding:4px 8px;border-radius:6px;border:none;cursor:pointer;font-size:10px;
+        background:${bestiaryFilter===t.key?'var(--accent)':'#1a1a2e'};
+        color:${bestiaryFilter===t.key?'#fff':'#888'}">${t.name}</button>`).join('')}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.5rem">`;
+
+  const groupsToShow = bestiaryFilter === 'all' ? BESTIARY_GROUPS : BESTIARY_GROUPS.filter(g => g.key === bestiaryFilter);
+  for (const g of groupsToShow) {
+    html += `<div style="font-size:11px;color:#666;margin-top:.3rem">${g.name}</div>`;
+    for (const monName of g.monsters) {
+      const isSeen = seen.includes(monName);
+      const d = MDEFS[monName];
+      if (!d) continue;
+      html += `<div onclick="${isSeen ? `showMonsterDetail('${monName}')` : ''}"
+        style="display:flex;align-items:center;gap:.6rem;background:#12122a;border:.5px solid ${isSeen?'#2a2a4a':'#1a1a2a'};
+        border-radius:10px;padding:.5rem .7rem;cursor:${isSeen?'pointer':'default'}">
+        <span style="font-size:20px;${isSeen?'':'filter:grayscale(1) brightness(.4)'}">${isSeen ? d.icon : '❓'}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700;color:${isSeen?'#e5e7eb':'#444'}">${isSeen ? monName : '？？？'}</div>
+          ${isSeen ? `<div style="font-size:9px;color:#666">${d.elite?'👑 菁英/首領':'一般怪物'}</div>` : `<div style="font-size:9px;color:#444">尚未發現</div>`}
+        </div>
+        <span style="font-size:11px;color:${isSeen?'#4ade80':'#333'}">${isSeen?'✅':'🔒'}</span>
+      </div>`;
+    }
+  }
+  html += '</div>';
+  body.innerHTML = html;
+  openModal('modal-bestiary');
+}
+
+function showMonsterDetail(monName) {
+  const d = MDEFS[monName];
+  if (!d) return;
+  // 能力值區間：基礎值 ~ 假設遇到Lv.100時的數值（用 scaledMonster 公式概念）
+  const lvLow = 1, lvHigh = 100;
+  const hpLow = d.hp, hpHigh = Math.floor(d.hp*(1+lvHigh*0.08));
+  const atkLow = d.atk, atkHigh = Math.floor(d.atk*(1+lvHigh*0.06));
+  const defLow = d.def, defHigh = Math.floor(d.def*(1+lvHigh*0.05));
+
+  const elemInfo = ELEMENTS[d.element] || {icon:'',name:'無'};
+  const specialLabel = SPECIAL_LABELS[d.special] || (d.special || '無特殊能力');
+  const dropLabel = d.drop === 'multi' ? '多種裝備'
+    : d.drop === 'ring' ? '戒指'
+    : d.drop ? (SLOT_LABEL[d.drop] || d.drop)
+    : '無固定裝備掉落';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:600;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #7c3aed;border-radius:16px;padding:1.2rem;width:100%;max-width:320px;max-height:85vh;overflow-y:auto">
+      <div style="text-align:center;margin-bottom:.8rem">
+        <div style="font-size:40px">${d.icon}</div>
+        <div style="font-size:17px;font-weight:800;color:#e5e7eb">${monName}</div>
+        <div style="font-size:11px;color:#888">${d.elite ? '👑 菁英/首領怪物' : '一般怪物'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;font-size:12px">
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">❤️ 血量範圍</span><span>${hpLow} ~ ${hpHigh}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">⚔️ 攻擊範圍</span><span>${atkLow} ~ ${atkHigh}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">🛡️ 防禦範圍</span><span>${defLow} ~ ${defHigh}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">⚡ 敏捷</span><span>${d.agi}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">🌀 屬性</span><span>${elemInfo.icon} ${elemInfo.name}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">✨ 特殊能力</span><span>${specialLabel}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">📦 裝備掉落</span><span>${dropLabel}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">💰 基礎金幣</span><span>${d.gold}</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">✨ 基礎經驗</span><span>${d.exp}</span></div>
+      </div>
+      <button id="bestiary-detail-close" style="margin-top:1rem;width:100%;padding:8px;border-radius:8px;border:.5px solid #333;background:transparent;color:#888;cursor:pointer;font-size:12px">關閉</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#bestiary-detail-close').onclick = () => modal.remove();
 }
 
 function openSkills() {
