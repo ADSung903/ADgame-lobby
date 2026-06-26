@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.19 📋</button>
+      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.21 📋</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -641,7 +641,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     <div style="flex:1;display:flex;align-items:center;justify-content:center">
       <canvas id="dungeon-canvas" style="border-radius:10px;border:1px solid #3a2a5a"></canvas>
     </div>
-    <div style="display:flex;justify-content:center;padding:1rem">
+    <div style="display:flex;justify-content:center;padding:1rem;gap:.6rem;align-items:center">
       <div class="dpad">
         <button class="dpad-btn" onclick="moveDungeon(0,-1)">▲</button>
         <div class="dpad-row">
@@ -650,6 +650,17 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
           <button class="dpad-btn" onclick="moveDungeon(1,0)">▶</button>
         </div>
         <button class="dpad-btn" onclick="moveDungeon(0,1)">▼</button>
+      </div>
+      <div class="act-btns" style="flex-direction:column;gap:4px">
+        <div style="display:flex;gap:3px">
+          <button class="act-btn" onclick="openInventory()"><span>🎒</span>背包</button>
+          <button class="act-btn" onclick="openSkills()"><span>⚡</span>技能</button>
+          <button class="act-btn" onclick="openBestiary()"><span>📖</span>圖鑑</button>
+        </div>
+        <div style="display:flex;gap:3px">
+          <button class="act-btn" onclick="openEquipment()"><span>🛡️</span>裝備</button>
+          <button class="act-btn" onclick="openStats()"><span>📊</span>屬性</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1465,6 +1476,7 @@ const ENHANCE_RATES = {
 // 📋 VERSION HISTORY — 更新日誌
 // ════════════════════════════════════════════════════════════
 const VERSION_HISTORY = [
+  {v:'1.20', notes:['地下城補上完整功能列（背包/技能/裝備/屬性/圖鑑），原本只有方向鍵與離開','地下城遇怪8%機率改為菁英/首領怪，增加深入探索的驚喜感']},
   {v:'1.17', notes:['圖鑑「多種裝備」文字改為「隨機裝備部位（頭/甲/腿/手/鞋/飾品）」']},
   {v:'1.16', notes:['新增怪物圖鑑：收集進度、大陸分類、能力值區間、掉落/特殊能力顯示']},
   {v:'1.15', notes:['修正地下城內死亡重生後畫面卡死的問題（dungeonState 未清除）']},
@@ -3322,46 +3334,88 @@ function dungeonRand(seed, idx) {
 function generateDungeonGrid(seed) {
   const size = DUNGEON_SIZE;
   const grid = Array.from({length:size}, () => Array(size).fill(0));
-  // 用簡單的隨機通道生成法（drunk walk）：從中心出發鑿出通道
-  let cx = Math.floor(size/2), cy = Math.floor(size/2);
+  const entryX = 0, entryY = Math.floor(size/2);
+
+  // 從入口開始鑿（保證入口必定連通），用 drunk-walk 但起點=入口
+  let cx = entryX, cy = entryY;
   grid[cy][cx] = 1;
   let idx = 0;
   const carved = [[cx,cy]];
   const targetCells = Math.floor(size*size*0.45);
-  while (carved.length < targetCells) {
+  let stuckCount = 0;
+  while (carved.length < targetCells && stuckCount < 500) {
     const dir = Math.floor(dungeonRand(seed, idx++) * 4);
-    const dx = [1,-1,0,0][dir], dy = [0,0,1,-1][dir];
-    cx = Math.max(1, Math.min(size-2, cx+dx));
-    cy = Math.max(1, Math.min(size-2, cy+dy));
+    const ddx = [1,-1,0,0][dir], ddy = [0,0,1,-1][dir];
+    const nx2 = cx+ddx, ny2 = cy+ddy;
+    if (nx2 < 0 || ny2 < 0 || nx2 >= size || ny2 >= size) { stuckCount++; continue; }
+    cx = nx2; cy = ny2;
     if (grid[cy][cx] === 0) {
       grid[cy][cx] = 1;
       carved.push([cx,cy]);
+      stuckCount = 0;
+    } else {
+      stuckCount++;
+    }
+    // 偶爾跳回已鑿格，避免走太遠變成一條線
+    if (stuckCount > 0 && stuckCount % 20 === 0 && carved.length > 0) {
+      const jump = carved[Math.floor(dungeonRand(seed, idx++) * carved.length)];
+      cx = jump[0]; cy = jump[1];
     }
   }
-  // 入口固定在邊緣
-  const entryX = 0, entryY = Math.floor(size/2);
-  grid[entryY][entryX] = 1;
-  // 確保入口與通道網路相連
-  let ex = entryX, ey = entryY;
-  while (grid[ey][ex+1] === 0 && ex+1 < size-1) { ex++; grid[ey][ex] = 1; }
 
-  // 出口放在離入口最遠的已鑿通道格
-  let exitCell = carved[0], maxDist = 0;
-  for (const [x,y] of carved) {
-    const d = Math.abs(x-entryX) + Math.abs(y-entryY);
-    if (d > maxDist) { maxDist = d; exitCell = [x,y]; }
+  // BFS 找出口（保證在連通範圍內，離入口最遠的格子）
+  const visited = Array.from({length:size}, () => Array(size).fill(false));
+  const dist = Array.from({length:size}, () => Array(size).fill(-1));
+  const queue = [[entryX, entryY]];
+  visited[entryY][entryX] = true;
+  dist[entryY][entryX] = 0;
+  let qi = 0;
+  while (qi < queue.length) {
+    const [x,y] = queue[qi++];
+    for (const [ddx,ddy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx2 = x+ddx, ny2 = y+ddy;
+      if (nx2<0||ny2<0||nx2>=size||ny2>=size) continue;
+      if (grid[ny2][nx2] !== 1 || visited[ny2][nx2]) continue;
+      visited[ny2][nx2] = true;
+      dist[ny2][nx2] = dist[y][x] + 1;
+      queue.push([nx2, ny2]);
+    }
   }
-  const [exitX, exitY] = exitCell;
 
-  // 寶箱：隨機3個通道格（避開入口/出口）
-  const chestCells = carved.filter(([x,y]) => !(x===entryX&&y===entryY) && !(x===exitX&&y===exitY));
+  // 找連通範圍內離入口最遠的格子作為出口（保證可達）
+  let exitX = entryX, exitY = entryY, maxDist = 0;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (visited[y][x] && dist[y][x] > maxDist) {
+        maxDist = dist[y][x]; exitX = x; exitY = y;
+      }
+    }
+  }
+
+  // 只保留連通範圍內的格子作為「合法通道」（避免孤立通道誤導玩家）
+  const reachableCarved = [];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (visited[y][x]) reachableCarved.push([x,y]);
+    }
+  }
+
+  // 寶箱：隨機3個通道格（避開入口/出口，且必須是可達的）
+  const chestCells = reachableCarved.filter(([x,y]) => !(x===entryX&&y===entryY) && !(x===exitX&&y===exitY));
   const chestPositions = [];
   for (let i = 0; i < 3 && chestCells.length > 0; i++) {
     const ci = Math.floor(dungeonRand(seed, idx++) * chestCells.length);
     chestPositions.push(chestCells[ci]);
   }
 
-  return {grid, entryX, entryY, exitX, exitY, carved, chestPositions};
+  // 清除不可達的孤立通道格（避免顯示出玩家走不到的死路造成困惑）
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (grid[y][x] === 1 && !visited[y][x]) grid[y][x] = 0;
+    }
+  }
+
+  return {grid, entryX, entryY, exitX, exitY, carved: reachableCarved, chestPositions};
 }
 
 // 進入地下城
@@ -3508,8 +3562,12 @@ function showDungeonExitChoice() {
 
 function triggerDungeonEncounter() {
   const continent = getContinent(dungeonState.returnWx, dungeonState.returnWy);
-  const pool = (CONTINENT_POOLS[continent] || CONTINENT_POOLS.forest).normal;
+  const pools = CONTINENT_POOLS[continent] || CONTINENT_POOLS.forest;
+  // 地下城探索：8%機率直接遇到菁英/首領怪，增加深入探索的驚喜感
+  const isElite = Math.random() < 0.08;
+  const pool = isElite ? pools.elite : pools.normal;
   const monName = pool[Math.floor(Math.random() * pool.length)];
+  if (isElite) toast('⚠️ 強大的氣息逼近……');
   startCombat(monName, dungeonState.returnWx, dungeonState.returnWy, dungeonState.monLv);
 }
 
