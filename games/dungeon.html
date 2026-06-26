@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.16</div>
+      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.18 📋</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -1461,6 +1461,54 @@ const ENHANCE_RATES = {
 };
 
 // Ch2: 屬性系統
+// ════════════════════════════════════════════════════════════
+// 📋 VERSION HISTORY — 更新日誌
+// ════════════════════════════════════════════════════════════
+const VERSION_HISTORY = [
+  {v:'1.17', notes:['圖鑑「多種裝備」文字改為「隨機裝備部位（頭/甲/腿/手/鞋/飾品）」']},
+  {v:'1.16', notes:['新增怪物圖鑑：收集進度、大陸分類、能力值區間、掉落/特殊能力顯示']},
+  {v:'1.15', notes:['修正地下城內死亡重生後畫面卡死的問題（dungeonState 未清除）']},
+  {v:'1.14', notes:['每日Boss副本：每天1次免費挑戰+副本券、3波小怪+Boss戰、保證套裝/卷軸獎勵']},
+  {v:'1.13', notes:['地下城系統上線：15×15程序生成迷宮、每日輪換、寶箱、深入機制']},
+  {v:'1.12', notes:['修正藥水/卷軸售價異常過低的問題（掉落版本缺少price欄位）']},
+  {v:'1.11', notes:['藥水/卷軸疊加可一次性批量賣出；強化裝備賣出二次警告；批量銷售明細列表']},
+  {v:'1.9',  notes:['修正「普通裝備」異常顯示：ring部位命名bug，掉落自動修正為ring1/ring2']},
+  {v:'1.8',  notes:['輪迴卷軸新增「回到礦工」選項']},
+  {v:'1.7',  notes:['轉職卷軸/輪迴卷軸售價調整為正式價（5萬/50萬）；背包基數60格，上限200格']},
+  {v:'1.6',  notes:['補齊6個職業三轉（聖光騎士/死亡領主/冰霜巫妖/大魔導士/狙擊之王/幸運之神）','轉職卷軸+輪迴卷軸系統']},
+  {v:'1.5',  notes:['完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲','狀態列UI、音效掛鉤、視覺飄字特效']},
+  {v:'1.4',  notes:['完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖']},
+  {v:'1.3',  notes:['村莊系統：8固定村莊、5×5安全區、旅館/商人/傳送石','寶箱系統；隱藏大陸解鎖+專屬怪物','多怪物戰鬥(1~3隻)；DQ風格受擊/死亡動畫；遊俠系職業樹×5']},
+  {v:'1.2',  notes:['背包40格；篩選tab；藥水疊加×99；世界地圖頁','9大陸座標分區、各大陸專屬怪物（50+種）']},
+  {v:'1.1',  notes:['9大陸系統上線']},
+  {v:'1.0',  notes:['戰鬥感重構：浮動傷害、迴避、武器差異化','職業技能系統；裝備屬性門檻']},
+  {v:'0.9',  notes:['道具說明完善；鑑定系統；解咒選擇介面；迷霧藥水']},
+  {v:'0.8',  notes:['架構重整：17個獨立區塊']},
+  {v:'0.5',  notes:['Phase 2 開始：8元素屬性、詛咒裝備、套件效果、職業轉職']},
+  {v:'0.1',  notes:['Phase 1 初版：地圖生成、基礎戰鬥、裝備系統、死亡傳承']},
+];
+
+function openChangelog() {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:600;padding:1rem';
+  const list = VERSION_HISTORY.map(entry => `
+    <div style="margin-bottom:.7rem">
+      <div style="font-size:13px;font-weight:700;color:#a78bfa">v${entry.v}</div>
+      ${entry.notes.map(n => `<div style="font-size:11px;color:#aaa;margin-top:2px">・${n}</div>`).join('')}
+    </div>`).join('');
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #7c3aed;border-radius:16px;padding:1.2rem;width:100%;max-width:340px;max-height:85vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+        <div style="font-size:15px;font-weight:800;color:#c4b5fd">📋 更新日誌</div>
+        <button id="changelog-close-x" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
+      </div>
+      ${list}
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#changelog-close-x').onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
+
 const ELEMENTS = {
   fire:    {name:'火', icon:'🔥', color:'#f97316'},
   water:   {name:'水', icon:'💧', color:'#38bdf8'},
@@ -4662,7 +4710,7 @@ function showMonsterDetail(monName) {
 
   const elemInfo = ELEMENTS[d.element] || {icon:'',name:'無'};
   const specialLabel = SPECIAL_LABELS[d.special] || (d.special || '無特殊能力');
-  const dropLabel = d.drop === 'multi' ? '多種裝備'
+  const dropLabel = d.drop === 'multi' ? '隨機裝備部位（頭/甲/腿/手/鞋/飾品）'
     : d.drop === 'ring' ? '戒指'
     : d.drop ? (SLOT_LABEL[d.drop] || d.drop)
     : '無固定裝備掉落';
