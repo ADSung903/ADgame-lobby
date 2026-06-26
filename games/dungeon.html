@@ -338,6 +338,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   background:#000;display:none;flex-direction:column;
   align-items:center;justify-content:center;padding:2rem}
 .death-overlay.active{display:flex}
+.dungeon-overlay{position:fixed;inset:0;z-index:150;display:none}
+.dungeon-overlay.active{display:block}
 .death-text{font-size:15px;line-height:2;text-align:center;color:#888;
   max-width:300px;transition:color .5s}
 .death-text.gold{color:var(--gold)}
@@ -493,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.11</div>
+      <div style="font-size:9px;color:#333;letter-spacing:.5px">v1.13</div>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -618,6 +620,29 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 </div>
 
 <!-- DEATH -->
+<div class="dungeon-overlay" id="dungeon-overlay" style="z-index:150;background:#0a0612">
+  <div style="display:flex;flex-direction:column;height:100%;padding-top:env(safe-area-inset-top,0px)">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem">
+      <span style="font-size:13px;color:#a78bfa;font-weight:700">🕳️ 地下城</span>
+      <button onclick="confirmExitDungeon()" style="padding:5px 12px;border-radius:8px;border:.5px solid #555;background:#1a1030;color:#aaa;font-size:11px;cursor:pointer">🚪 離開</button>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center">
+      <canvas id="dungeon-canvas" style="border-radius:10px;border:1px solid #3a2a5a"></canvas>
+    </div>
+    <div style="display:flex;justify-content:center;padding:1rem">
+      <div class="dpad">
+        <button class="dpad-btn" onclick="moveDungeon(0,-1)">▲</button>
+        <div class="dpad-row">
+          <button class="dpad-btn" onclick="moveDungeon(-1,0)">◀</button>
+          <div class="dpad-center">🕳️</div>
+          <button class="dpad-btn" onclick="moveDungeon(1,0)">▶</button>
+        </div>
+        <button class="dpad-btn" onclick="moveDungeon(0,1)">▼</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="death-overlay" id="death-overlay">
   <div class="death-text" id="death-text"></div>
 </div>
@@ -2120,6 +2145,7 @@ function updateBGMForContext() {
     playBGM(isBoss ? 'boss' : 'battle');
     return;
   }
+  if (dungeonState) { playBGM('explore_dark'); return; }
   if (typeof px !== 'undefined' && getVillageAt(px, py)) { playBGM('village'); return; }
   const cont = typeof px !== 'undefined' ? getContinent(px, py) : 'forest';
   const darkContinents = ['lava','shadow','mech','hidden'];
@@ -3016,6 +3042,264 @@ function hasBuff(type) {
 // ═══════════════════════════════════════════════
 let combatActive = false, deathActive = false;
 let combat = null;
+
+// ════════════════════════════════════════════════════════════
+// 🕳️ DUNGEON SYSTEM — 地下城（程序生成迷宮 + 每日Boss副本）
+// ════════════════════════════════════════════════════════════
+const DUNGEON_SIZE = 15; // 15×15 迷宮
+let dungeonState = null; // {grid, px, py, exitX, exitY, depth, returnPos, monsters}
+
+// 用座標+世界種子生成固定但看起來隨機的迷宮（每個洞穴入口對應一個固定迷宮版本，每天輪換）
+function getDungeonSeed(wx, wy) {
+  const day = Math.floor(Date.now() / 86400000); // 每天換一次迷宮
+  return (wx * 73856093) ^ (wy * 19349663) ^ (day * 83492791);
+}
+
+function dungeonRand(seed, idx) {
+  const v = Math.sin(seed * 12.9898 + idx * 78.233) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+// 生成迷宮：0=牆 1=通道 2=入口 3=出口 4=寶箱 5=怪物點
+function generateDungeonGrid(seed) {
+  const size = DUNGEON_SIZE;
+  const grid = Array.from({length:size}, () => Array(size).fill(0));
+  // 用簡單的隨機通道生成法（drunk walk）：從中心出發鑿出通道
+  let cx = Math.floor(size/2), cy = Math.floor(size/2);
+  grid[cy][cx] = 1;
+  let idx = 0;
+  const carved = [[cx,cy]];
+  const targetCells = Math.floor(size*size*0.45);
+  while (carved.length < targetCells) {
+    const dir = Math.floor(dungeonRand(seed, idx++) * 4);
+    const dx = [1,-1,0,0][dir], dy = [0,0,1,-1][dir];
+    cx = Math.max(1, Math.min(size-2, cx+dx));
+    cy = Math.max(1, Math.min(size-2, cy+dy));
+    if (grid[cy][cx] === 0) {
+      grid[cy][cx] = 1;
+      carved.push([cx,cy]);
+    }
+  }
+  // 入口固定在邊緣
+  const entryX = 0, entryY = Math.floor(size/2);
+  grid[entryY][entryX] = 1;
+  // 確保入口與通道網路相連
+  let ex = entryX, ey = entryY;
+  while (grid[ey][ex+1] === 0 && ex+1 < size-1) { ex++; grid[ey][ex] = 1; }
+
+  // 出口放在離入口最遠的已鑿通道格
+  let exitCell = carved[0], maxDist = 0;
+  for (const [x,y] of carved) {
+    const d = Math.abs(x-entryX) + Math.abs(y-entryY);
+    if (d > maxDist) { maxDist = d; exitCell = [x,y]; }
+  }
+  const [exitX, exitY] = exitCell;
+
+  // 寶箱：隨機3個通道格（避開入口/出口）
+  const chestCells = carved.filter(([x,y]) => !(x===entryX&&y===entryY) && !(x===exitX&&y===exitY));
+  const chestPositions = [];
+  for (let i = 0; i < 3 && chestCells.length > 0; i++) {
+    const ci = Math.floor(dungeonRand(seed, idx++) * chestCells.length);
+    chestPositions.push(chestCells[ci]);
+  }
+
+  return {grid, entryX, entryY, exitX, exitY, carved, chestPositions};
+}
+
+// 進入地下城
+function enterDungeon(wx, wy) {
+  const seed = getDungeonSeed(wx, wy);
+  const {grid, entryX, entryY, exitX, exitY, chestPositions} = generateDungeonGrid(seed);
+  const contLv = CONTINENT_INFO[getContinent(wx, wy)]?.recLv || 1;
+
+  dungeonState = {
+    grid, entryX, entryY, exitX, exitY,
+    chestPositions: chestPositions.map(([x,y]) => ({x, y, opened:false})),
+    px: entryX, py: entryY,
+    returnWx: wx, returnWy: wy,
+    monLv: contLv + 5, // 地下城怪物比地面+5級
+    openedChests: [],
+    seed,
+  };
+  document.getElementById('dungeon-overlay')?.classList.add('active');
+  renderDungeon();
+  showArrivalAnim('🕳️ 地下城', '小心，怪物密度更高……', '#4a2a6a');
+  updateBGMForContext();
+}
+
+function exitDungeon() {
+  if (!dungeonState) return;
+  px = dungeonState.returnWx;
+  py = dungeonState.returnWy;
+  document.getElementById('dungeon-overlay')?.classList.remove('active');
+  dungeonState = null;
+  renderMap(); updateUI(); save(true);
+  updateBGMForContext();
+  toast('🚪 離開地下城');
+}
+
+function confirmExitDungeon() {
+  if (!confirm('確定要離開地下城嗎？地下城本身會在每天重新生成。')) return;
+  exitDungeon();
+}
+
+// 渲染地下城迷宮（Canvas）
+function renderDungeon() {
+  if (!dungeonState) return;
+  const canvas = document.getElementById('dungeon-canvas');
+  if (!canvas) return;
+  const size = DUNGEON_SIZE;
+  const cellSize = Math.min(22, Math.floor((window.innerWidth - 32) / size));
+  canvas.width = cellSize * size;
+  canvas.height = cellSize * size;
+  const ctx2 = canvas.getContext('2d');
+  const {grid, exitX, exitY, chestPositions, px: dpx, py: dpy} = dungeonState;
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const cx = x*cellSize, cy = y*cellSize;
+      // 只顯示已探索過或玩家附近2格內的格子（戰爭迷霧）
+      const dist = Math.abs(x-dpx) + Math.abs(y-dpy);
+      const visible = dist <= 3;
+      if (grid[y][x] === 0) {
+        ctx2.fillStyle = visible ? '#1a0f2a' : '#050308';
+        ctx2.fillRect(cx, cy, cellSize, cellSize);
+      } else {
+        ctx2.fillStyle = visible ? '#2a1f3a' : '#0d0a14';
+        ctx2.fillRect(cx, cy, cellSize, cellSize);
+        ctx2.strokeStyle = visible ? '#3a2a52' : '#15101f';
+        ctx2.strokeRect(cx+0.5, cy+0.5, cellSize-1, cellSize-1);
+        if (visible && x === exitX && y === exitY) {
+          ctx2.fillStyle = '#fbbf24';
+          ctx2.font = `${cellSize*0.6}px serif`;
+          ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+          ctx2.fillText('🚪', cx+cellSize/2, cy+cellSize/2);
+        }
+        const chest = chestPositions.find(c => c.x===x && c.y===y && !c.opened);
+        if (visible && chest) {
+          ctx2.font = `${cellSize*0.55}px serif`;
+          ctx2.textAlign = 'center'; ctx2.textBaseline = 'middle';
+          ctx2.fillText('📦', cx+cellSize/2, cy+cellSize/2);
+        }
+      }
+    }
+  }
+  // 玩家位置
+  const pcx = dpx*cellSize + cellSize/2, pcy = dpy*cellSize + cellSize/2;
+  ctx2.fillStyle = '#f87171';
+  ctx2.beginPath(); ctx2.arc(pcx, pcy, cellSize*0.28, 0, Math.PI*2); ctx2.fill();
+}
+
+function moveDungeon(dx, dy) {
+  if (!dungeonState || combatActive) return;
+  unlockAudio();
+  const {grid} = dungeonState;
+  const nx = dungeonState.px + dx, ny = dungeonState.py + dy;
+  if (nx < 0 || ny < 0 || nx >= DUNGEON_SIZE || ny >= DUNGEON_SIZE) return;
+  if (grid[ny][nx] === 0) { toast('⛔ 此處是牆壁'); return; }
+
+  dungeonState.px = nx; dungeonState.py = ny;
+  renderDungeon();
+
+  // 出口判斷
+  if (nx === dungeonState.exitX && ny === dungeonState.exitY) {
+    showDungeonExitChoice();
+    return;
+  }
+  // 寶箱判斷
+  const chest = dungeonState.chestPositions.find(c => c.x===nx && c.y===ny && !c.opened);
+  if (chest) {
+    chest.opened = true;
+    openDungeonChest();
+    return;
+  }
+  // 隨機遇怪（每步約30%機率）
+  if (Math.random() < 0.30) {
+    triggerDungeonEncounter();
+  }
+}
+
+function showDungeonExitChoice() {
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:600;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #fbbf24;border-radius:16px;padding:1.2rem;width:100%;max-width:300px;text-align:center">
+      <div style="font-size:16px;color:#fbbf24;font-weight:700;margin-bottom:.6rem">🚪 找到出口！</div>
+      <div style="font-size:11px;color:#888;margin-bottom:1rem">繼續深入會遇到更強的挑戰，但也有機會找到稀有寶藏。</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <button id="dg-leave" style="padding:10px;border-radius:10px;border:none;background:#92400e;color:#fde68a;font-size:13px;cursor:pointer">離開地下城</button>
+        <button id="dg-deeper" style="padding:10px;border-radius:10px;border:.5px solid #7c3aed;background:#1a1030;color:#c4b5fd;font-size:13px;cursor:pointer">繼續深入（重新生成更難迷宮）</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#dg-leave').onclick = () => { modal.remove(); exitDungeon(); };
+  modal.querySelector('#dg-deeper').onclick = () => {
+    modal.remove();
+    dungeonState.depth = (dungeonState.depth||1) + 1;
+    dungeonState.monLv += 8;
+    const seed = dungeonState.seed + dungeonState.depth * 7919;
+    const {grid, entryX, entryY, exitX, exitY, chestPositions} = generateDungeonGrid(seed);
+    dungeonState.grid = grid;
+    dungeonState.px = entryX; dungeonState.py = entryY;
+    dungeonState.exitX = exitX; dungeonState.exitY = exitY;
+    dungeonState.chestPositions = chestPositions.map(([x,y]) => ({x,y,opened:false}));
+    renderDungeon();
+    toast(`⬇️ 深入地下城第 ${dungeonState.depth} 層！怪物更強了……`);
+  };
+}
+
+function triggerDungeonEncounter() {
+  const continent = getContinent(dungeonState.returnWx, dungeonState.returnWy);
+  const pool = (CONTINENT_POOLS[continent] || CONTINENT_POOLS.forest).normal;
+  const monName = pool[Math.floor(Math.random() * pool.length)];
+  startCombat(monName, dungeonState.returnWx, dungeonState.returnWy, dungeonState.monLv);
+}
+
+function openDungeonChest() {
+  const contLv = dungeonState.monLv;
+  const items = [];
+  const count = 3 + Math.floor(Math.random()*3);
+  for (let i = 0; i < count; i++) {
+    const roll = Math.random();
+    if (roll < 0.3) {
+      items.push({type:'gold', amount: contLv * (80 + Math.floor(Math.random()*120))});
+    } else {
+      const rarity = rollRarity(contLv, false);
+      const it = Math.random() < 0.4 ? generateWeapon(rarity, contLv) : generateArmor(ARMOR_SLOTS[Math.floor(Math.random()*ARMOR_SLOTS.length)], rarity, contLv);
+      it.unidentified = true;
+      it.name = '【待鑑定】地下城寶藏';
+      it.icon = '❓';
+      items.push(it);
+    }
+  }
+  playSFX('chest');
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:600;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:#0d0d22;border:1px solid #f59e0b;border-radius:16px;padding:1.2rem;width:100%;max-width:300px">
+      <div style="text-align:center;font-size:16px;font-weight:700;color:#f59e0b;margin-bottom:.6rem">📦 地下城寶箱！</div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem">
+        ${items.map(it => it.type==='gold'
+          ? `<div style="color:#f59e0b;font-size:12px">💰 金幣 × ${it.amount}</div>`
+          : `<div style="font-size:11px" class="rarity-${it.rarity}">${it.icon} ${it.name}</div>`
+        ).join('')}
+      </div>
+      <button id="dg-chest-collect" style="width:100%;padding:10px;border-radius:10px;border:none;background:#92400e;color:#fde68a;font-size:13px;font-weight:700;cursor:pointer">收入背包</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#dg-chest-collect').onclick = () => {
+    let goldGained = 0;
+    for (const it of items) {
+      if (it.type === 'gold') { state.gold += it.amount; goldGained += it.amount; }
+      else if (!addToInventory(it)) toast(`${it.name} 因背包已滿消失了`);
+    }
+    if (goldGained > 0) toast(`💰 獲得 ${goldGained} 金幣`);
+    modal.remove();
+    updateUI(); save(true);
+  };
+}
+
+
 let cbTimer = null, cbTextQ = [], cbTextRunning = false;
 let answerActive = false;
 
@@ -5592,9 +5876,25 @@ function expandBag() {
   renderMerchant(); updateUI(); save(true);
 }
 
+// 統一藥水/卷軸售價表（依 subtype 查詢，避免怪物掉落版本缺少 price 欄位導致賤賣）
+const POTION_BASE_PRICE = {
+  heal_s: 50, heal_m: 150, heal_l: 400, heal_xl: 1200, heal_full: 8000,
+  antidote: 80, cure_all: 300,
+  str_boost: 200, agi_boost: 250, luk_boost: 250, int_boost: 250,
+  berserk: 600, invincible: 2000,
+  fog_clear: 150,
+  enhance_normal: 300, enhance_lucky: 600, enhance_holy: 1500,
+  enhance_protect: 800, enhance_curse: 100,
+  identify: 200, purify: 800,
+  teleport_near: 500, teleport_any: 2000,
+  job_reset: 50000, job_reincarnate: 500000,
+  gem: 300, // 寶箱寶石類 fallback
+};
+
 function computeSellPrice(item) {
   if (item.type === 'potion' || item.type === 'scroll') {
-    return Math.floor((item.price || 30) * 0.4);
+    const base = POTION_BASE_PRICE[item.subtype] ?? (item.price || 30);
+    return Math.max(1, Math.floor(base * 0.4));
   }
   const basePrice = {white:30, green:80, blue:200, gold:500, red:1200, rainbow:5000}[item.rarity] || 30;
   return basePrice + (item.enhance||0)*50;
@@ -5810,10 +6110,14 @@ function doTeleport(vid) {
 function showCaveEvent() {
   const card = document.getElementById('event-card');
   card.innerHTML = `<h2>🕳️ 洞穴入口</h2>
-    <p>你站在幽深的礦洞入口，黑暗中傳來迴盪的聲音……<br><br>
-    <span style="font-size:11px;color:var(--accent)">（地下城系統 Phase 2 開放）</span></p>
-    <button class="event-btn" onclick="closeModal('modal-event')">📍 繼續探索地面</button>`;
+    <p>你站在幽深的礦洞入口，黑暗中傳來迴盪的聲音……</p>
+    <button class="event-btn" id="cave-enter-btn">⬇️ 進入地下城</button>
+    <button class="event-btn" onclick="closeModal('modal-event')" style="background:transparent;border:.5px solid #444;color:#888;margin-top:.4rem">📍 繼續探索地面</button>`;
   openModal('modal-event');
+  document.getElementById('cave-enter-btn').onclick = () => {
+    closeModal('modal-event');
+    enterDungeon(px, py);
+  };
 }
 
 // ═══════════════════════════════════════════════
