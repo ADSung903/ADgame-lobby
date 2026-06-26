@@ -26,7 +26,7 @@
         多怪物戰鬥（1~3隻）；DQ風格受擊抖動/死亡淡出；遊俠系職業樹×5
         武器/技能平衡調整；Buff改為戰鬥次數倒數
   v1.4  完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖
-  v1.7  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
+  v1.8  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
         狀態列UI、音效掛鉤、視覺飄字特效；各大陸怪物分配對應狀態
         萬能解藥真正解除全部狀態；解毒藥水僅解中毒
   ════════════════════════════════
@@ -1392,9 +1392,9 @@ const SHOP_ITEMS = [
    desc:'打開傳送選單，選擇任意已抵達過的大陸村莊。', price:2000, effect:{action:'teleport_any'}},
   // 轉職卷軸
   {name:'轉職卷軸',   icon:'🔄', type:'scroll', subtype:'job_reset',
-   desc:'重新選擇目前職業的轉職路線（同主線內互轉）。已投入的職業等級與經驗保留。', price:5000, effect:{action:'job_reset'}},
+   desc:'重新選擇目前職業的轉職路線（同主線內互轉）。已投入的職業等級與經驗保留。', price:50000, effect:{action:'job_reset'}},
   {name:'輪迴卷軸',   icon:'♻️', type:'scroll', subtype:'job_reincarnate',
-   desc:'完全重新選擇主線（戰士/法師/盜賊/遊俠任選），不限同主線。職業等級與經驗保留。【測試價】', price:500, effect:{action:'job_reincarnate'}},
+   desc:'完全重新選擇主線（戰士/法師/盜賊/遊俠任選，亦可回到礦工），不限同主線。職業等級與經驗保留。', price:500000, effect:{action:'job_reincarnate'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -4200,15 +4200,17 @@ function doJobReset(newJob, invIdx) {
   if (document.getElementById('modal-skills')?.classList.contains('open')) openSkills();
 }
 
-// 輪迴卷軸：完全重新選擇主線（礦工的四個一轉分支）
+// 輪迴卷軸：完全重新選擇主線（礦工的四個一轉分支，或回到礦工本身）
 function showJobReincarnateMenu(invIdx) {
   const curJd = JOB_DEFS[state.job];
   const minerJd = JOB_DEFS['miner'];
   const options = (minerJd.canChangeTo || []).filter(k => getRootJob(state.job) !== k);
+  // 如果目前不是礦工，加入「回到礦工」選項
+  const showMinerOption = state.job !== 'miner';
 
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem';
-  const optHtml = options.map(k => {
+  let optHtml = options.map(k => {
     const jd = JOB_DEFS[k];
     return `<button data-job="${k}"
       style="padding:10px;border-radius:10px;border:.5px solid #f59e0b55;background:#1a1408;
@@ -4217,6 +4219,14 @@ function showJobReincarnateMenu(invIdx) {
       <div style="font-size:10px;color:#888;margin-top:2px">${jd.desc}</div>
     </button>`;
   }).join('');
+  if (showMinerOption) {
+    optHtml += `<button data-job="miner"
+      style="padding:10px;border-radius:10px;border:.5px solid #6b728055;background:#161620;
+      color:#d1d5db;font-size:13px;cursor:pointer;text-align:left">
+      ${minerJd.name}
+      <div style="font-size:10px;color:#888;margin-top:2px">${minerJd.desc}</div>
+    </button>`;
+  }
 
   modal.innerHTML = `
     <div style="background:#0d0d22;border:1px solid #f59e0b;border-radius:16px;padding:1.2rem;width:100%;max-width:320px">
