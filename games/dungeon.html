@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.30 📋</button>
+      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.31 📋</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -1146,18 +1146,23 @@ const HIDDEN_ELITE = ['虛空領主','混沌使者'];
 function getContinent(wx, wy) {
   const dx = wx - START_X, dy = wy - START_Y;
   const dist = Math.sqrt(dx*dx + dy*dy);
-  const angle = Math.atan2(-dy, dx) * 180 / Math.PI; // 北=90, 東=0, 南=-90, 西=180
+  // angle: 0°=東, 90°=北, 180°/-180°=西, -90°=南（標準數學角度，y軸已反轉成"上=北"）
+  const angle = Math.atan2(-dy, dx) * 180 / Math.PI;
 
-  if (dist < 150) return 'forest';   // 新手森林：中心150格
-  if (dist >= 600 && dx > 0) return 'hidden';   // 隱藏：極東600+
-  if (dist >= 500 && dx < 0) return 'mech';     // 機械廢都：極西500+
-  if (dist >= 400 && dy < 0) return 'sky';      // 天空浮島：正北400+
-  if (dist >= 300 && angle > 120) return 'shadow';  // 暗影次元：西南300+
-  if (dist >= 300 && angle < -45 && dx > 0) return 'lava'; // 熔岩：東南300+
-  if (dist >= 250 && angle < -60 && Math.abs(dx) < 150) return 'sea'; // 深海：正南250+
-  if (dist >= 200 && dx > 0 && dy < 50) return 'desert';  // 沙漠：東北200+
-  if (dist >= 200 && dx < 0 && dy < 50) return 'ice';     // 冰雪：西北200+
-  return 'forest'; // 預設新手森林
+  if (dist < 150) return 'forest'; // 新手森林：中心150格
+
+  // 9大陸用明確的角度扇形劃分（每個方位40°，避免互相侵占）
+  // 角度範圍：東=0° 東北=45° 北=90° 西北=135° 西=180°/-180° 西南=-135° 南=-90° 東南=-45°
+  if (dist >= 600 && angle >= -20 && angle < 20) return 'hidden';   // 正東：隱藏大陸
+  if (dist >= 200 && angle >= 20 && angle < 70)  return 'desert';   // 東北：沙漠
+  if (dist >= 400 && angle >= 70 && angle < 110) return 'sky';      // 正北：天空浮島
+  if (dist >= 200 && angle >= 110 && angle < 160) return 'ice';     // 西北：冰雪荒原
+  if (dist >= 500 && (angle >= 160 || angle < -160)) return 'mech'; // 正西：機械廢都
+  if (dist >= 300 && angle >= -160 && angle < -110) return 'shadow'; // 西南：暗影次元
+  if (dist >= 250 && angle >= -110 && angle < -70) return 'sea';    // 正南：深海礦洞
+  if (dist >= 300 && angle >= -70 && angle < -20) return 'lava';   // 東南：熔岩地獄
+
+  return 'forest'; // 角度落在縫隙或距離不足時，預設新手森林
 }
 
 // 各大陸建議等級
@@ -1509,6 +1514,7 @@ const ENHANCE_RATES = {
 // 📋 VERSION HISTORY — 更新日誌
 // ════════════════════════════════════════════════════════════
 const VERSION_HISTORY = [
+  {v:'1.31', notes:['【重大修正】大陸邊界判定bug：機械廢都(mech)原本只要求dx<0(任何負值)+距離500，導致西北方向稍微偏西就會被機械廢都攔截，玩家往北走會卡在機械永遠到不了天空浮島','改用明確的角度扇形劃分9大陸（每個方位約40-50度），360度測試確認所有方向都有合理且不重疊的大陸歸屬']},
   {v:'1.30', notes:['各大陸（除新手森林）一般怪物從4種擴增至6種，共新增16隻怪物：沙塵巨蜂/流沙幽魂(沙漠)、暴風雪怪/冰封殭屍(冰雪)、熾炎犬/熔岩蟾蜍(熔岩)、電鰭魚/深海蟹將(深海)、風暴鷲/雲端遊魂(天空)、噬魂怪/暗影蜘蛛(暗影)、鑽地獸/雷射砲塔(機械)、永夜行者/虛空蝕者(隱藏)','圖鑑總數自動從50種增加至66種，收集進度同步更新']},
   {v:'1.29', notes:['賭場新增單局下注上限 $50000（固定/自訂金額皆受限），避免一次梭哈全部金幣','下注選項擴充：$100/$500/$1000/$5000/$10000/$50000，UI顯示上限提示']},
   {v:'1.28', notes:['修正每日副本邏輯矛盾：原本在任何村莊都能挑戰所有已抵達大陸的Boss，現在限制為只能挑戰當前所在村莊對應大陸的首領','新增賭場系統：烈日城(沙漠)→21點賭場，珊瑚港(深海)→比大小賭場(跟電腦莊家比點數)','21點規則：莊家未滿17必須要牌，黑傑克1.5倍賠率，爆牌判負，和局退回賭金']},
