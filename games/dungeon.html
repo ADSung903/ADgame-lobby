@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.21 📋</button>
+      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.29 📋</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -614,6 +614,17 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="modal-x" onclick="closeModal('modal-bestiary')">✕</button>
     </div>
     <div class="modal-body" id="bestiary-body" style="padding:.8rem"></div>
+  </div>
+</div>
+
+<!-- CASINO -->
+<div class="modal-back" id="modal-casino" onclick="if(event.target===this)closeModal('modal-casino')">
+  <div class="modal-sheet" style="max-height:92dvh">
+    <div class="modal-head">
+      <div class="modal-title" id="casino-title">🎰 賭場</div>
+      <button class="modal-x" onclick="closeModal('modal-casino')">✕</button>
+    </div>
+    <div class="modal-body" id="casino-body" style="padding:1rem"></div>
   </div>
 </div>
 
@@ -1192,14 +1203,20 @@ function scaledMonster(name, baseLevel) {
     return scaledMonster('毒牙蟲', baseLevel);
   }
   const lv = Math.max(1, baseLevel);
+  // 怪物成長曲線：改用更接近指數的曲線，避免高等級時被玩家輕易碾壓
+  // 一般怪物：(1+lv*0.08) 線性 → 改為輕度指數
+  // 菁英/Boss：額外再強化，凸顯首領的存在感
+  const hpScale = Math.pow(1 + lv * 0.045, 1.55) * (d.elite ? 1.8 : 1.0);
+  const atkScale = Math.pow(1 + lv * 0.035, 1.45) * (d.elite ? 1.5 : 1.0);
+  const defScale = Math.pow(1 + lv * 0.03, 1.3) * (d.elite ? 1.4 : 1.0);
   return {
-    name, icon:d.icon, maxHp: Math.floor(d.hp*(1+lv*0.08)), atk: Math.floor(d.atk*(1+lv*0.06)),
-    def: Math.floor(d.def*(1+lv*0.05)), agi:d.agi, special:d.special,
+    name, icon:d.icon, maxHp: Math.floor(d.hp*hpScale), atk: Math.floor(d.atk*atkScale),
+    def: Math.floor(d.def*defScale), agi:d.agi, special:d.special,
     drop:d.drop, exp:d.exp+lv*4, gold:Math.floor(d.gold*(1+lv*0.05)),
     elite:d.elite, lv, element:d.element||'none',
     hp:0,
     segments: d.special==='segments' ? 3 : 0,
-    segHp: d.special==='segments' ? Math.ceil(Math.floor(d.hp*(1+lv*0.08))/3) : 0,
+    segHp: d.special==='segments' ? Math.ceil(Math.floor(d.hp*hpScale)/3) : 0,
     slowStacks: 0,
   };
 }
@@ -1476,6 +1493,14 @@ const ENHANCE_RATES = {
 // 📋 VERSION HISTORY — 更新日誌
 // ════════════════════════════════════════════════════════════
 const VERSION_HISTORY = [
+  {v:'1.29', notes:['賭場新增單局下注上限 $50000（固定/自訂金額皆受限），避免一次梭哈全部金幣','下注選項擴充：$100/$500/$1000/$5000/$10000/$50000，UI顯示上限提示']},
+  {v:'1.28', notes:['修正每日副本邏輯矛盾：原本在任何村莊都能挑戰所有已抵達大陸的Boss，現在限制為只能挑戰當前所在村莊對應大陸的首領','新增賭場系統：烈日城(沙漠)→21點賭場，珊瑚港(深海)→比大小賭場(跟電腦莊家比點數)','21點規則：莊家未滿17必須要牌，黑傑克1.5倍賠率，爆牌判負，和局退回賭金']},
+  {v:'1.27', notes:['圖鑑新增「👑 每日副本限定」標籤：8隻大陸Boss（森林詛咒者/沙漠巨蠍王/冰原霸主等）只存在於每日副本，地圖探索無法遇到，現在會明確標示','未發現的副本限定怪物也會提示「需挑戰每日副本」']},
+  {v:'1.26', notes:['全體攻擊技能補齊：劍域風暴(劍士)、橫掃千軍(戰士)、箭雨(獵人)、死亡輪盤(賭徒)、戰歌震盪(吟遊詩人)、龍嘯震天(龍騎士)','接線修復：冰霜新星(冰霜巫妖)、烈焰新星(大魔導士) 原本已定義但從未連接到戰鬥邏輯','現在每條主線都至少有一個全體攻擊技能，戰鬥按鈕會自動顯示可用的每場限定技能']},
+  {v:'1.25', notes:['新增劍士職業系（劍士→劍聖/騎士王→絕劍者/王者降臨），共5階35個技能','武器限制改為強制規則：礦工可用全部武器，轉職後僅能使用對應主線武器','裝備不符職業的武器時會被擋下；轉職前若裝備不符新職業的武器會被阻止，需先卸下','6種武器對應6條主線：劍→劍士系、斧→戰士系、杖→法師系、匕首/弓→盜賊系、槍→遊俠系']},
+  {v:'1.24', notes:['【平衡修正】怪物成長曲線改為指數型（原本線性0.08/0.06/0.05太平緩），高等級怪物現在有實質威脅','菁英/首領怪額外強化倍率（血量×1.8、攻擊×1.5、防禦×1.4），凸顯首領存在感','修正前Lv.114混沌使者血量僅3036（4刀擊殺），修正後達8973（約10刀），副本強化版達14233']},
+  {v:'1.23', notes:['武器專屬機制：弓15%二連射、法杖快速施法咒語連鎖、匕首先攻背刺×2、長槍受擊後反擊強化','職業-武器專精系統：用對職業主打武器+15%攻擊，用不對-8%（礦工不限）','裝備卡片新增武器適配提示','修正resolvePlayerAttack中wpnSub變數未宣告的潛在bug']},
+  {v:'1.22', notes:['【重大修正】轉職殘留(prevJobs)複利疊加bug：同職業多次轉職會重複疊加30%加成，導致數值爆炸（暴擊率/攻擊/血量異常）','修正後同職業只保留最高等級一筆殘留；舊存檔讀取時自動修復重複記錄','屬性頁暴擊率改為與戰鬥實際公式一致（原本是脫節的舊公式），並加80%硬上限']},
   {v:'1.20', notes:['地下城補上完整功能列（背包/技能/裝備/屬性/圖鑑），原本只有方向鍵與離開','地下城遇怪8%機率改為菁英/首領怪，增加深入探索的驚喜感']},
   {v:'1.17', notes:['圖鑑「多種裝備」文字改為「隨機裝備部位（頭/甲/腿/手/鞋/飾品）」']},
   {v:'1.16', notes:['新增怪物圖鑑：收集進度、大陸分類、能力值區間、掉落/特殊能力顯示']},
@@ -1635,7 +1660,7 @@ const JOB_DEFS = {
       {id:'miner_40', name:'不屈意志',   desc:'血量低於20%時攻擊力×2',                             lv:40, type:'passive', effect:{lowHpAtkMult:2.0, threshold:0.20}},
       {id:'miner_50', name:'傳說礦工',   desc:'全屬性+20，掉落率再+20%，解鎖隱藏大陸入口',         lv:50, type:'passive', effect:{allStats:20, dropBonus:0.20, unlockHidden:true}},
     ],
-    canChangeTo:['warrior','mage','rogue','ranger'], reqLevel:0,
+    canChangeTo:['warrior','mage','rogue','ranger','swordsman'], reqLevel:0,
   },
   warrior: {
     name:'⚔️ 戰士', desc:'力量型，近戰爆發強，越打越強。',
@@ -1647,6 +1672,7 @@ const JOB_DEFS = {
       {id:'warrior_8',  name:'重擊',     desc:'每3回合觸發一次×1.8傷害的重擊',                     lv:8,  type:'auto',    effect:{heavyHit:1.8, every:3}},
       {id:'warrior_10', name:'鐵甲術',   desc:'防禦+10，受傷-10%',                                 lv:10, type:'passive', effect:{defBonus:10, dmgReduce:0.10}},
       {id:'warrior_15', name:'戰場霸者', desc:'破甲效果提升（最多疊5層），每層-8%',                 lv:15, type:'passive', effect:{armorBreak:0.08, maxStack:5}},
+      {id:'warrior_aoe', name:'橫掃千軍', desc:'每場1次，對全體造成×2.2傷害',                  lv:18, type:'once',    effect:{aoe:true}},
       {id:'warrior_20', name:'無敵斬',   desc:'每場1次，造成當前攻擊力×3的傷害',                   lv:20, type:'once',    effect:{burstMult:3.0}},
     ],
     canChangeTo:['paladin','death_knight'], reqLevel:10, reqJob:'miner',
@@ -1745,6 +1771,7 @@ const JOB_DEFS = {
       {id:'hunter_8',  name:'瞄準',     desc:'答題2秒內暴擊率+30%',                          lv:8,  type:'passive', effect:{quickAimCrit:0.30}},
       {id:'hunter_10', name:'毒箭',     desc:'弓攻擊附加中毒（每回合-10血）',               lv:10, type:'passive', effect:{poisonArrow:10}},
       {id:'hunter_15', name:'多重陷阱', desc:'陷阱使用次數+1（每場2次）',                   lv:15, type:'passive', effect:{trapCount:2}},
+      {id:'hunter_aoe', name:'箭雨',     desc:'每場1次，對全體造成×2.0傷害',                  lv:18, type:'once',    effect:{aoe:true}},
       {id:'hunter_20', name:'絕殺一箭', desc:'每場1次，穿透防禦造成×5弓攻擊傷害',          lv:20, type:'once',    effect:{piercingShot:5.0}},
     ],
     canChangeTo:['sniper_king'], reqLevel:30, reqJob:'rogue',
@@ -1759,6 +1786,7 @@ const JOB_DEFS = {
       {id:'gambler_8',  name:'命運之輪', desc:'每場開始隨機獲得一個增益（攻/防/閃各33%）', lv:8,  type:'passive', effect:{randomBuff:true}},
       {id:'gambler_10', name:'千面梟雄', desc:'暴擊傷害×4（原本×3）',                       lv:10, type:'passive', effect:{critMult:4.0}},
       {id:'gambler_15', name:'賭神附體', desc:'豪賭勝率提升至70%',                           lv:15, type:'passive', effect:{gambleWinRate:0.70}},
+      {id:'gambler_aoe', name:'死亡輪盤', desc:'每場1次，50%機率對全體×4傷害，否則×1.5',     lv:18, type:'once',    effect:{aoe:true}},
       {id:'gambler_20', name:'奇蹟',     desc:'每場1次，100%觸發×10暴擊（無視一切限制）',  lv:20, type:'once',    effect:{miracleCrit:10.0}},
     ],
     canChangeTo:['fortune_god'], reqLevel:30, reqJob:'miner',
@@ -1787,6 +1815,7 @@ const JOB_DEFS = {
       {id:'bard_8',  name:'戰歌共鳴', desc:'閃避+10%',                                       lv:8,  type:'passive', effect:{dodgeBonus:0.10}},
       {id:'bard_10', name:'英雄頌歌', desc:'全屬性+8%',                                      lv:10, type:'passive', effect:{allStatsMult:0.08}},
       {id:'bard_15', name:'不滅旋律', desc:'每回合回血再+8點',                              lv:15, type:'passive', effect:{regenBonus:8}},
+      {id:'bard_aoe', name:'戰歌震盪', desc:'每場1次，對全體造成×2.0傷害並回復15%HP',      lv:18, type:'once',    effect:{aoe:true}},
       {id:'bard_20', name:'終章協奏', desc:'每場1次，回復50%HP並清除所有負面狀態',          lv:20, type:'once',    effect:{healPct:0.50, cleanse:true}},
     ],
     canChangeTo:['sage'], reqLevel:30, reqJob:'ranger',
@@ -1801,6 +1830,7 @@ const JOB_DEFS = {
       {id:'dk2_8',  name:'破甲突刺', desc:'每5回合一次，無視全部防禦',                      lv:8,  type:'auto',    effect:{ignoreDefEvery:5}},
       {id:'dk2_10', name:'龍威',     desc:'攻擊+25%',                                       lv:10, type:'passive', effect:{atkBonus:0.25}},
       {id:'dk2_15', name:'龍血覺醒', desc:'血量<40%時攻擊+30%',                            lv:15, type:'passive', effect:{lowHpAtkBonus:0.30, threshold:0.40}},
+      {id:'dk2_aoe', name:'龍嘯震天', desc:'每場1次，對全體造成×2.3傷害',                  lv:18, type:'once',    effect:{aoe:true}},
       {id:'dk2_20', name:'龍王降臨', desc:'每場1次，×4傷害並附加灼傷',                     lv:20, type:'once',    effect:{burstMult:4.0, burnOnHit:15}},
     ],
     canChangeTo:['dragon_god'], reqLevel:30, reqJob:'ranger',
@@ -1916,6 +1946,77 @@ const JOB_DEFS = {
       {id:'fg_20', name:'神之骰子', desc:'每場1次，100%觸發×15暴擊',                      lv:20, type:'once',    effect:{miracleCrit:15.0}},
     ],
     canChangeTo:[], reqLevel:60, reqJob:'gambler',
+  },
+  swordsman: {
+    name:'⚔️ 劍士', desc:'平衡型，攻防兼備的劍術之道。',
+    passive:{strMult:1.10, agiMult:1.10},
+    skills:[
+      {id:'sw_1',  name:'劍術精通',  desc:'劍攻擊+15%',                                   lv:1,  type:'passive', effect:{atkBonus:0.15}},
+      {id:'sw_3',  name:'連擊',      desc:'每3回合觸發一次雙重攻擊',                      lv:3,  type:'auto',    effect:{doubleShot:true, every:3}},
+      {id:'sw_5',  name:'劍刃舞步',  desc:'閃避+8%，攻擊+8%',                             lv:5,  type:'passive', effect:{dodgeBonus:0.08, atkBonus:0.08}},
+      {id:'sw_8',  name:'破綻看穿',  desc:'每4回合一次必定暴擊',                          lv:8,  type:'auto',    effect:{guaranteedCrit:true, every:4}},
+      {id:'sw_10', name:'劍意',      desc:'攻擊再+20%',                                   lv:10, type:'passive', effect:{atkBonus:0.20}},
+      {id:'sw_15', name:'迎風斬',    desc:'先攻時傷害+30%',                               lv:15, type:'passive', effect:{firstStrikeBonus:0.30}},
+      {id:'sw_aoe', name:'劍域風暴',  desc:'每場1次，對全體造成×2.5傷害',                  lv:18, type:'once',    effect:{aoe:true}},
+      {id:'sw_20', name:'劍舞連華',  desc:'每場1次，造成4次連續攻擊',                     lv:20, type:'once',    effect:{multiHit:4}},
+    ],
+    canChangeTo:['sword_saint','knight_king'], reqLevel:10, reqJob:'miner',
+  },
+  sword_saint: {
+    name:'🗡️ 劍聖', desc:'極致劍術，追求一擊必殺的境界。',
+    passive:{strMult:1.20, critMult:2.5},
+    skills:[
+      {id:'ss_1',  name:'劍聖之眼',  desc:'暴擊率+15%',                                   lv:1,  type:'passive', effect:{critBonus:0.15}},
+      {id:'ss_3',  name:'一閃',      desc:'先攻時必定暴擊',                               lv:3,  type:'passive', effect:{firstStrikeCrit:true}},
+      {id:'ss_5',  name:'無想劍',    desc:'每場1次，造成×3.5傷害',                        lv:5,  type:'once',    effect:{burstMult:3.5}},
+      {id:'ss_8',  name:'劍氣縛'  ,  desc:'暴擊時附加破甲（防禦-15%，2回合）',           lv:8,  type:'auto',    effect:{critArmorBreak:0.15, turns:2}},
+      {id:'ss_10', name:'劍聖之力',  desc:'攻擊+25%，暴擊傷害×3',                         lv:10, type:'passive', effect:{atkBonus:0.25, critMult:3.0}},
+      {id:'ss_15', name:'斬鐵',      desc:'每次攻擊有20%機率無視全部防禦',                lv:15, type:'auto',    effect:{ignoreDefChance:0.20}},
+      {id:'ss_20', name:'劍聖絕技',  desc:'每場1次，×6傷害必定暴擊',                      lv:20, type:'once',    effect:{burstMult:6.0, guaranteedCrit:true}},
+    ],
+    canChangeTo:['blade_master'], reqLevel:30, reqJob:'swordsman',
+  },
+  knight_king: {
+    name:'🛡️ 騎士王', desc:'防禦轉攻擊，反擊流的劍盾大師。',
+    passive:{defMult:1.30, strMult:1.10},
+    skills:[
+      {id:'kk_1',  name:'格擋',      desc:'受傷後20%機率反擊（傷害+30%）',                lv:1,  type:'auto',    effect:{counterChance:0.20, counterBonus:0.30}},
+      {id:'kk_3',  name:'王者風範',  desc:'防禦+15，受傷-10%',                            lv:3,  type:'passive', effect:{defBonus:15, dmgReduce:0.10}},
+      {id:'kk_5',  name:'守護之誓',  desc:'每場1次，免疫一次致死傷害',                    lv:5,  type:'passive', effect:{deathSave:0.25}},
+      {id:'kk_8',  name:'反擊強化',  desc:'格擋反擊機率提升至35%',                        lv:8,  type:'passive', effect:{counterChance:0.35}},
+      {id:'kk_10', name:'騎士之力',  desc:'攻擊+20%，防禦再+10%',                         lv:10, type:'passive', effect:{atkBonus:0.20, defMult:1.10}},
+      {id:'kk_15', name:'不屈意志',  desc:'血量<30%時防禦+30%',                           lv:15, type:'passive', effect:{lowHpDefBonus:0.30, threshold:0.30}},
+      {id:'kk_20', name:'王者降臨',  desc:'每場1次，反擊必定觸發且傷害×3',                lv:20, type:'once',    effect:{counterBurst:3.0}},
+    ],
+    canChangeTo:['king_ascendant'], reqLevel:30, reqJob:'swordsman',
+  },
+  blade_master: {
+    name:'⚡ 絕劍者', desc:'劍術的終極奧義，無人可擋。',
+    passive:{strMult:1.35, critMult:3.5},
+    skills:[
+      {id:'bm_1',  name:'絕對一閃',  desc:'先攻必定暴擊範圍擴大至前2回合',                lv:1,  type:'passive', effect:{firstStrikeCrit:true, extraTurns:1}},
+      {id:'bm_3',  name:'劍域',      desc:'暴擊率再+15%（總計+30%）',                     lv:3,  type:'passive', effect:{critBonus:0.15}},
+      {id:'bm_5',  name:'天劍',      desc:'每場2次無想劍',                                lv:5,  type:'passive', effect:{burstCount:2}},
+      {id:'bm_8',  name:'劍氣縛強化',desc:'破甲效果提升至-25%，持續3回合',                lv:8,  type:'passive', effect:{critArmorBreak:0.25, turns:3}},
+      {id:'bm_10', name:'絕劍之力',  desc:'攻擊再+35%',                                   lv:10, type:'passive', effect:{atkBonus:0.35}},
+      {id:'bm_15', name:'斬鐵強化',  desc:'無視防禦機率提升至35%',                        lv:15, type:'passive', effect:{ignoreDefChance:0.35}},
+      {id:'bm_20', name:'劍之絕技',  desc:'每場1次，×9傷害必定暴擊並無視防禦',           lv:20, type:'once',    effect:{burstMult:9.0, guaranteedCrit:true, ignoreDef:true}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'sword_saint',
+  },
+  king_ascendant: {
+    name:'👑 王者降臨', desc:'攻守完美融合的至高形態。',
+    passive:{defMult:1.50, strMult:1.25},
+    skills:[
+      {id:'ka_1',  name:'絕對守護',  desc:'格擋反擊機率提升至45%',                        lv:1,  type:'passive', effect:{counterChance:0.45}},
+      {id:'ka_3',  name:'王者之軀',  desc:'防禦+20，受傷-15%',                            lv:3,  type:'passive', effect:{defBonus:20, dmgReduce:0.15}},
+      {id:'ka_5',  name:'永恆守誓',  desc:'每場2次免疫致死傷害',                          lv:5,  type:'passive', effect:{deathSave:0.35, deathSaveCount:2}},
+      {id:'ka_8',  name:'反擊之王',  desc:'反擊傷害提升至+50%',                           lv:8,  type:'passive', effect:{counterBonus:0.50}},
+      {id:'ka_10', name:'至尊之力',  desc:'攻擊+30%，防禦再+15%',                         lv:10, type:'passive', effect:{atkBonus:0.30, defMult:1.15}},
+      {id:'ka_15', name:'絕境守護',  desc:'血量<40%時防禦+40%、攻擊+20%',                lv:15, type:'passive', effect:{lowHpDefBonus:0.40, lowHpAtkBonus:0.20, threshold:0.40}},
+      {id:'ka_20', name:'王者絕技',  desc:'每場1次，反擊必定觸發且傷害×5',                lv:20, type:'once',    effect:{counterBurst:5.0}},
+    ],
+    canChangeTo:[], reqLevel:60, reqJob:'knight_king',
   },
 };
 
@@ -2326,7 +2427,61 @@ function totalStat(k) {
     }
   }
 
-  return Math.floor((base + bonus) * mult * statMult * (k === 'def' && hasStatus('armorbrk') ? 0.8 : 1));
+  return Math.floor((base + bonus) * mult * Math.min(statMult, 3.0) * (k === 'def' && hasStatus('armorbrk') ? 0.8 : 1));
+}
+
+// 暴擊率計算（戰鬥與屬性頁共用，確保兩處顯示一致；上限80%）
+function getCritRate() {
+  const jp = getJobPassive();
+  const luk_ = totalStat('luk');
+  const str_ = totalStat('str');
+  const agi_ = totalStat('agi');
+  const int__ = totalStat('int');
+  const wpnSub = state.weapon?.subtype;
+  let rate;
+  if (wpnSub === 'dagger') rate = luk_ * 0.005 + agi_ * 0.002;
+  else if (wpnSub === 'bow') rate = luk_ * 0.003 + agi_ * 0.002;
+  else if (wpnSub === 'sword' || wpnSub === 'axe') rate = luk_ * 0.003 + str_ * 0.001;
+  else if (wpnSub === 'wand') rate = luk_ * 0.003 + int__ * 0.001;
+  else rate = luk_ * 0.003;
+  rate = rate + (jp.critBonus||0);
+  if (jp.critChance) rate = jp.critChance;
+  if (typeof hasStatus === 'function' && hasStatus('blind')) rate = 0;
+  return Math.max(0, Math.min(0.80, rate)); // 硬上限 80%，避免顯示/實際超過合理範圍
+}
+
+// 職業-武器強制限制：礦工可用全部武器，轉職後僅能使用對應主線武器
+const JOB_WEAPON_LOCK = {
+  miner: null, // 不限
+  // 劍士系
+  swordsman:'sword', sword_saint:'sword', knight_king:'sword',
+  blade_master:'sword', king_ascendant:'sword',
+  // 戰士系（斧）
+  warrior:'axe', paladin:'axe', death_knight:'axe', holy_knight:'axe', death_lord:'axe',
+  // 法師系（杖）
+  mage:'wand', ice_mage:'wand', fire_mage:'wand', frost_lich:'wand', archmage:'wand',
+  // 盜賊系（匕首/弓）
+  rogue:'dagger', gambler:'dagger', fortune_god:'dagger',
+  hunter:'bow', sniper_king:'bow',
+  // 遊俠系（槍）
+  ranger:'spear', bard:'spear', dragon_knight:'spear', sage:'spear', dragon_god:'spear',
+};
+
+function getRequiredWeapon(jobKey) {
+  return JOB_WEAPON_LOCK[jobKey] ?? null;
+}
+
+function canUseWeapon(jobKey, weaponSub) {
+  const req = getRequiredWeapon(jobKey);
+  if (!req) return true; // 礦工不限
+  return weaponSub === req;
+}
+
+function getWeaponAffinityMult(sub) {
+  const required = getRequiredWeapon(state.job);
+  if (!required) return 1.0; // 礦工：無限制無加成
+  if (sub === required) return 1.15; // 正確武器：+15%（裝備限制下這應該永遠成立）
+  return 0.92; // 保護性 fallback（理論上不會觸發，因為裝備時已強制限制）
 }
 
 function calcAtk() {
@@ -2386,7 +2541,8 @@ function calcAtk() {
   if (hasBuff('str'))     buffMult *= (1 + (state.buffEffects?.find(b=>b.type==='str')?.amt||0));
   if (hasBuff('berserk')) buffMult *= 2.0;
   if (hasStatus('weaken')) buffMult *= 0.8; // 力弱：攻擊-20%
-  return Math.floor((baseAtk || 1) * setAtkMult * buffMult);
+  const affinityMult = state.weapon ? getWeaponAffinityMult(state.weapon.subtype) : 1.0;
+  return Math.floor((baseAtk || 1) * setAtkMult * buffMult * affinityMult);
 }
 
 function timeLimit() { return 8 + totalStat('int') * 0.1; }
@@ -3153,28 +3309,28 @@ function canChallengeRaid() {
   return {ok:false, useTicket:false};
 }
 
-function showRaidMenu() {
+function showRaidMenu(currentCont) {
   const visited = state.visitedContinents || ['forest'];
+  // 只能挑戰當前所在村莊對應的大陸Boss，不能在任意村莊召喚其他大陸的Boss
+  const targetCont = currentCont || getContinent(px, py);
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem';
   const freeUsed = getRaidFreeUsedToday();
   const ticketCount = state.inventory.filter(i => i.subtype === 'raid_ticket').length;
 
-  const options = visited.map(cont => {
-    const bossName = RAID_BOSS_BY_CONTINENT[cont];
-    const info = CONTINENT_INFO[cont];
-    if (!bossName || !info) return '';
-    return `<button data-cont="${cont}"
+  const bossName = RAID_BOSS_BY_CONTINENT[targetCont];
+  const info = CONTINENT_INFO[targetCont];
+  const options = (bossName && info) ? `<button data-cont="${targetCont}"
       style="padding:10px;border-radius:10px;border:.5px solid ${info.color}55;background:#1a1030;
       color:#e5e7eb;font-size:13px;cursor:pointer;text-align:left">
       ${info.name} — ${bossName}
       <div style="font-size:10px;color:#888;margin-top:2px">建議 Lv.${info.recLv + 15}+</div>
-    </button>`;
-  }).join('');
+    </button>` : `<div style="color:#666;font-size:12px">此大陸沒有對應的首領</div>`;
 
   modal.innerHTML = `
     <div style="background:#0d0d22;border:1px solid #dc2626;border-radius:16px;padding:1.2rem;width:100%;max-width:320px;max-height:85vh;overflow-y:auto">
       <div style="color:#f87171;font-weight:700;margin-bottom:.4rem">👑 每日Boss副本</div>
+      <div style="font-size:10px;color:#666;margin-bottom:.5rem">僅能挑戰本村莊所在大陸的首領，傳送至其他村莊可挑戰對應首領</div>
       <div style="font-size:11px;color:#888;margin-bottom:.8rem">
         每日免費挑戰：${freeUsed?'<span style="color:#f87171">今日已使用</span>':'<span style="color:#4ade80">可用</span>'}<br>
         🎫 副本券：${ticketCount} 張
@@ -3982,26 +4138,30 @@ function resolvePlayerAttack(timeLeft, tl) {
     }
   }
 
-  // 暴擊率：各武器路線不同
+  // 暴擊率：各武器路線不同（共用 getCritRate）
+  const critRate = getCritRate();
   const jp = getJobPassive();
-  const luk_ = totalStat('luk');
-  const str_ = totalStat('str');
-  const agi_ = totalStat('agi');
-  const int__ = totalStat('int');
-  const wpnSub = state.weapon?.subtype;
-  let critRate;
-  if (wpnSub === 'dagger') critRate = luk_ * 0.005 + agi_ * 0.002;
-  else if (wpnSub === 'bow') critRate = luk_ * 0.003 + agi_ * 0.002;
-  else if (wpnSub === 'sword' || wpnSub === 'axe') critRate = luk_ * 0.003 + str_ * 0.001;
-  else if (wpnSub === 'wand') critRate = luk_ * 0.003 + int__ * 0.001;
-  else critRate = luk_ * 0.003;
-  critRate = Math.min(0.6, critRate + (jp.critBonus||0));
-  if (hasStatus('blind')) critRate = 0; // 致盲：暴擊率歸零
-  if (jp.critChance) critRate = jp.critChance;
   const critMult = jp.critMult || 2;
+  const wpnSub = state.weapon?.subtype;
   let isCrit = false;
   if (Math.random() < critRate) { atk = Math.floor(atk * critMult); isCrit = true; }
   if (wpnSub === 'axe') isCrit = false;
+
+  // ── 武器專屬機制 ──
+  if (wpnSub === 'bow' && Math.random() < 0.15) {
+    atk = Math.floor(atk * 1.5);
+    cbLog('cl-y', `🏹 二連射！額外傷害+50%`);
+  } else if (wpnSub === 'wand' && elapsed <= 3 && Math.random() < 0.15) {
+    atk = Math.floor(atk * 1.3);
+    cbLog('cl-p', `✨ 咒語連鎖！額外傷害+30%`);
+  } else if (wpnSub === 'dagger' && combat.playerWentFirst && combat.turn === 1 && Math.random() < 0.25) {
+    atk = Math.floor(atk * 2.0);
+    cbLog('cl-r', `🗡️ 背刺！傷害×2！`);
+  } else if (wpnSub === 'spear' && combat.spearCounterReady) {
+    atk = Math.floor(atk * 1.4);
+    combat.spearCounterReady = false;
+    cbLog('cl-g', `🔱 反擊強化！傷害+40%`);
+  }
 
   // Element multiplier
   const wpnElem = state.weapon?.element || 'none';
@@ -4170,6 +4330,7 @@ function attackSequence(list, idx, cb) {
   cbLog('cl-w', `${m.icon} ${m.name}發起攻擊，造成 ${wrapCol('cl-r',actualDmg)} 點傷害！${specialText?'　'+specialText:''}`);
   showFloatingDmg(actualDmg, false, true);
   applyDmgToPlayer(actualDmg);
+  if (state.weapon?.subtype === 'spear' && Math.random() < 0.20) combat.spearCounterReady = true;
 
   if (checkPlayerDead()) return; // 死亡時中斷序列
 
@@ -4408,6 +4569,60 @@ function useJobSkill(skillId) {
       markSkillUsed('ice_5');
       cbLog('cl-p', `❄️ 絕對零度！${m.name}被凍結2回合！`);
       break;
+    case 'fl_15': { // 冰霜新星（全體AOE，冰霜巫妖）
+      markSkillUsed('fl_15');
+      const dmg = Math.floor(calcAtk() * 4.0);
+      attackAllMonsters(dmg, '❄️ 冰霜新星');
+      combat.frozenTurns = 2;
+      break;
+    }
+    case 'am_5': { // 烈焰新星（全體AOE，大魔導士）
+      markSkillUsed('am_5');
+      const dmg = Math.floor(calcAtk() * 3.5);
+      attackAllMonsters(dmg, '🔥 烈焰新星');
+      combat.monsters.forEach(mm => { if (mm.hp > 0) mm.burning = true; });
+      break;
+    }
+    case 'sw_aoe': { // 劍域風暴（劍士系）
+      markSkillUsed('sw_aoe');
+      const dmg = Math.floor(calcAtk() * 2.5);
+      attackAllMonsters(dmg, '⚔️ 劍域風暴');
+      break;
+    }
+    case 'warrior_aoe': { // 橫掃千軍（戰士系）
+      markSkillUsed('warrior_aoe');
+      const dmg = Math.floor(calcAtk() * 2.2);
+      attackAllMonsters(dmg, '🪓 橫掃千軍');
+      break;
+    }
+    case 'hunter_aoe': { // 箭雨（獵人系）
+      markSkillUsed('hunter_aoe');
+      const dmg = Math.floor(calcAtk() * 2.0);
+      attackAllMonsters(dmg, '🏹 箭雨');
+      break;
+    }
+    case 'gambler_aoe': { // 死亡輪盤（賭徒系）
+      markSkillUsed('gambler_aoe');
+      const isCrit = Math.random() < 0.5;
+      const dmg = Math.floor(calcAtk() * (isCrit ? 4.0 : 1.5));
+      attackAllMonsters(dmg, isCrit ? '🎰 死亡輪盤・大獎！' : '🎰 死亡輪盤');
+      break;
+    }
+    case 'bard_aoe': { // 戰歌震盪（吟遊詩人系）
+      markSkillUsed('bard_aoe');
+      const dmg = Math.floor(calcAtk() * 2.0);
+      attackAllMonsters(dmg, '🎵 戰歌震盪');
+      const healAmt = Math.floor(state.stats.maxHp * 0.15);
+      state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmt);
+      cbLog('cl-g', `🎵 戰歌共鳴，回復 ${healAmt} HP`);
+      break;
+    }
+    case 'dk2_aoe': { // 龍嘯（龍騎士系）
+      markSkillUsed('dk2_aoe');
+      const dmg = Math.floor(calcAtk() * 2.3);
+      attackAllMonsters(dmg, '🐉 龍嘯震天');
+      break;
+    }
     case 'gambler_5': // 豪賭
       markSkillUsed('gambler_5');
       if (Math.random() < 0.5) {
@@ -4652,6 +4867,25 @@ function getJobPassive() {
   return JOB_DEFS[state.job||'miner']?.passive || {};
 }
 
+// 統一寫入 prevJobs：同一職業只保留最高等級一筆，避免轉職複利疊加
+function addPrevJob(jobKey, level) {
+  if (!state.prevJobs) state.prevJobs = [];
+  const jd = JOB_DEFS[jobKey];
+  const existing = state.prevJobs.find(p => p.job === jobKey);
+  if (existing) {
+    if (level > existing.level) {
+      existing.level = level;
+      existing.skills = (jd?.skills||[]).filter(s => level >= s.lv);
+    }
+  } else {
+    state.prevJobs.push({
+      job: jobKey, level,
+      passive: jd?.passive || {},
+      skills: (jd?.skills||[]).filter(s => level >= s.lv),
+    });
+  }
+}
+
 function getPrevJobBonus() {
   if (!state.prevJobs?.length) return {};
   const combined = {};
@@ -4734,19 +4968,27 @@ function openBestiary(filterKey) {
     <div style="display:flex;flex-direction:column;gap:.5rem">`;
 
   const groupsToShow = bestiaryFilter === 'all' ? BESTIARY_GROUPS : BESTIARY_GROUPS.filter(g => g.key === bestiaryFilter);
+  const raidOnlyNames = new Set(Object.values(RAID_BOSS_BY_CONTINENT));
   for (const g of groupsToShow) {
     html += `<div style="font-size:11px;color:#666;margin-top:.3rem">${g.name}</div>`;
     for (const monName of g.monsters) {
       const isSeen = seen.includes(monName);
       const d = MDEFS[monName];
       if (!d) continue;
+      // 判斷是否為純副本限定怪（在raid boss名單中，但不在地圖怪物池/菁英池裡）
+      const isMapSpawnable = g.monsters.indexOf(monName) < g.monsters.length && (
+        (CONTINENT_POOLS[g.key]?.normal||[]).includes(monName) ||
+        (CONTINENT_POOLS[g.key]?.elite||[]).includes(monName)
+      );
+      const isRaidOnly = raidOnlyNames.has(monName) && !isMapSpawnable;
+      const raidTag = isRaidOnly ? `<span style="font-size:8px;background:#dc262633;color:#f87171;border-radius:4px;padding:1px 5px;margin-left:4px">👑 每日副本限定</span>` : '';
       html += `<div onclick="${isSeen ? `showMonsterDetail('${monName}')` : ''}"
         style="display:flex;align-items:center;gap:.6rem;background:#12122a;border:.5px solid ${isSeen?'#2a2a4a':'#1a1a2a'};
         border-radius:10px;padding:.5rem .7rem;cursor:${isSeen?'pointer':'default'}">
         <span style="font-size:20px;${isSeen?'':'filter:grayscale(1) brightness(.4)'}">${isSeen ? d.icon : '❓'}</span>
         <div style="flex:1">
-          <div style="font-size:12px;font-weight:700;color:${isSeen?'#e5e7eb':'#444'}">${isSeen ? monName : '？？？'}</div>
-          ${isSeen ? `<div style="font-size:9px;color:#666">${d.elite?'👑 菁英/首領':'一般怪物'}</div>` : `<div style="font-size:9px;color:#444">尚未發現</div>`}
+          <div style="font-size:12px;font-weight:700;color:${isSeen?'#e5e7eb':'#444'}">${isSeen ? monName : '？？？'}${isSeen?raidTag:''}</div>
+          ${isSeen ? `<div style="font-size:9px;color:#666">${d.elite?'👑 菁英/首領':'一般怪物'}</div>` : `<div style="font-size:9px;color:#444">尚未發現${isRaidOnly?'（需挑戰每日副本）':''}</div>`}
         </div>
         <span style="font-size:11px;color:${isSeen?'#4ade80':'#333'}">${isSeen?'✅':'🔒'}</span>
       </div>`;
@@ -4932,6 +5174,11 @@ function showJobResetMenu(invIdx) {
 function doJobReset(newJob, invIdx) {
   const jd = JOB_DEFS[newJob];
   if (!jd) return;
+  const requiredNew = getRequiredWeapon(newJob);
+  if (requiredNew && state.weapon && state.weapon.subtype !== requiredNew) {
+    toast(`🚫 請先卸下「${state.weapon.name}」才能轉職為${jd.name}（該職業僅能使用 ${WPN_ICON[requiredNew]||''}）`);
+    return;
+  }
   // 保留目前的職業等級與經驗，直接切換職業線（不走A+C衰減，因為是同一筆投資換路線）
   state.job = newJob;
   state.skillCDs = {};
@@ -4996,6 +5243,11 @@ function showJobReincarnateMenu(invIdx) {
 function doJobReincarnate(newJob, invIdx) {
   const jd = JOB_DEFS[newJob];
   if (!jd) return;
+  const requiredNew = getRequiredWeapon(newJob);
+  if (requiredNew && state.weapon && state.weapon.subtype !== requiredNew) {
+    toast(`🚫 請先卸下「${state.weapon.name}」才能轉職為${jd.name}（該職業僅能使用 ${WPN_ICON[requiredNew]||''}）`);
+    return;
+  }
   state.job = newJob;
   state.skillCDs = {};
   state.skillUsed = {};
@@ -5012,6 +5264,13 @@ function changeJob(jobKey) {
   if (state.level < (jd.reqLevel||0)) { toast(`需要角色 Lv.${jd.reqLevel}`); return; }
   if (state.job !== jd.reqJob) { toast('職業條件不符'); return; }
 
+  // 武器檢查：新職業若有武器限制，且目前裝備不符，禁止轉職
+  const requiredNew = getRequiredWeapon(jobKey);
+  if (requiredNew && state.weapon && state.weapon.subtype !== requiredNew) {
+    toast(`🚫 請先卸下「${state.weapon.name}」才能轉職為${jd.name}（該職業僅能使用 ${WPN_ICON[requiredNew]||''}）`);
+    return;
+  }
+
   const oldJob = state.job;
   const oldJd = JOB_DEFS[oldJob];
   const oldLv = state.jobLevel || 1;
@@ -5027,12 +5286,7 @@ function changeJob(jobKey) {
 
   if (!confirm(msg)) return;
 
-  if (!state.prevJobs) state.prevJobs = [];
-  state.prevJobs.push({
-    job: oldJob, level: oldLv,
-    passive: oldJd?.passive || {},
-    skills: (oldJd?.skills||[]).filter(s => oldLv >= s.lv),
-  });
+  addPrevJob(oldJob, oldLv);
 
   state.job = jobKey;
   state.jobLevel = newStartLv;
@@ -5227,6 +5481,11 @@ function refreshInventoryIfOpen() {
 function equipItem(item, fromInv, invIdx) {
   if (item.reqLevel > state.level) {
     toast(`⚠️ 等級不足（需 Lv.${item.reqLevel}）`); return;
+  }
+  if (item.type === 'weapon' && !canUseWeapon(state.job, item.subtype)) {
+    const required = getRequiredWeapon(state.job);
+    toast(`🚫 目前職業（${JOB_DEFS[state.job]?.name}）只能裝備 ${WPN_ICON[required]||''} 類武器`);
+    return;
   }
   let slot, oldItem;
   if (item.type === 'weapon') {
@@ -5965,7 +6224,7 @@ function openStats() {
     <div class="stat-row"><span class="sn">攻擊力</span><span class="sv">${atk}</span></div>
     <div class="stat-row"><span class="sn">最大血量</span><span class="sv">${state.stats.maxHp}</span></div>
     <div class="stat-row"><span class="sn">答題時間</span><span class="sv">${tl}秒</span></div>
-    <div class="stat-row"><span class="sn">暴擊率</span><span class="sv">${(totalStat('luk')*0.5).toFixed(1)}%</span></div>
+    <div class="stat-row"><span class="sn">暴擊率</span><span class="sv">${(getCritRate()*100).toFixed(1)}%</span></div>
   </div>`;
 
   html += `<div class="stat-section"><h3>冒險紀錄</h3>
@@ -6264,6 +6523,14 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
     ${item.reqStr?`<div class="ic-req">需求力量：<span class="${totalStat('str')>=item.reqStr?'':'req-fail'}">${item.reqStr}${totalStat('str')>=item.reqStr?'':' ⚠️不足'}</span></div>`:''}
     ${item.reqAgi?`<div class="ic-req">需求敏捷：<span class="${totalStat('agi')>=item.reqAgi?'':'req-fail'}">${item.reqAgi}${totalStat('agi')>=item.reqAgi?'':' ⚠️不足'}</span></div>`:''}
     ${item.reqInt?`<div class="ic-req">需求智力：<span class="${totalStat('int')>=item.reqInt?'':'req-fail'}">${item.reqInt}${totalStat('int')>=item.reqInt?'':' ⚠️不足'}</span></div>`:''}
+    ${item.type==='weapon' ? (() => {
+      const required = getRequiredWeapon(state.job);
+      if (!required) return `<div class="ic-req" style="color:#888">⛏️ 礦工可使用所有武器類型</div>`;
+      const canUse = item.subtype === required;
+      return `<div class="ic-req" style="color:${canUse?'#4ade80':'#ef4444'}">
+        ${canUse ? `✅ 此武器符合目前職業，可裝備（攻擊+15%）` : `🚫 目前職業僅能使用 ${WPN_ICON[required]||''}，無法裝備此武器`}
+      </div>`;
+    })() : ''}
     ${setHtml}${enhHtml}
     <div class="ic-btns">${btns}</div>`;
   openModal('modal-item');
@@ -6447,6 +6714,246 @@ function merchantBuy(idx) {
 
 // ═══════════════════════════════════════════════
 // ── 村莊選單 ──
+// ════════════════════════════════════════════════════════════
+// 🎰 CASINO — 21點（烈日城）/ 比大小（珊瑚港）
+// ════════════════════════════════════════════════════════════
+let blackjackState = null;
+let baccaratState = null;
+
+function cardLabel(card) {
+  const labels = {1:'A', 11:'J', 12:'Q', 13:'K'};
+  return labels[card.rank] || String(card.rank);
+}
+function cardValue(card) {
+  if (card.rank === 1) return 11; // Ace 預設算11，超過21再降為1（在算總分時處理）
+  if (card.rank >= 11) return 10;
+  return card.rank;
+}
+function drawCard() {
+  const suits = ['♠️','♥️','♦️','♣️'];
+  return { rank: 1 + Math.floor(Math.random()*13), suit: suits[Math.floor(Math.random()*4)] };
+}
+function handTotal(hand) {
+  let total = hand.reduce((s,c) => s + cardValue(c), 0);
+  let aces = hand.filter(c => c.rank === 1).length;
+  while (total > 21 && aces > 0) { total -= 10; aces--; }
+  return total;
+}
+
+function showCasinoMenu(type) {
+  if (type === 'blackjack') openBlackjackTable();
+  else if (type === 'baccarat') openBaccaratTable();
+}
+
+// ── 21點 ──
+function openBlackjackTable() {
+  blackjackState = { bet:0, phase:'bet', player:[], dealer:[] };
+  renderBlackjack();
+  openModal('modal-casino');
+}
+
+function renderBlackjack() {
+  const body = document.getElementById('casino-body');
+  if (!body) return;
+  const s = blackjackState;
+  const title = document.getElementById('casino-title');
+  if (title) title.textContent = '🃏 21點賭場';
+
+  if (s.phase === 'bet') {
+    body.innerHTML = `
+      <div style="text-align:center;margin-bottom:1rem">
+        <div style="font-size:13px;color:#888">💰 你的金幣：${state.gold}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem">
+        ${[100,500,1000,5000,10000,50000].map(v => `<button onclick="setBJBet(${v})"
+          style="padding:10px;border-radius:10px;border:.5px solid #f59e0b55;background:#1a1408;color:#fde68a;font-size:13px;cursor:pointer">
+          下注 $${v}</button>`).join('')}
+      </div>
+      <div id="bj-custom-bet" style="display:flex;gap:6px;margin-bottom:.3rem">
+        <input type="number" id="bj-bet-input" placeholder="自訂金額" style="flex:1;padding:8px;border-radius:8px;border:.5px solid #444;background:#1a1a2e;color:#fff;font-size:13px">
+        <button onclick="setBJBetCustom()" style="padding:8px 14px;border-radius:8px;border:none;background:#92400e;color:#fde68a;font-size:12px;cursor:pointer">確定</button>
+      </div>
+      <div style="font-size:10px;color:#666;text-align:center">單局下注上限 $${CASINO_MAX_BET}</div>`;
+  } else if (s.phase === 'playing' || s.phase === 'done') {
+    const pTotal = handTotal(s.player);
+    const dTotal = handTotal(s.dealer);
+    const showDealerHole = s.phase === 'done';
+    body.innerHTML = `
+      <div style="margin-bottom:.8rem">
+        <div style="font-size:11px;color:#888;margin-bottom:.3rem">莊家 ${showDealerHole?`(${dTotal}點)`:''}</div>
+        <div style="font-size:22px">${s.dealer.map((c,i) => (i===1 && !showDealerHole) ? '🂠' : `${cardLabel(c)}${c.suit}`).join(' ')}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:11px;color:#888;margin-bottom:.3rem">你的手牌 (${pTotal}點)</div>
+        <div style="font-size:22px">${s.player.map(c => `${cardLabel(c)}${c.suit}`).join(' ')}</div>
+      </div>
+      <div style="font-size:12px;color:#f59e0b;margin-bottom:.8rem">💰 下注：$${s.bet}　目前金幣：${state.gold}</div>
+      ${s.phase==='playing' ? `
+        <div style="display:flex;gap:8px">
+          <button onclick="bjHit()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#1e3a1e;color:#4ade80;font-size:13px;cursor:pointer">要牌</button>
+          <button onclick="bjStand()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#3a1e1e;color:#f87171;font-size:13px;cursor:pointer">停牌</button>
+        </div>` : `
+        <div id="bj-result" style="text-align:center;font-size:15px;font-weight:700;margin-bottom:.8rem"></div>
+        <button onclick="openBlackjackTable()" style="width:100%;padding:10px;border-radius:10px;border:none;background:#92400e;color:#fde68a;font-size:13px;cursor:pointer">再來一局</button>
+      `}`;
+  }
+}
+
+const CASINO_MAX_BET = 50000;
+
+function setBJBet(amt) {
+  if (amt > CASINO_MAX_BET) { toast(`⚠️ 單局下注上限為 $${CASINO_MAX_BET}`); return; }
+  if (state.gold < amt) { toast('金幣不足'); return; }
+  blackjackState.bet = amt;
+  state.gold -= amt;
+  blackjackState.phase = 'playing';
+  blackjackState.player = [drawCard(), drawCard()];
+  blackjackState.dealer = [drawCard(), drawCard()];
+  updateUI(); save(true);
+  renderBlackjack();
+  // 雙方都黑傑克自動結算
+  if (handTotal(blackjackState.player) === 21) bjStand();
+}
+
+function setBJBetCustom() {
+  const input = document.getElementById('bj-bet-input');
+  const amt = parseInt(input?.value);
+  if (!amt || amt <= 0) { toast('請輸入有效金額'); return; }
+  setBJBet(amt);
+}
+
+function bjHit() {
+  blackjackState.player.push(drawCard());
+  if (handTotal(blackjackState.player) > 21) {
+    bjFinish();
+  } else {
+    renderBlackjack();
+  }
+}
+
+function bjStand() {
+  // 莊家規則：未達17必須要牌
+  while (handTotal(blackjackState.dealer) < 17) {
+    blackjackState.dealer.push(drawCard());
+  }
+  bjFinish();
+}
+
+function bjFinish() {
+  const s = blackjackState;
+  s.phase = 'done';
+  const pTotal = handTotal(s.player);
+  const dTotal = handTotal(s.dealer);
+  let resultText = '', resultColor = '#888', payout = 0;
+
+  if (pTotal > 21) {
+    resultText = '💥 爆牌！你輸了'; resultColor = '#f87171'; payout = 0;
+  } else if (dTotal > 21) {
+    resultText = '🎉 莊家爆牌！你贏了！'; resultColor = '#4ade80'; payout = s.bet * 2;
+  } else if (pTotal === 21 && s.player.length === 2) {
+    resultText = '🃏 黑傑克！1.5倍賠率！'; resultColor = '#fbbf24'; payout = Math.floor(s.bet * 2.5);
+  } else if (pTotal > dTotal) {
+    resultText = '🎉 你贏了！'; resultColor = '#4ade80'; payout = s.bet * 2;
+  } else if (pTotal < dTotal) {
+    resultText = '😢 你輸了'; resultColor = '#f87171'; payout = 0;
+  } else {
+    resultText = '🤝 和局，退回賭金'; resultColor = '#aaa'; payout = s.bet;
+  }
+
+  if (payout > 0) { state.gold += payout; playSFX('coin'); }
+  updateUI(); save(true);
+  renderBlackjack();
+  setTimeout(() => {
+    const el = document.getElementById('bj-result');
+    if (el) {
+      el.style.color = resultColor;
+      el.textContent = resultText + (payout > 0 ? `（獲得 $${payout}）` : '');
+    }
+  }, 50);
+}
+
+// ── 比大小（跟電腦莊家比點數，類似百家樂簡化版）──
+function openBaccaratTable() {
+  baccaratState = { bet:0, phase:'bet' };
+  renderBaccarat();
+  openModal('modal-casino');
+}
+
+function renderBaccarat() {
+  const body = document.getElementById('casino-body');
+  if (!body) return;
+  const s = baccaratState;
+  const title = document.getElementById('casino-title');
+  if (title) title.textContent = '🎲 比大小';
+
+  if (s.phase === 'bet') {
+    body.innerHTML = `
+      <div style="text-align:center;margin-bottom:1rem">
+        <div style="font-size:13px;color:#888">💰 你的金幣：${state.gold}</div>
+        <div style="font-size:11px;color:#666;margin-top:.4rem">與電腦莊家各自擲出點數，點數高者勝；平手退回賭金</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem">
+        ${[100,500,1000,5000,10000,50000].map(v => `<button onclick="setBacBet(${v})"
+          style="padding:10px;border-radius:10px;border:.5px solid #06b6d455;background:#082028;color:#67e8f9;font-size:13px;cursor:pointer">
+          下注 $${v}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:.3rem">
+        <input type="number" id="bac-bet-input" placeholder="自訂金額" style="flex:1;padding:8px;border-radius:8px;border:.5px solid #444;background:#1a1a2e;color:#fff;font-size:13px">
+        <button onclick="setBacBetCustom()" style="padding:8px 14px;border-radius:8px;border:none;background:#0e7490;color:#cffafe;font-size:12px;cursor:pointer">確定</button>
+      </div>
+      <div style="font-size:10px;color:#666;text-align:center">單局下注上限 $${CASINO_MAX_BET}</div>`;
+  } else if (s.phase === 'done') {
+    const resultColor = s.result === 'win' ? '#4ade80' : s.result === 'lose' ? '#f87171' : '#aaa';
+    const resultText = s.result === 'win' ? `🎉 你贏了！獲得 $${s.payout}`
+      : s.result === 'lose' ? '😢 你輸了'
+      : '🤝 和局，退回賭金';
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-around;margin-bottom:1rem;text-align:center">
+        <div>
+          <div style="font-size:11px;color:#888">你</div>
+          <div style="font-size:32px">${s.playerDice.join(' ')}</div>
+          <div style="font-size:14px;color:#67e8f9">${s.playerTotal}點</div>
+        </div>
+        <div style="font-size:20px;color:#666;align-self:center">VS</div>
+        <div>
+          <div style="font-size:11px;color:#888">莊家</div>
+          <div style="font-size:32px">${s.dealerDice.join(' ')}</div>
+          <div style="font-size:14px;color:#f87171">${s.dealerTotal}點</div>
+        </div>
+      </div>
+      <div style="text-align:center;font-size:15px;font-weight:700;color:${resultColor};margin-bottom:.8rem">${resultText}</div>
+      <button onclick="openBaccaratTable()" style="width:100%;padding:10px;border-radius:10px;border:none;background:#0e7490;color:#cffafe;font-size:13px;cursor:pointer">再來一局</button>`;
+  }
+}
+
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+function setBacBet(amt) {
+  if (amt > CASINO_MAX_BET) { toast(`⚠️ 單局下注上限為 $${CASINO_MAX_BET}`); return; }
+  if (state.gold < amt) { toast('金幣不足'); return; }
+  state.gold -= amt;
+  const s = baccaratState;
+  s.bet = amt;
+  s.phase = 'done';
+  const d1 = 1+Math.floor(Math.random()*6), d2 = 1+Math.floor(Math.random()*6);
+  const d3 = 1+Math.floor(Math.random()*6), d4 = 1+Math.floor(Math.random()*6);
+  s.playerDice = [DICE_FACES[d1-1], DICE_FACES[d2-1]];
+  s.dealerDice = [DICE_FACES[d3-1], DICE_FACES[d4-1]];
+  s.playerTotal = d1+d2;
+  s.dealerTotal = d3+d4;
+  if (s.playerTotal > s.dealerTotal) { s.result = 'win'; s.payout = amt*2; state.gold += s.payout; playSFX('coin'); }
+  else if (s.playerTotal < s.dealerTotal) { s.result = 'lose'; s.payout = 0; }
+  else { s.result = 'tie'; s.payout = amt; state.gold += amt; }
+  updateUI(); save(true);
+  renderBaccarat();
+}
+
+function setBacBetCustom() {
+  const input = document.getElementById('bac-bet-input');
+  const amt = parseInt(input?.value);
+  if (!amt || amt <= 0) { toast('請輸入有效金額'); return; }
+  setBacBet(amt);
+}
+
 function showVillageMenu(v) {
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:400;padding:1rem';
@@ -6466,10 +6973,18 @@ function showVillageMenu(v) {
           style="padding:10px;border-radius:10px;border:.5px solid #333;background:#1a1a2e;color:#a78bfa;font-size:13px;cursor:pointer">
           🔮 傳送石
         </button>
-        <button onclick="showRaidMenu();this.closest('[style*=fixed]').remove()"
+        <button onclick="showRaidMenu('${v.continent}');this.closest('[style*=fixed]').remove()"
           style="padding:10px;border-radius:10px;border:.5px solid #dc2626;background:#1a1030;color:#f87171;font-size:13px;cursor:pointer">
           👑 每日Boss副本
         </button>
+        ${v.continent==='desert' ? `<button onclick="showCasinoMenu('blackjack');this.closest('[style*=fixed]').remove()"
+          style="padding:10px;border-radius:10px;border:.5px solid #f59e0b;background:#1a1408;color:#fde68a;font-size:13px;cursor:pointer">
+          🃏 21點賭場
+        </button>` : ''}
+        ${v.continent==='sea' ? `<button onclick="showCasinoMenu('baccarat');this.closest('[style*=fixed]').remove()"
+          style="padding:10px;border-radius:10px;border:.5px solid #06b6d4;background:#082028;color:#67e8f9;font-size:13px;cursor:pointer">
+          🎲 比大小賭場
+        </button>` : ''}
         <button onclick="this.closest('[style*=fixed]').remove()"
           style="padding:8px;border-radius:10px;border:.5px solid #333;background:transparent;color:#555;font-size:12px;cursor:pointer">
           離開村莊
@@ -6805,6 +7320,18 @@ function load() {
     if (!state.freePoints) state.freePoints = 0;
     if (state.expNext === undefined) state.expNext = expForLevel(state.level);
     if (!state.prevJobs) state.prevJobs = [];
+    // 資料修復：舊存檔可能因bug產生同職業重複殘留記錄，去重並只保留最高等級
+    if (state.prevJobs.length > 0) {
+      const dedup = {};
+      for (const p of state.prevJobs) {
+        if (!dedup[p.job] || p.level > dedup[p.job].level) dedup[p.job] = p;
+      }
+      const before = state.prevJobs.length;
+      state.prevJobs = Object.values(dedup);
+      if (state.prevJobs.length < before) {
+        console.warn(`修復轉職殘留重複記錄：${before} → ${state.prevJobs.length}`);
+      }
+    }
     if (!state.inventoryMax || state.inventoryMax < 40) state.inventoryMax = 40;
     if (!state.job) state.job = 'miner';
     if (!state.jobLevel) state.jobLevel = 1;
