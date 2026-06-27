@@ -275,6 +275,22 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
         </div>
       </div>
 
+      <!-- v1.6 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.6</span>
+          <span class="cl-ver-title">動物寶石消除上線</span>
+          <span class="cl-ver-date">本次更新</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🐾 動物寶石消除 — 6種動物寶石點擊消除，消耗型棋盤（不補新方塊，越清越少）</div>
+          <div class="cl-item cl-new">🗺️ 關卡地圖選擇頁 — Z字形路徑，星級評分，可重玩刷金幣</div>
+          <div class="cl-item cl-new">🧰 道具系統 — 鐵鎚/洗牌/+10秒，商店金幣購買，炸彈/彩虹道具場上掉落</div>
+          <div class="cl-item cl-new">🔊 完整音效系統 — 15種音效 + 場景背景音樂，含靜音切換</div>
+          <div class="cl-item cl-improve">⏱️ 結算機制 — 時間到/無法再移動/全清才結算，而非即時達標</div>
+        </div>
+      </div>
+
       <div style="text-align:center;margin-top:1.5rem;padding:1rem;background:#0a0a1a;border-radius:12px;border:0.5px solid #1a1a2e">
         <div style="font-size:12px;color:#555;line-height:2">
           <span style="color:#a78bfa;font-weight:600">創作者 Adrian</span> × <span style="color:#7c3aed">Claude (Anthropic)</span><br>
@@ -339,7 +355,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
   <div class="wm-card">
     <div style="font-size:52px">🎮</div>
     <h2>歡樂遊戲大廳</h2>
-    <p>11 款完全免費遊戲，永久無廣告！<br>益智・記憶・邏輯・問答一次滿足<br>成績自動上傳，挑戰全球玩家 🏆</p>
+    <p>19 款完全免費遊戲，永久無廣告！<br>益智・記憶・邏輯・問答一次滿足<br>成績自動上傳，挑戰全球玩家 🏆</p>
     <input class="wm-inp" id="welcome-name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
     <button class="wm-start" onclick="confirmWelcome()">開始遊戲 🎯</button><br>
     <button class="wm-skip" onclick="skipWelcome()">先跳過</button>
@@ -384,6 +400,7 @@ const GAMES = [
   {id:'cell',       name:'細胞餵食',   icon:'🧬', badge:'進化',   desc:'選一種細胞，餵養到最終型態！',            file:'games/cell.html',       unit:'分',  lower:false, category:'kids'},
   {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',        file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
   {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',      file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
+  {id:'animal-blast',name:'動物寶石消除',icon:'🐾', badge:'消除',  desc:'點擊同色寶石消除，越清越少，挑戰每關目標分數！', file:'games/animal-blast.html', unit:'分', lower:false, category:'puzzle'},
 ];
 
 // ── localStorage ───────────────────────────────────────────
