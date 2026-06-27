@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.29 📋</button>
+      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.30 📋</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -1021,10 +1021,12 @@ Object.assign(MDEFS, {
   木乃伊:   {icon:'🧟',hp:120,atk:18,def:18,agi:5, special:'petrify', drop:'armor',  exp:65,gold:50,elite:false,element:'dark'},
   沙漠強盜: {icon:'🗡️',hp:80, atk:25,def:5, agi:20,special:'blind',   drop:null,     exp:50,gold:80,elite:false,element:'none'},
   沙漠毒蛇: {icon:'🐍',hp:70, atk:22,def:4, agi:22,special:'poison',  drop:'ring',   exp:48,gold:35,elite:false,element:'earth'},
+  沙塵巨蜂: {icon:'🐝',hp:85, atk:24,def:6, agi:24,special:'confuse', drop:'boots',  exp:58,gold:42,elite:false,element:'earth'},
+  流沙幽魂: {icon:'👻',hp:100,atk:26,def:10,agi:16,special:'steal',   drop:'necklace',exp:62,gold:55,elite:false,element:'dark'},
   古墓衛士: {icon:'⚱️',hp:280,atk:35,def:30,agi:8, special:'highdef', drop:'multi',  exp:180,gold:120,elite:true,element:'dark'},
   沙漠巨蠍王:{icon:'🦂',hp:600,atk:55,def:25,agi:18,special:'boss',   drop:'multi',  exp:600,gold:400,elite:true,element:'earth'},
 });
-const DESERT_POOL  = ['沙漠蠍','木乃伊','沙漠強盜','沙漠毒蛇'];
+const DESERT_POOL  = ['沙漠蠍','木乃伊','沙漠強盜','沙漠毒蛇','沙塵巨蜂','流沙幽魂'];
 const DESERT_ELITE = ['古墓衛士'];
 const DESERT_BOSS  = '沙漠巨蠍王';
 
@@ -1034,10 +1036,12 @@ Object.assign(MDEFS, {
   冰晶精靈: {icon:'❄️',hp:85, atk:22,def:12,agi:16,special:'slow',    drop:'necklace',exp:65,gold:42,elite:false,element:'ice'},
   凍土熊:   {icon:'🐻',hp:150,atk:30,def:20,agi:8, special:'berserk', drop:'armor',  exp:88,gold:60,elite:false,element:'ice'},
   冰霜蜘蛛: {icon:'🕷️',hp:90, atk:20,def:6, agi:26,special:'paralyze',drop:'ring',   exp:62,gold:40,elite:false,element:'ice'},
+  暴風雪怪: {icon:'🌬️',hp:110,atk:28,def:14,agi:18,special:'slow',    drop:'helmet', exp:66,gold:44,elite:false,element:'ice'},
+  冰封殭屍: {icon:'🧟',hp:130,atk:24,def:20,agi:6, special:'paralyze', drop:'legs',   exp:64,gold:46,elite:false,element:'ice'},
   霜龍幼體: {icon:'🐉',hp:400,atk:50,def:35,agi:12,special:'regen',   drop:'multi',  exp:220,gold:160,elite:true,element:'ice'},
   冰原霸主: {icon:'🧊',hp:900,atk:65,def:40,agi:15,special:'boss',    drop:'multi',  exp:750,gold:500,elite:true,element:'ice'},
 });
-const ICE_POOL  = ['雪狼','冰晶精靈','凍土熊','冰霜蜘蛛'];
+const ICE_POOL  = ['雪狼','冰晶精靈','凍土熊','冰霜蜘蛛','暴風雪怪','冰封殭屍'];
 const ICE_ELITE = ['霜龍幼體'];
 const ICE_BOSS  = '冰原霸主';
 
@@ -1047,10 +1051,12 @@ Object.assign(MDEFS, {
   火蜥蜴:   {icon:'🦎',hp:100,atk:32,def:8, agi:22,special:null,      drop:'boots',  exp:85, gold:58,elite:false,element:'fire'},
   熔岩哥布林:{icon:'👺',hp:110,atk:35,def:12,agi:15,special:'armorbrk',drop:null,     exp:90, gold:110,elite:false,element:'fire'},
   火焰蠍:   {icon:'🦂',hp:120,atk:40,def:10,agi:18,special:'weaken',  drop:'ring',   exp:95, gold:65,elite:false,element:'fire'},
+  熾炎犬:   {icon:'🐕',hp:115,atk:36,def:11,agi:24,special:'weaken',  drop:'boots',  exp:92,gold:62,elite:false,element:'fire'},
+  熔岩蟾蜍: {icon:'🐸',hp:140,atk:30,def:18,agi:8, special:'armorbrk', drop:'legs',   exp:88,gold:60,elite:false,element:'fire'},
   熔岩巨人: {icon:'🗿',hp:500,atk:60,def:45,agi:5, special:'highdef', drop:'multi',  exp:280,gold:200,elite:true,element:'fire'},
   火山惡魔: {icon:'😈',hp:1200,atk:80,def:50,agi:20,special:'boss',   drop:'multi',  exp:900,gold:600,elite:true,element:'fire'},
 });
-const LAVA_POOL  = ['岩漿獸','火蜥蜴','熔岩哥布林','火焰蠍'];
+const LAVA_POOL  = ['岩漿獸','火蜥蜴','熔岩哥布林','火焰蠍','熾炎犬','熔岩蟾蜍'];
 const LAVA_ELITE = ['熔岩巨人'];
 const LAVA_BOSS  = '火山惡魔';
 
@@ -1060,10 +1066,12 @@ Object.assign(MDEFS, {
   珊瑚怪:   {icon:'🪸',hp:140,atk:25,def:22,agi:6, special:'highdef', drop:'armor',  exp:90,gold:60,elite:false,element:'water'},
   深海水母: {icon:'🪼',hp:80, atk:28,def:5, agi:18,special:'confuse', drop:'ring',  exp:70,gold:45,elite:false,element:'water'},
   海盜幽靈: {icon:'💀',hp:100,atk:35,def:8, agi:24,special:'steal',   drop:null,     exp:85,gold:120,elite:false,element:'dark'},
+  電鰭魚:   {icon:'🐠',hp:95, atk:32,def:8, agi:22,special:'paralyze',drop:'gloves', exp:74,gold:50,elite:false,element:'thunder'},
+  深海蟹將: {icon:'🦀',hp:150,atk:27,def:24,agi:7, special:'armorbrk', drop:'helmet', exp:78,gold:54,elite:false,element:'water'},
   深海鯊王: {icon:'🦈',hp:450,atk:55,def:30,agi:18,special:'berserk', drop:'multi',  exp:260,gold:180,elite:true,element:'water'},
   深淵之眼: {icon:'👁️',hp:1000,atk:70,def:40,agi:25,special:'boss',  drop:'multi',  exp:800,gold:550,elite:true,element:'dark'},
 });
-const SEA_POOL  = ['深海魚人','珊瑚怪','深海水母','海盜幽靈'];
+const SEA_POOL  = ['深海魚人','珊瑚怪','深海水母','海盜幽靈','電鰭魚','深海蟹將'];
 const SEA_ELITE = ['深海鯊王'];
 const SEA_BOSS  = '深淵之眼';
 
@@ -1073,10 +1081,12 @@ Object.assign(MDEFS, {
   雷鳥:     {icon:'⚡',hp:100,atk:48,def:5, agi:28,special:'paralyze',drop:'ring',   exp:105,gold:70,elite:false,element:'thunder'},
   雲霧精靈: {icon:'☁️',hp:90, atk:38,def:12,agi:26,special:'confuse',drop:'necklace',exp:95,gold:65,elite:false,element:'none'},
   天空騎士: {icon:'🪽',hp:150,atk:45,def:20,agi:22,special:null,      drop:'armor',  exp:120,gold:85,elite:false,element:'thunder'},
+  風暴鷲:   {icon:'🦅',hp:125,atk:44,def:10,agi:30,special:'confuse', drop:'gloves', exp:98, gold:68,elite:false,element:'thunder'},
+  雲端遊魂: {icon:'👻',hp:95, atk:40,def:7, agi:28,special:'blind',   drop:'earring', exp:100,gold:72,elite:false,element:'none'},
   雷霆巨鵬: {icon:'🦉',hp:550,atk:70,def:38,agi:30,special:'berserk', drop:'multi',  exp:300,gold:220,elite:true,element:'thunder'},
   天空之王: {icon:'🌩️',hp:1500,atk:90,def:55,agi:35,special:'boss',  drop:'multi',  exp:1000,gold:700,elite:true,element:'thunder'},
 });
-const SKY_POOL  = ['風鷹','雷鳥','雲霧精靈','天空騎士'];
+const SKY_POOL  = ['風鷹','雷鳥','雲霧精靈','天空騎士','風暴鷲','雲端遊魂'];
 const SKY_ELITE = ['雷霆巨鵬'];
 const SKY_BOSS  = '天空之王';
 
@@ -1086,10 +1096,12 @@ Object.assign(MDEFS, {
   幽靈:     {icon:'👻',hp:100,atk:45,def:5, agi:35,special:'blind',   drop:null,     exp:115,gold:130,elite:false,element:'dark'},
   暗影刺客: {icon:'🥷',hp:120,atk:58,def:8, agi:38,special:null,      drop:'boots',  exp:125,gold:88,elite:false,element:'dark'},
   詛咒騎士: {icon:'⚫',hp:170,atk:52,def:28,agi:15,special:'confuse', drop:'ring',   exp:140,gold:95,elite:false,element:'dark'},
+  噬魂怪:   {icon:'👹',hp:145,atk:48,def:13,agi:22,special:'weaken',  drop:'legs',   exp:118,gold:80,elite:false,element:'dark'},
+  暗影蜘蛛: {icon:'🕷️',hp:110,atk:46,def:9, agi:32,special:'poison',  drop:'gloves', exp:112,gold:78,elite:false,element:'dark'},
   暗影領主: {icon:'🌑',hp:650,atk:80,def:50,agi:25,special:'regen',   drop:'multi',  exp:350,gold:260,elite:true,element:'dark'},
   虛空魔神: {icon:'🕳️',hp:1800,atk:100,def:60,agi:30,special:'boss', drop:'multi',  exp:1200,gold:800,elite:true,element:'dark'},
 });
-const SHADOW_POOL  = ['暗影獸','幽靈','暗影刺客','詛咒騎士'];
+const SHADOW_POOL  = ['暗影獸','幽靈','暗影刺客','詛咒騎士','噬魂怪','暗影蜘蛛'];
 const SHADOW_ELITE = ['暗影領主'];
 const SHADOW_BOSS  = '虛空魔神';
 
@@ -1099,10 +1111,12 @@ Object.assign(MDEFS, {
   廢棄守衛: {icon:'⚙️',hp:200,atk:50,def:35,agi:10,special:'armorbrk',drop:'ring',   exp:160,gold:110,elite:false,element:'none'},
   電擊無人機:{icon:'🛸',hp:120,atk:60,def:8, agi:30,special:'slow',    drop:'necklace',exp:135,gold:92,elite:false,element:'thunder'},
   機械劍士: {icon:'🗡️',hp:180,atk:65,def:25,agi:20,special:null,      drop:'boots',  exp:155,gold:108,elite:false,element:'none'},
+  鑽地獸:   {icon:'🦾',hp:165,atk:58,def:22,agi:16,special:'armorbrk', drop:'boots',  exp:148,gold:102,elite:false,element:'earth'},
+  雷射砲塔: {icon:'🛰️',hp:130,atk:62,def:15,agi:5, special:'paralyze', drop:'helmet', exp:142,gold:98,elite:false,element:'thunder'},
   廢都統帥: {icon:'🏭',hp:800,atk:90,def:60,agi:15,special:'berserk', drop:'multi',  exp:420,gold:300,elite:true,element:'thunder'},
   機械神: {icon:'⚡',hp:2000,atk:110,def:70,agi:25,special:'boss',    drop:'multi',  exp:1500,gold:1000,elite:true,element:'thunder'},
 });
-const MECH_POOL  = ['機械蟲','廢棄守衛','電擊無人機','機械劍士'];
+const MECH_POOL  = ['機械蟲','廢棄守衛','電擊無人機','機械劍士','鑽地獸','雷射砲塔'];
 const MECH_ELITE = ['廢都統帥'];
 const MECH_BOSS  = '機械神';
 
@@ -1116,9 +1130,11 @@ Object.assign(MDEFS, {
   混沌觸手: {icon:'🐙',hp:260,atk:100,def:35,agi:30,special:'confuse', drop:'multi',  exp:270,gold:210,elite:false,element:'none'},
   時空裂隙獸:{icon:'🌌',hp:300,atk:90, def:50,agi:40,special:'paralyze',drop:'multi', exp:300,gold:240,elite:false,element:'thunder'},
   禁忌守衛: {icon:'⚔️',hp:350,atk:110,def:60,agi:25,special:'armorbrk',drop:'multi',  exp:320,gold:260,elite:false,element:'earth'},
+  永夜行者: {icon:'🌌',hp:290,atk:98, def:48,agi:42,special:'confuse', drop:'multi',  exp:290,gold:230,elite:false,element:'dark'},
+  虛空蝕者: {icon:'🦠',hp:270,atk:102,def:38,agi:35,special:'armorbrk',drop:'multi',  exp:285,gold:225,elite:false,element:'none'},
   虛空領主: {icon:'👑',hp:900,atk:150,def:90,agi:45,special:'regen',   drop:'multi',  exp:1200,gold:900,elite:true,element:'dark'},
 });
-const HIDDEN_POOL  = ['虛空行者','混沌觸手','時空裂隙獸','禁忌守衛'];
+const HIDDEN_POOL  = ['虛空行者','混沌觸手','時空裂隙獸','禁忌守衛','永夜行者','虛空蝕者'];
 const HIDDEN_ELITE = ['虛空領主','混沌使者'];
 
 
@@ -1493,6 +1509,7 @@ const ENHANCE_RATES = {
 // 📋 VERSION HISTORY — 更新日誌
 // ════════════════════════════════════════════════════════════
 const VERSION_HISTORY = [
+  {v:'1.30', notes:['各大陸（除新手森林）一般怪物從4種擴增至6種，共新增16隻怪物：沙塵巨蜂/流沙幽魂(沙漠)、暴風雪怪/冰封殭屍(冰雪)、熾炎犬/熔岩蟾蜍(熔岩)、電鰭魚/深海蟹將(深海)、風暴鷲/雲端遊魂(天空)、噬魂怪/暗影蜘蛛(暗影)、鑽地獸/雷射砲塔(機械)、永夜行者/虛空蝕者(隱藏)','圖鑑總數自動從50種增加至66種，收集進度同步更新']},
   {v:'1.29', notes:['賭場新增單局下注上限 $50000（固定/自訂金額皆受限），避免一次梭哈全部金幣','下注選項擴充：$100/$500/$1000/$5000/$10000/$50000，UI顯示上限提示']},
   {v:'1.28', notes:['修正每日副本邏輯矛盾：原本在任何村莊都能挑戰所有已抵達大陸的Boss，現在限制為只能挑戰當前所在村莊對應大陸的首領','新增賭場系統：烈日城(沙漠)→21點賭場，珊瑚港(深海)→比大小賭場(跟電腦莊家比點數)','21點規則：莊家未滿17必須要牌，黑傑克1.5倍賠率，爆牌判負，和局退回賭金']},
   {v:'1.27', notes:['圖鑑新增「👑 每日副本限定」標籤：8隻大陸Boss（森林詛咒者/沙漠巨蠍王/冰原霸主等）只存在於每日副本，地圖探索無法遇到，現在會明確標示','未發現的副本限定怪物也會提示「需挑戰每日副本」']},
