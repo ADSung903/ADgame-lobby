@@ -153,7 +153,7 @@
   .modal-card{background:linear-gradient(160deg, var(--panel-light), var(--panel)); border:2px solid rgba(255,255,255,.08); border-radius:24px; padding:26px 24px; width:min(86vw,360px); text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5); max-height:84vh; overflow-y:auto;}
   .modal-card h2{font-family:'Baloo 2',sans-serif; font-size:26px; margin:0 0 6px; font-weight:800;}
   .modal-card .sub{color:var(--text-dim); font-size:14px; margin-bottom:16px;}
-  .modal-stats{display:flex; justify-content:center; gap:18px; margin:14px 0 18px;}
+  .modal-stats{display:flex; flex-wrap:wrap; justify-content:center; gap:14px 18px; margin:14px 0 18px;}
   .modal-stats div{display:flex; flex-direction:column;}
   .modal-stats .v{font-family:'Baloo 2',sans-serif; font-size:22px; font-weight:800; color:var(--gold);}
   .modal-stats .l{font-size:11px; color:var(--text-dim); font-weight:700;}
@@ -239,6 +239,7 @@
     <div class="star-row" id="winStars">⭐⭐⭐</div>
     <div class="modal-stats">
       <div><div class="v" id="winScore"></div><div class="l">本關分數</div></div>
+      <div><div class="v" id="winTimeBonus"></div><div class="l">時間加成</div></div>
       <div><div class="v" id="winCoin"></div><div class="l">獲得金幣</div></div>
     </div>
     <button class="btn gold" onclick="playBtn(); nextLevel()">下一關 →</button>
@@ -253,6 +254,7 @@
     <div class="sub">看看分數有沒有達到本關目標</div>
     <div class="modal-stats">
       <div><div class="v" id="overScore"></div><div class="l">本關分數</div></div>
+      <div><div class="v" id="overTimeBonus"></div><div class="l">時間加成</div></div>
       <div><div class="v" id="overTarget"></div><div class="l">目標分數</div></div>
       <div><div class="v" id="overLvl"></div><div class="l">關卡</div></div>
     </div>
@@ -393,15 +395,31 @@ function persist(){
 
 /* ====================== LEVEL CONFIG ====================== */
 const ANIMAL_COUNT_PER_LEVEL = 4; // 每關固定用幾種動物(不隨關卡遞增,避免顏色太多湊不出組合)
+const BASE_COLS = 9;    // 第1~8關的初始欄數
+const MAX_COLS = 13;    // 欄數上限(手機螢幕安全範圍,夠用就好,不用無限變寬)
+const BASE_TIME = 75;   // 第1關時間限制(秒)
+const MIN_TIME = 45;    // 時間下限,難度封頂用
+const SCORE_PER_TILE_EST = 16; // 熟練玩家平均每顆方塊的估計分數(保守值),用來估算該關卡分數上限
+const TARGET_RATIO_MIN = 0.25;  // 第1關目標分數佔上限的比例
+const TARGET_RATIO_MAX = 0.70;  // 比例封頂值(數字越高越硬核,但理論上一定能達成)
+const TARGET_RATIO_GROWTH = 10; // 比例爬升速度,數字越大爬越慢
+const TIME_BONUS_RATE = 4;      // 結算時,剩餘每秒換算成多少分數,補助效率高的玩家達標
 
 function levelConfig(lvl){
-  const target = 250 + (lvl-1) * 130;
-  const timeLimit = 75;
+  // 棋盤欄數:每4關+2欄,最多到13欄(9x9 → 11x9 → 13x9 封頂)
+  const initialCols = Math.min(BASE_COLS + 2 * Math.floor((lvl-1)/4), MAX_COLS);
+  // 時間限制:每關-1秒,最低45秒封頂,後期更看手速與效率
+  const timeLimit = Math.max(MIN_TIME, BASE_TIME - (lvl-1));
+  // 目標分數 = 該關卡理論分數上限 × 比例(比例隨關卡慢慢爬到70%封頂)
+  // 這樣不管關卡生成到第幾關,目標永遠低於理論上限,保證有解,可以無限生成關卡
+  const estimatedMax = initialCols * ROWS * SCORE_PER_TILE_EST;
+  const ratio = TARGET_RATIO_MIN + (TARGET_RATIO_MAX - TARGET_RATIO_MIN) * (1 - Math.exp(-(lvl-1)/TARGET_RATIO_GROWTH));
+  const target = Math.round(estimatedMax * ratio);
   const iceChance = lvl >= 7 ? Math.min(0.05 + (lvl-7)*0.01, 0.15) : 0;
   // 每關隨機抽 4 種動物(洗牌後取前4個),增加每關的視覺變化
   const shuffled = [...ANIMALS].sort(()=>Math.random()-0.5);
   const levelAnimals = shuffled.slice(0, ANIMAL_COUNT_PER_LEVEL);
-  return {target, timeLimit, iceChance, levelAnimals};
+  return {target, timeLimit, iceChance, levelAnimals, initialCols};
 }
 
 /* ====================== BOARD GEN (消耗型, 不補新方塊) ====================== */
@@ -411,7 +429,7 @@ function buildCols(cfg){
   let cols, attempts = 0;
   do{
     cols = [];
-    for(let c=0;c<GRID;c++){
+    for(let c=0;c<cfg.initialCols;c++){
       const colArr = [];
       for(let r=0;r<ROWS;r++){
         const cell = {type:'normal', animal: randAnimal(cfg.levelAnimals), frozen: Math.random() < cfg.iceChance};
@@ -514,7 +532,8 @@ function faceSVG(animal){
 function computeCellSize(){
   const w = window.innerWidth, h = window.innerHeight;
   const avail = Math.min(w*0.94, h*0.5);
-  return Math.max(24, Math.floor((avail - (GRID-1)*GAP)/GRID));
+  const cols = state.initialCols || GRID;
+  return Math.max(18, Math.floor((avail - (cols-1)*GAP)/cols));
 }
 
 function renderBoard(){
@@ -653,6 +672,7 @@ function startLevel(lvl){
   state.curTimeLimit = cfg.timeLimit;
   state.timeLeft = cfg.timeLimit;
   state.score = 0;
+  state.initialCols = cfg.initialCols;
   state.cols = buildCols(cfg);
   state.activeTool = null;
   state.busy = false;
@@ -711,6 +731,9 @@ function starsForResult(){
 function endLevel(bonus, reason){
   clearInterval(state.timerHandle);
   if(bonus) state.score += bonus;
+  // 剩餘時間換算成分數,補助效率高/提早清完的玩家達標(時間到時 timeLeft=0,等於沒有加成)
+  const timeBonus = Math.round(state.timeLeft * TIME_BONUS_RATE);
+  if(timeBonus) state.score += timeBonus;
   const pass = state.score >= state.target;
 
   if(pass){
@@ -727,6 +750,7 @@ function endLevel(bonus, reason){
     document.getElementById('winTitle').textContent = (reason==='clear') ? '🌟 全部清空！' : '🎉 過關！';
     document.getElementById('winLvl').textContent = state.level;
     document.getElementById('winScore').textContent = state.score;
+    document.getElementById('winTimeBonus').textContent = '+' + timeBonus;
     document.getElementById('winCoin').textContent = '+' + coinGain;
     document.getElementById('winStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
     state.modalOpen = true;
@@ -739,6 +763,7 @@ function endLevel(bonus, reason){
     persist();
     document.getElementById('overTitle').textContent = (reason==='stuck') ? '💥 沒有路可走了' : '⏳ 時間到！';
     document.getElementById('overScore').textContent = state.score;
+    document.getElementById('overTimeBonus').textContent = '+' + timeBonus;
     document.getElementById('overTarget').textContent = state.target;
     document.getElementById('overLvl').textContent = state.level;
     state.modalOpen = true;
