@@ -544,9 +544,10 @@ function faceSVG(animal){
 
 /* ====================== RENDER ====================== */
 function computeCellSize(){
-  const w = window.innerWidth, h = window.innerHeight;
-  const availW = w * 0.94;
-  const availH = h * 0.52;
+  const wrap = document.querySelector('.board-wrap');
+  const rect = wrap ? wrap.getBoundingClientRect() : null;
+  const availW = (rect && rect.width > 0) ? rect.width - 8 : window.innerWidth * 0.94;
+  const availH = (rect && rect.height > 0) ? rect.height - 8 : window.innerHeight * 0.5;
   const cols = state.initialCols || GRID;
   const rows = ROWS;
   const sizeByW = Math.floor((availW - (cols-1)*GAP) / cols);
@@ -683,7 +684,7 @@ function renderMap(){
       if(stars>0){
         node.innerHTML += `<div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3-stars)}</div>`;
       }
-      node.onclick = () => { AudioM.play('button'); startLevel(lvl); showScreen('screenGame'); };
+      node.onclick = () => { AudioM.play('button'); showScreen('screenGame'); startLevel(lvl); };
     }
     row.appendChild(node);
     wrap.appendChild(row);
