@@ -49,6 +49,23 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 .theme-effect{font-size:10px;color:#4ade80;margin-top:1px}
 .theme-cost{font-size:11px;font-weight:700;color:var(--gold);flex-shrink:0;white-space:nowrap;padding-left:.4rem}
 
+/* galaxy cards */
+.galaxy-card{display:flex;align-items:center;gap:.6rem;background:var(--bg3);border:.5px solid var(--border);border-radius:12px;padding:.65rem;margin-bottom:.4rem;cursor:pointer;transition:border-color .15s}
+.galaxy-card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.galaxy-card.locked{opacity:.5;cursor:default}
+.galaxy-icon{font-size:26px;flex-shrink:0;width:34px;text-align:center}
+.galaxy-info{flex:1;min-width:0}
+.galaxy-name{font-size:13px;font-weight:700;color:var(--text)}
+.galaxy-desc{font-size:10px;color:var(--sub);margin-top:2px}
+
+/* badge grid */
+.badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+.badge-card{background:var(--bg3);border:.5px solid var(--border);border-radius:12px;padding:.6rem .3rem;text-align:center;opacity:.45}
+.badge-card.got{opacity:1;border-color:var(--gold);box-shadow:0 0 10px rgba(245,158,11,.25)}
+.badge-icon{font-size:26px;margin-bottom:.25rem}
+.badge-name{font-size:10px;font-weight:700;color:var(--text);line-height:1.3}
+.badge-desc{font-size:8.5px;color:var(--sub);margin-top:1px;line-height:1.3}
+
 /* click */
 .click-area{padding:.35rem .75rem;flex-shrink:0}
 .click-btn{width:100%;padding:.85rem;border-radius:14px;border:none;background:linear-gradient(135deg,#3a0a7a,var(--accent));color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:transform .08s;user-select:none;-webkit-user-select:none}
@@ -179,9 +196,21 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
   <div class="tab active" onclick="switchTab('shop')">🏪 升級</div>
   <div class="tab" onclick="switchTab('stats')">📊 統計</div>
   <div class="tab" onclick="switchTab('forbes')">🏆 富比士</div>
+  <div class="tab" onclick="switchTab('galaxy')">🌌 星系</div>
 </div>
 
 <div id="tab-shop" class="shop-scroll"></div>
+
+<div id="tab-galaxy" class="page-scroll" style="display:none">
+  <div class="stat-section">
+    <h3>🌌 星系旅行 <span style="font-size:10px;color:var(--sub);font-weight:400">（轉生解鎖新星系）</span></h3>
+    <div id="galaxy-list"></div>
+  </div>
+  <div class="stat-section">
+    <h3>🎖️ 徽章收藏</h3>
+    <div class="badge-grid" id="badge-list"></div>
+  </div>
+</div>
 
 <div id="tab-stats" class="page-scroll" style="display:none">
   <div id="offline-earned-box" style="display:none" class="offline-box">
@@ -255,6 +284,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
   </div>
 </div>
 
+</div>
+
 <script>
 const UPGRADES=[
   {id:'click',  name:'升級招攬話術',icon:'📢',desc:'提升手動點擊收益',  base_cost:15,    click_boost:1,cps:0,    max:50,color:'#7c3aed'},
@@ -319,6 +350,7 @@ const THEMES=[
 ];
 function getTheme(id){return THEMES.find(t=>t.id===id)||THEMES[0];}
 function themeMult(kind){
+  if(state.currentGalaxy!=='earth')return 1; // 主題店面僅限太陽系
   const t=state.activeTheme||'default';
   if(kind==='click')return t==='cafe'?1.15:1;
   if(kind==='cps')  return t==='casino'?1.15:1;
@@ -328,7 +360,7 @@ function themeMult(kind){
 
 // 轉生門檻：P3-P14 ×2、P15-P49 ×5、P50-P99 ×10、P100+ ×20
 function prestigeThreshold(){
-  const P=state.prestige;
+  const P=cur().prestige;
   let base;
   if(P===0)base=1e8;
   else if(P===1)base=5e8;
@@ -341,6 +373,124 @@ function prestigeThreshold(){
 }
 
 function allUpgrades(){return[...UPGRADES,...UPGRADES_P3,...UPGRADES_P15,...UPGRADES_P50,...UPGRADES_P100];}
+
+// ══════════════ 星系系統 ══════════════
+const UPGRADES_NAMEK=[
+  {id:'punch',  name:'揮拳訓練',    icon:'👊',desc:'提升手動點擊收益',    base_cost:15,    click_boost:1,cps:0,    max:50,color:'#ef4444'},
+  {id:'scouter',name:'戰力探測器',  icon:'📡',desc:'每秒自動偵測戰機',    base_cost:100,   click_boost:0,cps:2,    max:50,color:'#22c55e'},
+  {id:'zenkai', name:'瀕死爆發道館',icon:'💪',desc:'瀕死後變得更強',      base_cost:500,   click_boost:0,cps:15,   max:40,color:'#f97316'},
+  {id:'radar',  name:'星球雷達站',  icon:'🔍',desc:'搜索財寶帶來收益',    base_cost:2000,  click_boost:0,cps:60,   max:30,color:'#eab308'},
+  {id:'gravity',name:'重力修煉室',  icon:'🌀',desc:'百倍重力下的修煉',    base_cost:8000,  click_boost:0,cps:200,  max:25,color:'#a855f7'},
+  {id:'elder',  name:'長老議會',    icon:'👴',desc:'智慧長老指引財富',    base_cost:35000, click_boost:0,cps:800,  max:20,color:'#06b6d4'},
+  {id:'wish',   name:'許願星求願',  icon:'🐲',desc:'向星球許願帶來鉅富',  base_cost:150000,click_boost:0,cps:3000, max:15,color:'#10b981'},
+  {id:'godrealm',name:'戰神修煉聖地',icon:'⚡',desc:'終極戰鬥修煉之地', base_cost:800000,click_boost:0,cps:12000,max:10,color:'#fbbf24'},
+];
+const UPGRADES_NAMEK_P3=[
+  {id:'saiyan_armor', name:'戰鬥族戰甲工坊', icon:'🛡️',desc:'量產強化戰甲',  base_cost:5e6,  click_boost:0,cps:80000,  max:8,color:'#dc2626'},
+  {id:'namek_dragon',  name:'星球神龍召喚陣', icon:'🐉',desc:'巨龍帶來財富', base_cost:3e7,  click_boost:0,cps:300000, max:5,color:'#16a34a'},
+  {id:'ssj',           name:'金色形態覺醒',   icon:'⚡',desc:'力量躍升的瞬間',base_cost:1.5e8,click_boost:0,cps:1200000,max:3,color:'#fbbf24'},
+];
+const UPGRADES_NAMEK_P15=[
+  {id:'tyrant_fleet', name:'暴君艦隊徵收站', icon:'👹',desc:'徵收宇宙財富',  base_cost:1e11,click_boost:0,cps:1e9, max:5,color:'#7c2d12'},
+  {id:'android_lab',  name:'人造戰士實驗室', icon:'🤖',desc:'打造完美戰士', base_cost:1e12,click_boost:0,cps:1e10,max:3,color:'#475569'},
+  {id:'timechamber',  name:'異界修煉密室',   icon:'⏳',desc:'時間扭曲的修煉場',base_cost:1e13,click_boost:0,cps:1e11,max:2,color:'#facc15'},
+];
+const UPGRADES_NAMEK_P50=[
+  {id:'multiverse_tournament',name:'諸天大會競技場',icon:'🏟️',desc:'跨宇宙的終極比武', base_cost:1e17,click_boost:0,cps:1e14,max:3,color:'#f59e0b'},
+  {id:'godking_palace',       name:'眾神之王宮殿朝拜',icon:'👑',desc:'拜見掌管萬物的存在',base_cost:1e19,click_boost:0,cps:1e16,max:2,color:'#facc15'},
+];
+const UPGRADES_NAMEK_P100=[
+  {id:'omnipotent',name:'全宇宙之神',icon:'🌌',desc:'掌控全部宇宙的力量',base_cost:1e27,click_boost:0,cps:1e22,max:1,color:'#fff'},
+];
+function allUpgradesNamek(){return[...UPGRADES_NAMEK,...UPGRADES_NAMEK_P3,...UPGRADES_NAMEK_P15,...UPGRADES_NAMEK_P50,...UPGRADES_NAMEK_P100];}
+const INDUSTRY_TAGS_NAMEK={
+  punch:'拳鬥新星',scouter:'戰力分析師',zenkai:'瀕死戰將',radar:'星海搜尋者',
+  gravity:'重力修士',elder:'長老門徒',wish:'許願使者',godrealm:'戰神候補',
+  saiyan_armor:'戰甲工匠',namek_dragon:'神龍祭司',ssj:'金色戰士',
+  tyrant_fleet:'艦隊統帥',android_lab:'造物主',timechamber:'時空修士',
+  multiverse_tournament:'諸天鬥士',godking_palace:'王朝謁見者',
+  omnipotent:'全宇宙之神',
+};
+
+const UPGRADES_B612=[
+  {id:'volcano', name:'清掃火山',    icon:'🌋',desc:'每天清理小火山',      base_cost:15,    click_boost:1,cps:0,    max:50,color:'#dc2626'},
+  {id:'rose',    name:'玫瑰園藝',    icon:'🌹',desc:'細心照顧獨一無二的花',base_cost:100,   click_boost:0,cps:2,    max:50,color:'#ec4899'},
+  {id:'fox',     name:'馴狐站',      icon:'🦊',desc:'學會馴養的意義',      base_cost:500,   click_boost:0,cps:15,   max:40,color:'#f97316'},
+  {id:'baobab',  name:'拔除猴麵包樹',icon:'🌱',desc:'防止星球被撐裂',      base_cost:2000,  click_boost:0,cps:60,   max:30,color:'#22c55e'},
+  {id:'sunset',  name:'日落觀景台',  icon:'🌅',desc:'一天看45次日落',      base_cost:8000,  click_boost:0,cps:200,  max:25,color:'#fb923c'},
+  {id:'lamp',    name:'點燈人小隊',  icon:'🏮',desc:'忠於職責的點燈人',    base_cost:35000, click_boost:0,cps:800,  max:20,color:'#eab308'},
+  {id:'mailman', name:'星際郵差',    icon:'☄️',desc:'飛往他星送信',        base_cost:150000,click_boost:0,cps:3000, max:15,color:'#60a5fa'},
+  {id:'stars',   name:'數星星的人',  icon:'⭐',desc:'認真數著自己的星星',  base_cost:800000,click_boost:0,cps:12000,max:10,color:'#fde047'},
+];
+const UPGRADES_B612_P3=[
+  {id:'greenhouse', name:'溫室玫瑰培育所', icon:'🏡',desc:'培育更多玫瑰',     base_cost:5e6,  click_boost:0,cps:80000,  max:8,color:'#f472b6'},
+  {id:'starmap',    name:'星圖繪製局',     icon:'🗺️',desc:'繪製星際地圖',    base_cost:3e7,  click_boost:0,cps:300000, max:5,color:'#38bdf8'},
+  {id:'snake',      name:'蟒蛇與帽子博物館',icon:'🐍',desc:'收藏奇妙的畫作', base_cost:1.5e8,click_boost:0,cps:1200000,max:3,color:'#84cc16'},
+];
+const UPGRADES_B612_P15=[
+  {id:'wellpump',  name:'沙漠之井打水站', icon:'🪣',desc:'沙漠中珍貴的水',  base_cost:1e11,click_boost:0,cps:1e9, max:5,color:'#0ea5e9'},
+  {id:'aviator',   name:'墜落飛行員救援隊',icon:'✈️',desc:'救援沙漠中的旅人',base_cost:1e12,click_boost:0,cps:1e10,max:3,color:'#94a3b8'},
+  {id:'observatory',name:'行星觀測天文台', icon:'🔭',desc:'觀測遙遠的星球', base_cost:1e13,click_boost:0,cps:1e11,max:2,color:'#818cf8'},
+];
+const UPGRADES_B612_P50=[
+  {id:'essential',     name:'用心看不見的事物',icon:'👁️',desc:'重要的東西眼睛看不見',base_cost:1e17,click_boost:0,cps:1e14,max:3,color:'#fbbf24'},
+  {id:'universe_garden',name:'宇宙玫瑰花園',  icon:'🌌',desc:'整片宇宙都開滿玫瑰', base_cost:1e19,click_boost:0,cps:1e16,max:2,color:'#f9a8d4'},
+];
+const UPGRADES_B612_P100=[
+  {id:'littleprince',name:'小王子的回歸',icon:'👑',desc:'回到屬於自己的星球',base_cost:1e27,click_boost:0,cps:1e22,max:1,color:'#fff'},
+];
+function allUpgradesB612(){return[...UPGRADES_B612,...UPGRADES_B612_P3,...UPGRADES_B612_P15,...UPGRADES_B612_P50,...UPGRADES_B612_P100];}
+const INDUSTRY_TAGS_B612={
+  volcano:'火山清潔工',rose:'玫瑰園丁',fox:'馴養者',baobab:'除根者',
+  sunset:'日落旅人',lamp:'點燈人',mailman:'星際信使',stars:'星星收藏家',
+  greenhouse:'溫室園長',starmap:'製圖師',snake:'博物館長',
+  wellpump:'掘井人',aviator:'救援隊長',observatory:'觀星者',
+  essential:'本質之眼',universe_garden:'宇宙園丁',
+  littleprince:'小王子',
+};
+
+const GALAXIES=[
+  {id:'earth', name:'太陽系', icon:'🌍', unlockPrestige:0,
+    upgrades:allUpgrades, tags:INDUSTRY_TAGS, baseUpgrades:UPGRADES,
+    vars:{'--accent':'#7c3aed','--gold':'#f59e0b','--bg':'#060610','--bg2':'#0d0d1e','--bg3':'#12122a'}},
+  {id:'namek', name:'那美克星', icon:'🐉', unlockPrestige:5,
+    upgrades:allUpgradesNamek, tags:INDUSTRY_TAGS_NAMEK, baseUpgrades:UPGRADES_NAMEK,
+    vars:{'--accent':'#22c55e','--gold':'#facc15','--bg':'#04140a','--bg2':'#08200f','--bg3':'#0c2a14'}},
+  {id:'b612', name:'B612 小行星', icon:'🌹', unlockPrestige:5, unlockGalaxy:'namek',
+    upgrades:allUpgradesB612, tags:INDUSTRY_TAGS_B612, baseUpgrades:UPGRADES_B612,
+    vars:{'--accent':'#ec4899','--gold':'#fde047','--bg':'#0a0612','--bg2':'#150a1e','--bg3':'#1d0f28'}},
+];
+function getGalaxy(id){return GALAXIES.find(g=>g.id===id)||GALAXIES[0];}
+function curGalaxyDef(){return getGalaxy(state.currentGalaxy);}
+function curUpgrades(){return curGalaxyDef().upgrades();}
+function emptyGalaxyState(){
+  return {money:0,totalEarned:0,allTime:0,weekly:0,weekKey:'',
+    clicks:0,peakCps:0,peakCpsEver:0,prestige:0,counts:{},forbesCrossed:0};
+}
+function cur(){
+  if(!state.galaxies[state.currentGalaxy])state.galaxies[state.currentGalaxy]=emptyGalaxyState();
+  return state.galaxies[state.currentGalaxy];
+}
+function galaxyUnlocked(g){
+  if(g.unlockGalaxy){
+    const reqGal=state.galaxies[g.unlockGalaxy];
+    return !!reqGal && reqGal.prestige>=g.unlockPrestige;
+  }
+  const earthGal=state.galaxies.earth;
+  return !!earthGal && earthGal.prestige>=g.unlockPrestige;
+}
+function grandTotalAllTime(){
+  return Object.values(state.galaxies).reduce((s,g)=>s+(g.allTime||0),0);
+}
+function grandTotalWeekly(){
+  return Object.values(state.galaxies).reduce((s,g)=>s+(g.weekly||0),0);
+}
+function grandTotalPrestige(){
+  return Object.values(state.galaxies).reduce((s,g)=>s+(g.prestige||0),0);
+}
+function grandTotalPeakCps(){
+  return Object.values(state.galaxies).reduce((s,g)=>s+(g.peakCpsEver||0),0);
+}
 
 const MILESTONES=[
   {v:1000,    title:'🎉 首批客人！',  body:'達成 $1,000！小店開始有人氣了！'},
@@ -373,15 +523,53 @@ const BILLIONAIRES=[
 
 const LS_KEY='shop24h_save', LS_LB='shop24h_lb_v1', RATE=1.15;
 
+// ══════════════ 徽章系統 ══════════════
+const BADGES=[
+  {id:'first_prestige', name:'初次轉生', icon:'✨', kind:'prestige',
+    desc:'完成你的第一次轉生', check:s=>grandTotalPrestigeFrom(s)>=1},
+  {id:'namek_unlocked', name:'踏上那美克星', icon:'🐉', kind:'milestone',
+    desc:'解鎖那美克星', check:s=>(s.visitedGalaxies||[]).includes('namek')},
+  {id:'b612_unlocked', name:'抵達 B612', icon:'🌹', kind:'milestone',
+    desc:'解鎖 B612 小行星', check:s=>(s.visitedGalaxies||[]).includes('b612')},
+  {id:'tri_explorer', name:'三星探索者', icon:'🪐', kind:'rare',
+    desc:'在 3 個不同星系都完成過轉生', check:s=>Object.values(s.galaxies).filter(g=>g.prestige>0).length>=3},
+  {id:'galaxy_master', name:'星系霸主', icon:'👑', kind:'rare',
+    desc:'單一星系轉生達 20 次', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=20)},
+  {id:'speed_runner', name:'光速十連', icon:'⚡', kind:'rare',
+    desc:'10 次轉生內完成（任一星系）', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=10)},
+  {id:'wanderer', name:'跨界旅人', icon:'🌌', kind:'rare',
+    desc:'24 小時內切換過 2 個星系', check:s=>(s.galaxySwitchLog||[]).length>=2&&
+      (Date.now()-s.galaxySwitchLog[0])<86400000},
+];
+function grandTotalPrestigeFrom(s){return Object.values(s.galaxies).reduce((sum,g)=>sum+(g.prestige||0),0);}
+
+function checkBadges(){
+  BADGES.forEach(b=>{
+    if(!state.badges.includes(b.id)&&b.check(state)){
+      state.badges.push(b.id);
+      showBadgeToast(b);
+    }
+  });
+}
+function showBadgeToast(b){
+  toast(b.icon+' 獲得新徽章：'+b.name+'！');
+}
+
 let state={
-  money:0, totalEarned:0, allTime:0, weekly:0, weekKey:'',
-  clicks:0, peakCps:0, peakCpsEver:0, startTime:Date.now(),
-  prestige:0, goldTokens:0, counts:{}, lastSave:Date.now(),
-  forbesCrossed:0,
+  currentGalaxy:'earth',
+  galaxies:{ earth: emptyGalaxyStateInit() },
+  goldTokens:0,
   unlockedThemes:['default'], activeTheme:'default',
+  badges:[], galaxySwitchLog:[], visitedGalaxies:['earth'],
+  lastSave:Date.now(),
 };
+function emptyGalaxyStateInit(){return {money:0,totalEarned:0,allTime:0,weekly:0,weekKey:'',
+  clicks:0,peakCps:0,peakCpsEver:0,prestige:0,counts:{},forbesCrossed:0};}
 let msIdx=0, lbTab='weekly';
-allUpgrades().forEach(u=>state.counts[u.id]=0);
+GALAXIES.forEach(g=>{
+  if(!state.galaxies[g.id])state.galaxies[g.id]=emptyGalaxyStateInit();
+  g.upgrades().forEach(u=>{ if(state.galaxies[g.id].counts[u.id]===undefined) state.galaxies[g.id].counts[u.id]=0; });
+});
 
 function weekKey(){
   const d=new Date();
@@ -394,16 +582,17 @@ function weekKey(){
 }
 function daysToSun(){const d=new Date().getDay();return d===0?7:7-d;}
 
-function upgradeCost(u){return Math.floor(u.base_cost*Math.pow(RATE,state.counts[u.id]||0));}
-function mult(){return 1+2*state.prestige;}
-function totalCps(){return allUpgrades().reduce((s,u)=>s+u.cps*(state.counts[u.id]||0),0)*mult()*themeMult('cps');}
-function clickPow(){const u=UPGRADES[0];return(1+u.click_boost*(state.counts[u.id]||0))*mult()*themeMult('click');}
+function upgradeCost(u){return Math.floor(u.base_cost*Math.pow(RATE,cur().counts[u.id]||0));}
+function mult(){return 1+2*cur().prestige;}
+function totalCps(){return curUpgrades().reduce((s,u)=>s+u.cps*(cur().counts[u.id]||0),0)*mult()*themeMult('cps');}
+function clickPow(){const u=curGalaxyDef().baseUpgrades[0];return(1+u.click_boost*(cur().counts[u.id]||0))*mult()*themeMult('click');}
 
 function industryTag(){
-  const all=allUpgrades();
+  const all=curUpgrades();
   let top=all[0];
-  all.forEach(u=>{if((state.counts[u.id]||0)>(state.counts[top.id]||0))top=u;});
-  return (state.counts[top.id]||0)>0?INDUSTRY_TAGS[top.id]:'新晉店長';
+  all.forEach(u=>{if((cur().counts[u.id]||0)>(cur().counts[top.id]||0))top=u;});
+  const tags=curGalaxyDef().tags;
+  return (cur().counts[top.id]||0)>0?tags[top.id]:'新晉店長';
 }
 
 function playerName(){
@@ -412,11 +601,11 @@ function playerName(){
 }
 
 // ── 主題店面 ──────────────────────────────────
-function applyTheme(id,save=true){
+function applyTheme(id,shouldSave=true){
   const t=getTheme(id);
   Object.entries(t.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
   state.activeTheme=id;
-  if(save)window.save();
+  if(shouldSave)save();
   renderThemes();
 }
 
@@ -450,53 +639,136 @@ function renderThemes(){
   }).join('');
 }
 
+// ── 星系切換 ──────────────────────────────────
+function applyGalaxyVisual(id,shouldSave=true){
+  if(id==='earth'){
+    applyTheme(state.activeTheme,false); // 太陽系沿用主題店面配色
+  }else{
+    const g=getGalaxy(id);
+    Object.entries(g.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  }
+}
+
+function switchGalaxy(id){
+  const g=getGalaxy(id);
+  if(!galaxyUnlocked(g)){
+    const reqName=g.unlockGalaxy?getGalaxy(g.unlockGalaxy).name:'太陽系';
+    toast(`🔒 需要在${reqName}轉生 ${g.unlockPrestige} 次才能前往`);
+    return;
+  }
+  if(id===state.currentGalaxy){ toast('🌍 已經在這裡了'); return; }
+  state.currentGalaxy=id;
+  state.visitedGalaxies=state.visitedGalaxies||['earth'];
+  if(!state.visitedGalaxies.includes(id))state.visitedGalaxies.push(id);
+  state.galaxySwitchLog=state.galaxySwitchLog||[];
+  state.galaxySwitchLog.push(Date.now());
+  if(state.galaxySwitchLog.length>10)state.galaxySwitchLog.shift();
+  applyGalaxyVisual(id);
+  msIdx=0;
+  renderShop();updateUI();renderGalaxies();
+  checkBadges();
+  save();
+  toast(`${g.icon} 已抵達${g.name}！`);
+}
+
+function renderGalaxies(){
+  const box=document.getElementById('galaxy-list');
+  if(!box)return;
+  box.innerHTML=GALAXIES.map(g=>{
+    const unlocked=galaxyUnlocked(g);
+    const active=state.currentGalaxy===g.id;
+    const gs=state.galaxies[g.id]||emptyGalaxyStateInit();
+    const reqName=g.unlockGalaxy?getGalaxy(g.unlockGalaxy).name:'太陽系';
+    return `<div class="galaxy-card${active?' active':''}${!unlocked?' locked':''}" onclick="switchGalaxy('${g.id}')">
+      <div class="galaxy-icon">${unlocked?g.icon:'🔒'}</div>
+      <div class="galaxy-info">
+        <div class="galaxy-name">${g.name}${active?' ✓ 目前所在':''}</div>
+        ${unlocked
+          ?`<div class="galaxy-desc">轉生 ${gs.prestige} 次・身家 $${fmt(gs.allTime||0)}</div>`
+          :`<div class="galaxy-desc">🔒 需在${reqName}轉生 ${g.unlockPrestige} 次解鎖</div>`}
+      </div>
+    </div>`;
+  }).join('');
+  renderBadges();
+}
+
+function renderBadges(){
+  const box=document.getElementById('badge-list');
+  if(!box)return;
+  box.innerHTML=BADGES.map(b=>{
+    const got=state.badges.includes(b.id);
+    return `<div class="badge-card${got?' got':''}">
+      <div class="badge-icon">${got?b.icon:'❔'}</div>
+      <div class="badge-name">${got?b.name:'???'}</div>
+      <div class="badge-desc">${got?b.desc:'尚未解鎖'}</div>
+    </div>`;
+  }).join('');
+}
+
 function doClick(e){
   const earn=clickPow();
-  state.money+=earn; state.totalEarned+=earn; state.allTime+=earn; state.weekly+=earn;
-  state.clicks++;
+  const g=cur();
+  g.money+=earn; g.totalEarned+=earn; g.allTime+=earn; g.weekly+=earn;
+  g.clicks++;
   const r=document.getElementById('click-btn').getBoundingClientRect();
   spawnFloat('+$'+fmt(earn), e?e.clientX:r.left+r.width/2, e?e.clientY:r.top);
   updateUI(); checkMS(); checkForbes();
 }
 
 function tierLocked(u){
-  if(UPGRADES_P3.includes(u))  return state.prestige<3;
-  if(UPGRADES_P15.includes(u)) return state.prestige<15;
-  if(UPGRADES_P50.includes(u)) return state.prestige<50;
-  if(UPGRADES_P100.includes(u))return state.prestige<100;
+  const def=curGalaxyDef();
+  if(def.id==='earth'){
+    if(UPGRADES_P3.includes(u))  return cur().prestige<3;
+    if(UPGRADES_P15.includes(u)) return cur().prestige<15;
+    if(UPGRADES_P50.includes(u)) return cur().prestige<50;
+    if(UPGRADES_P100.includes(u))return cur().prestige<100;
+  }else if(def.id==='namek'){
+    if(UPGRADES_NAMEK_P3.includes(u))  return cur().prestige<3;
+    if(UPGRADES_NAMEK_P15.includes(u)) return cur().prestige<15;
+    if(UPGRADES_NAMEK_P50.includes(u)) return cur().prestige<50;
+    if(UPGRADES_NAMEK_P100.includes(u))return cur().prestige<100;
+  }else if(def.id==='b612'){
+    if(UPGRADES_B612_P3.includes(u))  return cur().prestige<3;
+    if(UPGRADES_B612_P15.includes(u)) return cur().prestige<15;
+    if(UPGRADES_B612_P50.includes(u)) return cur().prestige<50;
+    if(UPGRADES_B612_P100.includes(u))return cur().prestige<100;
+  }
   return false;
 }
 function buyUpgrade(id){
-  const u=allUpgrades().find(x=>x.id===id);
+  const u=curUpgrades().find(x=>x.id===id);
+  const g=cur();
   if(!u||tierLocked(u))return;
-  if((state.counts[u.id]||0)>=u.max)return;
+  if((g.counts[u.id]||0)>=u.max)return;
   const cost=upgradeCost(u);
-  if(state.money<cost)return;
-  state.money-=cost; state.counts[u.id]=(state.counts[u.id]||0)+1;
+  if(g.money<cost)return;
+  g.money-=cost; g.counts[u.id]=(g.counts[u.id]||0)+1;
   updateUI(); renderShop();
-  toast(`✅ ${u.icon} ${u.name} Lv.${state.counts[u.id]}`);
+  toast(`✅ ${u.icon} ${u.name} Lv.${g.counts[u.id]}`);
 }
 
 function doPrestige(){
   const threshold=prestigeThreshold();
-  if(state.money<threshold)return;
-  const nextP=state.prestige+1;
+  const g=cur();
+  if(g.money<threshold)return;
+  const nextP=g.prestige+1;
   const hints={3:'\n🏝️ 旗艦升級將解鎖！',15:'\n🛰️ 全球帝國升級將解鎖！',50:'\n⭐ 太空征服升級將解鎖！',100:'\n🌌 宇宙霸主模式將解鎖！'};
   const unlockMsg=hints[nextP]||'';
   const stockSave=getStockAccount();
   const stockCash=stockSave.cash||0;
-  const stockWarn=stockCash>0?`\n⚠️ 股市現金 NT$${fmt(stockCash)} 也將歸零！`:'';
+  const stockWarn=(stockCash>0&&state.currentGalaxy==='earth')?`\n⚠️ 股市現金 NT$${fmt(stockCash)} 也將歸零！`:'';
   if(!confirm(`確定第 ${nextP} 次轉生？\n所有資產歸零，換取黃金代幣！\n永久 +200% 收益加成！${unlockMsg}${stockWarn}`))return;
   submitToLB(false);
-  state.prestige++; state.goldTokens=state.prestige;
-  state.money=0; state.totalEarned=0; state.peakCps=0; msIdx=0; state.forbesCrossed=0;
-  allUpgrades().forEach(u=>state.counts[u.id]=0);
-  if(stockCash>0){stockSave.cash=0;saveStockAccount(stockSave);}
-  save(); renderShop(); updateUI();
+  g.prestige++; state.goldTokens=(state.goldTokens||0)+1;
+  g.money=0; g.totalEarned=0; g.peakCps=0; msIdx=0; g.forbesCrossed=0;
+  curUpgrades().forEach(u=>g.counts[u.id]=0);
+  if(stockCash>0&&state.currentGalaxy==='earth'){stockSave.cash=0;saveStockAccount(stockSave);}
+  checkBadges();
+  save(); renderShop(); updateUI(); renderGalaxies();
   const unlocks={3:'✨ 旗艦升級已解鎖！',15:'🛰️ 全球商業帝國已解鎖！',50:'⭐ 太空征服時代已解鎖！',100:'🌌 宇宙霸主模式已解鎖！'};
   showMS({
-    title:`🏆 第 ${state.prestige} 次轉生！`,
-    body:`獲得黃金桌遊代幣 🏅\n永久收益倍率：×${mult()}${unlocks[state.prestige]?'\n\n'+unlocks[state.prestige]:''}`,
+    title:`🏆 第 ${g.prestige} 次轉生！`,
+    body:`獲得黃金代幣 🏅 ×1（總計 ${state.goldTokens} 枚）\n永久收益倍率：×${mult()}${unlocks[g.prestige]?'\n\n'+unlocks[g.prestige]:''}`,
   });
 }
 
@@ -524,33 +796,34 @@ function fmtT(ms){
 }
 
 function updateUI(){
+  const g=cur();
   const cps=totalCps(),cp=clickPow(),m=mult();
-  if(cps>state.peakCps)state.peakCps=cps;
-  if(cps>state.peakCpsEver)state.peakCpsEver=cps;
+  if(cps>g.peakCps)g.peakCps=cps;
+  if(cps>g.peakCpsEver)g.peakCpsEver=cps;
 
-  document.getElementById('money-val').textContent='$'+fmt(state.money);
+  document.getElementById('money-val').textContent='$'+fmt(g.money);
   document.getElementById('cps-val').textContent='$'+fmt(cps)+'/s';
   document.getElementById('click-val').textContent='+$'+fmt(cp);
-  document.getElementById('total-val').textContent='$'+fmt(state.allTime);
+  document.getElementById('total-val').textContent='$'+fmt(g.allTime);
   document.getElementById('click-sub').textContent='點擊賺錢 +$'+fmt(cp);
 
-  if(state.prestige>0)document.getElementById('prestige-row').style.display='flex';
-  document.getElementById('pb-prestige').textContent='🔄 轉生 '+state.prestige+' 次';
+  if(g.prestige>0)document.getElementById('prestige-row').style.display='flex';
+  document.getElementById('pb-prestige').textContent='🔄 轉生 '+g.prestige+' 次';
   document.getElementById('pb-token').textContent='🏅 '+state.goldTokens+' 枚代幣';
   document.getElementById('pb-mult').textContent='×'+m+' 收益';
 
   const threshold=prestigeThreshold();
-  const pct=Math.min(100,state.money/threshold*100);
+  const pct=Math.min(100,g.money/threshold*100);
   document.getElementById('pp-fill').style.width=pct.toFixed(1)+'%';
-  document.getElementById('pp-txt').textContent=`轉生進度 $${fmt(state.money)} / $${fmt(threshold)} · ${pct.toFixed(0)}%`;
+  document.getElementById('pp-txt').textContent=`轉生進度 $${fmt(g.money)} / $${fmt(threshold)} · ${pct.toFixed(0)}%`;
   const pb=document.getElementById('prestige-btn');
-  pb.style.display=state.money>=threshold?'block':'none';
-  pb.textContent=`✨ 第 ${state.prestige+1} 次轉生 — 歸零換取黃金代幣，永久 +200% 收益`;
+  pb.style.display=g.money>=threshold?'block':'none';
+  pb.textContent=`✨ 第 ${g.prestige+1} 次轉生 — 歸零換取黃金代幣，永久 +200% 收益`;
 
   document.querySelectorAll('.upgrade-card').forEach(card=>{
-    const u=allUpgrades().find(x=>x.id===card.dataset.id);if(!u)return;
-    const cnt=state.counts[u.id]||0,cost=upgradeCost(u);
-    const can=state.money>=cost&&cnt<u.max&&!tierLocked(u),maxed=cnt>=u.max;
+    const u=curUpgrades().find(x=>x.id===card.dataset.id);if(!u)return;
+    const cnt=g.counts[u.id]||0,cost=upgradeCost(u);
+    const can=g.money>=cost&&cnt<u.max&&!tierLocked(u),maxed=cnt>=u.max;
     card.className='upgrade-card'+(can?' affordable':'')+(maxed?' maxed':'');
     const ce=card.querySelector('.uc-cost'),be=card.querySelector('.buy-btn'),pe=card.querySelector('.progress-fill');
     if(ce)ce.textContent=maxed?'滿級！':'$'+fmt(cost);
@@ -561,8 +834,9 @@ function updateUI(){
 }
 
 function cardHTML(u){
-  const cnt=state.counts[u.id]||0,cost=upgradeCost(u);
-  const can=state.money>=cost&&cnt<u.max&&!tierLocked(u),maxed=cnt>=u.max;
+  const g=cur();
+  const cnt=g.counts[u.id]||0,cost=upgradeCost(u);
+  const can=g.money>=cost&&cnt<u.max&&!tierLocked(u),maxed=cnt>=u.max;
   const d2=u.cps>0?`+$${u.cps}/秒`:`+$${u.click_boost}/點擊`;
   return`<div class="upgrade-card${can?' affordable':''}${maxed?' maxed':''}" data-id="${u.id}" onclick="buyUpgrade('${u.id}')">
     <div class="uc-icon">${u.icon}</div>
@@ -580,42 +854,61 @@ function cardHTML(u){
 }
 
 function lockedSection(icon,title,need,preview,hint,arr){
-  if(state.prestige>=need){
+  if(cur().prestige>=need){
     return`<div class="shop-section-hdr">${icon} ${title}（轉生 ${need} 次解鎖）</div>`+arr.map(cardHTML).join('');
   }
-  const left=need-state.prestige;
+  const left=need-cur().prestige;
   return`<div class="shop-section-hdr">${icon} ${title}</div>
     <div class="shop-locked">🔒 再轉生 <b>${left}</b> 次即可解鎖<br>${preview}<br><small style="font-size:10px">${hint}</small></div>`;
 }
+const SHOP_TIER_META={
+  earth:[
+    {p3:UPGRADES_P3,p15:UPGRADES_P15,p50:UPGRADES_P50,p100:UPGRADES_P100,
+     prev3:'海外旗艦館・品牌授權金・元宇宙桌遊',prev15:'商業衛星・超級AI・超級城市控股',
+     prev50:'戴森球能源站・星際殖民艦隊',prev100:'宇宙霸主（最終形態）'}],
+  namek:[
+    {p3:UPGRADES_NAMEK_P3,p15:UPGRADES_NAMEK_P15,p50:UPGRADES_NAMEK_P50,p100:UPGRADES_NAMEK_P100,
+     prev3:'戰鬥族戰甲工坊・星球神龍召喚陣・金色形態覺醒',prev15:'暴君艦隊徵收站・人造戰士實驗室・異界修煉密室',
+     prev50:'諸天大會競技場・眾神之王宮殿朝拜',prev100:'全宇宙之神（最終形態）'}],
+  b612:[
+    {p3:UPGRADES_B612_P3,p15:UPGRADES_B612_P15,p50:UPGRADES_B612_P50,p100:UPGRADES_B612_P100,
+     prev3:'溫室玫瑰培育所・星圖繪製局・蟒蛇與帽子博物館',prev15:'沙漠之井打水站・墜落飛行員救援隊・行星觀測天文台',
+     prev50:'用心看不見的事物・宇宙玫瑰花園',prev100:'小王子的回歸（最終形態）'}],
+};
 function renderShop(){
+  const def=curGalaxyDef();
+  const meta=SHOP_TIER_META[def.id][0];
   document.getElementById('tab-shop').innerHTML=
-    UPGRADES.map(cardHTML).join('')+
-    lockedSection('🏝️','旗艦升級',3,'海外旗艦館・品牌授權金・元宇宙桌遊','每秒最高 $1.2M',UPGRADES_P3)+
-    lockedSection('🛰️','全球商業帝國',15,'商業衛星・超級AI・超級城市控股','每秒最高達 $100B',UPGRADES_P15)+
-    lockedSection('⭐','太空征服時代',50,'戴森球能源站・星際殖民艦隊','每秒最高達 $10P',UPGRADES_P50)+
-    lockedSection('🌌','宇宙霸主',100,'宇宙霸主（最終形態）','掌控全宇宙財富，每秒 $10Z',UPGRADES_P100);
+    def.baseUpgrades.map(cardHTML).join('')+
+    lockedSection('🏝️','旗艦升級',3,meta.prev3,'每秒最高 $1.2M',meta.p3)+
+    lockedSection('🛰️','全球商業帝國',15,meta.prev15,'每秒最高達 $100B',meta.p15)+
+    lockedSection('⭐','太空征服時代',50,meta.prev50,'每秒最高達 $10P',meta.p50)+
+    lockedSection('🌌','宇宙霸主',100,meta.prev100,'掌控全宇宙財富，每秒 $10Z',meta.p100);
 }
 
 function renderStats(){
-  document.getElementById('st-total').textContent='$'+fmt(state.totalEarned);
-  document.getElementById('st-alltime').textContent='$'+fmt(state.allTime);
-  document.getElementById('st-weekly').textContent='$'+fmt(state.weekly);
-  document.getElementById('st-clicks').textContent=state.clicks.toLocaleString();
-  document.getElementById('st-time').textContent=fmtT(Date.now()-state.startTime);
-  document.getElementById('st-peak').textContent='$'+fmt(state.peakCpsEver)+'/s';
-  document.getElementById('st-prestige').textContent=state.prestige;
+  const g=cur();
+  document.getElementById('st-total').textContent='$'+fmt(g.totalEarned);
+  document.getElementById('st-alltime').textContent='$'+fmt(grandTotalAllTime());
+  document.getElementById('st-weekly').textContent='$'+fmt(g.weekly);
+  document.getElementById('st-clicks').textContent=g.clicks.toLocaleString();
+  document.getElementById('st-time').textContent=fmtT(Date.now()-(state.startTime||Date.now()));
+  document.getElementById('st-peak').textContent='$'+fmt(g.peakCpsEver)+'/s';
+  document.getElementById('st-prestige').textContent=g.prestige+'（總計 '+grandTotalPrestige()+'）';
   document.getElementById('st-tokens').textContent=state.goldTokens;
   document.getElementById('st-tag').textContent=industryTag();
   function tierRows(arr,minP,label){
-    if(state.prestige>=minP)return arr.map(u=>`<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${state.counts[u.id]||0}/${u.max}</span></div>`).join('');
-    return`<div class="stat-row"><span class="sn" style="color:var(--sub)">🔒 ${label}</span><span class="sv" style="color:var(--sub)">還差 ${minP-state.prestige} 轉</span></div>`;
+    if(g.prestige>=minP)return arr.map(u=>`<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${g.counts[u.id]||0}/${u.max}</span></div>`).join('');
+    return`<div class="stat-row"><span class="sn" style="color:var(--sub)">🔒 ${label}</span><span class="sv" style="color:var(--sub)">還差 ${minP-g.prestige} 轉</span></div>`;
   }
+  const def=curGalaxyDef();
+  const meta=SHOP_TIER_META[def.id][0];
   document.getElementById('st-upgrades').innerHTML=
-    UPGRADES.map(u=>`<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${state.counts[u.id]||0}/${u.max}</span></div>`).join('')+
-    tierRows(UPGRADES_P3,3,'旗艦升級')+
-    tierRows(UPGRADES_P15,15,'全球商業帝國')+
-    tierRows(UPGRADES_P50,50,'太空征服時代')+
-    tierRows(UPGRADES_P100,100,'宇宙霸主');
+    def.baseUpgrades.map(u=>`<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${g.counts[u.id]||0}/${u.max}</span></div>`).join('')+
+    tierRows(meta.p3,3,'旗艦升級')+
+    tierRows(meta.p15,15,'全球商業帝國')+
+    tierRows(meta.p50,50,'太空征服時代')+
+    tierRows(meta.p100,100,'宇宙霸主');
   // 股票帳戶餘額
   const sa=getStockAccount();
   document.getElementById('st-stock').textContent='NT$'+fmt(sa.cash||0);
@@ -659,8 +952,8 @@ async function fbWrite(path,val){
     const db=await getFbDb();
     const r=ref(db,path);
     const snap=await withTimeout(get(r));
-    const cur=snap.val();
-    if(cur===null||val>cur) await set(r,val);
+    const existing=snap.val();
+    if(existing===null||val>existing) await set(r,val);
   }catch(e){console.warn('fbWrite',path,e);}
 }
 
@@ -671,9 +964,9 @@ async function fbWriteEntry(category,name,data){
     const key=encodeURIComponent(name).replace(/\./g,'_');
     const r=ref(db,`shop_lb/${category}/${key}`);
     const snap=await withTimeout(get(r));
-    const cur=snap.val();
+    const existing=snap.val();
     const scoreKey=category==='prestige'?'count':category==='cps'?'cps':'amount';
-    if(!cur||data[scoreKey]>(cur[scoreKey]||0)){
+    if(!existing||data[scoreKey]>(existing[scoreKey]||0)){
       await set(r,data);
     }
   }catch(e){console.warn('fbWriteEntry',category,e);}
@@ -704,13 +997,14 @@ async function submitToLB(showToast=true){
   const name=playerName();
   if(!name){if(showToast)toast('⚠️ 請先在大廳設定名字');return;}
   const wk=weekKey();
-  const meta={name,tag:industryTag(),prestige:state.prestige,date:new Date().toLocaleDateString('zh-TW')};
+  const totalPrestige=grandTotalPrestige();
+  const meta={name,tag:industryTag(),prestige:totalPrestige,date:new Date().toLocaleDateString('zh-TW')};
 
-  // 寫 Firebase（4個榜）
-  const weeklyData ={...meta,amount:state.weekly,   weekKey:wk};
-  const alltimeData={...meta,amount:state.allTime};
-  const cpsData    ={...meta,cps:state.peakCpsEver};
-  const prestigeData={...meta,count:state.prestige};
+  // 寫 Firebase（4個榜）— 全部使用跨星系總和，換星系不會讓排名歸零
+  const weeklyData ={...meta,amount:grandTotalWeekly(),   weekKey:wk};
+  const alltimeData={...meta,amount:grandTotalAllTime()};
+  const cpsData    ={...meta,cps:grandTotalPeakCps()};
+  const prestigeData={...meta,count:totalPrestige};
 
   // weekly 特殊處理：需依 weekKey 區分（寫在不同路徑）
   try{
@@ -721,7 +1015,7 @@ async function submitToLB(showToast=true){
     const wRef=ref(db,`shop_lb/weekly/${wk}/${key}`);
     const wSnap=await withTimeout(get(wRef));
     const wCur=wSnap.val();
-    if(!wCur||state.weekly>(wCur.amount||0)) await set(wRef,weeklyData);
+    if(!wCur||weeklyData.amount>(wCur.amount||0)) await set(wRef,weeklyData);
   }catch(e){console.warn('fbWeekly',e);}
 
   await Promise.all([
@@ -817,9 +1111,9 @@ async function renderForbes(){
   list.innerHTML=entries.map((e,i)=>{
     const isMe=e.name===pName;
     const prev=prevRanksSnap?.[e.name]?.[lbTab]??null;
-    const cur=i+1;
+    const curRank=i+1;
     let arrow='',cls='eq';
-    if(prev!==null&&prev!==cur){arrow=cur<prev?'▲':'▼';cls=cur<prev?'up':'dn';}
+    if(prev!==null&&prev!==curRank){arrow=curRank<prev?'▲':'▼';cls=curRank<prev?'up':'dn';}
     else if(prev!==null)arrow='—';
     return`<div class="lb-row${isMe?' me':''}">
       <div class="lb-rank">${rankEmoji(i)}</div>
@@ -842,7 +1136,7 @@ async function renderForbes(){
 
 // ── 里程碑 ────────────────────────────────────────────
 function checkMS(){
-  while(msIdx<MILESTONES.length&&state.totalEarned>=MILESTONES[msIdx].v){
+  while(msIdx<MILESTONES.length&&cur().totalEarned>=MILESTONES[msIdx].v){
     showMS(MILESTONES[msIdx]);msIdx++;
   }
 }
@@ -868,12 +1162,13 @@ function closeMilestone(){
 // ── 富比士財富對比 ────────────────────────────────────
 function checkForbes(){
   let last=null;
-  while(state.forbesCrossed<BILLIONAIRES.length&&state.money>=BILLIONAIRES[state.forbesCrossed].t){
-    last=BILLIONAIRES[state.forbesCrossed];
-    state.forbesCrossed++;
+  const g=cur();
+  while(g.forbesCrossed<BILLIONAIRES.length&&g.money>=BILLIONAIRES[g.forbesCrossed].t){
+    last=BILLIONAIRES[g.forbesCrossed];
+    g.forbesCrossed++;
   }
   if(last){
-    const rank=BILLIONAIRES.length-state.forbesCrossed+1;
+    const rank=BILLIONAIRES.length-g.forbesCrossed+1;
     showMS({
       title:`💰 超越 ${last.n}！`,
       body:`${last.s}\n$${last.usd}B USD・換算 NT$${fmt(last.t)}\n\n🏆 本榜富比士第 ${rank} 名！`
@@ -883,7 +1178,8 @@ function checkForbes(){
 
 function updateForbesRank(){
   const el=document.getElementById('fb-rank');
-  const beaten=BILLIONAIRES.filter(f=>state.money>=f.t).length;
+  const money=cur().money;
+  const beaten=BILLIONAIRES.filter(f=>money>=f.t).length;
   if(beaten===0){el.style.display='none';return;}
   el.style.display='block';
   if(beaten>=BILLIONAIRES.length){
@@ -891,7 +1187,7 @@ function updateForbesRank(){
   } else {
     const top=BILLIONAIRES[beaten-1],next=BILLIONAIRES[beaten];
     const rank=BILLIONAIRES.length-beaten+1;
-    el.textContent=`📊 富比士第 ${rank} 名・超越 ${top.n}｜距 ${next.n} 還差 NT$${fmt(next.t-state.money)}`;
+    el.textContent=`📊 富比士第 ${rank} 名・超越 ${top.n}｜距 ${next.n} 還差 NT$${fmt(next.t-money)}`;
   }
 }
 
@@ -905,11 +1201,12 @@ function transferToStock(){
   const M=parseFloat(input.value||0);
   if(!M||M<=0){toast('⚠️ 請輸入金額（M 為單位）');return;}
   const amt=Math.floor(M*1e6);
-  if(amt>state.money){toast('⚠️ 店鋪餘額不足');return;}
+  const g=cur();
+  if(amt>g.money){toast('⚠️ 店鋪餘額不足');return;}
   const sa=getStockAccount();
   sa.cash=(sa.cash||0)+amt;
   saveStockAccount(sa);
-  state.money-=amt;
+  g.money-=amt;
   input.value='';
   updateUI();renderStats();
   toast(`✅ 已匯 NT$${fmt(amt)} 進股市帳戶`);
@@ -922,7 +1219,8 @@ function transferFromStock(){
   const receive=Math.floor(total*0.1);
   const lost=total-receive;
   if(!confirm(`⚠️ 匯回確認\n\n股市現金：NT$${fmt(total)}\n兌換損耗（90%）：-NT$${fmt(lost)}\n實際到帳：NT$${fmt(receive)}\n\n資金在股市中已大幅貶值，確定要匯回嗎？`))return;
-  state.money+=receive;state.totalEarned+=receive;state.allTime+=receive;state.weekly+=receive;
+  const g=cur();
+  g.money+=receive;g.totalEarned+=receive;g.allTime+=receive;g.weekly+=receive;
   sa.cash=0;
   saveStockAccount(sa);
   updateUI();renderStats();
@@ -940,48 +1238,84 @@ function load(){
   try{
     const raw=localStorage.getItem(LS_KEY);if(!raw)return;
     const d=JSON.parse(raw);
-    Object.assign(state,d);
     msIdx=d.msIdx||0;
-    // 遷移舊存檔
-    if(!state.allTime)state.allTime=state.totalEarned||0;
-    if(!state.peakCpsEver)state.peakCpsEver=state.peakCps||0;
-    if(!state.weekly)state.weekly=0;
-    if(!state.weekKey)state.weekKey='';
-    // 遷移：補上所有新增 upgrade counts 和 forbesCrossed
-    [...UPGRADES_P3,...UPGRADES_P15,...UPGRADES_P50,...UPGRADES_P100].forEach(u=>{
-      if(state.counts[u.id]===undefined)state.counts[u.id]=0;
+
+    if(!d.galaxies){
+      // ── 舊版單星系存檔遷移 ──
+      const legacy={
+        money:d.money||0, totalEarned:d.totalEarned||0, allTime:d.allTime||d.totalEarned||0,
+        weekly:d.weekly||0, weekKey:d.weekKey||'',
+        clicks:d.clicks||0, peakCps:d.peakCps||0, peakCpsEver:d.peakCpsEver||d.peakCps||0,
+        prestige:d.prestige||0, counts:d.counts||{}, forbesCrossed:d.forbesCrossed||0,
+      };
+      state.galaxies.earth=legacy;
+      state.goldTokens=d.goldTokens||0;
+      state.currentGalaxy='earth';
+      state.unlockedThemes=d.unlockedThemes||['default'];
+      state.activeTheme=d.activeTheme||'default';
+      state.badges=d.badges||[];
+      state.galaxySwitchLog=d.galaxySwitchLog||[];
+      state.visitedGalaxies=d.visitedGalaxies||['earth'];
+      state.startTime=d.startTime||Date.now();
+    }else{
+      Object.assign(state,d);
+    }
+    state.lastSave=d.lastSave||Date.now();
+
+    // 確保所有星系結構完整
+    GALAXIES.forEach(g=>{
+      if(!state.galaxies[g.id])state.galaxies[g.id]=emptyGalaxyStateInit();
+      const gs=state.galaxies[g.id];
+      if(gs.allTime===undefined)gs.allTime=gs.totalEarned||0;
+      if(gs.peakCpsEver===undefined)gs.peakCpsEver=gs.peakCps||0;
+      if(gs.weekly===undefined)gs.weekly=0;
+      if(gs.weekKey===undefined)gs.weekKey='';
+      if(gs.forbesCrossed===undefined)gs.forbesCrossed=0;
+      if(!gs.counts)gs.counts={};
+      g.upgrades().forEach(u=>{ if(gs.counts[u.id]===undefined)gs.counts[u.id]=0; });
     });
-    if(state.forbesCrossed===undefined)state.forbesCrossed=0;
-    // 遷移：補上主題欄位
     if(!state.unlockedThemes)state.unlockedThemes=['default'];
     if(!state.activeTheme)state.activeTheme='default';
-    // 週重置
+    if(!state.badges)state.badges=[];
+    if(!state.galaxySwitchLog)state.galaxySwitchLog=[];
+    if(!state.visitedGalaxies)state.visitedGalaxies=['earth'];
+    if(!state.currentGalaxy||!state.galaxies[state.currentGalaxy])state.currentGalaxy='earth';
+    if(!state.startTime)state.startTime=Date.now();
+
+    // 週重置（每個星系各自的 weekly 各自判斷）
     const wk=weekKey();
-    if(state.weekKey&&state.weekKey!==wk){state.weekly=0;state.weekKey=wk;}
-    // 離線收益（最多8小時）
+    Object.values(state.galaxies).forEach(gs=>{
+      if(gs.weekKey&&gs.weekKey!==wk){gs.weekly=0;}
+      gs.weekKey=wk;
+    });
+
+    // 離線收益（只計算目前所在星系，最多8小時）
+    const g=cur();
     const offSec=Math.min((Date.now()-state.lastSave)/1000,8*3600);
     const cps=totalCps();
     if(offSec>10&&cps>0){
       const earn=Math.floor(cps*offSec);
-      state.money+=earn;state.totalEarned+=earn;state.allTime+=earn;state.weekly+=earn;
+      g.money+=earn;g.totalEarned+=earn;g.allTime+=earn;g.weekly+=earn;
       document.getElementById('modal-earn').textContent='+$'+fmt(earn);
       document.getElementById('modal-desc').textContent=`離線 ${fmtT(offSec*1000)}，自動幫你賺了這些！`;
       document.getElementById('offline-modal').style.display='flex';
       document.getElementById('offline-earned').textContent='+$'+fmt(earn);
       document.getElementById('offline-earned-box').style.display='block';
     }
-  }catch(e){}
+    checkBadges();
+  }catch(e){console.error('load error',e);}
 }
 
 function closeOfflineModal(){document.getElementById('offline-modal').style.display='none';}
 
 function switchTab(tab){
-  ['shop','stats','forbes'].forEach((t,i)=>{
+  ['shop','stats','forbes','galaxy'].forEach((t,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',t===tab);
     document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
   });
   if(tab==='stats'){renderStats();renderThemes();}
   if(tab==='forbes')renderForbes();
+  if(tab==='galaxy')renderGalaxies();
 }
 
 function confirmReset(){
@@ -1006,8 +1340,8 @@ function goBack(){
   if(name){
     localStorage.setItem('game_pending_score',JSON.stringify({
       game:'shop',
-      score:state.prestige,
-      detail:`身家 $${fmt(state.allTime)}・${industryTag()}`
+      score:grandTotalPrestige(),
+      detail:`身家 $${fmt(grandTotalAllTime())}・${industryTag()}`
     }));
   }
   window.location.href='../';
@@ -1016,9 +1350,10 @@ function goBack(){
 setInterval(()=>{
   const cps=totalCps();
   if(cps>0){
-    state.money+=cps;state.totalEarned+=cps;state.allTime+=cps;state.weekly+=cps;
-    if(cps>state.peakCps)state.peakCps=cps;
-    if(cps>state.peakCpsEver)state.peakCpsEver=cps;
+    const g=cur();
+    g.money+=cps;g.totalEarned+=cps;g.allTime+=cps;g.weekly+=cps;
+    if(cps>g.peakCps)g.peakCps=cps;
+    if(cps>g.peakCpsEver)g.peakCpsEver=cps;
     updateUI();checkMS();checkForbes();
   }
 },1000);
@@ -1027,10 +1362,10 @@ setInterval(save,30000);
 
 document.addEventListener('contextmenu',e=>e.preventDefault());
 load();
-applyTheme(state.activeTheme,false);
+applyGalaxyVisual(state.currentGalaxy,false);
 renderShop();
 updateUI();
 checkMS();checkForbes();
-if(state.prestige>0)document.getElementById('prestige-row').style.display='flex';
+if(cur().prestige>0)document.getElementById('prestige-row').style.display='flex';
 </script>
 </body></html>
