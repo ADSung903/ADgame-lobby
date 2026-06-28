@@ -131,6 +131,8 @@
   .tile .gloss{position:absolute; top:6%; left:10%; width:55%; height:30%; background:linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,0)); border-radius:50%; pointer-events:none; filter:blur(1px);}
   .tile.frozen::after{content:''; position:absolute; inset:0; border-radius:14%; background:linear-gradient(135deg, rgba(180,230,255,.55), rgba(140,200,255,.35)); border:2px solid rgba(220,245,255,.85);}
   .tile.bombtile{background:radial-gradient(circle at 35% 30%, #4a4a4a, #161616) !important;}
+  .tile.strongbombtile{background:radial-gradient(circle at 35% 30%, #8a3a1f, #2a0f08) !important; box-shadow: inset 0 -4px 6px rgba(0,0,0,.4), inset 0 3px 4px rgba(255,255,255,.2), 0 0 10px rgba(255,140,60,.55) !important; animation:pulseGlow 1s ease-in-out infinite;}
+  @keyframes pulseGlow{0%,100%{filter:brightness(1);}50%{filter:brightness(1.3);}}
   .tile.rainbowtile{background:conic-gradient(from 90deg, var(--c-ruby), var(--c-amber), var(--c-emerald), var(--c-sapphire), var(--c-amethyst), var(--c-ruby)) !important; animation:spinHue 3s linear infinite;}
   @keyframes spinHue{to{filter:hue-rotate(360deg);}}
   .tile.empty-slot{background:rgba(255,255,255,0.02) !important; box-shadow:none !important; cursor:default;}
@@ -307,12 +309,18 @@ const SOUND_FILES = {
   stuck_hint:'stuck_hint.mp3'
 };
 const AudioM = {
-  muted: false, sfx: {}, bgmMap:null, bgmPlay:null, currentBgm:null,
+  muted: false, sfx: {}, sfxIdx: {}, bgmMap:null, bgmPlay:null, currentBgm:null,
+  POOL_SIZE: 4, // 每種音效預先建立幾個實例輪流播放,避免每次cloneNode造成效能負擔
   init(){
     for(const k in SOUND_FILES){
-      const el = new Audio(AUDIO_BASE + SOUND_FILES[k]);
-      el.preload = 'auto';
-      this.sfx[k] = el;
+      const pool = [];
+      for(let i=0;i<this.POOL_SIZE;i++){
+        const el = new Audio(AUDIO_BASE + SOUND_FILES[k]);
+        el.preload = 'auto';
+        pool.push(el);
+      }
+      this.sfx[k] = pool;
+      this.sfxIdx[k] = 0;
     }
     this.bgmMap = new Audio(AUDIO_BASE + 'bgm_map.mp3');
     this.bgmMap.loop = true; this.bgmMap.volume = 0.45;
@@ -322,11 +330,16 @@ const AudioM = {
   },
   play(key){
     if(this.muted) return;
-    const base = this.sfx[key];
-    if(!base) return;
-    const node = base.cloneNode();
-    node.volume = 0.9;
-    node.play().catch(()=>{});
+    const pool = this.sfx[key];
+    if(!pool) return;
+    const i = this.sfxIdx[key];
+    const node = pool[i];
+    this.sfxIdx[key] = (i + 1) % pool.length;
+    try{
+      node.currentTime = 0;
+      node.volume = 0.9;
+      node.play().catch(()=>{});
+    }catch(e){}
   },
   playBgm(which){
     if(this.bgmMap) this.bgmMap.pause();
@@ -550,15 +563,37 @@ function renderBoard(){
   boardEl.style.gridTemplateRows = `repeat(${ROWS}, ${cs}px)`;
   boardEl.style.width = (cs*W + GAP*(W-1)) + 'px';
   boardEl.style.height = (cs*ROWS + GAP*(ROWS-1)) + 'px';
-  boardEl.innerHTML = '';
-  for(let r=0;r<ROWS;r++){
+
+  const dimsChanged = (W !== state.gridW) || (ROWS !== state.gridH) || !state.tileEls;
+
+  if(dimsChanged){
+    // 棋盤尺寸變了(換關卡/欄位收縮)才整個重建,平常消除不會走到這裡
+    boardEl.innerHTML = '';
+    state.tileEls = Array.from({length:W}, ()=>new Array(ROWS));
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<W;c++){
+        const div = document.createElement('div');
+        div.dataset.c = c; div.dataset.r = r;
+        div.onclick = () => onTileClick(c,r);
+        const cell = state.cols[c][r];
+        styleTile(div, cell);
+        div._lastCell = cell;
+        boardEl.appendChild(div);
+        state.tileEls[c][r] = div;
+      }
+    }
+    state.gridW = W; state.gridH = ROWS;
+  } else {
+    // 尺寸沒變,只更新真的有變動的方塊外觀,不重建DOM(這是解決lag的關鍵)
     for(let c=0;c<W;c++){
-      const cell = state.cols[c][r];
-      const div = document.createElement('div');
-      div.dataset.c = c; div.dataset.r = r;
-      styleTile(div, cell);
-      div.onclick = () => onTileClick(c,r);
-      boardEl.appendChild(div);
+      for(let r=0;r<ROWS;r++){
+        const cell = state.cols[c][r];
+        const div = state.tileEls[c][r];
+        if(div._lastCell !== cell){
+          styleTile(div, cell);
+          div._lastCell = cell;
+        }
+      }
     }
   }
 }
@@ -568,12 +603,16 @@ function styleTile(div, cell){
   if(!cell){
     div.className = 'tile empty-slot';
     div.innerHTML = '';
-    div.onclick = null;
     return;
   }
   if(cell.type === 'bomb'){
     div.className = 'tile bombtile';
     div.innerHTML = '<div style="font-size:24px">💣</div>';
+    return;
+  }
+  if(cell.type === 'strongbomb'){
+    div.className = 'tile strongbombtile';
+    div.innerHTML = '<div style="font-size:26px">💥</div>';
     return;
   }
   if(cell.type === 'rainbow'){
@@ -588,7 +627,9 @@ function styleTile(div, cell){
   div.innerHTML = faceSVG(cell.animal) + '<div class="gloss"></div>';
 }
 
-function tileEl(c,r){ return document.querySelector(`#board > [data-c="${c}"][data-r="${r}"]`); }
+function tileEl(c,r){
+  return state.tileEls && state.tileEls[c] ? state.tileEls[c][r] : null;
+}
 
 function refreshHud(){
   document.getElementById('lvlVal').textContent = state.level;
@@ -818,6 +859,7 @@ function onTileClick(c,r){
   }
 
   if(cell.type === 'bomb'){ triggerBomb(c,r); return; }
+  if(cell.type === 'strongbomb'){ triggerStrongBomb(c,r); return; }
   if(cell.type === 'rainbow'){ triggerRainbow(c,r); return; }
 
   const seen = Array.from({length:state.cols.length},()=>Array(ROWS).fill(false));
@@ -846,11 +888,13 @@ function clearGroup(group, clickC, clickR){
   state.busy = true;
   const baseGain = group.length*10 + Math.max(0, group.length-3)*15;
   AudioM.play('pop');
-  if(group.length >= 6){ AudioM.play('combo'); showCombo('彩虹爆擊！🌈'); }
-  else if(group.length >= 4){ AudioM.play('combo'); showCombo('連環炸彈！💥'); }
+  if(group.length >= 8){ AudioM.play('combo'); showCombo('彩虹爆擊！🌈'); }
+  else if(group.length >= 6){ AudioM.play('combo'); showCombo('加強炸彈！💥'); }
+  else if(group.length >= 4){ AudioM.play('combo'); showCombo('連環炸彈！💣'); }
 
   let spawned = null;
-  if(group.length >= 6) spawned = 'rainbow';
+  if(group.length >= 8) spawned = 'rainbow';
+  else if(group.length >= 6) spawned = 'strongbomb';
   else if(group.length >= 4) spawned = 'bomb';
 
   let actuallyCleared = [];
@@ -910,6 +954,31 @@ function triggerBomb(c,r){
   setTimeout(()=>{ settleBoard(); refreshHud(); checkEndConditions(); state.busy=false; }, 230);
 }
 
+function triggerStrongBomb(c,r){
+  state.busy = true;
+  state.cols[c][r] = null;
+  let baseGain = 0;
+  for(let dc=-2; dc<=2; dc++){
+    for(let dr=-2; dr<=2; dr++){
+      const nc=c+dc, nr=r+dr;
+      if(nc<0||nc>=state.cols.length||nr<0||nr>=ROWS) continue;
+      if(state.cols[nc][nr]){
+        const el = tileEl(nc,nr);
+        if(el) el.classList.add('pop');
+        baseGain += 14;
+        state.cols[nc][nr] = null;
+      }
+    }
+  }
+  const gain = Math.round(baseGain * remainingMultiplier(countRemaining()));
+  state.score += gain;
+  spawnFloatScore(c,r,gain);
+  AudioM.play('bomb');
+  AudioM.play('combo');
+  showCombo('超級轟！💥');
+  setTimeout(()=>{ settleBoard(); refreshHud(); checkEndConditions(); state.busy=false; }, 260);
+}
+
 function triggerRainbow(c,r){
   state.busy = true;
   const counts = {};
@@ -965,7 +1034,7 @@ function settleBoard(){
 }
 function hasSpecialTile(){
   for(const col of state.cols) for(const cell of col){
-    if(cell && (cell.type==='bomb' || cell.type==='rainbow')) return true;
+    if(cell && (cell.type==='bomb' || cell.type==='strongbomb' || cell.type==='rainbow')) return true;
   }
   return false;
 }
