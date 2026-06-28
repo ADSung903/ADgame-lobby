@@ -289,8 +289,8 @@
 
 <script>
 /* ====================== CONFIG ====================== */
-const GRID = 9;     // 初始欄數
-const ROWS = 9;      // 列數(固定)
+const GRID = 9;     // 欄數(固定,不隨關卡變寬,維持直式手機好點擊的寬度)
+let ROWS = 9;        // 列數(隨關卡增加,往下加高棋盤,符合直式手機的長寬比)
 const GAP = 3;
 const SAVE_KEY = 'animalblast_save_v2';
 const ANIMALS = ['fox','penguin','frog','lion','owl','panda'];
@@ -395,8 +395,9 @@ function persist(){
 
 /* ====================== LEVEL CONFIG ====================== */
 const ANIMAL_COUNT_PER_LEVEL = 4; // 每關固定用幾種動物(不隨關卡遞增,避免顏色太多湊不出組合)
-const BASE_COLS = 9;    // 第1~8關的初始欄數
-const MAX_COLS = 13;    // 欄數上限(手機螢幕安全範圍,夠用就好,不用無限變寬)
+const FIXED_COLS = 9;   // 欄數固定不變(維持直式手機好點擊的寬度,不左右變寬)
+const BASE_ROWS = 9;    // 第1~8關的初始列數
+const MAX_ROWS = 17;    // 列數上限(往下加高棋盤,直式手機空間比較夠用)
 const BASE_TIME = 75;   // 第1關時間限制(秒)
 const MIN_TIME = 45;    // 時間下限,難度封頂用
 const SCORE_PER_TILE_EST = 16; // 熟練玩家平均每顆方塊的估計分數(保守值),用來估算該關卡分數上限
@@ -406,20 +407,20 @@ const TARGET_RATIO_GROWTH = 10; // 比例爬升速度,數字越大爬越慢
 const TIME_BONUS_RATE = 4;      // 結算時,剩餘每秒換算成多少分數,補助效率高的玩家達標
 
 function levelConfig(lvl){
-  // 棋盤欄數:每4關+2欄,最多到13欄(9x9 → 11x9 → 13x9 封頂)
-  const initialCols = Math.min(BASE_COLS + 2 * Math.floor((lvl-1)/4), MAX_COLS);
+  // 棋盤列數:每4關+2列,最多到17列(9x9 → 9x11 → 9x13 ... 封頂),欄數固定9不變
+  const initialRows = Math.min(BASE_ROWS + 2 * Math.floor((lvl-1)/4), MAX_ROWS);
   // 時間限制:每關-1秒,最低45秒封頂,後期更看手速與效率
   const timeLimit = Math.max(MIN_TIME, BASE_TIME - (lvl-1));
   // 目標分數 = 該關卡理論分數上限 × 比例(比例隨關卡慢慢爬到70%封頂)
   // 這樣不管關卡生成到第幾關,目標永遠低於理論上限,保證有解,可以無限生成關卡
-  const estimatedMax = initialCols * ROWS * SCORE_PER_TILE_EST;
+  const estimatedMax = FIXED_COLS * initialRows * SCORE_PER_TILE_EST;
   const ratio = TARGET_RATIO_MIN + (TARGET_RATIO_MAX - TARGET_RATIO_MIN) * (1 - Math.exp(-(lvl-1)/TARGET_RATIO_GROWTH));
   const target = Math.round(estimatedMax * ratio);
   const iceChance = lvl >= 7 ? Math.min(0.05 + (lvl-7)*0.01, 0.15) : 0;
   // 每關隨機抽 4 種動物(洗牌後取前4個),增加每關的視覺變化
   const shuffled = [...ANIMALS].sort(()=>Math.random()-0.5);
   const levelAnimals = shuffled.slice(0, ANIMAL_COUNT_PER_LEVEL);
-  return {target, timeLimit, iceChance, levelAnimals, initialCols};
+  return {target, timeLimit, iceChance, levelAnimals, initialCols: FIXED_COLS, initialRows};
 }
 
 /* ====================== BOARD GEN (消耗型, 不補新方塊) ====================== */
@@ -531,9 +532,13 @@ function faceSVG(animal){
 /* ====================== RENDER ====================== */
 function computeCellSize(){
   const w = window.innerWidth, h = window.innerHeight;
-  const avail = Math.min(w*0.94, h*0.5);
+  const availW = w * 0.94;
+  const availH = h * 0.52;
   const cols = state.initialCols || GRID;
-  return Math.max(18, Math.floor((avail - (cols-1)*GAP)/cols));
+  const rows = ROWS;
+  const sizeByW = Math.floor((availW - (cols-1)*GAP) / cols);
+  const sizeByH = Math.floor((availH - (rows-1)*GAP) / rows);
+  return Math.max(16, Math.min(sizeByW, sizeByH));
 }
 
 function renderBoard(){
@@ -673,6 +678,7 @@ function startLevel(lvl){
   state.timeLeft = cfg.timeLimit;
   state.score = 0;
   state.initialCols = cfg.initialCols;
+  ROWS = cfg.initialRows; // 本關列數,影響棋盤高度與所有跑列數迴圈的函式
   state.cols = buildCols(cfg);
   state.activeTool = null;
   state.busy = false;
