@@ -39,6 +39,16 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 .shop-section-hdr{font-size:11px;color:var(--gold);letter-spacing:.5px;padding:.55rem .2rem .2rem;margin-top:.25rem;border-top:.5px solid var(--border)}
 .shop-locked{font-size:12px;color:var(--sub);text-align:center;padding:.9rem;background:var(--bg3);border:.5px solid var(--border);border-radius:10px;margin-top:.3rem;line-height:1.7}
 
+/* theme cards */
+.theme-card{display:flex;align-items:center;gap:.6rem;background:var(--bg3);border:.5px solid var(--border);border-radius:12px;padding:.6rem;margin-bottom:.4rem;cursor:pointer;transition:border-color .15s}
+.theme-card.active{border-color:var(--gold)}
+.theme-icon{font-size:22px;flex-shrink:0}
+.theme-info{flex:1;min-width:0}
+.theme-name{font-size:13px;font-weight:700;color:var(--text)}
+.theme-desc{font-size:10px;color:var(--sub);margin-top:1px}
+.theme-effect{font-size:10px;color:#4ade80;margin-top:1px}
+.theme-cost{font-size:11px;font-weight:700;color:var(--gold);flex-shrink:0;white-space:nowrap;padding-left:.4rem}
+
 /* click */
 .click-area{padding:.35rem .75rem;flex-shrink:0}
 .click-btn{width:100%;padding:.85rem;border-radius:14px;border:none;background:linear-gradient(135deg,#3a0a7a,var(--accent));color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:transform .08s;user-select:none;-webkit-user-select:none}
@@ -195,6 +205,10 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
     <div id="st-upgrades"></div>
   </div>
   <div class="stat-section">
+    <h3>🎨 主題店面 <span style="font-size:10px;color:var(--gold);font-weight:400">（用黃金代幣兌換）</span></h3>
+    <div id="theme-list"></div>
+  </div>
+  <div class="stat-section">
     <h3>📈 股票市場帳戶</h3>
     <div class="stat-row"><span class="sn">帳戶餘額</span><span class="sv" style="color:#4ade80" id="st-stock">NT$0</span></div>
     <div style="display:flex;gap:6px;margin-top:.6rem;align-items:center">
@@ -288,16 +302,42 @@ const INDUSTRY_TAGS={
   universe:'宇宙霸主',
 };
 
+// 主題店面（黃金代幣兌換）
+const THEMES=[
+  {id:'default', name:'原始裝潢', icon:'🎲', cost:0,
+    desc:'最初的桌遊館風貌', effect:'無加成',
+    vars:{'--accent':'#7c3aed','--gold':'#f59e0b','--bg':'#060610','--bg2':'#0d0d1e','--bg3':'#12122a'}},
+  {id:'cafe',    name:'文青咖啡廳', icon:'☕', cost:5,
+    desc:'暖色木質調，悠閒的午後時光', effect:'手動點擊 +15%',
+    vars:{'--accent':'#c08552','--gold':'#e8b873','--bg':'#1a120a','--bg2':'#231711','--bg3':'#2c1d14'}},
+  {id:'casino',  name:'賭場夜店',   icon:'🎰', cost:5,
+    desc:'霓虹閃爍，夜夜笙歌', effect:'自動收益 +15%',
+    vars:{'--accent':'#e0218a','--gold':'#ffd700','--bg':'#10001a','--bg2':'#1a0026','--bg3':'#240033'}},
+  {id:'tech',    name:'科技新創',   icon:'🚀', cost:5,
+    desc:'極簡科技風，效率至上', effect:'轉生門檻 −10%',
+    vars:{'--accent':'#00d4ff','--gold':'#7cffb2','--bg':'#020a14','--bg2':'#06121e','--bg3':'#0a1a28'}},
+];
+function getTheme(id){return THEMES.find(t=>t.id===id)||THEMES[0];}
+function themeMult(kind){
+  const t=state.activeTheme||'default';
+  if(kind==='click')return t==='cafe'?1.15:1;
+  if(kind==='cps')  return t==='casino'?1.15:1;
+  if(kind==='prestigeCost')return t==='tech'?0.9:1;
+  return 1;
+}
+
 // 轉生門檻：P3-P14 ×2、P15-P49 ×5、P50-P99 ×10、P100+ ×20
 function prestigeThreshold(){
   const P=state.prestige;
-  if(P===0)return 1e8;
-  if(P===1)return 5e8;
-  if(P===2)return 2e9;
-  if(P<15) return 2e9*Math.pow(2,P-2);          // 4B→8.19T
-  if(P<50) return 8e12*Math.pow(5,P-14);         // P15=40T...
-  if(P<100)return 8e12*Math.pow(5,35)*Math.pow(10,P-49); // P50+
-  return 8e12*Math.pow(5,35)*Math.pow(10,50)*Math.pow(20,P-99);
+  let base;
+  if(P===0)base=1e8;
+  else if(P===1)base=5e8;
+  else if(P===2)base=2e9;
+  else if(P<15) base=2e9*Math.pow(2,P-2);          // 4B→8.19T
+  else if(P<50) base=8e12*Math.pow(5,P-14);         // P15=40T...
+  else if(P<100)base=8e12*Math.pow(5,35)*Math.pow(10,P-49); // P50+
+  else base=8e12*Math.pow(5,35)*Math.pow(10,50)*Math.pow(20,P-99);
+  return base*themeMult('prestigeCost');
 }
 
 function allUpgrades(){return[...UPGRADES,...UPGRADES_P3,...UPGRADES_P15,...UPGRADES_P50,...UPGRADES_P100];}
@@ -338,6 +378,7 @@ let state={
   clicks:0, peakCps:0, peakCpsEver:0, startTime:Date.now(),
   prestige:0, goldTokens:0, counts:{}, lastSave:Date.now(),
   forbesCrossed:0,
+  unlockedThemes:['default'], activeTheme:'default',
 };
 let msIdx=0, lbTab='weekly';
 allUpgrades().forEach(u=>state.counts[u.id]=0);
@@ -355,8 +396,8 @@ function daysToSun(){const d=new Date().getDay();return d===0?7:7-d;}
 
 function upgradeCost(u){return Math.floor(u.base_cost*Math.pow(RATE,state.counts[u.id]||0));}
 function mult(){return 1+2*state.prestige;}
-function totalCps(){return allUpgrades().reduce((s,u)=>s+u.cps*(state.counts[u.id]||0),0)*mult();}
-function clickPow(){const u=UPGRADES[0];return(1+u.click_boost*(state.counts[u.id]||0))*mult();}
+function totalCps(){return allUpgrades().reduce((s,u)=>s+u.cps*(state.counts[u.id]||0),0)*mult()*themeMult('cps');}
+function clickPow(){const u=UPGRADES[0];return(1+u.click_boost*(state.counts[u.id]||0))*mult()*themeMult('click');}
 
 function industryTag(){
   const all=allUpgrades();
@@ -368,6 +409,45 @@ function industryTag(){
 function playerName(){
   try{const d=JSON.parse(localStorage.getItem('game_lobby_v2'));if(d?.name)return d.name;}catch(e){}
   return null;
+}
+
+// ── 主題店面 ──────────────────────────────────
+function applyTheme(id,save=true){
+  const t=getTheme(id);
+  Object.entries(t.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  state.activeTheme=id;
+  if(save)window.save();
+  renderThemes();
+}
+
+function buyTheme(id){
+  const t=getTheme(id);
+  if(!t||t.cost===0)return;
+  if(state.unlockedThemes.includes(id)){ applyTheme(id); toast('🎨 已套用：'+t.name); return; }
+  if(state.goldTokens<t.cost){ toast('⚠️ 黃金代幣不足（需要 '+t.cost+' 枚）'); return; }
+  state.goldTokens-=t.cost;
+  state.unlockedThemes.push(id);
+  applyTheme(id);
+  toast('✅ 解鎖主題：'+t.name+'！');
+  updateUI();
+}
+
+function renderThemes(){
+  const box=document.getElementById('theme-list');
+  if(!box)return;
+  box.innerHTML=THEMES.map(t=>{
+    const unlocked=state.unlockedThemes.includes(t.id);
+    const active=state.activeTheme===t.id;
+    return `<div class="theme-card${active?' active':''}" onclick="buyTheme('${t.id}')">
+      <div class="theme-icon">${t.icon}</div>
+      <div class="theme-info">
+        <div class="theme-name">${t.name}${active?' ✓':''}</div>
+        <div class="theme-desc">${t.desc}</div>
+        <div class="theme-effect">${t.effect}</div>
+      </div>
+      <div class="theme-cost">${unlocked?(active?'使用中':'點擊套用'):'🏅'+t.cost}</div>
+    </div>`;
+  }).join('');
 }
 
 function doClick(e){
@@ -872,6 +952,9 @@ function load(){
       if(state.counts[u.id]===undefined)state.counts[u.id]=0;
     });
     if(state.forbesCrossed===undefined)state.forbesCrossed=0;
+    // 遷移：補上主題欄位
+    if(!state.unlockedThemes)state.unlockedThemes=['default'];
+    if(!state.activeTheme)state.activeTheme='default';
     // 週重置
     const wk=weekKey();
     if(state.weekKey&&state.weekKey!==wk){state.weekly=0;state.weekKey=wk;}
@@ -897,7 +980,7 @@ function switchTab(tab){
     document.querySelectorAll('.tab')[i].classList.toggle('active',t===tab);
     document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
   });
-  if(tab==='stats')renderStats();
+  if(tab==='stats'){renderStats();renderThemes();}
   if(tab==='forbes')renderForbes();
 }
 
@@ -944,6 +1027,7 @@ setInterval(save,30000);
 
 document.addEventListener('contextmenu',e=>e.preventDefault());
 load();
+applyTheme(state.activeTheme,false);
 renderShop();
 updateUI();
 checkMS();checkForbes();
