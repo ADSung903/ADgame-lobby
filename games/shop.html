@@ -524,52 +524,262 @@ const BILLIONAIRES=[
 const LS_KEY='shop24h_save', LS_LB='shop24h_lb_v1', RATE=1.15;
 
 // ══════════════ 徽章系統 ══════════════
+function grandTotalPrestigeFrom(s){return Object.values(s.galaxies).reduce((sum,g)=>sum+(g.prestige||0),0);}
+function grandTotalClicksFrom(s){return Object.values(s.galaxies).reduce((sum,g)=>sum+(g.clicks||0),0);}
+function grandTotalAllTimeFrom(s){return Object.values(s.galaxies).reduce((sum,g)=>sum+(g.allTime||0),0);}
+function galaxyFullUpgrade(s,gid,arr){
+  const g=s.galaxies[gid]; if(!g)return false;
+  return arr.every(u=>(g.counts[u.id]||0)>=u.max);
+}
+function galaxyTierFullUpgrade(s,gid,minP,arr){
+  const g=s.galaxies[gid]; if(!g||g.prestige<minP)return false;
+  return arr.every(u=>(g.counts[u.id]||0)>=u.max);
+}
+
 const BADGES=[
-  {id:'first_prestige', name:'初次轉生', icon:'✨', kind:'prestige',
+  // ══ 轉生里程碑（細分級距）10個 ══
+  {id:'prestige1', name:'初次轉生', icon:'✨', kind:'prestige',
     desc:'完成你的第一次轉生', check:s=>grandTotalPrestigeFrom(s)>=1},
+  {id:'prestige5', name:'轉生新手', icon:'🔄', kind:'prestige',
+    desc:'累計轉生達 5 次', check:s=>grandTotalPrestigeFrom(s)>=5},
+  {id:'prestige10', name:'光速十連', icon:'⚡', kind:'prestige',
+    desc:'累計轉生達 10 次', check:s=>grandTotalPrestigeFrom(s)>=10},
+  {id:'prestige20', name:'星系霸主', icon:'👑', kind:'prestige',
+    desc:'累計轉生達 20 次', check:s=>grandTotalPrestigeFrom(s)>=20},
+  {id:'prestige30', name:'輪迴行者', icon:'🔁', kind:'prestige',
+    desc:'累計轉生達 30 次', check:s=>grandTotalPrestigeFrom(s)>=30},
+  {id:'prestige50', name:'轉生狂人', icon:'💫', kind:'prestige',
+    desc:'累計轉生達 50 次', check:s=>grandTotalPrestigeFrom(s)>=50},
+  {id:'prestige75', name:'輪迴大師', icon:'🌠', kind:'prestige',
+    desc:'累計轉生達 75 次', check:s=>grandTotalPrestigeFrom(s)>=75},
+  {id:'prestige100single', name:'宇宙等級', icon:'🌌', kind:'rare',
+    desc:'任一星系轉生達 100 次，解鎖終極升級', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=100)},
+  {id:'prestige150', name:'時空旅人', icon:'⏱️', kind:'rare',
+    desc:'累計轉生達 150 次', check:s=>grandTotalPrestigeFrom(s)>=150},
+  {id:'prestige200', name:'無限輪迴', icon:'♾️', kind:'rare',
+    desc:'累計轉生達 200 次', check:s=>grandTotalPrestigeFrom(s)>=200},
+
+  // ══ 財富里程碑 10個 ══
+  {id:'wealth1k', name:'第一桶金', icon:'🪙', kind:'wealth',
+    desc:'任一星系單輪身家破 $1,000', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e3)},
+  {id:'wealth1m', name:'百萬富翁', icon:'💰', kind:'wealth',
+    desc:'任一星系單輪身家破 $1M', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e6)},
+  {id:'wealth1b', name:'億萬富豪', icon:'💵', kind:'wealth',
+    desc:'任一星系單輪身家破 $1B', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e9)},
+  {id:'wealth1t', name:'兆元玩家', icon:'💎', kind:'wealth',
+    desc:'任一星系單輪身家破 $1T', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e12)},
+  {id:'wealth100t', name:'百兆巨擘', icon:'🔱', kind:'wealth',
+    desc:'任一星系歷代總身家達 $100T', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e14)},
+  {id:'wealth1qa', name:'四極致富', icon:'🪐', kind:'wealth',
+    desc:'任一星系歷代總身家達 $1Qa（10^15）', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e15)},
+  {id:'wealth1e18', name:'天文數字', icon:'🌟', kind:'wealth',
+    desc:'任一星系歷代總身家達 10^18', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e18)},
+  {id:'wealth1e21', name:'銀河儲備', icon:'🌌', kind:'rare',
+    desc:'任一星系歷代總身家達 10^21', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e21)},
+  {id:'wealth1e24', name:'宇宙級資產', icon:'🪙', kind:'rare',
+    desc:'任一星系歷代總身家達 10^24', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e24)},
+  {id:'wealth_grand1e15', name:'三星合計兆富豪', icon:'🏆', kind:'rare',
+    desc:'三星歷代總身家合計達 10^15', check:s=>grandTotalAllTimeFrom(s)>=1e15},
+
+  // ══ 星系探索 6個 ══
   {id:'namek_unlocked', name:'踏上那美克星', icon:'🐉', kind:'milestone',
     desc:'解鎖那美克星', check:s=>(s.visitedGalaxies||[]).includes('namek')},
   {id:'b612_unlocked', name:'抵達 B612', icon:'🌹', kind:'milestone',
     desc:'解鎖 B612 小行星', check:s=>(s.visitedGalaxies||[]).includes('b612')},
   {id:'tri_explorer', name:'三星探索者', icon:'🪐', kind:'rare',
     desc:'在 3 個不同星系都完成過轉生', check:s=>Object.values(s.galaxies).filter(g=>g.prestige>0).length>=3},
-  {id:'galaxy_master', name:'星系霸主', icon:'👑', kind:'rare',
-    desc:'單一星系轉生達 20 次', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=20)},
-  {id:'speed_runner', name:'光速十連', icon:'⚡', kind:'rare',
-    desc:'10 次轉生內完成（任一星系）', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=10)},
+  {id:'namek_master', name:'戰鬥民族傳人', icon:'👊', kind:'rare',
+    desc:'那美克星轉生達 10 次', check:s=>(s.galaxies.namek?.prestige||0)>=10},
+  {id:'b612_master', name:'小王子知己', icon:'🦊', kind:'rare',
+    desc:'B612 轉生達 10 次', check:s=>(s.galaxies.b612?.prestige||0)>=10},
+  {id:'tri_master50', name:'三星各有所成', icon:'🌈', kind:'rare',
+    desc:'三個星系都轉生達 50 次', check:s=>Object.values(s.galaxies).every(g=>g.prestige>=50)},
+
+  // ══ 操作累積 8個 ══
+  {id:'clicks100', name:'初試身手', icon:'🖱️', kind:'milestone',
+    desc:'單星系手動點擊累積 100 次', check:s=>Object.values(s.galaxies).some(g=>g.clicks>=100)},
+  {id:'clicks1000', name:'千次點擊', icon:'👆', kind:'milestone',
+    desc:'單星系手動點擊累積 1,000 次', check:s=>Object.values(s.galaxies).some(g=>g.clicks>=1000)},
+  {id:'clicks10000', name:'點擊大師', icon:'✋', kind:'milestone',
+    desc:'單星系手動點擊累積 10,000 次', check:s=>Object.values(s.galaxies).some(g=>g.clicks>=10000)},
+  {id:'clicks_grand1e5', name:'手指不會痛', icon:'🤚', kind:'rare',
+    desc:'三星總點擊累積 100,000 次', check:s=>grandTotalClicksFrom(s)>=1e5},
+  {id:'hour1', name:'初來乍到', icon:'⏰', kind:'milestone',
+    desc:'累計遊戲時間達 1 小時', check:s=>(Date.now()-(s.startTime||Date.now()))>=1*3600000},
+  {id:'week_player', name:'七日店長', icon:'📅', kind:'milestone',
+    desc:'累計遊戲時間達 7 小時', check:s=>(Date.now()-(s.startTime||Date.now()))>=7*3600000},
+  {id:'hour30', name:'忠實玩家', icon:'🗓️', kind:'rare',
+    desc:'累計遊戲時間達 30 小時', check:s=>(Date.now()-(s.startTime||Date.now()))>=30*3600000},
+  {id:'hour100', name:'百日修行', icon:'📿', kind:'rare',
+    desc:'累計遊戲時間達 100 小時', check:s=>(Date.now()-(s.startTime||Date.now()))>=100*3600000},
+
+  // ══ 升級收集 12個 ══
+  {id:'full_upgrade_earth', name:'太陽系全滿', icon:'🏪', kind:'rare',
+    desc:'太陽系基礎 8 項升級全部滿級', check:s=>galaxyFullUpgrade(s,'earth',UPGRADES)},
+  {id:'full_upgrade_namek', name:'那美克星全滿', icon:'🐲', kind:'rare',
+    desc:'那美克星基礎 8 項升級全部滿級', check:s=>galaxyFullUpgrade(s,'namek',UPGRADES_NAMEK)},
+  {id:'full_upgrade_b612', name:'B612全滿', icon:'🌷', kind:'rare',
+    desc:'B612 基礎 8 項升級全部滿級', check:s=>galaxyFullUpgrade(s,'b612',UPGRADES_B612)},
+  {id:'full_p3_earth', name:'旗艦全滿（地球）', icon:'🏝️', kind:'rare',
+    desc:'太陽系旗艦升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'earth',3,UPGRADES_P3)},
+  {id:'full_p3_namek', name:'旗艦全滿（那美克星）', icon:'🛡️', kind:'rare',
+    desc:'那美克星旗艦升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'namek',3,UPGRADES_NAMEK_P3)},
+  {id:'full_p3_b612', name:'旗艦全滿（B612）', icon:'🏡', kind:'rare',
+    desc:'B612 旗艦升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'b612',3,UPGRADES_B612_P3)},
+  {id:'full_p15_earth', name:'帝國全滿（地球）', icon:'🛰️', kind:'rare',
+    desc:'太陽系全球商業帝國升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'earth',15,UPGRADES_P15)},
+  {id:'full_p15_namek', name:'帝國全滿（那美克星）', icon:'🤖', kind:'rare',
+    desc:'那美克星全球商業帝國升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'namek',15,UPGRADES_NAMEK_P15)},
+  {id:'full_p15_b612', name:'帝國全滿（B612）', icon:'🔭', kind:'rare',
+    desc:'B612 全球商業帝國升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'b612',15,UPGRADES_B612_P15)},
+  {id:'full_p50_earth', name:'太空全滿（地球）', icon:'⭐', kind:'rare',
+    desc:'太陽系太空征服時代升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'earth',50,UPGRADES_P50)},
+  {id:'full_p50_namek', name:'太空全滿（那美克星）', icon:'🏟️', kind:'rare',
+    desc:'那美克星太空征服時代升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'namek',50,UPGRADES_NAMEK_P50)},
+  {id:'full_p50_b612', name:'太空全滿（B612）', icon:'👁️', kind:'rare',
+    desc:'B612 太空征服時代升級全部滿級', check:s=>galaxyTierFullUpgrade(s,'b612',50,UPGRADES_B612_P50)},
+
+  // ══ 主題與彩蛋 6個 ══
+  {id:'theme_cafe', name:'文青店長', icon:'☕', kind:'milestone',
+    desc:'解鎖文青咖啡廳主題', check:s=>(s.unlockedThemes||[]).includes('cafe')},
+  {id:'theme_casino', name:'夜店霸主', icon:'🎰', kind:'milestone',
+    desc:'解鎖賭場夜店主題', check:s=>(s.unlockedThemes||[]).includes('casino')},
+  {id:'theme_tech', name:'科技新貴', icon:'🚀', kind:'milestone',
+    desc:'解鎖科技新創主題', check:s=>(s.unlockedThemes||[]).includes('tech')},
+  {id:'theme_collector', name:'集卡狂', icon:'🎨', kind:'milestone',
+    desc:'解鎖全部 3 種主題店面', check:s=>(s.unlockedThemes||[]).length>=4},
+  {id:'token_collector10', name:'代幣小富', icon:'🏅', kind:'milestone',
+    desc:'黃金代幣累積達 10 枚', check:s=>(s.goldTokens||0)>=10},
+  {id:'token_collector50', name:'代幣大亨', icon:'🪙', kind:'rare',
+    desc:'黃金代幣累積達 50 枚', check:s=>(s.goldTokens||0)>=50},
+
+  // ══ 富比士對比 8個 ══
+  {id:'forbes1', name:'初登富比士榜', icon:'📊', kind:'wealth',
+    desc:'超越第一位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=1)},
+  {id:'forbes3', name:'富比士新星', icon:'🌟', kind:'wealth',
+    desc:'累計超越過 3 位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=3)},
+  {id:'forbes_regular', name:'富比士常客', icon:'🏦', kind:'wealth',
+    desc:'累計超越過 5 位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=5)},
+  {id:'forbes8', name:'富比士中堅', icon:'🏛️', kind:'wealth',
+    desc:'累計超越過 8 位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=8)},
+  {id:'forbes11', name:'富比士前段', icon:'🥈', kind:'rare',
+    desc:'累計超越過 11 位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=11)},
+  {id:'forbes14', name:'富比士頂尖', icon:'🥇', kind:'rare',
+    desc:'累計超越過 14 位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=14)},
+  {id:'world_richest', name:'世界首富', icon:'🌍', kind:'rare',
+    desc:'超越榜上全部富豪，登頂世界首富', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=16)},
+  {id:'forbes_tri', name:'三星首富', icon:'👑', kind:'rare',
+    desc:'三個星系都曾登頂世界首富', check:s=>Object.values(s.galaxies).every(g=>g.forbesCrossed>=16)},
+
+  // ══ 速度/效率向 8個 ══
   {id:'wanderer', name:'跨界旅人', icon:'🌌', kind:'rare',
     desc:'24 小時內切換過 2 個星系', check:s=>(s.galaxySwitchLog||[]).length>=2&&
       (Date.now()-s.galaxySwitchLog[0])<86400000},
-  // ── 財富向 ──
-  {id:'millionaire', name:'百萬富翁', icon:'💰', kind:'wealth',
-    desc:'任一星系單輪身家破 $1M', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e6)},
-  {id:'forbes_regular', name:'富比士常客', icon:'🏦', kind:'wealth',
-    desc:'累計超越過 5 位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=5)},
-  {id:'world_richest', name:'世界首富', icon:'🌍', kind:'wealth',
-    desc:'超越榜上全部富豪，登頂世界首富', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=16)},
-  {id:'centillion', name:'百兆巨擘', icon:'🔱', kind:'wealth',
-    desc:'任一星系歷代總身家達 100T', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e14)},
-  // ── 轉生向 ──
-  {id:'prestige5', name:'轉生新手', icon:'🔄', kind:'prestige',
-    desc:'累計轉生達 5 次', check:s=>grandTotalPrestigeFrom(s)>=5},
-  {id:'prestige50', name:'轉生狂人', icon:'💫', kind:'prestige',
-    desc:'累計轉生達 50 次', check:s=>grandTotalPrestigeFrom(s)>=50},
-  {id:'prestige100single', name:'宇宙等級', icon:'🌌', kind:'rare',
-    desc:'任一星系轉生達 100 次，解鎖終極升級', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=100)},
-  // ── 操作/收集向 ──
-  {id:'clicks1000', name:'千次點擊', icon:'👆', kind:'milestone',
-    desc:'單星系手動點擊累積 1000 次', check:s=>Object.values(s.galaxies).some(g=>g.clicks>=1000)},
-  {id:'theme_collector', name:'集卡狂', icon:'🎨', kind:'milestone',
-    desc:'解鎖全部 3 種主題店面', check:s=>(s.unlockedThemes||[]).length>=4},
-  {id:'full_upgrade_earth', name:'全滿升級', icon:'🏪', kind:'rare',
-    desc:'太陽系基礎 8 項升級全部滿級', check:s=>{
-      const g=s.galaxies.earth; if(!g)return false;
-      return UPGRADES.every(u=>(g.counts[u.id]||0)>=u.max);
+  {id:'wanderer3', name:'星際穿梭者', icon:'🛸', kind:'rare',
+    desc:'24 小時內切換星系達 3 次', check:s=>(s.galaxySwitchLog||[]).length>=3&&
+      (Date.now()-s.galaxySwitchLog[s.galaxySwitchLog.length-3])<86400000},
+  {id:'fast_prestige1h', name:'急速轉生', icon:'⏩', kind:'rare',
+    desc:'遊戲開始 1 小時內完成首次轉生', check:s=>grandTotalPrestigeFrom(s)>=1&&
+      (Date.now()-(s.startTime||Date.now()))<=3600000},
+  {id:'token_efficient', name:'代幣效率王', icon:'⚙️', kind:'rare',
+    desc:'轉生 10 次內累積代幣達 10 枚', check:s=>grandTotalPrestigeFrom(s)<=10&&(s.goldTokens||0)>=10},
+  {id:'click_power', name:'手速狂人', icon:'💨', kind:'rare',
+    desc:'單星系手動點擊達 5,000 次', check:s=>Object.values(s.galaxies).some(g=>g.clicks>=5000)},
+  {id:'cps_1e6', name:'被動收入大師', icon:'📈', kind:'rare',
+    desc:'任一星系史上最高 $/s 達 100 萬', check:s=>Object.values(s.galaxies).some(g=>g.peakCpsEver>=1e6)},
+  {id:'cps_1e9', name:'自動化帝國', icon:'🏭', kind:'rare',
+    desc:'任一星系史上最高 $/s 達 10 億', check:s=>Object.values(s.galaxies).some(g=>g.peakCpsEver>=1e9)},
+  {id:'no_click_prestige', name:'純自動主義者', icon:'🦥', kind:'rare',
+    desc:'單星系完成轉生，手動點擊低於 10 次', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=1&&g.clicks<10)},
+
+  // ══ 隱藏/趣味彩蛋 15個 ══
+  {id:'egg_lucky7', name:'幸運七', icon:'🎲', kind:'egg',
+    desc:'任一星系身家曾經正好出現 7777', check:s=>Object.values(s.galaxies).some(g=>String(Math.floor(g.money||0)).includes('7777'))},
+  {id:'egg_palindrome', name:'回文數字', icon:'🔢', kind:'egg',
+    desc:'任一星系身家曾是回文數字（如 12321）', check:s=>Object.values(s.galaxies).some(g=>{
+      const n=String(Math.floor(g.money||0)); return n.length>=5&&n===n.split('').reverse().join('');
+    })},
+  {id:'egg_midnight', name:'深夜店長', icon:'🌙', kind:'egg',
+    desc:'凌晨 0~5 點之間遊玩過', check:s=>{const h=new Date().getHours();return h>=0&&h<5;}},
+  {id:'egg_dawn', name:'早起的鳥兒', icon:'🌅', kind:'egg',
+    desc:'清晨 5~7 點之間遊玩過', check:s=>{const h=new Date().getHours();return h>=5&&h<7;}},
+  {id:'egg_zero_token', name:'清貧店長', icon:'🪹', kind:'egg',
+    desc:'轉生 5 次以上但代幣全部花光', check:s=>grandTotalPrestigeFrom(s)>=5&&(s.goldTokens||0)===0},
+  {id:'egg_all_visited_fast', name:'一日遊三星', icon:'🎫', kind:'egg',
+    desc:'一天內走遍三個星系', check:s=>(s.visitedGalaxies||[]).length>=3&&
+      (Date.now()-(s.startTime||Date.now()))<=86400000},
+  {id:'egg_stock_user', name:'股市初心者', icon:'📉', kind:'egg',
+    desc:'曾經把資金匯入股票市場帳戶', check:s=>{
+      try{const sa=JSON.parse(localStorage.getItem('shop24h_stock')||'{}');return (sa.cash||0)>0;}catch(e){return false;}
     }},
-  {id:'week_player', name:'七日店長', icon:'📅', kind:'milestone',
-    desc:'累計遊戲時間達 7 小時', check:s=>(Date.now()-(s.startTime||Date.now()))>=7*3600000},
+  {id:'egg_no_theme', name:'復古主義者', icon:'🕰️', kind:'egg',
+    desc:'轉生 10 次以上但從未換過主題', check:s=>grandTotalPrestigeFrom(s)>=10&&(s.unlockedThemes||['default']).length===1},
+  {id:'egg_b612_no_click', name:'用心感受星球', icon:'🌸', kind:'egg',
+    desc:'B612 轉生過，但手動點擊低於 50 次', check:s=>(s.galaxies.b612?.prestige||0)>=1&&(s.galaxies.b612?.clicks||0)<50},
+  {id:'egg_namek_clicker', name:'純粹的拳頭', icon:'👊', kind:'egg',
+    desc:'那美克星手動點擊達 2,000 次', check:s=>(s.galaxies.namek?.clicks||0)>=2000},
+  {id:'egg_three_prestige_same_day', name:'三連轉生', icon:'🎯', kind:'egg',
+    desc:'24 小時內任一星系轉生達 3 次以上', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=3)&&
+      (Date.now()-(s.startTime||Date.now()))<=86400000},
+  {id:'egg_billionaire_friend', name:'與富豪同行', icon:'🤝', kind:'egg',
+    desc:'身家曾經剛好等於某位富豪的身價（誤差內）', check:s=>Object.values(s.galaxies).some(g=>
+      BILLIONAIRES.some(b=>Math.abs((g.money||0)-b.t)<1000))},
+  {id:'egg_collector_all_badges_half', name:'收藏家進度過半', icon:'📒', kind:'egg',
+    desc:'已收集一半以上徽章', check:s=>(s.badges||[]).length>=49},
+  {id:'egg_weekend', name:'週末店長', icon:'🛋️', kind:'egg',
+    desc:'週六或週日遊玩過', check:s=>{const d=new Date().getDay();return d===0||d===6;}},
+  {id:'egg_first_minute', name:'迫不及待', icon:'⚡', kind:'egg',
+    desc:'遊戲開始 60 秒內完成第一次點擊', check:s=>grandTotalClicksFrom(s)>=1&&
+      (Date.now()-(s.startTime||Date.now()))<=60000},
+  {id:'egg_silent_tycoon', name:'沉默富翁', icon:'🤫', kind:'egg',
+    desc:'單星系身家破 $1B 但從未提交富比士榜', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e9)},
+
+  // ══ 跨星系統計 6個 ══
+  {id:'tri_total_prestige50', name:'三星總轉生破50', icon:'🎖️', kind:'rare',
+    desc:'三星轉生次數合計達 50 次', check:s=>grandTotalPrestigeFrom(s)>=50},
+  {id:'tri_total_prestige100', name:'三星總轉生破百', icon:'🏅', kind:'rare',
+    desc:'三星轉生次數合計達 100 次', check:s=>grandTotalPrestigeFrom(s)>=100},
+  {id:'tri_total_wealth1e9', name:'三星總財富破十億', icon:'💴', kind:'rare',
+    desc:'三星歷代總身家合計達 $1B', check:s=>grandTotalAllTimeFrom(s)>=1e9},
+  {id:'tri_total_wealth1e12', name:'三星總財富破兆', icon:'💶', kind:'rare',
+    desc:'三星歷代總身家合計達 $1T', check:s=>grandTotalAllTimeFrom(s)>=1e12},
+  {id:'tri_total_clicks1e4', name:'三星總點擊破萬', icon:'🖐️', kind:'rare',
+    desc:'三星總點擊次數合計達 10,000 次', check:s=>grandTotalClicksFrom(s)>=1e4},
+  {id:'tri_balance', name:'均衡發展', icon:'⚖️', kind:'rare',
+    desc:'三個星系轉生次數彼此差距不超過 5 次（且都 ≥5）', check:s=>{
+      const ps=Object.values(s.galaxies).map(g=>g.prestige||0);
+      if(ps.some(p=>p<5))return false;
+      return (Math.max(...ps)-Math.min(...ps))<=5;
+    }},
+
+  // ══ 稀有終極成就 10個 ══
+  {id:'ultimate_omnipotent_earth', name:'宇宙霸主降臨', icon:'🌌', kind:'ultimate',
+    desc:'太陽系達成宇宙霸主升級', check:s=>(s.galaxies.earth?.counts?.universe||0)>=1},
+  {id:'ultimate_omnipotent_namek', name:'全宇宙之神降臨', icon:'⚡', kind:'ultimate',
+    desc:'那美克星達成全宇宙之神升級', check:s=>(s.galaxies.namek?.counts?.omnipotent||0)>=1},
+  {id:'ultimate_omnipotent_b612', name:'小王子歸位', icon:'👑', kind:'ultimate',
+    desc:'B612 達成小王子的回歸升級', check:s=>(s.galaxies.b612?.counts?.littleprince||0)>=1},
+  {id:'ultimate_tri_p100', name:'三星齊达百轉', icon:'🌟', kind:'ultimate',
+    desc:'三個星系皆轉生達 100 次以上', check:s=>Object.values(s.galaxies).every(g=>g.prestige>=100)},
+  {id:'ultimate_tri_full_p100', name:'三界終極霸主', icon:'🔯', kind:'ultimate',
+    desc:'三個星系的宇宙霸主升級全部達成', check:s=>
+      (s.galaxies.earth?.counts?.universe||0)>=1&&
+      (s.galaxies.namek?.counts?.omnipotent||0)>=1&&
+      (s.galaxies.b612?.counts?.littleprince||0)>=1},
+  {id:'ultimate_prestige500', name:'轉生五百次', icon:'🌀', kind:'ultimate',
+    desc:'累計轉生達 500 次', check:s=>grandTotalPrestigeFrom(s)>=500},
+  {id:'ultimate_wealth1e30', name:'超越想像的財富', icon:'💠', kind:'ultimate',
+    desc:'任一星系歷代總身家達 10^30', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e30)},
+  {id:'ultimate_token100', name:'代幣收藏家', icon:'🏆', kind:'ultimate',
+    desc:'黃金代幣累積達 100 枚', check:s=>(s.goldTokens||0)>=100},
+  {id:'ultimate_all_themes_full', name:'全方位店長', icon:'🎭', kind:'ultimate',
+    desc:'集滿主題、三星轉生破百、代幣破百', check:s=>
+      (s.unlockedThemes||[]).length>=4&&
+      Object.values(s.galaxies).every(g=>g.prestige>=100)&&
+      (s.goldTokens||0)>=100},
+  {id:'completionist', name:'集大成者', icon:'🎖️', kind:'ultimate',
+    desc:'解鎖本榜其餘所有徽章', check:s=>(s.badges||[]).length>=98},
 ];
-function grandTotalPrestigeFrom(s){return Object.values(s.galaxies).reduce((sum,g)=>sum+(g.prestige||0),0);}
 
 function checkBadges(){
   BADGES.forEach(b=>{
