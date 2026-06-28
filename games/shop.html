@@ -540,6 +540,34 @@ const BADGES=[
   {id:'wanderer', name:'跨界旅人', icon:'🌌', kind:'rare',
     desc:'24 小時內切換過 2 個星系', check:s=>(s.galaxySwitchLog||[]).length>=2&&
       (Date.now()-s.galaxySwitchLog[0])<86400000},
+  // ── 財富向 ──
+  {id:'millionaire', name:'百萬富翁', icon:'💰', kind:'wealth',
+    desc:'任一星系單輪身家破 $1M', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e6)},
+  {id:'forbes_regular', name:'富比士常客', icon:'🏦', kind:'wealth',
+    desc:'累計超越過 5 位真實富豪', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=5)},
+  {id:'world_richest', name:'世界首富', icon:'🌍', kind:'wealth',
+    desc:'超越榜上全部富豪，登頂世界首富', check:s=>Object.values(s.galaxies).some(g=>g.forbesCrossed>=16)},
+  {id:'centillion', name:'百兆巨擘', icon:'🔱', kind:'wealth',
+    desc:'任一星系歷代總身家達 100T', check:s=>Object.values(s.galaxies).some(g=>g.allTime>=1e14)},
+  // ── 轉生向 ──
+  {id:'prestige5', name:'轉生新手', icon:'🔄', kind:'prestige',
+    desc:'累計轉生達 5 次', check:s=>grandTotalPrestigeFrom(s)>=5},
+  {id:'prestige50', name:'轉生狂人', icon:'💫', kind:'prestige',
+    desc:'累計轉生達 50 次', check:s=>grandTotalPrestigeFrom(s)>=50},
+  {id:'prestige100single', name:'宇宙等級', icon:'🌌', kind:'rare',
+    desc:'任一星系轉生達 100 次，解鎖終極升級', check:s=>Object.values(s.galaxies).some(g=>g.prestige>=100)},
+  // ── 操作/收集向 ──
+  {id:'clicks1000', name:'千次點擊', icon:'👆', kind:'milestone',
+    desc:'單星系手動點擊累積 1000 次', check:s=>Object.values(s.galaxies).some(g=>g.clicks>=1000)},
+  {id:'theme_collector', name:'集卡狂', icon:'🎨', kind:'milestone',
+    desc:'解鎖全部 3 種主題店面', check:s=>(s.unlockedThemes||[]).length>=4},
+  {id:'full_upgrade_earth', name:'全滿升級', icon:'🏪', kind:'rare',
+    desc:'太陽系基礎 8 項升級全部滿級', check:s=>{
+      const g=s.galaxies.earth; if(!g)return false;
+      return UPGRADES.every(u=>(g.counts[u.id]||0)>=u.max);
+    }},
+  {id:'week_player', name:'七日店長', icon:'📅', kind:'milestone',
+    desc:'累計遊戲時間達 7 小時', check:s=>(Date.now()-(s.startTime||Date.now()))>=7*3600000},
 ];
 function grandTotalPrestigeFrom(s){return Object.values(s.galaxies).reduce((sum,g)=>sum+(g.prestige||0),0);}
 
