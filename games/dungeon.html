@@ -495,7 +495,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.31 📋</button>
+      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.32 📋</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -1295,6 +1295,60 @@ const ARMOR_TPL = {
 const WPN_SUBTYPES = ['sword','axe','bow','wand','dagger','spear'];
 const WPN_ICON = {sword:'⚔️',axe:'🪓',bow:'🏹',wand:'🪄',dagger:'🗡️',spear:'🔱'};
 
+// ════════════════════════════════════════════════════════════
+// 🎨 SPRITE SYSTEM — pixel art 圖示資源（取代emoji，依職業武器限制決定甲冑風格）
+// ════════════════════════════════════════════════════════════
+const SPRITE_BASE = 'sprites/';
+const ARMOR_STYLE_BY_JOB = {
+  // 重甲風格：戰士/劍士系（斧/劍系）
+  warrior:'heavy', paladin:'heavy', death_knight:'heavy', holy_knight:'heavy', death_lord:'heavy',
+  swordsman:'heavy', sword_saint:'heavy', knight_king:'heavy', blade_master:'heavy', king_ascendant:'heavy',
+  // 輕甲/長袍風格：法師/盜賊/遊俠系
+  mage:'light', ice_mage:'light', fire_mage:'light', frost_lich:'light', archmage:'light',
+  rogue:'light', gambler:'light', fortune_god:'light', hunter:'light', sniper_king:'light',
+  ranger:'light', bard:'light', dragon_knight:'light', sage:'light', dragon_god:'light',
+  miner:'light', // 礦工預設輕甲（均衡）
+};
+
+function getArmorStyle() {
+  return ARMOR_STYLE_BY_JOB[state.job] || 'light';
+}
+
+// 取得物品對應的 sprite 圖片路徑；找不到對應圖則回傳 null（呼叫端fallback成emoji）
+function getSpritePath(item) {
+  if (!item) return null;
+  const rarity = item.rarity || 'white';
+  if (item.type === 'weapon') {
+    return `${SPRITE_BASE}weapon_${item.subtype}_${rarity}.png`;
+  }
+  if (item.type === 'armor') {
+    const slotMap = { helmet:'helmet', armor:'armor', legs:'legs', gloves:'gloves', boots:'boots',
+      necklace:'acc_necklace', ring1:'acc_ring', ring2:'acc_ring', earring1:'acc_earring', earring2:'acc_earring' };
+    const mapped = slotMap[item.subtype];
+    if (!mapped) return null;
+    if (mapped === 'helmet') return `${SPRITE_BASE}helmet_${rarity}.png`;
+    if (mapped.startsWith('acc_')) return `${SPRITE_BASE}${mapped}_${rarity}.png`;
+    // armor/legs/gloves/boots 依職業決定重甲或輕甲風格
+    const style = getArmorStyle();
+    return `${SPRITE_BASE}${style}_${mapped}_${rarity}.png`;
+  }
+  return null;
+}
+
+// 產生 icon 顯示用的 HTML：優先用圖片，找不到圖則 fallback 成原本的 emoji
+function renderItemIcon(item, sizeClass) {
+  if (!item) return '';
+  if (item.unidentified) return `<span class="${sizeClass||''}">${item.icon||'❓'}</span>`;
+  const spritePath = getSpritePath(item);
+  if (spritePath) {
+    return `<img src="${spritePath}" class="${sizeClass||''}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated"
+      onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${sizeClass||''}',textContent:'${item.icon||'❓'}'}))">`;
+  }
+  return `<span class="${sizeClass||''}">${item.icon||'❓'}</span>`;
+}
+
+
+
 
 // ════════════════════════════════════════════════════════════
 // ⚔️ ITEM GENERATION — Weapons, Armor, Elements, Curses
@@ -1514,6 +1568,7 @@ const ENHANCE_RATES = {
 // 📋 VERSION HISTORY — 更新日誌
 // ════════════════════════════════════════════════════════════
 const VERSION_HISTORY = [
+  {v:'1.32', notes:['裝備視覺系統上線（方向A）：背包/裝備欄/裝備卡片/商店/死亡傳承選擇，全部改用pixel art圖示取代emoji','110張素材：男女Base角色、6武器、重甲/輕甲各4部位、3飾品，各6種稀有度染色版本','防具外觀依職業自動切換：戰士/劍士系顯示重甲風格，法師/盜賊/遊俠系顯示輕甲風格','找不到對應圖片時自動fallback回emoji，不影響原有功能','角色身上紙娃娃疊圖（方向B）暫緩：現有素材是「展示用icon」比例，非「穿戴疊圖」比例，需要重新設計素材規格']},
   {v:'1.31', notes:['【重大修正】大陸邊界判定bug：機械廢都(mech)原本只要求dx<0(任何負值)+距離500，導致西北方向稍微偏西就會被機械廢都攔截，玩家往北走會卡在機械永遠到不了天空浮島','改用明確的角度扇形劃分9大陸（每個方位約40-50度），360度測試確認所有方向都有合理且不重疊的大陸歸屬']},
   {v:'1.30', notes:['各大陸（除新手森林）一般怪物從4種擴增至6種，共新增16隻怪物：沙塵巨蜂/流沙幽魂(沙漠)、暴風雪怪/冰封殭屍(冰雪)、熾炎犬/熔岩蟾蜍(熔岩)、電鰭魚/深海蟹將(深海)、風暴鷲/雲端遊魂(天空)、噬魂怪/暗影蜘蛛(暗影)、鑽地獸/雷射砲塔(機械)、永夜行者/虛空蝕者(隱藏)','圖鑑總數自動從50種增加至66種，收集進度同步更新']},
   {v:'1.29', notes:['賭場新增單局下注上限 $50000（固定/自訂金額皆受限），避免一次梭哈全部金幣','下注選項擴充：$100/$500/$1000/$5000/$10000/$50000，UI顯示上限提示']},
@@ -6154,7 +6209,7 @@ function openInventory(filter) {
     const stackBadge = count > 1
       ? `<div style="position:absolute;bottom:2px;right:3px;font-size:9px;color:#f59e0b;font-weight:700">×${count}</div>` : '';
     el.style.position = 'relative';
-    el.innerHTML = `<div class="s-icon">${icon}</div>
+    el.innerHTML = `<div class="s-icon">${renderItemIcon(item)}</div>
       <div class="s-name rarity-${item.rarity}">${nameDisplay}</div>
       ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}
       ${uidBadge}${stackBadge}`;
@@ -6185,7 +6240,7 @@ function openEquipment() {
   const w = state.weapon;
   const wRow = document.createElement('div');
   wRow.className = 'eq-weapon-row';
-  wRow.innerHTML = `<div class="es-icon">${w?w.icon:'⚔️'}</div>
+  wRow.innerHTML = `<div class="es-icon">${w?renderItemIcon(w):'⚔️'}</div>
     <div class="es-info">
       <div class="es-label">武器</div>
       <div class="es-name rarity-${w?.rarity||'white'}">${w?(w.name+(w.enhance>0?'+'+w.enhance:'')):'── 未裝備'}</div>
@@ -6200,8 +6255,8 @@ function openEquipment() {
     const it = state.equipment[slot];
     const el = document.createElement('div');
     el.className = `eq-slot ${it?'':'empty'}`;
-    const itIcon = it ? (it.icon || (it.type==='weapon' ? WPN_ICON[it.subtype]||'⚔️' : SLOT_ICON[it.subtype]||'📦')) : SLOT_ICON[slot];
-    el.innerHTML = `<div class="es-icon">${itIcon}</div>
+    const itIconHtml = it ? renderItemIcon(it) : (SLOT_ICON[slot]||'📦');
+    el.innerHTML = `<div class="es-icon">${itIconHtml}</div>
       <div class="es-info">
         <div class="es-label">${SLOT_LABEL[slot]}</div>
         <div class="es-name rarity-${it?.rarity||'white'}">${it?(it.name+(it.enhance>0?'+'+it.enhance:'')):'── 未裝備'}</div>
@@ -6536,7 +6591,10 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
   }
 
   document.getElementById('item-card-content').innerHTML = `
-    <div class="ic-name ${rCol}">${item.icon} ${cursedPrefix}${item.name}${item.enhance>0?' +'+item.enhance:''}</div>
+    <div class="ic-name ${rCol}" style="display:flex;align-items:center;gap:6px">
+      <span style="width:28px;height:28px;display:inline-flex">${renderItemIcon(item)}</span>
+      ${cursedPrefix}${item.name}${item.enhance>0?' +'+item.enhance:''}
+    </div>
     <div class="ic-sub">${rarityLabel}・${typeLabel}${elemStr}</div>
     ${curseHtml}
     <div class="ic-flavor">${item.flavorText||'一件普通的裝備'}</div>
@@ -6680,7 +6738,7 @@ function renderMerchant() {
     const it = stock.item;
     const canBuy = state.gold >= stock.price;
     html += `<div class="merchant-item">
-      <div class="mi-icon">${it.icon}</div>
+      <div class="mi-icon">${renderItemIcon(it)}</div>
       <div class="mi-info">
         <div class="mi-name rarity-${it.rarity||'white'}">${it.name}</div>
         <div class="mi-desc">${it.type==='potion'||it.type==='scroll' ? it.desc||'' : (SLOT_LABEL[it.subtype]||it.subtype)}</div>
@@ -7193,7 +7251,7 @@ function showInheritance() {
       const it = entry.item;
       const el = document.createElement('div');
       el.className = `inherit-slot ${it.rarity||'white'}`;
-      el.innerHTML = `<div class="is-icon">${it.icon}</div>
+      el.innerHTML = `<div class="is-icon">${renderItemIcon(it)}</div>
         <div class="is-name rarity-${it.rarity||'white'}">${it.name}</div>
         <div style="font-size:9px;color:var(--sub)">${entry.label}</div>`;
       el.onclick = () => toggleInherit(i, el, maxPick, pool);
