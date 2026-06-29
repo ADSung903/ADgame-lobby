@@ -14,6 +14,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 .back-btn{font-size:12px;padding:4px 10px;border-radius:8px;border:.5px solid #333;background:transparent;color:#aaa;cursor:pointer}
 .game-title{font-size:16px;font-weight:700;color:var(--accent);flex:1;text-align:center}
 .save-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.sound-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:.2rem;opacity:.85;flex-shrink:0}
 
 /* hero */
 .hero{padding:.75rem .75rem .5rem;text-align:center;background:linear-gradient(180deg,#0d0020 0%,var(--bg) 100%);flex-shrink:0}
@@ -156,6 +157,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 <div class="topbar">
   <button class="back-btn" onclick="goBack()">← 大廳</button>
   <div class="game-title">🎲 24H 迷你店長</div>
+  <button class="sound-btn" id="sound-btn" onclick="toggleMute()">🔊</button>
   <div class="save-dot" id="save-dot"></div>
 </div>
 
@@ -452,15 +454,94 @@ const INDUSTRY_TAGS_B612={
 const GALAXIES=[
   {id:'earth', name:'太陽系', icon:'🌍', unlockPrestige:0, currencySymbol:'$', currencyName:'資產',
     upgrades:allUpgrades, tags:INDUSTRY_TAGS, baseUpgrades:UPGRADES,
-    vars:{'--accent':'#7c3aed','--gold':'#f59e0b','--bg':'#060610','--bg2':'#0d0d1e','--bg3':'#12122a'}},
+    vars:{'--accent':'#7c3aed','--gold':'#f59e0b','--bg':'#060610','--bg2':'#0d0d1e','--bg3':'#12122a'},
+    bgm:'audio/shop/bgm_earth.mp3', click:'audio/shop/click_earth.mp3', prestige:'audio/shop/prestige_earth.mp3'},
   {id:'namek', name:'那美克星', icon:'🐉', unlockPrestige:12, currencySymbol:'⚡', currencyName:'戰鬥力',
     upgrades:allUpgradesNamek, tags:INDUSTRY_TAGS_NAMEK, baseUpgrades:UPGRADES_NAMEK,
-    vars:{'--accent':'#22c55e','--gold':'#facc15','--bg':'#04140a','--bg2':'#08200f','--bg3':'#0c2a14'}},
+    vars:{'--accent':'#22c55e','--gold':'#facc15','--bg':'#04140a','--bg2':'#08200f','--bg3':'#0c2a14'},
+    bgm:'audio/shop/bgm_namek.mp3', click:'audio/shop/click_namek.mp3', prestige:'audio/shop/prestige_namek.mp3'},
   {id:'b612', name:'B612 小行星', icon:'🌹', unlockPrestige:5, unlockGalaxy:'namek', currencySymbol:'✨', currencyName:'星塵',
     upgrades:allUpgradesB612, tags:INDUSTRY_TAGS_B612, baseUpgrades:UPGRADES_B612,
-    vars:{'--accent':'#ec4899','--gold':'#fde047','--bg':'#0a0612','--bg2':'#150a1e','--bg3':'#1d0f28'}},
+    vars:{'--accent':'#ec4899','--gold':'#fde047','--bg':'#0a0612','--bg2':'#150a1e','--bg3':'#1d0f28'},
+    bgm:'audio/shop/bgm_b612.mp3', click:'audio/shop/click_b612.mp3', prestige:'audio/shop/prestige_b612.mp3'},
 ];
 function getGalaxy(id){return GALAXIES.find(g=>g.id===id)||GALAXIES[0];}
+
+// ══════════════ 音效系統 ══════════════
+const AUDIO_PREF_KEY='shop24h_audio_muted';
+let audioMuted=localStorage.getItem(AUDIO_PREF_KEY)==='1';
+let audioUnlocked=false; // 瀏覽器要求使用者互動後才能播放音訊
+
+const bgmPlayers={}; // 每個星系一個 <audio> 物件，預先建立並 loop
+const clickPlayers={}; // 每個星系一個點擊音 <audio>（用 cloneNode 避免快速連點互相打斷）
+let curBgmId=null;
+
+function initAudio(){
+  GALAXIES.forEach(g=>{
+    const bgm=new Audio(g.bgm);
+    bgm.loop=true; bgm.volume=0.35; bgm.preload='auto';
+    bgmPlayers[g.id]=bgm;
+    const click=new Audio(g.click);
+    click.volume=0.6; click.preload='auto';
+    clickPlayers[g.id]=click;
+  });
+  updateSoundBtn();
+}
+
+function playClick(){
+  if(audioMuted||!audioUnlocked)return;
+  const base=clickPlayers[state.currentGalaxy];
+  if(!base)return;
+  // clone 一份播放，避免連續快速點擊時聲音被前一個截斷
+  const node=base.cloneNode();
+  node.volume=base.volume;
+  node.play().catch(()=>{});
+}
+
+function playPrestigeSfx(){
+  if(audioMuted||!audioUnlocked)return;
+  const g=getGalaxy(state.currentGalaxy);
+  const sfx=new Audio(g.prestige);
+  sfx.volume=0.7;
+  sfx.play().catch(()=>{});
+}
+
+function switchBgm(galaxyId){
+  if(curBgmId===galaxyId)return;
+  if(curBgmId&&bgmPlayers[curBgmId]){
+    bgmPlayers[curBgmId].pause();
+  }
+  curBgmId=galaxyId;
+  if(audioMuted||!audioUnlocked)return;
+  const bgm=bgmPlayers[galaxyId];
+  if(bgm){ bgm.currentTime=0; bgm.play().catch(()=>{}); }
+}
+
+function unlockAudio(){
+  if(audioUnlocked)return;
+  audioUnlocked=true;
+  if(!audioMuted){
+    const bgm=bgmPlayers[state.currentGalaxy];
+    if(bgm)bgm.play().catch(()=>{});
+    curBgmId=state.currentGalaxy;
+  }
+}
+
+function toggleMute(){
+  audioMuted=!audioMuted;
+  localStorage.setItem(AUDIO_PREF_KEY,audioMuted?'1':'0');
+  if(audioMuted){
+    Object.values(bgmPlayers).forEach(b=>b.pause());
+  }else if(audioUnlocked){
+    const bgm=bgmPlayers[state.currentGalaxy];
+    if(bgm){ bgm.play().catch(()=>{}); curBgmId=state.currentGalaxy; }
+  }
+  updateSoundBtn();
+}
+function updateSoundBtn(){
+  const btn=document.getElementById('sound-btn');
+  if(btn)btn.textContent=audioMuted?'🔇':'🔊';
+}
 function curSymbol(){return curGalaxyDef().currencySymbol;}
 function curMoney(n){return curSymbol()+fmt(n);}        // 目前所在星系的金額格式化
 function galaxyMoney(gid,n){return getGalaxy(gid).currencySymbol+fmt(n);} // 指定星系的金額格式化
@@ -925,6 +1006,7 @@ function switchGalaxy(id){
   state.galaxySwitchLog.push(Date.now());
   if(state.galaxySwitchLog.length>10)state.galaxySwitchLog.shift();
   applyGalaxyVisual(id);
+  switchBgm(id);
   renderShop();updateUI();renderGalaxies();
   checkBadges();
   save();
@@ -966,12 +1048,14 @@ function renderBadges(){
 }
 
 function doClick(e){
+  unlockAudio();
   const earn=clickPow();
   const g=cur();
   g.money+=earn; g.totalEarned+=earn; g.allTime+=earn; g.weekly+=earn;
   g.clicks++;
   const r=document.getElementById('click-btn').getBoundingClientRect();
   spawnFloat('+'+curMoney(earn), e?e.clientX:r.left+r.width/2, e?e.clientY:r.top);
+  playClick();
   updateUI(); checkMS(); checkForbes();
 }
 
@@ -1012,12 +1096,14 @@ function doPrestige(){
   const g=cur();
   if(g.money<threshold)return;
   const nextP=g.prestige+1;
-  const hints={3:'\n🏝️ 旗艦升級將解鎖！',15:'\n🛰️ 全球帝國升級將解鎖！',50:'\n⭐ 太空征服升級將解鎖！',100:'\n🌌 宇宙霸主模式將解鎖！'};
+  const meta=SHOP_TIER_META[state.currentGalaxy][0];
+  const hints={3:'\n'+meta.title3+'將解鎖！',15:'\n'+meta.title15+'將解鎖！',50:'\n'+meta.title50+'將解鎖！',100:'\n'+meta.title100+'將解鎖！'};
   const unlockMsg=hints[nextP]||'';
   const stockSave=getStockAccount();
   const stockCash=stockSave.cash||0;
   const stockWarn=(stockCash>0&&state.currentGalaxy==='earth')?`\n⚠️ 股市現金 NT$${fmt(stockCash)} 也將歸零！`:'';
   if(!confirm(`確定第 ${nextP} 次轉生？\n所有資產歸零，換取黃金代幣！\n永久 +200% 收益加成！${unlockMsg}${stockWarn}`))return;
+  playPrestigeSfx();
   submitToLB(false);
   g.prestige++; state.goldTokens=(state.goldTokens||0)+1;
   g.money=0; g.totalEarned=0; g.peakCps=0; g.msIdx=0; g.forbesCrossed=0;
@@ -1025,7 +1111,7 @@ function doPrestige(){
   if(stockCash>0&&state.currentGalaxy==='earth'){stockSave.cash=0;saveStockAccount(stockSave);}
   checkBadges();
   save(); renderShop(); updateUI(); renderGalaxies();
-  const unlocks={3:'✨ 旗艦升級已解鎖！',15:'🛰️ 全球商業帝國已解鎖！',50:'⭐ 太空征服時代已解鎖！',100:'🌌 宇宙霸主模式已解鎖！'};
+  const unlocks={3:meta.title3+'已解鎖！',15:meta.title15+'已解鎖！',50:meta.title50+'已解鎖！',100:meta.title100+'已解鎖！'};
   showMS({
     title:`🏆 第 ${g.prestige} 次轉生！`,
     body:`獲得黃金代幣 🏅 ×1（總計 ${state.goldTokens} 枚）\n永久收益倍率：×${mult()}${unlocks[g.prestige]?'\n\n'+unlocks[g.prestige]:''}`,
@@ -1114,37 +1200,43 @@ function cardHTML(u){
   </div>`;
 }
 
-function lockedSection(icon,title,need,preview,hint,arr){
+function lockedSection(title,need,preview,hint,arr){
   if(cur().prestige>=need){
-    return`<div class="shop-section-hdr">${icon} ${title}（轉生 ${need} 次解鎖）</div>`+arr.map(cardHTML).join('');
+    return`<div class="shop-section-hdr">${title}（轉生 ${need} 次解鎖）</div>`+arr.map(cardHTML).join('');
   }
   const left=need-cur().prestige;
-  return`<div class="shop-section-hdr">${icon} ${title}</div>
+  return`<div class="shop-section-hdr">${title}</div>
     <div class="shop-locked">🔒 再轉生 <b>${left}</b> 次即可解鎖<br>${preview}<br><small style="font-size:10px">${hint}</small></div>`;
 }
 const SHOP_TIER_META={
   earth:[
     {p3:UPGRADES_P3,p15:UPGRADES_P15,p50:UPGRADES_P50,p100:UPGRADES_P100,
      prev3:'海外旗艦館・品牌授權金・元宇宙桌遊',prev15:'商業衛星・超級AI・超級城市控股',
-     prev50:'戴森球能源站・星際殖民艦隊',prev100:'宇宙霸主（最終形態）'}],
+     prev50:'戴森球能源站・星際殖民艦隊',prev100:'宇宙霸主（最終形態）',
+     title3:'🏝️ 旗艦升級',title15:'🛰️ 全球商業帝國',title50:'⭐ 太空征服時代',title100:'🌌 宇宙霸主',
+     hint3:'每秒最高 $1.2M',hint15:'每秒最高達 $100B',hint50:'每秒最高達 $10P',hint100:'掌控全宇宙財富，每秒 $10Z'}],
   namek:[
     {p3:UPGRADES_NAMEK_P3,p15:UPGRADES_NAMEK_P15,p50:UPGRADES_NAMEK_P50,p100:UPGRADES_NAMEK_P100,
      prev3:'戰鬥族戰甲工坊・星球神龍召喚陣・金色形態覺醒',prev15:'暴君艦隊徵收站・人造戰士實驗室・異界修煉密室',
-     prev50:'諸天大會競技場・眾神之王宮殿朝拜',prev100:'全宇宙之神（最終形態）'}],
+     prev50:'諸天大會競技場・眾神之王宮殿朝拜',prev100:'全宇宙之神（最終形態）',
+     title3:'🛡️ 戰力突破',title15:'👹 宇宙級威脅',title50:'🏟️ 神之領域',title100:'🌌 超越極限',
+     hint3:'戰鬥力每秒最高 ⚡2B',hint15:'戰鬥力每秒最高達 ⚡8T',hint50:'戰鬥力每秒最高達 ⚡500Qa',hint100:'掌控全宇宙力量，每秒 ⚡1Y'}],
   b612:[
     {p3:UPGRADES_B612_P3,p15:UPGRADES_B612_P15,p50:UPGRADES_B612_P50,p100:UPGRADES_B612_P100,
      prev3:'溫室玫瑰培育所・星圖繪製局・蟒蛇與帽子博物館',prev15:'沙漠之井打水站・墜落飛行員救援隊・行星觀測天文台',
-     prev50:'用心看不見的事物・宇宙玫瑰花園',prev100:'小王子的回歸（最終形態）'}],
+     prev50:'用心看不見的事物・宇宙玫瑰花園',prev100:'小王子的回歸（最終形態）',
+     title3:'✈️ 星際旅程',title15:'🌍 廣闊宇宙',title50:'👁️ 心之所見',title100:'🌌 最終歸程',
+     hint3:'星塵每秒最高 ✨1.2M',hint15:'星塵每秒最高達 ✨100B',hint50:'星塵每秒最高達 ✨10P',hint100:'回到屬於自己的星球，每秒 ✨10Z'}],
 };
 function renderShop(){
   const def=curGalaxyDef();
   const meta=SHOP_TIER_META[def.id][0];
   document.getElementById('tab-shop').innerHTML=
     def.baseUpgrades.map(cardHTML).join('')+
-    lockedSection('🏝️','旗艦升級',3,meta.prev3,'每秒最高 $1.2M',meta.p3)+
-    lockedSection('🛰️','全球商業帝國',15,meta.prev15,'每秒最高達 $100B',meta.p15)+
-    lockedSection('⭐','太空征服時代',50,meta.prev50,'每秒最高達 $10P',meta.p50)+
-    lockedSection('🌌','宇宙霸主',100,meta.prev100,'掌控全宇宙財富，每秒 $10Z',meta.p100);
+    lockedSection(meta.title3,3,meta.prev3,meta.hint3,meta.p3)+
+    lockedSection(meta.title15,15,meta.prev15,meta.hint15,meta.p15)+
+    lockedSection(meta.title50,50,meta.prev50,meta.hint50,meta.p50)+
+    lockedSection(meta.title100,100,meta.prev100,meta.hint100,meta.p100);
 }
 
 function renderStats(){
@@ -1166,10 +1258,10 @@ function renderStats(){
   const meta=SHOP_TIER_META[def.id][0];
   document.getElementById('st-upgrades').innerHTML=
     def.baseUpgrades.map(u=>`<div class="stat-row"><span class="sn">${u.icon} ${u.name}</span><span class="sv" style="color:${u.color}">Lv.${g.counts[u.id]||0}/${u.max}</span></div>`).join('')+
-    tierRows(meta.p3,3,'旗艦升級')+
-    tierRows(meta.p15,15,'全球商業帝國')+
-    tierRows(meta.p50,50,'太空征服時代')+
-    tierRows(meta.p100,100,'宇宙霸主');
+    tierRows(meta.p3,3,meta.title3)+
+    tierRows(meta.p15,15,meta.title15)+
+    tierRows(meta.p50,50,meta.title50)+
+    tierRows(meta.p100,100,meta.title100);
   // 股票帳戶餘額
   const sa=getStockAccount();
   document.getElementById('st-stock').textContent='NT$'+fmt(sa.cash||0);
@@ -1630,9 +1722,16 @@ setInterval(save,30000);
 document.addEventListener('contextmenu',e=>e.preventDefault());
 load();
 applyGalaxyVisual(state.currentGalaxy,false);
+initAudio();
+curBgmId=state.currentGalaxy; // 記錄初始星系，避免首次互動時誤判要切換
 renderShop();
 updateUI();
 checkMS();checkForbes();
 if(cur().prestige>0)document.getElementById('prestige-row').style.display='flex';
+
+// 瀏覽器要求使用者互動後才能播放音訊；首次點擊/觸碰整個頁面任意處即解鎖
+['pointerdown','touchstart','keydown'].forEach(evt=>{
+  document.addEventListener(evt,unlockAudio,{once:true,passive:true});
+});
 </script>
 </body></html>
