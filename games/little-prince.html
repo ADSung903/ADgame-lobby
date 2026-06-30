@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>小王子的星球消除</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --c-prince:#F2C14E;    --c-prince-d:#C2901F;   /* 小王子:金黃 */
+    --c-fox:#E8743B;       --c-fox-d:#B5511F;      /* 狐狸:橘紅 */
+    --c-rose:#E8527C;      --c-rose-d:#AD2E54;     /* 玫瑰:玫紅 */
+    --c-snake:#5FAE6E;     --c-snake-d:#357A42;    /* 蛇:草綠 */
+    --c-planet:#6B6BC9;    --c-planet-d:#3F3F8E;   /* 星球:靛藍 */
+    --c-star:#8FD3E8;      --c-star-d:#4E9DB8;     /* 星星:淺天藍 */
+    --bg-deep:#1B1730;
+    --bg-deep2:#3A2C4E;
+    --panel:#2A2240;
+    --panel-light:#3C2F52;
+    --gold:#F2C14E;
+    --text-light:#FBF3E3;
+    --text-dim:#C2AFC9;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:radial-gradient(ellipse at top, var(--bg-deep2) 0%, var(--bg-deep) 65%);
+    font-family:'Nunito',sans-serif; color:var(--text-light);
+    touch-action:manipulation;
+  }
+  .screen{position:fixed; inset:0; display:none; flex-direction:column;
+    padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);}
+  .screen.show{display:flex;}
+
+  /* ============ LEVEL MAP SCREEN ============ */
+  #screenMap{
+    background:radial-gradient(ellipse at top, var(--bg-deep2) 0%, var(--bg-deep) 65%);
+  }
+  .map-top{
+    flex-shrink:0; display:flex; align-items:center; gap:10px; padding:14px 16px 10px;
+  }
+  .map-top h1{font-family:'Baloo 2',sans-serif; font-size:20px; margin:0; flex:1; font-weight:800;}
+  .pill{
+    background:var(--panel); border-radius:14px; padding:6px 12px; font-weight:800;
+    font-family:'Baloo 2',sans-serif; font-size:14px; display:flex; align-items:center; gap:4px;
+    border:1px solid var(--panel-light);
+  }
+  .pill.gold-pill{border-color:var(--gold); color:var(--gold);}
+  .map-scroll{flex:1; overflow-y:auto; padding:10px 0 40px; -webkit-overflow-scrolling:touch;}
+  .map-path{position:relative; max-width:420px; margin:0 auto; padding:10px 30px;}
+  .lvl-node-row{display:flex; margin-bottom:6px;}
+  .lvl-node-row.left{justify-content:flex-start;}
+  .lvl-node-row.right{justify-content:flex-end;}
+  .lvl-node-row.center{justify-content:center;}
+  .lvl-node{
+    width:66px; height:66px; border-radius:50%; position:relative;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px;
+    cursor:pointer; user-select:none; flex-shrink:0;
+    box-shadow:0 6px 0 rgba(0,0,0,.3), inset 0 -4px 8px rgba(0,0,0,.25), inset 0 4px 6px rgba(255,255,255,.25);
+  }
+  .lvl-node.locked{
+    background:linear-gradient(160deg,#4a4258,#332b44); color:var(--text-dim);
+    box-shadow:0 6px 0 rgba(0,0,0,.25), inset 0 -4px 8px rgba(0,0,0,.25);
+  }
+  .lvl-node.unlocked{
+    background:linear-gradient(160deg, var(--c-sapphire), var(--c-sapphire-d)); color:#fff;
+  }
+  .lvl-node.done{
+    background:linear-gradient(160deg, var(--gold), #c9941f); color:#3a2300;
+  }
+  .lvl-node:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.3);}
+  .lvl-node .lock-ic{font-size:22px;}
+  .lvl-node .stars{position:absolute; bottom:-11px; left:50%; transform:translateX(-50%);
+    display:flex; gap:1px; background:var(--panel); border-radius:10px; padding:2px 5px;
+    border:1px solid var(--panel-light);}
+  .lvl-node .stars span{font-size:10px;}
+  .map-shop-btn{
+    flex-shrink:0; margin-right:6px;
+  }
+  .map-bottom{flex-shrink:0; display:flex; gap:8px; padding:10px 16px 16px;}
+  .map-bottom .btn{margin-top:0;}
+
+  /* ============ GAME SCREEN ============ */
+  #screenGame{}
+  #app{flex:1; display:flex; flex-direction:column; min-height:0;}
+  .topbar{display:flex; align-items:center; gap:8px; padding:10px 14px 6px; flex-shrink:0;}
+  .back-btn{
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px;
+    background:var(--panel); border:2px solid var(--panel-light);
+    color:var(--text-light); padding:8px 12px; border-radius:14px;
+    cursor:pointer; user-select:none; flex-shrink:0;
+  }
+  .back-btn:active{transform:scale(0.95);}
+  .stat-pill{
+    background:var(--panel); border-radius:14px; padding:6px 12px;
+    display:flex; flex-direction:column; align-items:center; line-height:1.1; min-width:54px;
+  }
+  .stat-pill .lbl{font-size:10px; color:var(--text-dim); font-weight:700; letter-spacing:.5px;}
+  .stat-pill .val{font-family:'Baloo 2',sans-serif; font-size:17px; font-weight:800; color:var(--gold);}
+  .coin-pill{margin-left:auto; background:linear-gradient(135deg,#3a2a5c,#251a3d); border:2px solid var(--gold);}
+  .coin-pill .val{color:var(--gold);}
+
+  .progress-row{padding:2px 14px 8px; flex-shrink:0;}
+  .target-line{display:flex; justify-content:space-between; font-size:12px; color:var(--text-dim); margin-bottom:4px; font-weight:700;}
+  .target-line span.score-now{color:var(--text-light); font-size:13px;}
+  .score-bar-bg{height:10px; background:var(--panel); border-radius:6px; overflow:hidden; border:1px solid var(--panel-light);}
+  .score-bar-fill{height:100%; border-radius:6px; background:linear-gradient(90deg, var(--c-emerald), var(--gold)); width:0%; transition:width .35s ease;}
+  .timer-bg{margin-top:6px; height:8px; background:var(--panel); border-radius:5px; overflow:hidden; border:1px solid var(--panel-light);}
+  .timer-fill{height:100%; border-radius:5px; background:linear-gradient(90deg,#5fd0ff,#2D7DD2); width:100%; transition:width 1s linear;}
+  .timer-fill.warn{background:linear-gradient(90deg,#ffb347,#E2384C);}
+
+  .board-wrap{flex:1; display:flex; align-items:center; justify-content:center; padding:6px 8px; overflow:hidden; min-height:0;}
+  #board{display:grid; gap:3px;}
+  .tile{
+    position:relative; border-radius:14%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transform:scale(1); transition:transform .12s ease, opacity .18s ease;
+    box-shadow: inset 0 -4px 6px rgba(0,0,0,.28), inset 0 3px 4px rgba(255,255,255,.35);
+  }
+  .tile:active{transform:scale(0.93);}
+  .tile.pop{animation:popOut .22s ease forwards;}
+  @keyframes popOut{0%{transform:scale(1);opacity:1;}40%{transform:scale(1.25);opacity:1;}100%{transform:scale(0.2);opacity:0;}}
+  .tile.fall{animation:fallDown .22s ease;}
+  @keyframes fallDown{0%{transform:translateY(-30px);}100%{transform:translateY(0);}}
+  .tile.shake{animation:shakeT .3s ease;}
+  @keyframes shakeT{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+  .tile .face-svg{width:78%; height:78%; pointer-events:none;}
+  .tile .gloss{position:absolute; top:6%; left:10%; width:55%; height:30%; background:linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,0)); border-radius:50%; pointer-events:none; filter:blur(1px);}
+  .tile.frozen::after{content:''; position:absolute; inset:0; border-radius:14%; background:linear-gradient(135deg, rgba(180,230,255,.55), rgba(140,200,255,.35)); border:2px solid rgba(220,245,255,.85);}
+  .tile.bombtile{background:radial-gradient(circle at 35% 30%, #4a4a4a, #161616) !important;}
+  .tile.strongbombtile{background:radial-gradient(circle at 35% 30%, #8a3a1f, #2a0f08) !important; box-shadow: inset 0 -4px 6px rgba(0,0,0,.4), inset 0 3px 4px rgba(255,255,255,.2), 0 0 10px rgba(255,140,60,.55) !important; animation:pulseGlow 1s ease-in-out infinite;}
+  @keyframes pulseGlow{0%,100%{filter:brightness(1);}50%{filter:brightness(1.3);}}
+  .tile.rainbowtile{background:conic-gradient(from 90deg, var(--c-prince), var(--c-fox), var(--c-rose), var(--c-snake), var(--c-planet), var(--c-star), var(--c-prince)) !important; animation:spinHue 3s linear infinite;}
+  @keyframes spinHue{to{filter:hue-rotate(360deg);}}
+  .tile.empty-slot{background:rgba(255,255,255,0.02) !important; box-shadow:none !important; cursor:default;}
+
+  .floatscore{position:absolute; font-family:'Baloo 2',sans-serif; font-weight:800; color:var(--gold); font-size:15px; pointer-events:none; text-shadow:0 2px 4px rgba(0,0,0,.6); animation:floatUp .8s ease forwards; z-index:50;}
+  @keyframes floatUp{0%{opacity:1; transform:translateY(0) scale(1);}100%{opacity:0; transform:translateY(-38px) scale(1.2);}}
+
+  .bottombar{flex-shrink:0; display:flex; gap:8px; padding:8px 12px 12px; align-items:stretch;}
+  .pwr-btn{flex:1; background:var(--panel); border:2px solid var(--panel-light); border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 2px; position:relative; cursor:pointer; user-select:none; color:var(--text-light);}
+  .pwr-btn .icon{font-size:22px; line-height:1;}
+  .pwr-btn .name{font-size:10px; font-weight:700; color:var(--text-dim); margin-top:2px;}
+  .pwr-btn .count{position:absolute; top:-6px; right:-4px; background:var(--gold); color:#3a2300; font-size:11px; font-weight:800; border-radius:10px; min-width:18px; height:18px; display:flex; align-items:center; justify-content:center; padding:0 4px; box-shadow:0 2px 3px rgba(0,0,0,.4);}
+  .pwr-btn.active-mode{border-color:var(--gold); box-shadow:0 0 0 3px rgba(242,192,75,.35);}
+  .pwr-btn:active{transform:scale(0.95);}
+  .shop-btn{flex:0 0 56px; background:linear-gradient(135deg,#3a2a5c,#251a3d); border:2px solid var(--gold); border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer;}
+  .shop-btn:active{transform:scale(0.95);}
+
+  .modal-bg{position:fixed; inset:0; background:rgba(10,5,20,.72); display:none; align-items:center; justify-content:center; z-index:200; backdrop-filter:blur(2px);}
+  .modal-bg.show{display:flex;}
+  .modal-card{background:linear-gradient(160deg, var(--panel-light), var(--panel)); border:2px solid rgba(255,255,255,.08); border-radius:24px; padding:26px 24px; width:min(86vw,360px); text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5); max-height:84vh; overflow-y:auto;}
+  .modal-card h2{font-family:'Baloo 2',sans-serif; font-size:26px; margin:0 0 6px; font-weight:800;}
+  .modal-card .sub{color:var(--text-dim); font-size:14px; margin-bottom:16px;}
+  .modal-stats{display:flex; flex-wrap:wrap; justify-content:center; gap:14px 18px; margin:14px 0 18px;}
+  .modal-stats div{display:flex; flex-direction:column;}
+  .modal-stats .v{font-family:'Baloo 2',sans-serif; font-size:22px; font-weight:800; color:var(--gold);}
+  .modal-stats .l{font-size:11px; color:var(--text-dim); font-weight:700;}
+  .star-row{font-size:34px; margin:6px 0 4px; letter-spacing:4px;}
+  .btn{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; border:none; border-radius:14px; padding:13px 18px; cursor:pointer; width:100%; margin-top:8px; color:white; background:linear-gradient(135deg, var(--c-sapphire), var(--c-sapphire-d)); box-shadow:0 4px 0 rgba(0,0,0,.25);}
+  .btn:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.25);}
+  .btn.secondary{background:linear-gradient(135deg,#564a72,#3a2f54);}
+  .btn.gold{background:linear-gradient(135deg, var(--gold), #c9941f); color:#3a2300;}
+
+  .shop-item{display:flex; align-items:center; gap:10px; background:var(--panel); border-radius:14px; padding:10px 12px; margin-bottom:10px; text-align:left;}
+  .shop-item .icon{font-size:26px;}
+  .shop-item .info{flex:1;}
+  .shop-item .info .nm{font-weight:800; font-size:14px;}
+  .shop-item .info .ds{font-size:11px; color:var(--text-dim);}
+  .shop-item button{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13px; border:none; border-radius:10px; padding:8px 12px; cursor:pointer; background:linear-gradient(135deg, var(--gold), #c9941f); color:#3a2300; white-space:nowrap;}
+  .shop-item button:disabled{opacity:.4;}
+
+  .combo-banner{position:fixed; top:30%; left:50%; transform:translate(-50%,-50%) scale(0.4); font-family:'Baloo 2',sans-serif; font-weight:800; font-size:36px; color:var(--gold); text-shadow:0 4px 10px rgba(0,0,0,.6); opacity:0; pointer-events:none; z-index:150; transition:transform .25s cubic-bezier(.2,1.4,.4,1), opacity .25s ease;}
+  .combo-banner.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
+</style>
+</head>
+<body>
+
+<!-- ===================== LEVEL MAP SCREEN ===================== -->
+<div class="screen show" id="screenMap">
+  <div class="map-top">
+    <h1>🌹 小王子的星球消除</h1>
+    <div class="pill" id="mapBest">🏆0</div>
+    <div class="pill gold-pill" id="mapCoin">🪙0</div>
+    <div class="pill" id="muteBtnMap" onclick="AudioM.toggleMute()" style="cursor:pointer">🔊</div>
+  </div>
+  <div class="map-scroll"><div class="map-path" id="mapPath"></div></div>
+  <div class="map-bottom">
+    <button class="btn secondary" style="flex:1" onclick="playBtn(); openShop()">🛒 道具商店</button>
+    <button class="btn secondary" style="flex:1" onclick="playBtn(); goLobby()">← 返回大廳</button>
+  </div>
+</div>
+
+<!-- ===================== GAME SCREEN ===================== -->
+<div class="screen" id="screenGame">
+  <div id="app">
+    <div class="topbar">
+      <div class="back-btn" onclick="playBtn(); exitToMap()">← 地圖</div>
+      <div class="stat-pill" id="muteBtnGame" onclick="AudioM.toggleMute()" style="cursor:pointer; justify-content:center;">🔊</div>
+      <div class="stat-pill"><div class="lbl">關卡</div><div class="val" id="lvlVal">1</div></div>
+      <div class="stat-pill"><div class="lbl">最高分</div><div class="val" id="bestVal">0</div></div>
+      <div class="stat-pill coin-pill"><div class="lbl">金幣</div><div class="val" id="coinVal">🪙0</div></div>
+    </div>
+
+    <div class="progress-row">
+      <div class="target-line">
+        <span class="score-now"><span id="scoreVal">0</span> / <span id="targetVal">300</span></span>
+        <span id="timeVal">60s</span>
+      </div>
+      <div class="score-bar-bg"><div class="score-bar-fill" id="scoreBar"></div></div>
+      <div class="timer-bg"><div class="timer-fill" id="timerBar"></div></div>
+    </div>
+
+    <div class="board-wrap"><div id="board"></div></div>
+
+    <div class="bottombar">
+      <div class="pwr-btn" id="btnHammer" onclick="useTool('hammer')">
+        <div class="icon">🔨</div><div class="name">鐵鎚</div><div class="count" id="cntHammer">0</div>
+      </div>
+      <div class="pwr-btn" id="btnShuffle" onclick="useTool('shuffle')">
+        <div class="icon">🔀</div><div class="name">洗牌</div><div class="count" id="cntShuffle">0</div>
+      </div>
+      <div class="pwr-btn" id="btnTime" onclick="useTool('time')">
+        <div class="icon">⏰</div><div class="name">+10秒</div><div class="count" id="cntTime">0</div>
+      </div>
+      <div class="shop-btn" onclick="playBtn(); openShop()">🛒</div>
+    </div>
+  </div>
+</div>
+
+<div class="combo-banner" id="comboBanner"></div>
+
+<!-- LEVEL COMPLETE -->
+<div class="modal-bg" id="modalWin">
+  <div class="modal-card">
+    <h2 id="winTitle">🎉 過關！</h2>
+    <div class="sub">第 <span id="winLvl"></span> 關完成</div>
+    <div class="star-row" id="winStars">⭐⭐⭐</div>
+    <div class="modal-stats">
+      <div><div class="v" id="winScore"></div><div class="l">本關分數</div></div>
+      <div><div class="v" id="winTimeBonus"></div><div class="l">時間加成</div></div>
+      <div><div class="v" id="winCoin"></div><div class="l">獲得金幣</div></div>
+    </div>
+    <button class="btn gold" onclick="playBtn(); nextLevel()">下一關 →</button>
+    <button class="btn secondary" onclick="playBtn(); winToMap()">關卡地圖</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div class="modal-bg" id="modalOver">
+  <div class="modal-card">
+    <h2 id="overTitle">⏳ 時間到！</h2>
+    <div class="sub">看看分數有沒有達到本關目標</div>
+    <div class="modal-stats">
+      <div><div class="v" id="overScore"></div><div class="l">本關分數</div></div>
+      <div><div class="v" id="overTimeBonus"></div><div class="l">時間加成</div></div>
+      <div><div class="v" id="overTarget"></div><div class="l">目標分數</div></div>
+      <div><div class="v" id="overLvl"></div><div class="l">關卡</div></div>
+    </div>
+    <button class="btn" onclick="playBtn(); retryLevel()">重新挑戰本關</button>
+    <button class="btn secondary" onclick="playBtn(); overToMap()">返回地圖</button>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div class="modal-bg" id="modalShop">
+  <div class="modal-card">
+    <h2>🛒 道具商店</h2>
+    <div class="sub">金幣：<b id="shopCoin">0</b></div>
+    <div class="shop-item">
+      <div class="icon">🔨</div>
+      <div class="info"><div class="nm">鐵鎚</div><div class="ds">直接消除任意1顆方塊</div></div>
+      <button onclick="buyTool('hammer')">15 🪙</button>
+    </div>
+    <div class="shop-item">
+      <div class="icon">🔀</div>
+      <div class="info"><div class="nm">洗牌</div><div class="ds">重新排列剩餘方塊</div></div>
+      <button onclick="buyTool('shuffle')">10 🪙</button>
+    </div>
+    <div class="shop-item">
+      <div class="icon">⏰</div>
+      <div class="info"><div class="nm">+10秒</div><div class="ds">立即增加時間</div></div>
+      <button onclick="buyTool('time')">20 🪙</button>
+    </div>
+    <button class="btn secondary" onclick="playBtn(); closeShop()">關閉</button>
+  </div>
+</div>
+
+<script>
+/* ====================== CONFIG ====================== */
+const GRID = 9;     // 欄數(固定,不隨關卡變寬,維持直式手機好點擊的寬度)
+let ROWS = 9;        // 列數(隨關卡增加,往下加高棋盤,符合直式手機的長寬比)
+const GAP = 3;
+const SAVE_KEY = 'littleprince_save_v1';
+const ANIMALS = ['prince','fox','rose','snake','planet','star']; // 沿用ANIMALS這個變數名稱以維持架構相容,實際是小王子六個意象角色
+const COLOR_VAR = { prince:'--c-prince', fox:'--c-fox', rose:'--c-rose', snake:'--c-snake', planet:'--c-planet', star:'--c-star' };
+const COLOR_VAR_D = { prince:'--c-prince-d', fox:'--c-fox-d', rose:'--c-rose-d', snake:'--c-snake-d', planet:'--c-planet-d', star:'--c-star-d' };
+
+/* ====================== AUDIO ====================== */
+// 路徑與動物寶石消除完全獨立的子資料夾,互不衝突
+const AUDIO_BASE = 'assets/audio/little-prince/';
+const SOUND_FILES = {
+  pop:'pop.mp3', invalid:'invalid.mp3', bomb:'bomb.mp3', rainbow:'rainbow.mp3',
+  combo:'combo.mp3', win:'win.mp3', full_clear:'full_clear.mp3', lose:'lose.mp3',
+  button:'button.mp3', buy:'buy.mp3', tool_use:'tool_use.mp3', tick:'tick.mp3',
+  stuck_hint:'stuck_hint.mp3'
+};
+const AudioM = {
+  muted: false, sfx: {}, sfxIdx: {}, bgmMap:null, bgmPlay:null, currentBgm:null,
+  POOL_SIZE: 4, // 每種音效預先建立幾個實例輪流播放,避免每次cloneNode造成效能負擔
+  init(){
+    for(const k in SOUND_FILES){
+      const pool = [];
+      for(let i=0;i<this.POOL_SIZE;i++){
+        const el = new Audio(AUDIO_BASE + SOUND_FILES[k]);
+        el.preload = 'auto';
+        pool.push(el);
+      }
+      this.sfx[k] = pool;
+      this.sfxIdx[k] = 0;
+    }
+    this.bgmMap = new Audio(AUDIO_BASE + 'bgm_map.mp3');
+    this.bgmMap.loop = true; this.bgmMap.volume = 0.45;
+    this.bgmPlay = new Audio(AUDIO_BASE + 'bgm_play.mp3');
+    this.bgmPlay.loop = true; this.bgmPlay.volume = 0.45;
+    try{ this.muted = localStorage.getItem('littleprince_muted') === '1'; }catch(e){}
+  },
+  play(key){
+    if(this.muted) return;
+    const pool = this.sfx[key];
+    if(!pool) return;
+    const i = this.sfxIdx[key];
+    const node = pool[i];
+    this.sfxIdx[key] = (i + 1) % pool.length;
+    try{
+      node.currentTime = 0;
+      node.volume = 0.9;
+      node.play().catch(()=>{});
+    }catch(e){}
+  },
+  playBgm(which){
+    if(this.bgmMap) this.bgmMap.pause();
+    if(this.bgmPlay) this.bgmPlay.pause();
+    this.currentBgm = which;
+    if(this.muted || !which) return;
+    const el = which==='map' ? this.bgmMap : this.bgmPlay;
+    el.currentTime = 0;
+    el.play().catch(()=>{});
+  },
+  toggleMute(){
+    this.muted = !this.muted;
+    try{ localStorage.setItem('littleprince_muted', this.muted?'1':'0'); }catch(e){}
+    if(this.muted){ if(this.bgmMap) this.bgmMap.pause(); if(this.bgmPlay) this.bgmPlay.pause(); }
+    else if(this.currentBgm){ this.playBgm(this.currentBgm); }
+    updateMuteIcons();
+  }
+};
+function updateMuteIcons(){
+  const icon = AudioM.muted ? '🔇' : '🔊';
+  const a = document.getElementById('muteBtnMap'); if(a) a.textContent = icon;
+  const b = document.getElementById('muteBtnGame'); if(b) b.textContent = icon;
+}
+
+/* ====================== STATE ====================== */
+let state = {
+  level: 1,
+  score: 0,
+  best: 0,
+  coins: 0,
+  timeLeft: 60,
+  curTimeLimit: 60,
+  target: 300,
+  cols: [],          // cols[c] = array length ROWS, top..bottom
+  cellSize: 40,
+  tools: { hammer:0, shuffle:0, time:0 },
+  starsMap: {},       // {levelNum: 1|2|3}
+  unlocked: 1,
+  activeTool: null,
+  timerHandle: null,
+  busy: false,
+  modalOpen: false
+};
+
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      state.best = d.best || 0;
+      state.coins = d.coins || 0;
+      state.tools = d.tools || {hammer:0,shuffle:0,time:0};
+      state.starsMap = d.starsMap || {};
+      state.unlocked = d.unlocked || 1;
+    }
+  }catch(e){}
+}
+function persist(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      best:state.best, coins:state.coins, tools:state.tools,
+      starsMap:state.starsMap, unlocked:state.unlocked
+    }));
+  }catch(e){}
+}
+
+/* ====================== LEVEL CONFIG ====================== */
+const ANIMAL_COUNT_PER_LEVEL = 4; // 每關固定用幾種動物(不隨關卡遞增,避免顏色太多湊不出組合)
+const FIXED_COLS = 9;   // 欄數固定不變(維持直式手機好點擊的寬度,不左右變寬)
+const BASE_ROWS = 9;    // 第1~8關的初始列數
+const MAX_ROWS = 17;    // 列數上限(往下加高棋盤,直式手機空間比較夠用)
+const BASE_TIME = 75;   // 第1關時間限制(秒)
+const MIN_TIME = 45;    // 時間下限,難度封頂用
+const SCORE_PER_TILE_EST = 16; // 熟練玩家平均每顆方塊的估計分數(保守值),用來估算該關卡分數上限
+const TARGET_RATIO_MIN = 0.25;  // 第1關目標分數佔上限的比例
+const TARGET_RATIO_MAX = 0.70;  // 比例封頂值(數字越高越硬核,但理論上一定能達成)
+const TARGET_RATIO_GROWTH = 10; // 比例爬升速度,數字越大爬越慢
+const TIME_BONUS_RATE = 4;      // 結算時,剩餘每秒換算成多少分數,補助效率高的玩家達標
+
+function levelConfig(lvl){
+  // 棋盤列數:每4關+2列,最多到17列(9x9 → 9x11 → 9x13 ... 封頂),欄數固定9不變
+  const initialRows = Math.min(BASE_ROWS + 2 * Math.floor((lvl-1)/4), MAX_ROWS);
+  // 時間限制:每關-1秒,最低45秒封頂,後期更看手速與效率
+  const timeLimit = Math.max(MIN_TIME, BASE_TIME - (lvl-1));
+  // 目標分數 = 該關卡理論分數上限 × 比例(比例隨關卡慢慢爬到70%封頂)
+  // 這樣不管關卡生成到第幾關,目標永遠低於理論上限,保證有解,可以無限生成關卡
+  const estimatedMax = FIXED_COLS * initialRows * SCORE_PER_TILE_EST;
+  const ratio = TARGET_RATIO_MIN + (TARGET_RATIO_MAX - TARGET_RATIO_MIN) * (1 - Math.exp(-(lvl-1)/TARGET_RATIO_GROWTH));
+  const target = Math.round(estimatedMax * ratio);
+  const iceChance = lvl >= 7 ? Math.min(0.05 + (lvl-7)*0.01, 0.15) : 0;
+  // 每關隨機抽 4 種動物(洗牌後取前4個),增加每關的視覺變化
+  const shuffled = [...ANIMALS].sort(()=>Math.random()-0.5);
+  const levelAnimals = shuffled.slice(0, ANIMAL_COUNT_PER_LEVEL);
+  return {target, timeLimit, iceChance, levelAnimals, initialCols: FIXED_COLS, initialRows};
+}
+
+/* ====================== BOARD GEN (消耗型, 不補新方塊) ====================== */
+function randAnimal(animalList){ return animalList[Math.floor(Math.random()*animalList.length)]; }
+
+function buildCols(cfg){
+  let cols, attempts = 0;
+  do{
+    cols = [];
+    for(let c=0;c<cfg.initialCols;c++){
+      const colArr = [];
+      for(let r=0;r<ROWS;r++){
+        const cell = {type:'normal', animal: randAnimal(cfg.levelAnimals), frozen: Math.random() < cfg.iceChance};
+        colArr.push(cell);
+      }
+      cols.push(colArr);
+    }
+    attempts++;
+  } while(!boardHasMove(cols) && attempts < 30);
+  return cols;
+}
+
+function boardHasMove(cols){
+  const W = cols.length;
+  const seen = Array.from({length:W},()=>Array(ROWS).fill(false));
+  for(let c=0;c<W;c++){
+    for(let r=0;r<ROWS;r++){
+      if(seen[c][r]) continue;
+      const cell = cols[c][r];
+      if(!cell || cell.type!=='normal') continue;
+      const group = floodFill(cols, c, r, seen);
+      if(group.length >= 3) return true;
+    }
+  }
+  return false;
+}
+
+function floodFill(cols, sc, sr, markSeen){
+  const W = cols.length;
+  const target = cols[sc] && cols[sc][sr];
+  if(!target || target.type!=='normal') return [];
+  const animal = target.animal;
+  const stack = [[sc,sr]];
+  const visited = new Set();
+  const result = [];
+  while(stack.length){
+    const [c,r] = stack.pop();
+    const key = c+','+r;
+    if(visited.has(key)) continue;
+    visited.add(key);
+    const cell = cols[c] && cols[c][r];
+    if(!cell || cell.type!=='normal' || cell.animal!==animal) continue;
+    result.push([c,r]);
+    if(markSeen) markSeen[c][r] = true;
+    if(r>0) stack.push([c,r-1]);
+    if(r<ROWS-1) stack.push([c,r+1]);
+    if(c>0) stack.push([c-1,r]);
+    if(c<W-1) stack.push([c+1,r]);
+  }
+  return result;
+}
+
+/* ====================== ANIMAL SVG ====================== */
+function faceSVG(animal){
+  switch(animal){
+    case 'prince': return `<svg viewBox="0 0 100 100" class="face-svg">
+      <ellipse cx="50" cy="62" rx="26" ry="24" fill="#fff" opacity=".95"/>
+      <path d="M30 58 Q26 30 50 26 Q74 30 70 58 Q60 70 50 70 Q40 70 30 58Z" fill="#fff"/>
+      <path d="M50 18 L56 32 L44 32 Z" fill="#fff"/>
+      <circle cx="50" cy="14" r="6" fill="#fff"/>
+      <circle cx="40" cy="58" r="4" fill="#3a2a16"/><circle cx="60" cy="58" r="4" fill="#3a2a16"/>
+      <path d="M45 68 Q50 71 55 68" stroke="#3a2a16" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M20 78 Q50 92 80 78 L80 86 Q50 98 20 86 Z" fill="#fff" opacity=".9"/></svg>`;
+    case 'fox': return `<svg viewBox="0 0 100 100" class="face-svg">
+      <path d="M20 35 L35 8 L42 40 Z" fill="#fff" opacity=".92"/>
+      <path d="M80 35 L65 8 L58 40 Z" fill="#fff" opacity=".92"/>
+      <path d="M24 33 L34 16 L38 38 Z" fill="#7a3b1f"/>
+      <path d="M76 33 L66 16 L62 38 Z" fill="#7a3b1f"/>
+      <ellipse cx="50" cy="55" rx="30" ry="26" fill="#fff"/>
+      <path d="M50 55 Q35 70 20 58 Q30 80 50 78 Q70 80 80 58 Q65 70 50 55Z" fill="#fdfdfd"/>
+      <circle cx="38" cy="50" r="5" fill="#2a1810"/><circle cx="62" cy="50" r="5" fill="#2a1810"/>
+      <path d="M46 62 Q50 66 54 62 L50 70 Z" fill="#2a1810"/></svg>`;
+    case 'rose': return `<svg viewBox="0 0 100 100" class="face-svg">
+      <path d="M50 20 Q70 28 65 45 Q75 50 68 65 Q72 78 50 80 Q28 78 32 65 Q25 50 35 45 Q30 28 50 20Z" fill="#fff" opacity=".95"/>
+      <path d="M50 32 Q60 36 57 46 Q63 50 58 58 Q60 66 50 68 Q40 66 42 58 Q37 50 43 46 Q40 36 50 32Z" fill="#fbeef0" opacity=".9"/>
+      <path d="M50 30 L50 18" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+      <path d="M50 24 Q40 18 32 22" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".75"/></svg>`;
+    case 'snake': return `<svg viewBox="0 0 100 100" class="face-svg">
+      <path d="M20 30 Q20 18 35 18 Q50 18 50 32 Q50 46 65 46 Q80 46 80 60 Q80 80 60 82 Q42 84 35 70" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" opacity=".95"/>
+      <ellipse cx="32" cy="70" rx="11" ry="9" fill="#fff"/>
+      <circle cx="28" cy="67" r="2.2" fill="#1f3a16"/>
+      <path d="M40 70 L48 70 L44 76 Z" fill="#1f3a16"/></svg>`;
+    case 'planet': return `<svg viewBox="0 0 100 100" class="face-svg">
+      <circle cx="48" cy="55" r="26" fill="#fff" opacity=".95"/>
+      <ellipse cx="48" cy="55" rx="38" ry="9" fill="none" stroke="#fff" stroke-width="3.5" opacity=".7" transform="rotate(-18 48 55)"/>
+      <circle cx="78" cy="24" r="4" fill="#fff" opacity=".85"/>
+      <circle cx="20" cy="20" r="2.5" fill="#fff" opacity=".7"/>
+      <circle cx="40" cy="48" r="3" fill="#ffffff55"/></svg>`;
+    case 'star': return `<svg viewBox="0 0 100 100" class="face-svg">
+      <path d="M50 12 L59 40 L88 40 L65 57 L74 85 L50 68 L26 85 L35 57 L12 40 L41 40 Z" fill="#fff" opacity=".95"/>
+      <circle cx="78" cy="20" r="3" fill="#fff" opacity=".75"/>
+      <circle cx="20" cy="68" r="2.5" fill="#fff" opacity=".7"/></svg>`;
+    default: return '';
+  }
+}
+
+/* ====================== RENDER ====================== */
+function computeCellSize(){
+  const wrap = document.querySelector('.board-wrap');
+  const rect = wrap ? wrap.getBoundingClientRect() : null;
+  const availW = (rect && rect.width > 0) ? rect.width - 8 : window.innerWidth * 0.94;
+  const availH = (rect && rect.height > 0) ? rect.height - 8 : window.innerHeight * 0.5;
+  const cols = state.initialCols || GRID;
+  const rows = ROWS;
+  const sizeByW = Math.floor((availW - (cols-1)*GAP) / cols);
+  const sizeByH = Math.floor((availH - (rows-1)*GAP) / rows);
+  return Math.max(16, Math.min(sizeByW, sizeByH));
+}
+
+function renderBoard(){
+  state.cellSize = computeCellSize();
+  const boardEl = document.getElementById('board');
+  const W = state.cols.length;
+  const cs = state.cellSize;
+  boardEl.style.gridTemplateColumns = `repeat(${W}, ${cs}px)`;
+  boardEl.style.gridTemplateRows = `repeat(${ROWS}, ${cs}px)`;
+  boardEl.style.width = (cs*W + GAP*(W-1)) + 'px';
+  boardEl.style.height = (cs*ROWS + GAP*(ROWS-1)) + 'px';
+
+  const dimsChanged = (W !== state.gridW) || (ROWS !== state.gridH) || !state.tileEls;
+
+  if(dimsChanged){
+    // 棋盤尺寸變了(換關卡/欄位收縮)才整個重建,平常消除不會走到這裡
+    boardEl.innerHTML = '';
+    state.tileEls = Array.from({length:W}, ()=>new Array(ROWS));
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<W;c++){
+        const div = document.createElement('div');
+        div.dataset.c = c; div.dataset.r = r;
+        div.onclick = () => onTileClick(c,r);
+        const cell = state.cols[c][r];
+        styleTile(div, cell);
+        div._lastCell = cell;
+        boardEl.appendChild(div);
+        state.tileEls[c][r] = div;
+      }
+    }
+    state.gridW = W; state.gridH = ROWS;
+  } else {
+    // 尺寸沒變,只更新真的有變動的方塊外觀,不重建DOM(這是解決lag的關鍵)
+    for(let c=0;c<W;c++){
+      for(let r=0;r<ROWS;r++){
+        const cell = state.cols[c][r];
+        const div = state.tileEls[c][r];
+        if(div._lastCell !== cell){
+          styleTile(div, cell);
+          div._lastCell = cell;
+        }
+      }
+    }
+  }
+}
+
+function styleTile(div, cell){
+  div.classList.remove('frozen');
+  if(!cell){
+    div.className = 'tile empty-slot';
+    div.innerHTML = '';
+    return;
+  }
+  if(cell.type === 'bomb'){
+    div.className = 'tile bombtile';
+    div.innerHTML = '<div style="font-size:24px">💣</div>';
+    return;
+  }
+  if(cell.type === 'strongbomb'){
+    div.className = 'tile strongbombtile';
+    div.innerHTML = '<div style="font-size:26px">💥</div>';
+    return;
+  }
+  if(cell.type === 'rainbow'){
+    div.className = 'tile rainbowtile';
+    div.innerHTML = '<div style="font-size:22px">⭐</div>';
+    return;
+  }
+  div.className = 'tile' + (cell.frozen ? ' frozen' : '');
+  const vc = `var(${COLOR_VAR[cell.animal]})`;
+  const vd = `var(${COLOR_VAR_D[cell.animal]})`;
+  div.style.background = `radial-gradient(circle at 32% 28%, ${vc}, ${vd})`;
+  div.innerHTML = faceSVG(cell.animal) + '<div class="gloss"></div>';
+}
+
+function tileEl(c,r){
+  return state.tileEls && state.tileEls[c] ? state.tileEls[c][r] : null;
+}
+
+function refreshHud(){
+  document.getElementById('lvlVal').textContent = state.level;
+  document.getElementById('bestVal').textContent = state.best;
+  document.getElementById('coinVal').textContent = '🪙' + state.coins;
+  document.getElementById('scoreVal').textContent = state.score;
+  document.getElementById('targetVal').textContent = state.target;
+  document.getElementById('timeVal').textContent = state.timeLeft + 's';
+  const pct = Math.min(100, (state.score/state.target)*100);
+  document.getElementById('scoreBar').style.width = pct + '%';
+  const tpct = Math.max(0,(state.timeLeft/state.curTimeLimit)*100);
+  const tf = document.getElementById('timerBar');
+  tf.style.width = tpct + '%';
+  tf.classList.toggle('warn', state.timeLeft <= 10);
+  document.getElementById('cntHammer').textContent = state.tools.hammer;
+  document.getElementById('cntShuffle').textContent = state.tools.shuffle;
+  document.getElementById('cntTime').textContent = state.tools.time;
+}
+
+/* ====================== SCREEN SWITCH ====================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+}
+function playBtn(){ AudioM.play('button'); }
+
+/* ====================== LEVEL MAP ====================== */
+function renderMap(){
+  document.getElementById('mapBest').textContent = '🏆' + state.best;
+  document.getElementById('mapCoin').textContent = '🪙' + state.coins;
+  updateMuteIcons();
+  AudioM.playBgm('map');
+  const wrap = document.getElementById('mapPath');
+  wrap.innerHTML = '';
+  const maxShow = state.unlocked + 6;
+  const positions = ['left','center','right','center'];
+  for(let lvl=1; lvl<=maxShow; lvl++){
+    const row = document.createElement('div');
+    row.className = 'lvl-node-row ' + positions[lvl % positions.length];
+    const node = document.createElement('div');
+    const stars = state.starsMap[lvl] || 0;
+    let cls = 'lvl-node ';
+    if(lvl > state.unlocked) cls += 'locked';
+    else if(stars > 0) cls += 'done';
+    else cls += 'unlocked';
+    node.className = cls;
+    if(lvl > state.unlocked){
+      node.innerHTML = '<div class="lock-ic">🔒</div>';
+    } else {
+      node.innerHTML = lvl;
+      if(stars>0){
+        node.innerHTML += `<div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3-stars)}</div>`;
+      }
+      node.onclick = () => { AudioM.play('button'); showScreen('screenGame'); startLevel(lvl); };
+    }
+    row.appendChild(node);
+    wrap.appendChild(row);
+  }
+}
+
+function exitToMap(){
+  pauseGame();
+  renderMap();
+  showScreen('screenMap');
+}
+function winToMap(){
+  document.getElementById('modalWin').classList.remove('show');
+  state.modalOpen = false;
+  renderMap();
+  showScreen('screenMap');
+}
+function overToMap(){
+  document.getElementById('modalOver').classList.remove('show');
+  state.modalOpen = false;
+  renderMap();
+  showScreen('screenMap');
+}
+
+/* ====================== GAME FLOW ====================== */
+function startLevel(lvl){
+  clearInterval(state.timerHandle);
+  state.level = lvl;
+  const cfg = levelConfig(lvl);
+  state.cfg = cfg;
+  state.target = cfg.target;
+  state.curTimeLimit = cfg.timeLimit;
+  state.timeLeft = cfg.timeLimit;
+  state.score = 0;
+  state.initialCols = cfg.initialCols;
+  ROWS = cfg.initialRows; // 本關列數,影響棋盤高度與所有跑列數迴圈的函式
+  state.cols = buildCols(cfg);
+  state.activeTool = null;
+  state.busy = false;
+  state.modalOpen = false;
+  document.getElementById('btnHammer').classList.remove('active-mode');
+  updateMuteIcons();
+  AudioM.playBgm('play');
+  renderBoard();
+  refreshHud();
+  startTimer();
+}
+function retryLevel(){
+  document.getElementById('modalOver').classList.remove('show');
+  state.modalOpen = false;
+  startLevel(state.level);
+}
+function nextLevel(){
+  document.getElementById('modalWin').classList.remove('show');
+  state.modalOpen = false;
+  startLevel(state.level + 1);
+}
+
+function isPaused(){ return state.busy || state.modalOpen; }
+
+function startTimer(){
+  clearInterval(state.timerHandle);
+  state.timerHandle = setInterval(()=>{
+    if(isPaused()) return;
+    state.timeLeft--;
+    if(state.timeLeft > 0 && state.timeLeft <= 10){ AudioM.play('tick'); }
+    if(state.timeLeft <= 0){
+      state.timeLeft = 0;
+      clearInterval(state.timerHandle);
+      refreshHud();
+      onTimeUp();
+      return;
+    }
+    refreshHud();
+  }, 1000);
+}
+function pauseGame(){ clearInterval(state.timerHandle); }
+
+function onTimeUp(){
+  endLevel(0, 'time');
+}
+
+function starsForResult(){
+  const leftoverPct = state.timeLeft / state.curTimeLimit;
+  if(leftoverPct > 0.45) return 3;
+  if(leftoverPct > 0.18) return 2;
+  return 1;
+}
+
+// 關卡結算:只在「時間到」「無法再移動」「全部清空」這三種情況才會呼叫
+// bonus: 全清時的額外加分;reason: 'time' | 'stuck' | 'clear',只影響顯示文字
+function endLevel(bonus, reason){
+  clearInterval(state.timerHandle);
+  if(bonus) state.score += bonus;
+  // 剩餘時間換算成分數,補助效率高/提早清完的玩家達標(時間到時 timeLeft=0,等於沒有加成)
+  const timeBonus = Math.round(state.timeLeft * TIME_BONUS_RATE);
+  if(timeBonus) state.score += timeBonus;
+  const pass = state.score >= state.target;
+
+  if(pass){
+    AudioM.playBgm(null);
+    AudioM.play(reason==='clear' ? 'full_clear' : 'win');
+    if(state.score > state.best) state.best = state.score;
+    const coinGain = 15 + Math.floor(state.timeLeft/5) + (bonus?20:0);
+    state.coins += coinGain;
+    const stars = starsForResult();
+    const prevStars = state.starsMap[state.level] || 0;
+    state.starsMap[state.level] = Math.max(prevStars, stars);
+    if(state.level >= state.unlocked) state.unlocked = state.level + 1;
+    persist();
+    document.getElementById('winTitle').textContent = (reason==='clear') ? '🌟 全部清空！' : '🎉 過關！';
+    document.getElementById('winLvl').textContent = state.level;
+    document.getElementById('winScore').textContent = state.score;
+    document.getElementById('winTimeBonus').textContent = '+' + timeBonus;
+    document.getElementById('winCoin').textContent = '+' + coinGain;
+    document.getElementById('winStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+    state.modalOpen = true;
+    setTimeout(()=> document.getElementById('modalWin').classList.add('show'), 320);
+  } else {
+    AudioM.playBgm(null);
+    AudioM.play('lose');
+    const coinGain = Math.floor(state.score/30);
+    state.coins += coinGain;
+    persist();
+    document.getElementById('overTitle').textContent = (reason==='stuck') ? '💥 沒有路可走了' : '⏳ 時間到！';
+    document.getElementById('overScore').textContent = state.score;
+    document.getElementById('overTimeBonus').textContent = '+' + timeBonus;
+    document.getElementById('overTarget').textContent = state.target;
+    document.getElementById('overLvl').textContent = state.level;
+    state.modalOpen = true;
+    document.getElementById('modalOver').classList.add('show');
+  }
+}
+
+// 每次消除後檢查:是否已經沒有任何可消除的方塊、或棋盤已全清
+function checkEndConditions(){
+  let totalRemain = 0;
+  for(const col of state.cols){ for(const cell of col){ if(cell) totalRemain++; } }
+  if(state.cols.length === 0 || totalRemain === 0){
+    endLevel(50 + state.timeLeft*2, 'clear');
+    return;
+  }
+  if(!boardHasMove(state.cols) && !hasSpecialTile()){
+    if(state.tools.shuffle > 0){
+      AudioM.play('stuck_hint');
+      showCombo('卡住了！用洗牌試試 🔀');
+    } else {
+      endLevel(0, 'stuck');
+    }
+  }
+}
+
+/* ====================== INTERACTION ====================== */
+function onTileClick(c,r){
+  if(isPaused()) return;
+  const cell = state.cols[c][r];
+  if(!cell) return;
+
+  if(state.activeTool === 'hammer'){
+    consumeTool('hammer');
+    AudioM.play('tool_use');
+    AudioM.play('pop');
+    const el = tileEl(c,r); if(el) el.classList.add('pop');
+    state.cols[c][r] = null;
+    const remaining = countRemaining();
+    const gain = Math.round(8 * remainingMultiplier(remaining));
+    state.score += gain;
+    spawnFloatScore(c,r,gain);
+    settleBoard();
+    refreshHud();
+    checkEndConditions();
+    return;
+  }
+
+  if(cell.type === 'bomb'){ triggerBomb(c,r); return; }
+  if(cell.type === 'strongbomb'){ triggerStrongBomb(c,r); return; }
+  if(cell.type === 'rainbow'){ triggerRainbow(c,r); return; }
+
+  const seen = Array.from({length:state.cols.length},()=>Array(ROWS).fill(false));
+  const group = floodFill(state.cols, c, r, seen);
+  if(group.length < 3){ flashTile(c,r); return; }
+  clearGroup(group, c, r);
+}
+
+// 剩餘方塊越少、加成越高:剩 0 個 ×2.0,1~10 個依比例遞減到 ×1.0,超過10個不加成(維持基礎分數)
+function countRemaining(){
+  let total = 0;
+  for(const col of state.cols){ for(const cell of col){ if(cell) total++; } }
+  return total;
+}
+function remainingMultiplier(remaining){
+  return remaining <= 10 ? 1 + (10 - remaining) / 10 : 1;
+}
+
+function flashTile(c,r){
+  AudioM.play('invalid');
+  const el = tileEl(c,r);
+  if(el){ el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'),300); }
+}
+
+function clearGroup(group, clickC, clickR){
+  state.busy = true;
+  const baseGain = group.length*10 + Math.max(0, group.length-3)*15;
+  AudioM.play('pop');
+  if(group.length >= 8){ AudioM.play('combo'); showCombo('星塵綻放！🌟'); }
+  else if(group.length >= 6){ AudioM.play('combo'); showCombo('加強炸彈！💥'); }
+  else if(group.length >= 4){ AudioM.play('combo'); showCombo('星光連動！✨'); }
+
+  let spawned = null;
+  if(group.length >= 8) spawned = 'rainbow';
+  else if(group.length >= 6) spawned = 'strongbomb';
+  else if(group.length >= 4) spawned = 'bomb';
+
+  let actuallyCleared = [];
+  for(const [c,r] of group){
+    const cell = state.cols[c][r];
+    if(cell.frozen){ cell.frozen = false; }
+    else { actuallyCleared.push([c,r]); }
+  }
+  for(const [c,r] of actuallyCleared){
+    const el = tileEl(c,r);
+    if(el) el.classList.add('pop');
+    state.cols[c][r] = null;
+  }
+  for(const [c,r] of group){
+    const cell = state.cols[c][r];
+    if(cell) styleTile(tileEl(c,r), cell);
+  }
+  if(spawned && actuallyCleared.length){
+    state.cols[clickC][clickR] = {type: spawned};
+  }
+
+  // 消除後依「棋盤剩餘方塊數」套用加成倍率(越少越高分)
+  const remaining = countRemaining();
+  const gain = Math.round(baseGain * remainingMultiplier(remaining));
+  state.score += gain;
+  spawnFloatScore(clickC, clickR, gain);
+
+  setTimeout(()=>{
+    settleBoard();
+    refreshHud();
+    checkEndConditions();
+    state.busy = false;
+  }, 230);
+}
+
+function triggerBomb(c,r){
+  state.busy = true;
+  state.cols[c][r] = null;
+  let baseGain = 0;
+  for(let dc=-1; dc<=1; dc++){
+    for(let dr=-1; dr<=1; dr++){
+      const nc=c+dc, nr=r+dr;
+      if(nc<0||nc>=state.cols.length||nr<0||nr>=ROWS) continue;
+      if(state.cols[nc][nr]){
+        const el = tileEl(nc,nr);
+        if(el) el.classList.add('pop');
+        baseGain += 14;
+        state.cols[nc][nr] = null;
+      }
+    }
+  }
+  const gain = Math.round(baseGain * remainingMultiplier(countRemaining()));
+  state.score += gain;
+  spawnFloatScore(c,r,gain);
+  AudioM.play('bomb');
+  showCombo('輕輕一震！✨');
+  setTimeout(()=>{ settleBoard(); refreshHud(); checkEndConditions(); state.busy=false; }, 230);
+}
+
+function triggerStrongBomb(c,r){
+  state.busy = true;
+  state.cols[c][r] = null;
+  let baseGain = 0;
+  for(let dc=-2; dc<=2; dc++){
+    for(let dr=-2; dr<=2; dr++){
+      const nc=c+dc, nr=r+dr;
+      if(nc<0||nc>=state.cols.length||nr<0||nr>=ROWS) continue;
+      if(state.cols[nc][nr]){
+        const el = tileEl(nc,nr);
+        if(el) el.classList.add('pop');
+        baseGain += 14;
+        state.cols[nc][nr] = null;
+      }
+    }
+  }
+  const gain = Math.round(baseGain * remainingMultiplier(countRemaining()));
+  state.score += gain;
+  spawnFloatScore(c,r,gain);
+  AudioM.play('bomb');
+  AudioM.play('combo');
+  showCombo('星塵爆發！💫');
+  setTimeout(()=>{ settleBoard(); refreshHud(); checkEndConditions(); state.busy=false; }, 260);
+}
+
+function triggerRainbow(c,r){
+  state.busy = true;
+  const counts = {};
+  for(let cc=0; cc<state.cols.length; cc++) for(let rr=0; rr<ROWS; rr++){
+    const cell = state.cols[cc][rr];
+    if(cell && cell.type==='normal') counts[cell.animal] = (counts[cell.animal]||0)+1;
+  }
+  let bestAnimal=null, bestCount=-1;
+  for(const a in counts){ if(counts[a]>bestCount){bestCount=counts[a]; bestAnimal=a;} }
+  state.cols[c][r] = null;
+  let baseGain = 0;
+  if(bestAnimal){
+    for(let cc=0; cc<state.cols.length; cc++) for(let rr=0; rr<ROWS; rr++){
+      const cell = state.cols[cc][rr];
+      if(cell && cell.type==='normal' && cell.animal===bestAnimal){
+        const el = tileEl(cc,rr);
+        if(el) el.classList.add('pop');
+        baseGain += 16;
+        state.cols[cc][rr] = null;
+      }
+    }
+  }
+  const gain = Math.round(baseGain * remainingMultiplier(countRemaining()));
+  state.score += gain;
+  spawnFloatScore(c,r,gain);
+  AudioM.play('rainbow');
+  showCombo('星空綻放！🌌');
+  setTimeout(()=>{ settleBoard(); refreshHud(); checkEndConditions(); state.busy=false; }, 280);
+}
+
+/* ====================== 消耗型重力 + 欄位收縮 ====================== */
+function compactColumn(colArr){
+  sinkSegment(colArr, 0, ROWS-1);
+}
+function sinkSegment(colArr, s, e){
+  if(s>e) return;
+  let writeIdx = e;
+  for(let i=e;i>=s;i--){
+    if(colArr[i]){
+      if(writeIdx!==i){ colArr[writeIdx] = colArr[i]; colArr[i] = null; }
+      writeIdx--;
+    }
+  }
+  for(let i=writeIdx;i>=s;i--) colArr[i] = null;
+}
+
+function settleBoard(){
+  for(const col of state.cols) compactColumn(col);
+  // 欄位收縮:整欄全空就移除,左右補齊
+  state.cols = state.cols.filter(col => col.some(cell => cell !== null));
+  renderBoard();
+  // 卡死/全清判定交給 checkEndConditions() 處理,這裡不再自動洗牌
+}
+function hasSpecialTile(){
+  for(const col of state.cols) for(const cell of col){
+    if(cell && (cell.type==='bomb' || cell.type==='strongbomb' || cell.type==='rainbow')) return true;
+  }
+  return false;
+}
+
+function shuffleBoard(silent){
+  let attempts = 0;
+  do{
+    const flat = [];
+    for(const col of state.cols) for(const cell of col){
+      if(cell && cell.type==='normal') flat.push(cell);
+    }
+    for(let i=flat.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [flat[i],flat[j]] = [flat[j],flat[i]];
+    }
+    let idx=0;
+    for(const col of state.cols) for(let r=0;r<ROWS;r++){
+      if(col[r] && col[r].type==='normal') col[r] = flat[idx++];
+    }
+    attempts++;
+  } while(!boardHasMove(state.cols) && !hasSpecialTile() && attempts < 20);
+  settleBoard();
+  if(!silent) showCombo('重新排列！🔀');
+  checkEndConditions();
+}
+
+/* ====================== FX ====================== */
+function spawnFloatScore(c,r,amount){
+  const el = tileEl(c,r);
+  if(!el) return;
+  const rect = el.getBoundingClientRect();
+  const fs = document.createElement('div');
+  fs.className = 'floatscore';
+  fs.textContent = '+' + amount;
+  fs.style.left = (rect.left + rect.width/2 - 14) + 'px';
+  fs.style.top = (rect.top + rect.height/2 - 10) + 'px';
+  document.body.appendChild(fs);
+  setTimeout(()=> fs.remove(), 820);
+}
+function showCombo(text){
+  const el = document.getElementById('comboBanner');
+  el.textContent = text;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), 700);
+}
+
+/* ====================== TOOLS / SHOP ====================== */
+function useTool(name){
+  if(name === 'shuffle'){
+    if(state.tools.shuffle <= 0) return openShop();
+    state.tools.shuffle--; AudioM.play('tool_use'); shuffleBoard(false); persist(); refreshHud();
+    return;
+  }
+  if(name === 'time'){
+    if(state.tools.time <= 0) return openShop();
+    state.tools.time--; AudioM.play('tool_use'); state.timeLeft += 10; persist(); refreshHud();
+    showCombo('+10秒！⏰');
+    return;
+  }
+  if(name === 'hammer'){
+    if(state.tools.hammer <= 0) return openShop();
+    AudioM.play('button');
+    state.activeTool = (state.activeTool === 'hammer') ? null : 'hammer';
+    document.getElementById('btnHammer').classList.toggle('active-mode', state.activeTool==='hammer');
+    return;
+  }
+}
+function consumeTool(name){
+  state.tools[name] = Math.max(0, state.tools[name]-1);
+  state.activeTool = null;
+  document.getElementById('btnHammer').classList.remove('active-mode');
+  persist();
+}
+
+function openShop(){
+  state.modalOpen = true;
+  document.getElementById('shopCoin').textContent = state.coins;
+  document.getElementById('modalShop').classList.add('show');
+}
+function closeShop(){
+  state.modalOpen = false;
+  document.getElementById('modalShop').classList.remove('show');
+}
+function buyTool(name){
+  const cost = name==='hammer'?15 : name==='shuffle'?10 : 20;
+  if(state.coins < cost){ AudioM.play('invalid'); return; }
+  state.coins -= cost;
+  state.tools[name]++;
+  AudioM.play('buy');
+  persist();
+  document.getElementById('shopCoin').textContent = state.coins;
+  document.getElementById('mapCoin').textContent = '🪙' + state.coins;
+  refreshHud();
+}
+
+/* ====================== LOBBY / SAVE ====================== */
+function goLobby(){
+  saveScoreToLobby(state.best);
+  // 路徑請依實際大廳檔案位置調整
+  window.location.href = '../index.html';
+}
+function saveScoreToLobby(score){
+  try{
+    localStorage.setItem('game_pending_score', JSON.stringify({ game:'little-prince', name:'小王子的星球消除', score: score }));
+  }catch(e){}
+}
+
+/* ====================== INIT ====================== */
+AudioM.init();
+loadSave();
+renderMap();
+showScreen('screenMap');
+window.addEventListener('resize', ()=>{ if(document.getElementById('screenGame').classList.contains('show')) renderBoard(); });
+</script>
+</body>
+</html>
