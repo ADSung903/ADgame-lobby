@@ -511,6 +511,7 @@ function playClick(){
   const node=base.cloneNode();
   node.volume=base.volume;
   node.play().catch(()=>{});
+  cleanupAudioAfterPlay(node);
 }
 
 function playBuySfx(){
@@ -520,6 +521,7 @@ function playBuySfx(){
   const node=base.cloneNode();
   node.volume=base.volume;
   node.play().catch(()=>{});
+  cleanupAudioAfterPlay(node);
 }
 
 function playPrestigeSfx(){
@@ -528,6 +530,14 @@ function playPrestigeSfx(){
   const sfx=new Audio(g.prestige);
   sfx.volume=0.7;
   sfx.play().catch(()=>{});
+  cleanupAudioAfterPlay(sfx);
+}
+
+// 播放結束（或最多2秒後）釋放 audio 物件，避免快速連點時大量 cloneNode 佔用記憶體導致延遲
+function cleanupAudioAfterPlay(node){
+  const cleanup=()=>{ node.src=''; node.removeAttribute('src'); node.load(); };
+  node.addEventListener('ended',cleanup,{once:true});
+  setTimeout(cleanup,2000);
 }
 
 function switchBgm(galaxyId){
@@ -1194,16 +1204,17 @@ function updateUI(){
   pb.style.display=g.money>=threshold?'block':'none';
   pb.textContent=`✨ 第 ${g.prestige+1} 次${def.prestigeBtnLabel} — 歸零換取黃金代幣，永久 +200% ${def.multLabel}`;
 
-  document.querySelectorAll('.upgrade-card').forEach(card=>{
-    const u=curUpgrades().find(x=>x.id===card.dataset.id);if(!u)return;
+  const upgradeMap=new Map(curUpgrades().map(u=>[u.id,u]));
+  for(const id in _cardElCache){
+    const u=upgradeMap.get(id);if(!u)continue;
+    const els=_cardElCache[id];
     const cnt=g.counts[u.id]||0,cost=upgradeCost(u);
     const can=g.money>=cost&&cnt<u.max&&!tierLocked(u),maxed=cnt>=u.max;
-    card.className='upgrade-card'+(can?' affordable':'')+(maxed?' maxed':'');
-    const ce=card.querySelector('.uc-cost'),be=card.querySelector('.buy-btn'),pe=card.querySelector('.progress-fill');
-    if(ce)ce.textContent=maxed?'滿級！':curMoney(cost);
-    if(be){be.disabled=!can;be.textContent=maxed?'MAX':curBuyLabel();}
-    if(pe)pe.style.width=(cnt/u.max*100)+'%';
-  });
+    els.root.className='upgrade-card'+(can?' affordable':'')+(maxed?' maxed':'');
+    if(els.cost)els.cost.textContent=maxed?'滿級！':curMoney(cost);
+    if(els.buy){els.buy.disabled=!can;els.buy.textContent=maxed?'MAX':curBuyLabel();}
+    if(els.progress)els.progress.style.width=(cnt/u.max*100)+'%';
+  }
   updateForbesRank();
 }
 
@@ -1256,6 +1267,8 @@ const SHOP_TIER_META={
      title3:'✈️ 星際旅程',title15:'🌍 廣闊宇宙',title50:'👁️ 心之所見',title100:'🌌 最終歸程',
      hint3:'星塵每秒最高 ✨1.2M',hint15:'星塵每秒最高達 ✨100B',hint50:'星塵每秒最高達 ✨10P',hint100:'回到屬於自己的星球，每秒 ✨10Z'}],
 };
+let _cardElCache={}; // {upgradeId: {root, cost, buy, progress}}，渲染後快取，避免每次updateUI重新查詢DOM
+
 function renderShop(){
   const def=curGalaxyDef();
   const meta=SHOP_TIER_META[def.id][0];
@@ -1265,6 +1278,19 @@ function renderShop(){
     lockedSection(meta.title15,15,meta.prev15,meta.hint15,meta.p15)+
     lockedSection(meta.title50,50,meta.prev50,meta.hint50,meta.p50)+
     lockedSection(meta.title100,100,meta.prev100,meta.hint100,meta.p100);
+  rebuildCardElCache();
+}
+
+function rebuildCardElCache(){
+  _cardElCache={};
+  document.querySelectorAll('.upgrade-card').forEach(card=>{
+    _cardElCache[card.dataset.id]={
+      root:card,
+      cost:card.querySelector('.uc-cost'),
+      buy:card.querySelector('.buy-btn'),
+      progress:card.querySelector('.progress-fill'),
+    };
+  });
 }
 
 function renderStats(){
