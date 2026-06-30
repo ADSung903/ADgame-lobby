@@ -71,7 +71,7 @@
     border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(2px);
   }
   .pill.gold-pill{border-color:var(--gold); color:var(--gold);}
-  .map-scroll{padding:10px 0 10px;}
+  .map-scroll{padding:10px 0 100px;}
   .map-path{position:relative; max-width:420px; margin:0 auto; padding:10px 30px;}
   .lvl-node-row{display:flex; margin-bottom:6px;}
   .lvl-node-row.left{justify-content:flex-start;}
@@ -116,7 +116,12 @@
   .map-shop-btn{
     flex-shrink:0; margin-right:6px;
   }
-  .map-bottom{display:flex; gap:8px; padding:10px 16px calc(24px + env(safe-area-inset-bottom));}
+  #screenMap > .map-bottom{
+    position:fixed; left:0; right:0; bottom:0; z-index:10;
+    display:flex; gap:8px; padding:10px 16px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, rgba(5,3,8,.95) 60%, rgba(5,3,8,0));
+    backdrop-filter:blur(4px);
+  }
   .map-bottom .btn{margin-top:0;}
 
   /* ============ GAME SCREEN ============ */
@@ -230,11 +235,23 @@
     opacity:.6;
   }
   .story-card{
-    position:relative; max-width:min(86vw,380px); text-align:center; padding:0 20px;
+    position:relative; max-width:min(86vw,380px); width:100%; text-align:center;
     transform:translateY(10px); opacity:0; transition:transform .5s ease .1s, opacity .5s ease .1s;
   }
   .story-overlay.show .story-card{ transform:translateY(0); opacity:1; }
-  .story-icon{font-size:54px; margin-bottom:14px; filter:drop-shadow(0 0 14px rgba(255,255,255,.35));}
+  /* 上方圖片區:預留放置每段劇情的插圖,目前用emoji當佔位圖,未來只要把<img>塞進#storyImageBox就會自動取代 */
+  .story-image-box{
+    width:min(72vw,260px); height:min(72vw,260px); margin:0 auto 18px;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    border:1.5px solid rgba(255,255,255,.18);
+    box-shadow:0 0 30px rgba(255,255,255,.08), inset 0 0 24px rgba(255,255,255,.05);
+    overflow:hidden;
+  }
+  .story-image-box img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .story-icon{font-size:64px; filter:drop-shadow(0 0 14px rgba(255,255,255,.35));}
+  /* 下方文字區 */
+  .story-text-box{ padding:0 24px; }
   .story-title{font-family:'Baloo 2',sans-serif; font-size:21px; font-weight:800; color:var(--gold); margin-bottom:10px; letter-spacing:1px;}
   .story-text{font-size:15px; line-height:1.85; color:var(--text-light); opacity:.92;}
   .story-tap-hint{font-size:11px; color:var(--text-dim); margin-top:22px; opacity:.6; letter-spacing:1px;}
@@ -300,10 +317,14 @@
 <!-- STORY CARD (淡入淡出的劇情卡,點擊或4秒後自動消失,純氛圍裝飾不卡進度) -->
 <div class="story-overlay" id="storyOverlay">
   <div class="story-card">
-    <div class="story-icon" id="storyIcon">👦</div>
-    <div class="story-title" id="storyTitle"></div>
-    <div class="story-text" id="storyText"></div>
-    <div class="story-tap-hint">輕觸畫面繼續</div>
+    <div class="story-image-box" id="storyImageBox">
+      <div class="story-icon" id="storyIcon">👦</div>
+    </div>
+    <div class="story-text-box">
+      <div class="story-title" id="storyTitle"></div>
+      <div class="story-text" id="storyText"></div>
+      <div class="story-tap-hint">輕觸畫面繼續</div>
+    </div>
   </div>
 </div>
 
@@ -869,7 +890,13 @@ function showStoryCard(lvl, onDone){
   storyOverlayActive = true;
   AudioM.play('rainbow');
   const overlay = document.getElementById('storyOverlay');
-  document.getElementById('storyIcon').textContent = ch.icon;
+  // 圖片區:之後只要在STORY_CHAPTERS該章節加上 image:'路徑' 欄位,這裡就會自動改顯示圖片,不用改任何邏輯
+  const imageBox = document.getElementById('storyImageBox');
+  if(ch.image){
+    imageBox.innerHTML = `<img src="${ch.image}" alt="${ch.title}">`;
+  } else {
+    imageBox.innerHTML = `<div class="story-icon" id="storyIcon">${ch.icon}</div>`;
+  }
   document.getElementById('storyTitle').textContent = ch.title;
   document.getElementById('storyText').textContent = ch.text;
   overlay.classList.add('show');
@@ -936,7 +963,7 @@ function startTimer(){
   state.timerHandle = setInterval(()=>{
     if(isPaused()) return;
     state.timeLeft--;
-    if(state.timeLeft > 0 && state.timeLeft <= 10){ AudioM.play('tick'); }
+    if(state.timeLeft === 10){ AudioM.play('tick'); }
     if(state.timeLeft <= 0){
       state.timeLeft = 0;
       clearInterval(state.timerHandle);
