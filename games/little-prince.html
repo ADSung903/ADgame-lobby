@@ -193,6 +193,21 @@
   .modal-bg{position:fixed; inset:0; background:rgba(10,5,20,.72); display:none; align-items:center; justify-content:center; z-index:200; backdrop-filter:blur(2px);}
   .modal-bg.show{display:flex;}
   .modal-card{background:linear-gradient(160deg, var(--panel-light), var(--panel)); border:2px solid rgba(255,255,255,.08); border-radius:24px; padding:26px 24px; width:min(86vw,360px); text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5); max-height:84vh; overflow-y:auto;}
+  .story-book-card{ width:min(90vw,420px); text-align:left; }
+  .story-book-card h2{ text-align:center; }
+  .story-book-card .sub{ text-align:center; }
+  .story-book-list{ max-height:56vh; overflow-y:auto; margin:16px 0; padding-right:4px; -webkit-overflow-scrolling:touch; }
+  .story-book-entry{ display:flex; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,.08); }
+  .story-book-entry:last-child{ border-bottom:none; }
+  .sb-icon{ font-size:28px; flex-shrink:0; width:42px; height:42px; text-align:center; display:flex; align-items:center; justify-content:center; }
+  .sb-icon img{ width:100%; height:100%; object-fit:cover; border-radius:8px; }
+  .sb-icon.locked{ opacity:.35; }
+  .sb-body{ flex:1; min-width:0; }
+  .sb-num{ font-size:10px; color:var(--text-dim); font-weight:700; letter-spacing:1px; margin-bottom:2px; }
+  .sb-title{ font-family:'Baloo 2',sans-serif; font-size:15px; font-weight:800; color:var(--gold); margin-bottom:4px; }
+  .sb-title.locked{ color:var(--text-dim); }
+  .sb-text{ font-size:13px; line-height:1.7; color:var(--text-light); opacity:.9; }
+  .sb-text.locked{ color:var(--text-dim); opacity:.6; font-style:italic; }
   .modal-card h2{font-family:'Baloo 2',sans-serif; font-size:26px; margin:0 0 6px; font-weight:800;}
   .modal-card .sub{color:var(--text-dim); font-size:14px; margin-bottom:16px;}
   .modal-stats{display:flex; flex-wrap:wrap; justify-content:center; gap:14px 18px; margin:14px 0 18px;}
@@ -270,8 +285,19 @@
   </div>
   <div class="map-scroll"><div class="map-path" id="mapPath"></div></div>
   <div class="map-bottom">
-    <button class="btn secondary" style="flex:1" onclick="playBtn(); openShop()">🛒 道具商店</button>
-    <button class="btn secondary" style="flex:1" onclick="playBtn(); goLobby()">← 返回大廳</button>
+    <button class="btn secondary" style="flex:1" onclick="playBtn(); openStoryBook()">📖 故事回顧</button>
+    <button class="btn secondary" style="flex:1" onclick="playBtn(); openShop()">🛒 商店</button>
+    <button class="btn secondary" style="flex:1" onclick="playBtn(); goLobby()">← 大廳</button>
+  </div>
+</div>
+
+<!-- STORY BOOK (故事回顧:已解鎖章節依序呈現,未解鎖顯示「待續」不爆雷) -->
+<div class="modal-bg" id="modalStoryBook">
+  <div class="modal-card story-book-card">
+    <h2>📖 小王子的故事</h2>
+    <div class="sub">隨著你闖過的關卡，故事會逐漸展開</div>
+    <div class="story-book-list" id="storyBookList"></div>
+    <button class="btn secondary" onclick="playBtn(); closeStoryBook()">關閉</button>
   </div>
 </div>
 
@@ -857,30 +883,30 @@ function overToMap(){
 /* ====================== STORY CHAPTERS ====================== */
 // 以下為原創改寫的劇情大綱,依故事發展順序撰寫,並非翻譯或引用原著文字
 const STORY_CHAPTERS = {
-  1:  { icon:'👨‍✈️', title:'沙漠迫降', text:'飛行員的引擎在撒哈拉沙漠故障了。方圓千里渺無人煙，他必須在水和糧食耗盡前修好飛機。' },
-  4:  { icon:'🐑', title:'畫一隻羊', text:'一個金髮的小男孩忽然出現，請飛行員「畫一隻羊」給他。畫了又畫都不滿意，最後一個畫了箱子的草圖，男孩卻說羊就在裡面，露出滿意的微笑。', featured:'prince' },
-  7:  { icon:'🪐', title:'小小的星球', text:'男孩來自一顆比房子大不了多少的小行星。星球上有三座火山、幾株麵包樹幼苗，還有一朵他細心照料的花。', featured:'planet' },
-  10: { icon:'🏵️', title:'猴麵包樹的威脅', text:'猴麵包樹的種子一旦疏於拔除，根會撐裂整顆星球。小王子每天清晨都認真巡視，把幼苗連根拔起，絕不懈怠。', featured:'planet' },
-  13: { icon:'🌹', title:'玫瑰初綻放', text:'一朵花苞悄悄綻放，美得讓小王子屏住呼吸。他從沒見過這樣的花，從此每天為她澆水、為她擋風。', featured:'rose' },
-  16: { icon:'🌹', title:'玫瑰的驕傲與謊言', text:'這朵花用驕傲的言語掩飾自己的脆弱，幾句似真似假的咳嗽，讓小王子既著迷又困惑，最終帶著受傷的心離開了星球。', featured:'rose' },
-  19: { icon:'🌅', title:'四十四次日落', text:'心情低落的時候，小王子會把椅子挪到適合的角度看日落。最難過的那一天，他一連看了四十四次。' },
-  22: { icon:'🤴', title:'國王的星球', text:'小王子拜訪的第一顆星球上住著一位國王，他自稱統治萬物，卻連太陽都無法真正命令，只能等待時機「順勢下令」。' },
-  25: { icon:'🎩', title:'愛慕虛榮的人', text:'下一顆星球的住民只想被人讚美。小王子拍了拍手，他便驕傲地舉起帽子致意——除了讚美，他聽不見任何別的話。' },
-  28: { icon:'🍷', title:'酒鬼的星球', text:'再下一顆星球住著一個酒鬼，他喝酒是為了忘記羞愧——而讓他羞愧的，正是自己一直在喝酒。這個循環讓小王子覺得大人們真的很奇怪。' },
-  31: { icon:'💼', title:'商人的星球', text:'商人忙著計算天上的星星，宣稱自己「擁有」它們。小王子心想，自己至少還會去澆灌他的花，這份擁有比較踏實。' },
-  34: { icon:'💡', title:'點燈人的星球', text:'點燈人日夜不停地點燈又熄燈，因為他的星球轉得太快。小王子覺得，在所有大人之中，只有他不是為了自己而忙碌。' },
-  37: { icon:'🗺️', title:'地理學家的星球', text:'地理學家只記錄山川海洋，從不親自去看一眼。他告訴小王子，花朵太容易凋謝，不值得寫進書裡——這句話讓小王子第一次為玫瑰感到擔心。' },
-  40: { icon:'🌍', title:'抵達地球', text:'小王子終於降落在地球，眼前是一片荒涼的沙漠。他遇見一條蛇，蛇告訴他，自己的毒液能送任何人回到很遠的地方。', featured:'snake' },
-  43: { icon:'🌵', title:'空蕩蕩的星球', text:'小王子在地球上走了很久，遇見的第一朵花告訴他，這裡的人類其實沒有幾個——他開始覺得自己的星球或許沒有那麼小。' },
-  46: { icon:'🦊', title:'遇見狐狸', text:'狐狸請求小王子「馴養」自己。牠說，被馴養之後，世界上獨一無二的不再只是麥田的顏色，而是彼此之間建立起來的羈絆。', featured:'fox' },
-  49: { icon:'🦊', title:'馴養的儀式', text:'狐狸教小王子，馴養需要耐心：每天在同一個時間靠近一點，讓彼此慢慢習慣對方的存在，這樣才能真正建立起關係。', featured:'fox' },
-  52: { icon:'🌹', title:'用眼睛看不見的東西', text:'狐狸告訴小王子，正因為他為那朵玫瑰付出了時間，她才在他心中變得無可取代——重要的東西，往往要用心才能看見。', featured:'rose' },
-  55: { icon:'🚂', title:'扳道工的星球', text:'小王子在火車站看見大人們急急忙忙地換車，卻說不清自己在追求什麼，連孩子們都只是隔著車窗望向窗外，沒人說得出原因。' },
-  58: { icon:'💊', title:'解渴藥丸的商人', text:'一個商人賣著能省去喝水時間的藥丸，宣稱每週能省下五十三分鐘。小王子心想，如果是他，會把這些時間拿去慢慢走向一口井。' },
-  61: { icon:'🕳️', title:'沙漠裡的水井', text:'飛行員與小王子在沙漠中找到一口井。小王子說，沙漠之所以美麗，是因為某個角落，藏著一口看不見的井。' },
-  64: { icon:'🐍', title:'道別的預兆', text:'小王子告訴飛行員，自己快要回去了。他說身體只是一個沉重的外殼，被留下的時候，不必為此感到傷心。', featured:'snake' },
-  67: { icon:'⭐', title:'蛇與星辰', text:'小王子安靜地倒下，沒有發出聲音。隔天，飛行員找不到他的身體，明白他已經回到了自己的星球。', featured:'star' },
-  70: { icon:'🌌', title:'仰望星空', text:'飛行員修好了飛機，回到家鄉。從此每當他抬頭看著星星，總會想起某顆遙遠的星球上，有一朵需要朋友細心照顧的玫瑰。', featured:'planet' },
+  1:  { icon:'👨‍✈️', title:'沙漠迫降', text:'飛行員的引擎在撒哈拉沙漠故障了。方圓千里渺無人煙，他必須在水和糧食耗盡前修好飛機。', image:'assets/story/little-prince/lp1.jpg' },
+  4:  { icon:'🐑', title:'畫一隻羊', text:'一個金髮的小男孩忽然出現，請飛行員「畫一隻羊」給他。畫了又畫都不滿意，最後一個畫了箱子的草圖，男孩卻說羊就在裡面，露出滿意的微笑。', featured:'prince', image:'assets/story/little-prince/lp4.jpg' },
+  7:  { icon:'🪐', title:'小小的星球', text:'男孩來自一顆比房子大不了多少的小行星。星球上有三座火山、幾株麵包樹幼苗，還有一朵他細心照料的花。', featured:'planet', image:'assets/story/little-prince/lp7.jpg' },
+  10: { icon:'🏵️', title:'猴麵包樹的威脅', text:'猴麵包樹的種子一旦疏於拔除，根會撐裂整顆星球。小王子每天清晨都認真巡視，把幼苗連根拔起，絕不懈怠。', featured:'planet', image:'assets/story/little-prince/lp10.jpg' },
+  13: { icon:'🌹', title:'玫瑰初綻放', text:'一朵花苞悄悄綻放，美得讓小王子屏住呼吸。他從沒見過這樣的花，從此每天為她澆水、為她擋風。', featured:'rose', image:'assets/story/little-prince/lp13.jpg' },
+  16: { icon:'🌹', title:'玫瑰的驕傲與謊言', text:'這朵花用驕傲的言語掩飾自己的脆弱，幾句似真似假的咳嗽，讓小王子既著迷又困惑，最終帶著受傷的心離開了星球。', featured:'rose', image:'assets/story/little-prince/lp16.jpg' },
+  19: { icon:'🌅', title:'四十四次日落', text:'心情低落的時候，小王子會把椅子挪到適合的角度看日落。最難過的那一天，他一連看了四十四次。', image:'assets/story/little-prince/lp19.jpg' },
+  22: { icon:'🤴', title:'國王的星球', text:'小王子拜訪的第一顆星球上住著一位國王，他自稱統治萬物，卻連太陽都無法真正命令，只能等待時機「順勢下令」。', image:'assets/story/little-prince/lp22.jpg' },
+  25: { icon:'🎩', title:'愛慕虛榮的人', text:'下一顆星球的住民只想被人讚美。小王子拍了拍手，他便驕傲地舉起帽子致意——除了讚美，他聽不見任何別的話。', image:'assets/story/little-prince/lp25.jpg' },
+  28: { icon:'🍷', title:'酒鬼的星球', text:'再下一顆星球住著一個酒鬼，他喝酒是為了忘記羞愧——而讓他羞愧的，正是自己一直在喝酒。這個循環讓小王子覺得大人們真的很奇怪。', image:'assets/story/little-prince/lp28.jpg' },
+  31: { icon:'💼', title:'商人的星球', text:'商人忙著計算天上的星星，宣稱自己「擁有」它們。小王子心想，自己至少還會去澆灌他的花，這份擁有比較踏實。', image:'assets/story/little-prince/lp31.jpg' },
+  34: { icon:'💡', title:'點燈人的星球', text:'點燈人日夜不停地點燈又熄燈，因為他的星球轉得太快。小王子覺得，在所有大人之中，只有他不是為了自己而忙碌。', image:'assets/story/little-prince/lp34.jpg' },
+  37: { icon:'🗺️', title:'地理學家的星球', text:'地理學家只記錄山川海洋，從不親自去看一眼。他告訴小王子，花朵太容易凋謝，不值得寫進書裡——這句話讓小王子第一次為玫瑰感到擔心。', image:'assets/story/little-prince/lp37.jpg' },
+  40: { icon:'🌍', title:'抵達地球', text:'小王子終於降落在地球，眼前是一片荒涼的沙漠。他遇見一條蛇，蛇告訴他，自己的毒液能送任何人回到很遠的地方。', featured:'snake', image:'assets/story/little-prince/lp40.jpg' },
+  43: { icon:'🌵', title:'空蕩蕩的星球', text:'小王子在地球上走了很久，遇見的第一朵花告訴他，這裡的人類其實沒有幾個——他開始覺得自己的星球或許沒有那麼小。', image:'assets/story/little-prince/lp43.jpg' },
+  46: { icon:'🦊', title:'遇見狐狸', text:'狐狸請求小王子「馴養」自己。牠說，被馴養之後，世界上獨一無二的不再只是麥田的顏色，而是彼此之間建立起來的羈絆。', featured:'fox', image:'assets/story/little-prince/lp46.jpg' },
+  49: { icon:'🦊', title:'馴養的儀式', text:'狐狸教小王子，馴養需要耐心：每天在同一個時間靠近一點，讓彼此慢慢習慣對方的存在，這樣才能真正建立起關係。', featured:'fox', image:'assets/story/little-prince/lp49.jpg' },
+  52: { icon:'🌹', title:'用眼睛看不見的東西', text:'狐狸告訴小王子，正因為他為那朵玫瑰付出了時間，她才在他心中變得無可取代——重要的東西，往往要用心才能看見。', featured:'rose', image:'assets/story/little-prince/lp52.jpg' },
+  55: { icon:'🚂', title:'扳道工的星球', text:'小王子在火車站看見大人們急急忙忙地換車，卻說不清自己在追求什麼，連孩子們都只是隔著車窗望向窗外，沒人說得出原因。', image:'assets/story/little-prince/lp55.jpg' },
+  58: { icon:'💊', title:'解渴藥丸的商人', text:'一個商人賣著能省去喝水時間的藥丸，宣稱每週能省下五十三分鐘。小王子心想，如果是他，會把這些時間拿去慢慢走向一口井。', image:'assets/story/little-prince/lp58.jpg' },
+  61: { icon:'🕳️', title:'沙漠裡的水井', text:'飛行員與小王子在沙漠中找到一口井。小王子說，沙漠之所以美麗，是因為某個角落，藏著一口看不見的井。', image:'assets/story/little-prince/lp61.jpg' },
+  64: { icon:'🐍', title:'道別的預兆', text:'小王子告訴飛行員，自己快要回去了。他說身體只是一個沉重的外殼，被留下的時候，不必為此感到傷心。', featured:'snake', image:'assets/story/little-prince/lp64.jpg' },
+  67: { icon:'⭐', title:'蛇與星辰', text:'小王子安靜地倒下，沒有發出聲音。隔天，飛行員找不到他的身體，明白他已經回到了自己的星球。', featured:'star', image:'assets/story/little-prince/lp67.jpg' },
+  70: { icon:'🌌', title:'仰望星空', text:'飛行員修好了飛機，回到家鄉。從此每當他抬頭看著星星，總會想起某顆遙遠的星球上，有一朵需要朋友細心照顧的玫瑰。', featured:'planet', image:'assets/story/little-prince/lp70.jpg' },
 };
 let storyOverlayActive = false;
 
@@ -1306,6 +1332,45 @@ function openShop(){
 function closeShop(){
   state.modalOpen = false;
   document.getElementById('modalShop').classList.remove('show');
+}
+
+function openStoryBook(){
+  state.modalOpen = true;
+  const listEl = document.getElementById('storyBookList');
+  listEl.innerHTML = '';
+  const chapterLevels = Object.keys(STORY_CHAPTERS).map(Number).sort((a,b)=>a-b);
+  chapterLevels.forEach((lvl, idx)=>{
+    const ch = STORY_CHAPTERS[lvl];
+    const unlocked = lvl <= state.unlocked; // 玩家已經打到或正在打這一關,故事才會揭露
+    const entry = document.createElement('div');
+    entry.className = 'story-book-entry';
+    if(unlocked){
+      const iconHtml = ch.image
+        ? `<img src="${ch.image}" alt="${ch.title}">`
+        : ch.icon;
+      entry.innerHTML = `
+        <div class="sb-icon">${iconHtml}</div>
+        <div class="sb-body">
+          <div class="sb-num">第 ${idx+1} 章 · 第${lvl}關</div>
+          <div class="sb-title">${ch.title}</div>
+          <div class="sb-text">${ch.text}</div>
+        </div>`;
+    } else {
+      entry.innerHTML = `
+        <div class="sb-icon locked">🔒</div>
+        <div class="sb-body">
+          <div class="sb-num">第 ${idx+1} 章 · 第${lvl}關</div>
+          <div class="sb-title locked">？？？</div>
+          <div class="sb-text locked">（待續）</div>
+        </div>`;
+    }
+    listEl.appendChild(entry);
+  });
+  document.getElementById('modalStoryBook').classList.add('show');
+}
+function closeStoryBook(){
+  state.modalOpen = false;
+  document.getElementById('modalStoryBook').classList.remove('show');
 }
 function buyTool(name){
   const cost = name==='hammer'?15 : name==='shuffle'?10 : 20;
