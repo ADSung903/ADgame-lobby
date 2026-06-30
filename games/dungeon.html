@@ -26,6 +26,7 @@
         多怪物戰鬥（1~3隻）；DQ風格受擊抖動/死亡淡出；遊俠系職業樹×5
         武器/技能平衡調整；Buff改為戰鬥次數倒數
   v1.4  完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖
+  v1.33  修正裝備圖示 fallback 失效；快捷欄拆回復/增益兩組；背包穩定排序不再亂跳
   v1.10  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
         狀態列UI、音效掛鉤、視覺飄字特效；各大陸怪物分配對應狀態
         萬能解藥真正解除全部狀態；解毒藥水僅解中毒
@@ -1341,8 +1342,10 @@ function renderItemIcon(item, sizeClass) {
   if (item.unidentified) return `<span class="${sizeClass||''}">${item.icon||'❓'}</span>`;
   const spritePath = getSpritePath(item);
   if (spritePath) {
-    return `<img src="${spritePath}" class="${sizeClass||''}" style="display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated"
-      onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${sizeClass||''}',textContent:'${item.icon||'❓'}'}))">`;
+    // 用 data-fb 儲存 fallback emoji，onerror 透過 dataset 讀取，避免引號問題
+    const fb = (item.icon||'❓').replace(/'/g,"\\'");
+    return `<img src="${spritePath}" class="${sizeClass||''}" data-fb="${(item.icon||'❓').replace(/"/g,'&quot;')}" style="display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated"
+      onerror="var s=document.createElement('span');s.className=this.className;s.textContent=this.dataset.fb;this.replaceWith(s)">`;
   }
   return `<span class="${sizeClass||''}">${item.icon||'❓'}</span>`;
 }
@@ -1568,6 +1571,7 @@ const ENHANCE_RATES = {
 // 📋 VERSION HISTORY — 更新日誌
 // ════════════════════════════════════════════════════════════
 const VERSION_HISTORY = [
+  {v:'1.33', notes:['修正裝備圖示 onerror fallback 失效（用 data-fb attribute 解決引號衝突），裝備emoji現在正常顯示','快捷欄拆為回復組+增益組，中間加分隔線，各組顯示該類型所有藥水','背包穩定排序：武器>防具>藥水（固定subtye順序）>卷軸，使用藥水後不再亂跳']},
   {v:'1.32', notes:['裝備視覺系統上線（方向A）：背包/裝備欄/裝備卡片/商店/死亡傳承選擇，全部改用pixel art圖示取代emoji','110張素材：男女Base角色、6武器、重甲/輕甲各4部位、3飾品，各6種稀有度染色版本','防具外觀依職業自動切換：戰士/劍士系顯示重甲風格，法師/盜賊/遊俠系顯示輕甲風格','找不到對應圖片時自動fallback回emoji，不影響原有功能','角色身上紙娃娃疊圖（方向B）暫緩：現有素材是「展示用icon」比例，非「穿戴疊圖」比例，需要重新設計素材規格']},
   {v:'1.31', notes:['【重大修正】大陸邊界判定bug：機械廢都(mech)原本只要求dx<0(任何負值)+距離500，導致西北方向稍微偏西就會被機械廢都攔截，玩家往北走會卡在機械永遠到不了天空浮島','改用明確的角度扇形劃分9大陸（每個方位約40-50度），360度測試確認所有方向都有合理且不重疊的大陸歸屬']},
   {v:'1.30', notes:['各大陸（除新手森林）一般怪物從4種擴增至6種，共新增16隻怪物：沙塵巨蜂/流沙幽魂(沙漠)、暴風雪怪/冰封殭屍(冰雪)、熾炎犬/熔岩蟾蜍(熔岩)、電鰭魚/深海蟹將(深海)、風暴鷲/雲端遊魂(天空)、噬魂怪/暗影蜘蛛(暗影)、鑽地獸/雷射砲塔(機械)、永夜行者/虛空蝕者(隱藏)','圖鑑總數自動從50種增加至66種，收集進度同步更新']},
@@ -6110,30 +6114,44 @@ function updatePlayerSVG() {
 function updateQuickBar() {
   const bar = document.getElementById('quick-bar');
   if (!bar) return;
-  // 回復類藥水優先排序，再來是buff類，卷軸排最後
-  const healOrder = ['heal_s','heal_m','heal_l','heal_xl','heal_full','antidote','cure_all'];
-  const potions = state.inventory
-    .filter(i => i.type === 'potion')
-    .sort((a, b) => {
-      const ai = healOrder.indexOf(a.subtype), bi = healOrder.indexOf(b.subtype);
-      const aRank = ai >= 0 ? ai : 100;
-      const bRank = bi >= 0 ? bi : 100;
-      return aRank - bRank;
-    })
-    .slice(0, 4);
-  bar.innerHTML = potions.map((p, idx) => {
-    const invIdx = state.inventory.indexOf(p);
-    return `<div onclick="quickUsePotion(${invIdx})" style="
-      width:36px;height:36px;background:rgba(0,0,0,.7);
+
+  const HEAL_SUBTYPES = ['heal_s','heal_m','heal_l','heal_xl','heal_full','antidote','cure_all'];
+  const BUFF_SUBTYPES = ['str_boost','agi_boost','luk_boost','int_boost','berserk','invincible'];
+
+  // 去重：同 subtype 只取第一個，並統計數量
+  function buildGroup(subtypes) {
+    const seen = {};
+    state.inventory.forEach((item, i) => {
+      if (item.type !== 'potion') return;
+      if (!seen[item.subtype]) seen[item.subtype] = {item, invIdx:i, count:0};
+      seen[item.subtype].count++;
+    });
+    return subtypes.filter(s => seen[s]).map(s => ({...seen[s]}));
+  }
+
+  const heals = buildGroup(HEAL_SUBTYPES);
+  const buffs = buildGroup(BUFF_SUBTYPES);
+
+  function slotHtml(p) {
+    return `<div onclick="quickUsePotion(${p.invIdx})" style="
+      position:relative;width:36px;height:36px;background:rgba(0,0,0,.7);
       border:.5px solid #444;border-radius:8px;
       display:flex;flex-direction:column;align-items:center;justify-content:center;
       cursor:pointer;font-size:18px;gap:1px">
-      <span>${p.icon}</span>
-      <span style="font-size:8px;color:#aaa">${p.name.replace('藥水','').replace('卷軸','')}</span>
+      <span>${p.item.icon}</span>
+      <span style="font-size:8px;color:#aaa">${p.item.name.replace('藥水','').replace('卷軸','')}</span>
+      ${p.count>1?`<span style="position:absolute;bottom:1px;right:3px;font-size:7px;color:#f59e0b;font-weight:700">x${p.count}</span>`:''}
     </div>`;
-  }).join('');
+  }
 
-  // 戰鬥畫面也同步顯示同一個快捷列內容
+  let html = heals.map(slotHtml).join('');
+  if (heals.length && buffs.length) {
+    html += `<div style="width:1px;height:28px;background:#333;margin:0 3px;align-self:center"></div>`;
+  }
+  html += buffs.map(slotHtml).join('');
+  bar.innerHTML = html;
+
+  // 戰鬥畫面同步
   const cbBar = document.getElementById('cb-quick-bar');
   if (cbBar) cbBar.innerHTML = bar.innerHTML;
 }
@@ -6170,20 +6188,34 @@ function openInventory(filter) {
     `).join('');
   }
 
+  // 背包排序：武器 > 防具 > 藥水（固定順序） > 卷軸，同類保持原始順序
+  const INV_TYPE_ORDER = {weapon:0, armor:1, potion:2, scroll:3};
+  const POTION_SUBTYPE_ORDER = ['heal_s','heal_m','heal_l','heal_xl','heal_full',
+    'antidote','cure_all','str_boost','agi_boost','luk_boost','int_boost','berserk','invincible'];
+  const sortedInv = [...state.inventory].sort((a, b) => {
+    const ta = INV_TYPE_ORDER[a.type] ?? 9, tb = INV_TYPE_ORDER[b.type] ?? 9;
+    if (ta !== tb) return ta - tb;
+    if (a.type === 'potion') {
+      return POTION_SUBTYPE_ORDER.indexOf(a.subtype) - POTION_SUBTYPE_ORDER.indexOf(b.subtype);
+    }
+    return 0;
+  });
+
   // 藥水疊加：同 subtype 合併顯示
   const stackedInv = [];
   const potionMap = {};
-  state.inventory.forEach((item, i) => {
+  sortedInv.forEach((item) => {
+    const origIdx = state.inventory.indexOf(item);
     if (item.type === 'potion' || item.type === 'scroll') {
       const key = item.subtype;
       if (potionMap[key]) {
         potionMap[key].count++;
       } else {
-        potionMap[key] = {item, count:1, firstIdx:i};
+        potionMap[key] = {item, count:1, firstIdx:origIdx};
         stackedInv.push(potionMap[key]);
       }
     } else {
-      stackedInv.push({item, count:1, firstIdx:i});
+      stackedInv.push({item, count:1, firstIdx:origIdx});
     }
   });
 
