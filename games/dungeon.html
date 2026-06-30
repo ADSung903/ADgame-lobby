@@ -26,6 +26,7 @@
         多怪物戰鬥（1~3隻）；DQ風格受擊抖動/死亡淡出；遊俠系職業樹×5
         武器/技能平衡調整；Buff改為戰鬥次數倒數
   v1.4  完整音樂系統：6首BGM依場景自動切換、10種SFX、開關按鈕、手機解鎖
+  v1.34  修正鑑定後商人批量銷售計數未刷新；批量銷售開放至金裝；新增職業經驗卷軸（直升職業Lv+1）
   v1.33  修正裝備圖示 fallback 失效；快捷欄拆回復/增益兩組；背包穩定排序不再亂跳
   v1.10  完整負面狀態系統：中毒/緩速/石化/混亂/力弱/破甲/麻痺/致盲
         狀態列UI、音效掛鉤、視覺飄字特效；各大陸怪物分配對應狀態
@@ -1551,6 +1552,8 @@ const SHOP_ITEMS = [
    desc:'完全重新選擇主線（戰士/法師/盜賊/遊俠任選，亦可回到礦工），不限同主線。職業等級與經驗保留。', price:500000, effect:{action:'job_reincarnate'}},
   {name:'副本券',     icon:'🎫', type:'scroll', subtype:'raid_ticket',
    desc:'每日免費挑戰次數用完後，可消耗此券額外挑戰一次Boss副本。', price:10000, effect:{action:'none'}},
+  {name:'職業經驗卷軸', icon:'📘', type:'scroll', subtype:'job_exp_up', rarity:'gold',
+   desc:'立即提升目前職業等級+1級（無視所需經驗），若該等級有技能解鎖會直接獲得。', price:8000, effect:{action:'job_exp_up'}},
 ];
 
 // ═══════════════════════════════════════════════
@@ -1571,6 +1574,7 @@ const ENHANCE_RATES = {
 // 📋 VERSION HISTORY — 更新日誌
 // ════════════════════════════════════════════════════════════
 const VERSION_HISTORY = [
+  {v:'1.34', notes:['修正鑑定後商人介面批量銷售數量沒刷新的問題（鑑定出白裝後按鈕計數是舊的，誤以為賣不掉）','一鍵批量銷售開放至金裝（原本只到藍裝）','新增「職業經驗卷軸」：使用後直接職業等級+1（無視所需經驗），若該等級有技能會直接解鎖','職業經驗卷軸取得方式：商店購買（8000金）、菁英/Boss怪3%掉落、地下城寶箱4%機率出現']},
   {v:'1.33', notes:['修正裝備圖示 onerror fallback 失效（用 data-fb attribute 解決引號衝突），裝備emoji現在正常顯示','快捷欄拆為回復組+增益組，中間加分隔線，各組顯示該類型所有藥水','背包穩定排序：武器>防具>藥水（固定subtye順序）>卷軸，使用藥水後不再亂跳']},
   {v:'1.32', notes:['裝備視覺系統上線（方向A）：背包/裝備欄/裝備卡片/商店/死亡傳承選擇，全部改用pixel art圖示取代emoji','110張素材：男女Base角色、6武器、重甲/輕甲各4部位、3飾品，各6種稀有度染色版本','防具外觀依職業自動切換：戰士/劍士系顯示重甲風格，法師/盜賊/遊俠系顯示輕甲風格','找不到對應圖片時自動fallback回emoji，不影響原有功能','角色身上紙娃娃疊圖（方向B）暫緩：現有素材是「展示用icon」比例，非「穿戴疊圖」比例，需要重新設計素材規格']},
   {v:'1.31', notes:['【重大修正】大陸邊界判定bug：機械廢都(mech)原本只要求dx<0(任何負值)+距離500，導致西北方向稍微偏西就會被機械廢都攔截，玩家往北走會卡在機械永遠到不了天空浮島','改用明確的角度扇形劃分9大陸（每個方位約40-50度），360度測試確認所有方向都有合理且不重疊的大陸歸屬']},
@@ -3826,6 +3830,12 @@ function openDungeonChest() {
       items.push(it);
     }
   }
+  // 職業經驗卷軸：地下城寶箱 4% 機率額外出現
+  if (Math.random() < 0.04) {
+    items.push({id:Date.now()+Math.random(), name:'職業經驗卷軸', icon:'📘', type:'scroll', subtype:'job_exp_up',
+      desc:'立即提升目前職業等級+1級（無視所需經驗），若該等級有技能解鎖會直接獲得。',
+      effect:{action:'job_exp_up'}, rarity:'gold'});
+  }
   playSFX('chest');
   const modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:600;padding:1rem';
@@ -4615,6 +4625,15 @@ function endCombatVictory() {
         cbLog('cl-y', `🎫 稀有掉落：${wrapCol('rarity-gold','副本券')}！`);
       }
     }
+    // 職業經驗卷軸：菁英/Boss怪 3% 機率掉落
+    if (m.elite && Math.random() < 0.03) {
+      const jeScroll = {name:'職業經驗卷軸', icon:'📘', type:'scroll', subtype:'job_exp_up',
+        desc:'立即提升目前職業等級+1級（無視所需經驗），若該等級有技能解鎖會直接獲得。',
+        effect:{action:'job_exp_up'}, rarity:'gold', id:Date.now()+Math.random()};
+      if (addToInventory(jeScroll)) {
+        cbLog('cl-y', `📘 稀有掉落：${wrapCol('rarity-gold','職業經驗卷軸')}！`);
+      }
+    }
   }
 
   // Mark killed
@@ -4902,6 +4921,16 @@ function gainJobExp() {
     if (newSkill) toast(`🌟 職業升級！Lv.${state.jobLevel} 解鎖技能：${newSkill.name}`);
     else toast(`⭐ 職業升級！${JOB_DEFS[state.job]?.name} Lv.${state.jobLevel}`);
   }
+}
+
+// ── 職業經驗卷軸：無視經驗，直接升職業等級+1 ──
+function forceJobLevelUp() {
+  state.jobLevel = (state.jobLevel || 1) + 1;
+  state.jobExp = 0; // 升級後經驗歸零，避免重複累積造成連鎖跳級
+  const newSkill = JOB_DEFS[state.job]?.skills?.find(s => s.lv === state.jobLevel);
+  if (newSkill) toast(`📘 職業等級直升！Lv.${state.jobLevel} 解鎖技能：${newSkill.name}`);
+  else toast(`📘 職業等級直升！${JOB_DEFS[state.job]?.name} Lv.${state.jobLevel}`);
+  playSFX('levelup');
 }
 
 // ── 技能效果 getter ──
@@ -5793,6 +5822,13 @@ function usePotion(item, invIdx) {
     showJobReincarnateMenu(invIdx);
   } else if (ef.action === 'none') {
     toast('🎫 此道具會在挑戰副本時自動使用，無需手動使用');
+  } else if (ef.action === 'job_exp_up') {
+    if (!confirm(`使用「職業經驗卷軸」將目前職業等級直接提升至 Lv.${(state.jobLevel||1)+1}（無視所需經驗），確定使用？`)) return;
+    removeFromInventory(invIdx);
+    closeModal('modal-item');
+    forceJobLevelUp();
+    refreshInventoryIfOpen();
+    updateUI(); save(true);
   } else if (ef.action === 'fog') {
     for (let dy = -7; dy <= 7; dy++) {
       for (let dx = -7; dx <= 7; dx++) { explored.add(`${px+dx},${py+dy}`); }
@@ -5929,6 +5965,7 @@ function doIdentify(invIdx, scrollInvIdx, modal) {
   if (modal) modal.remove();
   closeModal('modal-item');
   refreshInventoryIfOpen();
+  if (document.getElementById('modal-merchant')?.classList.contains('open')) renderMerchant();
   toast(`🔍 鑑定完成！【${item.name}】真面目揭曉！`);
   updateUI(); save(true);
   // 重新開啟鑑定後的裝備卡片
@@ -6755,13 +6792,15 @@ function renderMerchant() {
   const whiteCount = state.inventory.filter(i=>i.rarity==='white' && (i.type==='weapon'||i.type==='armor')).length;
   const greenCount = state.inventory.filter(i=>i.rarity==='green' && (i.type==='weapon'||i.type==='armor')).length;
   const blueCount  = state.inventory.filter(i=>i.rarity==='blue'  && (i.type==='weapon'||i.type==='armor')).length;
-  if (whiteCount + greenCount + blueCount > 0) {
+  const goldCount  = state.inventory.filter(i=>i.rarity==='gold'  && (i.type==='weapon'||i.type==='armor')).length;
+  if (whiteCount + greenCount + blueCount + goldCount > 0) {
     html += `<div style="background:#1a1a2e;border:.5px solid #333;border-radius:10px;padding:.6rem;margin-bottom:.5rem">
       <div style="font-size:12px;color:#f59e0b;margin-bottom:.4rem">📦 批量銷售</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${whiteCount>0?`<button onclick="bulkSell('white')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #888;background:#1a1a2e;color:#ccc;font-size:11px;cursor:pointer">⬜ 白裝 ×${whiteCount}</button>`:''}
         ${greenCount>0?`<button onclick="bulkSell('green')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #4ade80;background:#1a1a2e;color:#4ade80;font-size:11px;cursor:pointer">🟩 綠裝 ×${greenCount}</button>`:''}
         ${blueCount>0?`<button onclick="bulkSell('blue')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #60a5fa;background:#1a1a2e;color:#60a5fa;font-size:11px;cursor:pointer">🟦 藍裝 ×${blueCount}</button>`:''}
+        ${goldCount>0?`<button onclick="bulkSell('gold')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #f59e0b;background:#1a1a2e;color:#f59e0b;font-size:11px;cursor:pointer">🟨 金裝 ×${goldCount}</button>`:''}
       </div>
     </div>`;
   }
@@ -6785,7 +6824,7 @@ function renderMerchant() {
 }
 
 function bulkSell(rarity) {
-  const rarityNames = {white:'白裝', green:'綠裝', blue:'藍裝'};
+  const rarityNames = {white:'白裝', green:'綠裝', blue:'藍裝', gold:'金裝'};
   const items = state.inventory.filter(i => i.rarity === rarity && (i.type==='weapon'||i.type==='armor'));
   if (items.length === 0) { toast('沒有可賣的物品'); return; }
   const totalGold = items.reduce((sum, it) => sum + computeSellPrice(it), 0);
