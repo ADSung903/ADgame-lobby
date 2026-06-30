@@ -280,7 +280,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
         <div class="cl-ver-header">
           <span class="cl-ver-badge">v1.6</span>
           <span class="cl-ver-title">動物寶石消除上線</span>
-          <span class="cl-ver-date">本次更新</span>
+          <span class="cl-ver-date"></span>
         </div>
         <div class="cl-items">
           <div class="cl-item cl-new">🐾 動物寶石消除 — 6種動物寶石點擊消除，消耗型棋盤（不補新方塊，越清越少）</div>
@@ -288,6 +288,22 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
           <div class="cl-item cl-new">🧰 道具系統 — 鐵鎚/洗牌/+10秒，商店金幣購買，炸彈/彩虹道具場上掉落</div>
           <div class="cl-item cl-new">🔊 完整音效系統 — 15種音效 + 場景背景音樂，含靜音切換</div>
           <div class="cl-item cl-improve">⏱️ 結算機制 — 時間到/無法再移動/全清才結算，而非即時達標</div>
+        </div>
+      </div>
+
+      <!-- v1.7 -->
+      <div class="cl-version">
+        <div class="cl-ver-header">
+          <span class="cl-ver-badge">v1.7</span>
+          <span class="cl-ver-title">小王子的星球消除上線</span>
+          <span class="cl-ver-date">本次更新</span>
+        </div>
+        <div class="cl-items">
+          <div class="cl-item cl-new">🌹 小王子的星球消除 — 全新獨立消除遊戲，與動物寶石消除並列、各自獨立進度</div>
+          <div class="cl-item cl-new">✨ 6個原創意象角色 — 小王子、狐狸、玫瑰、蛇、星球、星星，原創繪製非複製原書插畫</div>
+          <div class="cl-item cl-new">🎨 暮色調色盤 — 沙漠星空風格配色，與動物寶石消除的鮮豔卡通色做出區隔</div>
+          <div class="cl-item cl-improve">🧰 三層道具系統 — 4-5顆炸彈／6-7顆加強炸彈／8顆以上彩虹星，回饋更有層次</div>
+          <div class="cl-item cl-improve">⚡ 渲染效能優化 — 只更新有變動的方塊，不再整盤重建DOM，解決長時間遊玩lag問題</div>
         </div>
       </div>
 
@@ -355,7 +371,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
   <div class="wm-card">
     <div style="font-size:52px">🎮</div>
     <h2>歡樂遊戲大廳</h2>
-    <p>19 款完全免費遊戲，永久無廣告！<br>益智・記憶・邏輯・問答一次滿足<br>成績自動上傳，挑戰全球玩家 🏆</p>
+    <p>20 款完全免費遊戲，永久無廣告！<br>益智・記憶・邏輯・問答一次滿足<br>成績自動上傳，挑戰全球玩家 🏆</p>
     <input class="wm-inp" id="welcome-name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
     <button class="wm-start" onclick="confirmWelcome()">開始遊戲 🎯</button><br>
     <button class="wm-skip" onclick="skipWelcome()">先跳過</button>
@@ -401,6 +417,7 @@ const GAMES = [
   {id:'mbti',       name:'MBTI人格',   icon:'🧩', badge:'人格',   desc:'20題探索你的人格類型，了解自己！',        file:'games/mbti.html',       unit:'',    lower:false, category:'self'},
   {id:'iq',         name:'智力挑戰',   icon:'🔢', badge:'智力',   desc:'20道邏輯推理題，測試你的分析能力！',      file:'games/iq.html',         unit:'/20', lower:false, category:'self'},
   {id:'animal-blast',name:'動物寶石消除',icon:'🐾', badge:'消除',  desc:'點擊同色寶石消除，越清越少，挑戰每關目標分數！', file:'games/animal-blast.html', unit:'分', lower:false, category:'puzzle'},
+  {id:'little-prince',name:'小王子的星球消除',icon:'🌹', badge:'消除', desc:'與小王子、狐狸、玫瑰一起點亮星空，消除越多分數越高！', file:'games/little-prince.html', unit:'分', lower:false, category:'puzzle'},
 ];
 
 // ── localStorage ───────────────────────────────────────────
