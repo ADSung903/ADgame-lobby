@@ -34,18 +34,41 @@
     padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);}
   .screen.show{display:flex;}
 
-  /* ============ LEVEL MAP SCREEN ============ */
+  /* ============ LEVEL MAP SCREEN (宇宙黑色風,獨立色票不影響遊戲畫面) ============ */
   #screenMap{
-    background:radial-gradient(ellipse at top, var(--bg-deep2) 0%, var(--bg-deep) 65%);
+    position:relative;
+    background:
+      radial-gradient(ellipse at top, #0d0a1a 0%, #000000 70%);
+    overflow:hidden;
   }
+  #screenMap::before{
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 10% 15%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 25% 40%, #fff 100%, transparent 0),
+      radial-gradient(2px 2px at 40% 10%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 55% 55%, #fff 100%, transparent 0),
+      radial-gradient(1.5px 1.5px at 70% 25%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 85% 60%, #fff 100%, transparent 0),
+      radial-gradient(1.5px 1.5px at 92% 15%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 15% 75%, #fff 100%, transparent 0),
+      radial-gradient(2px 2px at 33% 85%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 60% 90%, #fff 100%, transparent 0),
+      radial-gradient(1.5px 1.5px at 78% 80%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 95% 95%, #fff 100%, transparent 0);
+    background-repeat:repeat; background-size:100% 100%;
+    opacity:.75; animation:starTwinkle 4s ease-in-out infinite alternate;
+  }
+  @keyframes starTwinkle{0%{opacity:.45;}100%{opacity:.95;}}
+  #screenMap > *{ position:relative; z-index:1; }
   .map-top{
     flex-shrink:0; display:flex; align-items:center; gap:10px; padding:14px 16px 10px;
   }
   .map-top h1{font-family:'Baloo 2',sans-serif; font-size:20px; margin:0; flex:1; font-weight:800;}
   .pill{
-    background:var(--panel); border-radius:14px; padding:6px 12px; font-weight:800;
+    background:rgba(20,15,35,.7); border-radius:14px; padding:6px 12px; font-weight:800;
     font-family:'Baloo 2',sans-serif; font-size:14px; display:flex; align-items:center; gap:4px;
-    border:1px solid var(--panel-light);
+    border:1px solid rgba(255,255,255,.12); backdrop-filter:blur(2px);
   }
   .pill.gold-pill{border-color:var(--gold); color:var(--gold);}
   .map-scroll{flex:1; overflow-y:auto; padding:10px 0 40px; -webkit-overflow-scrolling:touch;}
@@ -58,24 +81,35 @@
     width:66px; height:66px; border-radius:50%; position:relative;
     display:flex; align-items:center; justify-content:center; flex-direction:column;
     font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px;
-    cursor:pointer; user-select:none; flex-shrink:0;
-    box-shadow:0 6px 0 rgba(0,0,0,.3), inset 0 -4px 8px rgba(0,0,0,.25), inset 0 4px 6px rgba(255,255,255,.25);
+    cursor:pointer; user-select:none; flex-shrink:0; overflow:hidden;
+    box-shadow:0 6px 0 rgba(0,0,0,.4), inset 0 -4px 8px rgba(0,0,0,.3), inset 0 4px 6px rgba(255,255,255,.25);
   }
   .lvl-node.locked{
-    background:linear-gradient(160deg,#4a4258,#332b44); color:var(--text-dim);
-    box-shadow:0 6px 0 rgba(0,0,0,.25), inset 0 -4px 8px rgba(0,0,0,.25);
+    background:linear-gradient(160deg,#3a3548,#221f30);
+    color:rgba(255,255,255,.4);
+    box-shadow:0 6px 0 rgba(0,0,0,.35), inset 0 -4px 8px rgba(0,0,0,.3);
   }
   .lvl-node.unlocked{
-    background:linear-gradient(160deg, var(--c-sapphire), var(--c-sapphire-d)); color:#fff;
+    background:radial-gradient(circle at 32% 28%, var(--c-planet), var(--c-planet-d)); color:#fff;
+  }
+  .lvl-node.unlocked::after{
+    content:''; position:absolute; inset:-30% -10% auto -10%; height:36%;
+    border:2px solid rgba(255,255,255,.4); border-radius:50%;
+    transform:rotate(-18deg); pointer-events:none;
   }
   .lvl-node.done{
-    background:linear-gradient(160deg, var(--gold), #c9941f); color:#3a2300;
+    background:radial-gradient(circle at 32% 28%, var(--gold), #c9941f); color:#3a2300;
+  }
+  .lvl-node.done::after{
+    content:''; position:absolute; inset:-30% -10% auto -10%; height:36%;
+    border:2px solid rgba(255,255,255,.5); border-radius:50%;
+    transform:rotate(-18deg); pointer-events:none;
   }
   .lvl-node:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.3);}
   .lvl-node .lock-ic{font-size:22px;}
   .lvl-node .stars{position:absolute; bottom:-11px; left:50%; transform:translateX(-50%);
-    display:flex; gap:1px; background:var(--panel); border-radius:10px; padding:2px 5px;
-    border:1px solid var(--panel-light);}
+    display:flex; gap:1px; background:rgba(20,15,35,.85); border-radius:10px; padding:2px 5px;
+    border:1px solid rgba(255,255,255,.12);}
   .lvl-node .stars span{font-size:10px;}
   .map-shop-btn{
     flex-shrink:0; margin-right:6px;
@@ -160,7 +194,7 @@
   .modal-stats .v{font-family:'Baloo 2',sans-serif; font-size:22px; font-weight:800; color:var(--gold);}
   .modal-stats .l{font-size:11px; color:var(--text-dim); font-weight:700;}
   .star-row{font-size:34px; margin:6px 0 4px; letter-spacing:4px;}
-  .btn{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; border:none; border-radius:14px; padding:13px 18px; cursor:pointer; width:100%; margin-top:8px; color:white; background:linear-gradient(135deg, var(--c-sapphire), var(--c-sapphire-d)); box-shadow:0 4px 0 rgba(0,0,0,.25);}
+  .btn{font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; border:none; border-radius:14px; padding:13px 18px; cursor:pointer; width:100%; margin-top:8px; color:white; background:linear-gradient(135deg, var(--c-planet), var(--c-planet-d)); box-shadow:0 4px 0 rgba(0,0,0,.25);}
   .btn:active{transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.25);}
   .btn.secondary{background:linear-gradient(135deg,#564a72,#3a2f54);}
   .btn.gold{background:linear-gradient(135deg, var(--gold), #c9941f); color:#3a2300;}
@@ -174,6 +208,35 @@
   .shop-item button:disabled{opacity:.4;}
 
   .combo-banner{position:fixed; top:30%; left:50%; transform:translate(-50%,-50%) scale(0.4); font-family:'Baloo 2',sans-serif; font-weight:800; font-size:36px; color:var(--gold); text-shadow:0 4px 10px rgba(0,0,0,.6); opacity:0; pointer-events:none; z-index:150; transition:transform .25s cubic-bezier(.2,1.4,.4,1), opacity .25s ease;}
+
+  /* ============ STORY CARD ============ */
+  .story-overlay{
+    position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at top, #14102a 0%, #050308 75%);
+    opacity:0; pointer-events:none; cursor:pointer;
+    transition:opacity .45s ease;
+  }
+  .story-overlay.show{ opacity:1; pointer-events:auto; }
+  .story-overlay::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background-image:
+      radial-gradient(1.5px 1.5px at 12% 20%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 30% 60%, #fff 100%, transparent 0),
+      radial-gradient(2px 2px at 50% 15%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 70% 70%, #fff 100%, transparent 0),
+      radial-gradient(1.5px 1.5px at 85% 35%, #fff 100%, transparent 0),
+      radial-gradient(1px 1px at 92% 80%, #fff 100%, transparent 0);
+    opacity:.6;
+  }
+  .story-card{
+    position:relative; max-width:min(86vw,380px); text-align:center; padding:0 20px;
+    transform:translateY(10px); opacity:0; transition:transform .5s ease .1s, opacity .5s ease .1s;
+  }
+  .story-overlay.show .story-card{ transform:translateY(0); opacity:1; }
+  .story-icon{font-size:54px; margin-bottom:14px; filter:drop-shadow(0 0 14px rgba(255,255,255,.35));}
+  .story-title{font-family:'Baloo 2',sans-serif; font-size:21px; font-weight:800; color:var(--gold); margin-bottom:10px; letter-spacing:1px;}
+  .story-text{font-size:15px; line-height:1.85; color:var(--text-light); opacity:.92;}
+  .story-tap-hint{font-size:11px; color:var(--text-dim); margin-top:22px; opacity:.6; letter-spacing:1px;}
   .combo-banner.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
 </style>
 </head>
@@ -232,6 +295,16 @@
 </div>
 
 <div class="combo-banner" id="comboBanner"></div>
+
+<!-- STORY CARD (淡入淡出的劇情卡,點擊或4秒後自動消失,純氛圍裝飾不卡進度) -->
+<div class="story-overlay" id="storyOverlay">
+  <div class="story-card">
+    <div class="story-icon" id="storyIcon">👦</div>
+    <div class="story-title" id="storyTitle"></div>
+    <div class="story-text" id="storyText"></div>
+    <div class="story-tap-hint">輕觸畫面繼續</div>
+  </div>
+</div>
 
 <!-- LEVEL COMPLETE -->
 <div class="modal-bg" id="modalWin">
@@ -377,6 +450,7 @@ let state = {
   cellSize: 40,
   tools: { hammer:0, shuffle:0, time:0 },
   starsMap: {},       // {levelNum: 1|2|3}
+  badgeMap: {},        // {levelNum: 'prince'|'fox'|'rose'|'snake'|'planet'|'star'} 滿3星時固定分配的徽章
   unlocked: 1,
   activeTool: null,
   timerHandle: null,
@@ -393,6 +467,7 @@ function loadSave(){
       state.coins = d.coins || 0;
       state.tools = d.tools || {hammer:0,shuffle:0,time:0};
       state.starsMap = d.starsMap || {};
+      state.badgeMap = d.badgeMap || {};
       state.unlocked = d.unlocked || 1;
     }
   }catch(e){}
@@ -401,9 +476,26 @@ function persist(){
   try{
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       best:state.best, coins:state.coins, tools:state.tools,
-      starsMap:state.starsMap, unlocked:state.unlocked
+      starsMap:state.starsMap, badgeMap:state.badgeMap, unlocked:state.unlocked
     }));
   }catch(e){}
+}
+
+// 滿3星徽章:小王子故事裡的6個意象角色,第一次拿到3星時隨機抽一個固定下來,重玩同一關不會再變
+const BADGE_ICONS = {
+  prince:'👦', fox:'🦊', rose:'🌹', snake:'🐍', planet:'🪐', star:'⭐'
+};
+function getBadgeForLevel(lvl){
+  if(!state.badgeMap[lvl]){
+    const keys = Object.keys(BADGE_ICONS);
+    state.badgeMap[lvl] = keys[Math.floor(Math.random()*keys.length)];
+    persist();
+  }
+  return state.badgeMap[lvl];
+}
+function starDisplay(stars, lvl){
+  if(stars >= 3) return `<span style="font-size:1.3em;">${BADGE_ICONS[getBadgeForLevel(lvl)]}</span>`;
+  return '⭐'.repeat(stars) + '☆'.repeat(3-stars);
 }
 
 /* ====================== LEVEL CONFIG ====================== */
@@ -430,9 +522,14 @@ function levelConfig(lvl){
   const ratio = TARGET_RATIO_MIN + (TARGET_RATIO_MAX - TARGET_RATIO_MIN) * (1 - Math.exp(-(lvl-1)/TARGET_RATIO_GROWTH));
   const target = Math.round(estimatedMax * ratio);
   const iceChance = lvl >= 7 ? Math.min(0.05 + (lvl-7)*0.01, 0.15) : 0;
-  // 每關隨機抽 4 種動物(洗牌後取前4個),增加每關的視覺變化
-  const shuffled = [...ANIMALS].sort(()=>Math.random()-0.5);
-  const levelAnimals = shuffled.slice(0, ANIMAL_COUNT_PER_LEVEL);
+  // 動物選取:維持原本只抽4種的機制不變,但讓「小王子」每關都優先入選(貫穿全書的主角)
+  // 若該關卡有對應的故事章節且指定了featured角色,該角色也優先入選,其餘名額隨機從剩下的角色補滿
+  const ch = STORY_CHAPTERS[lvl];
+  const must = ['prince'];
+  if(ch && ch.featured && !must.includes(ch.featured)) must.push(ch.featured);
+  const restPool = ANIMALS.filter(a => !must.includes(a));
+  const shuffledRest = [...restPool].sort(()=>Math.random()-0.5);
+  const levelAnimals = [...must, ...shuffledRest].slice(0, ANIMAL_COUNT_PER_LEVEL);
   return {target, timeLimit, iceChance, levelAnimals, initialCols: FIXED_COLS, initialRows};
 }
 
@@ -656,6 +753,30 @@ function showScreen(id){
 function playBtn(){ AudioM.play('button'); }
 
 /* ====================== LEVEL MAP ====================== */
+// 行星配色盤,讓每個關卡節點看起來像不同的星球(顏色依關卡編號循環,順序固定不會每次重整就變)
+const PLANET_PALETTE = [
+  ['#6B6BC9','#3F3F8E'], // 靛藍
+  ['#E8743B','#B5511F'], // 橘紅
+  ['#5FAE6E','#357A42'], // 草綠
+  ['#E8527C','#AD2E54'], // 玫紅
+  ['#8FD3E8','#4E9DB8'], // 天藍
+  ['#F2C14E','#C2901F'], // 金黃
+  ['#9B6BD6','#5F3C92'], // 紫
+  ['#2BB6AE','#177B75'], // 青
+];
+function planetStyle(lvl){
+  const [c1,c2] = PLANET_PALETTE[(lvl-1) % PLANET_PALETTE.length];
+  return `background:radial-gradient(circle at 32% 28%, ${c1}, ${c2});`;
+}
+function moonDecoration(lvl){
+  // 用關卡編號當簡單種子,讓每顆星球的小衛星位置固定但看起來隨機分布
+  const seed = (lvl * 37) % 100;
+  const top = 10 + (seed % 50);
+  const left = (seed * 3) % 70 + 5;
+  const size = 6 + (seed % 5);
+  return `<div style="position:absolute; top:${top}%; left:${left}%; width:${size}px; height:${size}px; border-radius:50%; background:rgba(255,255,255,.5); pointer-events:none;"></div>`;
+}
+
 function renderMap(){
   document.getElementById('mapBest').textContent = '🏆' + state.best;
   document.getElementById('mapCoin').textContent = '🪙' + state.coins;
@@ -678,9 +799,10 @@ function renderMap(){
     if(lvl > state.unlocked){
       node.innerHTML = '<div class="lock-ic">🔒</div>';
     } else {
-      node.innerHTML = lvl;
+      node.style = planetStyle(lvl); // 每個可玩關卡用不同行星配色,蓋過CSS class的固定顏色
+      node.innerHTML = moonDecoration(lvl) + `<span style="position:relative; z-index:1;">${lvl}</span>`;
       if(stars>0){
-        node.innerHTML += `<div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3-stars)}</div>`;
+        node.innerHTML += `<div class="stars">${starDisplay(stars, lvl)}</div>`;
       }
       node.onclick = () => { AudioM.play('button'); showScreen('screenGame'); startLevel(lvl); };
     }
@@ -707,8 +829,70 @@ function overToMap(){
   showScreen('screenMap');
 }
 
+/* ====================== STORY CHAPTERS ====================== */
+// 以下為原創改寫的劇情大綱,依故事發展順序撰寫,並非翻譯或引用原著文字
+const STORY_CHAPTERS = {
+  1:  { icon:'👨‍✈️', title:'沙漠迫降', text:'飛行員的引擎在撒哈拉沙漠故障了。方圓千里渺無人煙，他必須在水和糧食耗盡前修好飛機。' },
+  4:  { icon:'🐑', title:'畫一隻羊', text:'一個金髮的小男孩忽然出現，請飛行員「畫一隻羊」給他。畫了又畫都不滿意，最後一個畫了箱子的草圖，男孩卻說羊就在裡面，露出滿意的微笑。', featured:'prince' },
+  7:  { icon:'🪐', title:'小小的星球', text:'男孩來自一顆比房子大不了多少的小行星。星球上有三座火山、幾株麵包樹幼苗，還有一朵他細心照料的花。', featured:'planet' },
+  10: { icon:'🏵️', title:'猴麵包樹的威脅', text:'猴麵包樹的種子一旦疏於拔除，根會撐裂整顆星球。小王子每天清晨都認真巡視，把幼苗連根拔起，絕不懈怠。', featured:'planet' },
+  13: { icon:'🌹', title:'玫瑰初綻放', text:'一朵花苞悄悄綻放，美得讓小王子屏住呼吸。他從沒見過這樣的花，從此每天為她澆水、為她擋風。', featured:'rose' },
+  16: { icon:'🌹', title:'玫瑰的驕傲與謊言', text:'這朵花用驕傲的言語掩飾自己的脆弱，幾句似真似假的咳嗽，讓小王子既著迷又困惑，最終帶著受傷的心離開了星球。', featured:'rose' },
+  19: { icon:'🌅', title:'四十四次日落', text:'心情低落的時候，小王子會把椅子挪到適合的角度看日落。最難過的那一天，他一連看了四十四次。' },
+  22: { icon:'🤴', title:'國王的星球', text:'小王子拜訪的第一顆星球上住著一位國王，他自稱統治萬物，卻連太陽都無法真正命令，只能等待時機「順勢下令」。' },
+  25: { icon:'🎩', title:'愛慕虛榮的人', text:'下一顆星球的住民只想被人讚美。小王子拍了拍手，他便驕傲地舉起帽子致意——除了讚美，他聽不見任何別的話。' },
+  28: { icon:'🍷', title:'酒鬼的星球', text:'再下一顆星球住著一個酒鬼，他喝酒是為了忘記羞愧——而讓他羞愧的，正是自己一直在喝酒。這個循環讓小王子覺得大人們真的很奇怪。' },
+  31: { icon:'💼', title:'商人的星球', text:'商人忙著計算天上的星星，宣稱自己「擁有」它們。小王子心想，自己至少還會去澆灌他的花，這份擁有比較踏實。' },
+  34: { icon:'💡', title:'點燈人的星球', text:'點燈人日夜不停地點燈又熄燈，因為他的星球轉得太快。小王子覺得，在所有大人之中，只有他不是為了自己而忙碌。' },
+  37: { icon:'🗺️', title:'地理學家的星球', text:'地理學家只記錄山川海洋，從不親自去看一眼。他告訴小王子，花朵太容易凋謝，不值得寫進書裡——這句話讓小王子第一次為玫瑰感到擔心。' },
+  40: { icon:'🌍', title:'抵達地球', text:'小王子終於降落在地球，眼前是一片荒涼的沙漠。他遇見一條蛇，蛇告訴他，自己的毒液能送任何人回到很遠的地方。', featured:'snake' },
+  43: { icon:'🌵', title:'空蕩蕩的星球', text:'小王子在地球上走了很久，遇見的第一朵花告訴他，這裡的人類其實沒有幾個——他開始覺得自己的星球或許沒有那麼小。' },
+  46: { icon:'🦊', title:'遇見狐狸', text:'狐狸請求小王子「馴養」自己。牠說，被馴養之後，世界上獨一無二的不再只是麥田的顏色，而是彼此之間建立起來的羈絆。', featured:'fox' },
+  49: { icon:'🦊', title:'馴養的儀式', text:'狐狸教小王子，馴養需要耐心：每天在同一個時間靠近一點，讓彼此慢慢習慣對方的存在，這樣才能真正建立起關係。', featured:'fox' },
+  52: { icon:'🌹', title:'用眼睛看不見的東西', text:'狐狸告訴小王子，正因為他為那朵玫瑰付出了時間，她才在他心中變得無可取代——重要的東西，往往要用心才能看見。', featured:'rose' },
+  55: { icon:'🚂', title:'扳道工的星球', text:'小王子在火車站看見大人們急急忙忙地換車，卻說不清自己在追求什麼，連孩子們都只是隔著車窗望向窗外，沒人說得出原因。' },
+  58: { icon:'💊', title:'解渴藥丸的商人', text:'一個商人賣著能省去喝水時間的藥丸，宣稱每週能省下五十三分鐘。小王子心想，如果是他，會把這些時間拿去慢慢走向一口井。' },
+  61: { icon:'🕳️', title:'沙漠裡的水井', text:'飛行員與小王子在沙漠中找到一口井。小王子說，沙漠之所以美麗，是因為某個角落，藏著一口看不見的井。' },
+  64: { icon:'🐍', title:'道別的預兆', text:'小王子告訴飛行員，自己快要回去了。他說身體只是一個沉重的外殼，被留下的時候，不必為此感到傷心。', featured:'snake' },
+  67: { icon:'⭐', title:'蛇與星辰', text:'小王子安靜地倒下，沒有發出聲音。隔天，飛行員找不到他的身體，明白他已經回到了自己的星球。', featured:'star' },
+  70: { icon:'🌌', title:'仰望星空', text:'飛行員修好了飛機，回到家鄉。從此每當他抬頭看著星星，總會想起某顆遙遠的星球上，有一朵需要朋友細心照顧的玫瑰。', featured:'planet' },
+};
+let storyOverlayActive = false;
+
+function showStoryCard(lvl, onDone){
+  const ch = STORY_CHAPTERS[lvl];
+  if(!ch){ onDone(); return; }
+  storyOverlayActive = true;
+  AudioM.play('rainbow');
+  const overlay = document.getElementById('storyOverlay');
+  document.getElementById('storyIcon').textContent = ch.icon;
+  document.getElementById('storyTitle').textContent = ch.title;
+  document.getElementById('storyText').textContent = ch.text;
+  overlay.classList.add('show');
+  let dismissed = false;
+  const dismiss = () => {
+    if(dismissed) return;
+    dismissed = true;
+    overlay.classList.remove('show');
+    overlay.onclick = null;
+    storyOverlayActive = false;
+    onDone();
+  };
+  overlay.onclick = dismiss;
+  setTimeout(dismiss, 4000);
+}
+
+
 /* ====================== GAME FLOW ====================== */
 function startLevel(lvl){
+  state.level = lvl;
+  const boardEl = document.getElementById('board');
+  if(boardEl) boardEl.innerHTML = '';
+  state.tileEls = null; state.gridW = null; state.gridH = null;
+  showStoryCard(lvl, () => beginLevelSetup(lvl));
+}
+
+function beginLevelSetup(lvl){
   clearInterval(state.timerHandle);
   state.level = lvl;
   const cfg = levelConfig(lvl);
@@ -741,7 +925,7 @@ function nextLevel(){
   startLevel(state.level + 1);
 }
 
-function isPaused(){ return state.busy || state.modalOpen; }
+function isPaused(){ return state.busy || state.modalOpen || storyOverlayActive; }
 
 function startTimer(){
   clearInterval(state.timerHandle);
@@ -798,7 +982,7 @@ function endLevel(bonus, reason){
     document.getElementById('winScore').textContent = state.score;
     document.getElementById('winTimeBonus').textContent = '+' + timeBonus;
     document.getElementById('winCoin').textContent = '+' + coinGain;
-    document.getElementById('winStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+    document.getElementById('winStars').innerHTML = starDisplay(state.starsMap[state.level], state.level);
     state.modalOpen = true;
     setTimeout(()=> document.getElementById('modalWin').classList.add('show'), 320);
   } else {
