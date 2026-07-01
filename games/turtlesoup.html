@@ -149,14 +149,7 @@
   .q-card.answered { opacity: 0.7; cursor: default; }
   .q-card.answered:active { transform: none; }
   .q-card.key.answered { opacity: 1; border-color: var(--amber-dim); }
-  .key-badge {
-    position: absolute;
-    top: 10px; right: 12px;
-    font-size: 11px;
-    color: var(--amber);
-    letter-spacing: 1px;
-  }
-  .q-text { font-size: 14.5px; line-height: 1.6; padding-right: 24px; }
+  .q-text { font-size: 14.5px; line-height: 1.6; }
   .q-answer {
     margin-top: 10px;
     display: inline-flex;
@@ -400,10 +393,6 @@ function runStory(story) {
     while (t < MAX_TIER && tierAnsweredCount(t) >= (gate[t + 1] || Infinity)) t++;
     return t;
   }
-  function visibleQuestions() {
-    const maxTier = currentMaxTier();
-    return story.questions.filter(q => q.tier <= maxTier);
-  }
   function keyTotal() { return story.questions.filter(q => q.key).length; }
   function keyAnswered() { return story.questions.filter(q => q.key && answered[q.id]).length; }
   function hitCount() { return answerOrder.filter(id => QMAP[id] && QMAP[id].key).length; }
@@ -477,8 +466,8 @@ function runStory(story) {
       pendingBanner = null;
     }
 
-    const visible = visibleQuestions();
-    const unanswered = visible.filter(q => !answered[q.id]);
+    const maxTier = currentMaxTier();
+    const unanswered = story.questions.filter(q => q.tier === maxTier && !answered[q.id]);
     const answeredQs = answerOrder.map(id => QMAP[id]).filter(Boolean).reverse();
 
     if (unanswered.length) {
@@ -517,12 +506,6 @@ function runStory(story) {
     textRow.textContent = q.text;
     card.appendChild(textRow);
 
-    if (q.key) {
-      const badge = document.createElement('div');
-      badge.className = 'key-badge';
-      badge.textContent = '★';
-      card.appendChild(badge);
-    }
 
     if (answered[q.id]) {
       const a = ansLabel(q.ans);
