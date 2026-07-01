@@ -324,6 +324,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .cb-row{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .cb-row:empty{display:none}
 .cb-row::-webkit-scrollbar{display:none}
+#cb-skill-btns{margin-top:8px;padding-top:6px;border-top:.5px solid #2a2a3e}
 .cb-player-hp{font-size:12px;color:var(--green);font-weight:700}
 #cb-status-bar{display:inline-flex;align-items:center;margin-left:6px;vertical-align:middle}
 @keyframes statusFxFloat{
@@ -4677,11 +4678,33 @@ function useJobSkill(skillId) {
       markSkillUsed('ice_5');
       cbLog('cl-p', `❄️ 絕對零度！${m.name}被凍結2回合！`);
       break;
+    case 'ice_20': { // 冰封王座
+      markSkillUsed('ice_20');
+      const dmg = Math.floor(calcAtk() * 5.0);
+      m.hp = Math.max(0, m.hp - dmg);
+      combat.frozenTurns = 3;
+      cbLog('cl-p', `❄️ 冰封王座！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結3回合！`);
+      showFloatingDmg(dmg, true, false);
+      updateCombatHPDisplay();
+      if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 400); return; }
+      break;
+    }
     case 'fl_15': { // 冰霜新星（全體AOE，冰霜巫妖）
       markSkillUsed('fl_15');
       const dmg = Math.floor(calcAtk() * 4.0);
       attackAllMonsters(dmg, '❄️ 冰霜新星');
       combat.frozenTurns = 2;
+      break;
+    }
+    case 'fl_20': { // 永恆冰封
+      markSkillUsed('fl_20');
+      const dmg = Math.floor(calcAtk() * 7.0);
+      m.hp = Math.max(0, m.hp - dmg);
+      combat.frozenTurns = 4;
+      cbLog('cl-p', `🧊 永恆冰封！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結4回合！`);
+      showFloatingDmg(dmg, true, false);
+      updateCombatHPDisplay();
+      if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 400); return; }
       break;
     }
     case 'am_5': { // 烈焰新星（全體AOE，大魔導士）
