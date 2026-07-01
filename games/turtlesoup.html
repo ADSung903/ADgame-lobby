@@ -38,9 +38,14 @@
   }
 
   header {
-    padding: 28px 20px 18px;
+    padding: 20px 20px 18px;
     border-bottom: 1px solid var(--line);
-    position: relative;
+  }
+  .header-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
   }
   .eyebrow {
     font-size: 11px;
@@ -65,8 +70,6 @@
   }
 
   .mute-btn {
-    position: absolute;
-    top: 26px; right: 20px;
     width: 40px; height: 40px;
     border-radius: 50%;
     border: 1px solid var(--line);
@@ -74,13 +77,12 @@
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     font-size: 16px;
+    flex-shrink: 0;
   }
   .mute-btn.muted { color: var(--text-dim); }
   .mute-btn:not(.muted) { color: var(--amber); border-color: var(--amber-dim); }
 
   .back-btn {
-    position: absolute;
-    top: 26px; left: 20px;
     height: 40px;
     padding: 0 14px;
     border-radius: 20px;
@@ -90,6 +92,7 @@
     cursor: pointer;
     font-size: 13px;
     color: var(--text-dim);
+    flex-shrink: 0;
   }
   .back-btn:active { border-color: var(--amber-dim); color: var(--amber); }
 
@@ -298,6 +301,7 @@
 <script src="assets/data/turtlesoup/birthday-gift.js"></script>
 <script src="assets/data/turtlesoup/vanishing-reflection.js"></script>
 <script src="assets/data/turtlesoup/vanishing-hum.js"></script>
+<script src="assets/data/turtlesoup/punctual-headline.js"></script>
 
 <script>
 /* =========================================================
@@ -462,8 +466,10 @@ function runStory(story) {
   const backLabel = STORIES.length > 1 ? '← 湯底選單' : '← 回大廳';
   app.innerHTML = `
     <header>
-      <div class="back-btn" id="backBtn">${backLabel}</div>
-      <div class="mute-btn" id="muteBtn">♪</div>
+      <div class="header-toolbar">
+        <div class="back-btn" id="backBtn">${backLabel}</div>
+        <div class="mute-btn" id="muteBtn">♪</div>
+      </div>
       <div class="eyebrow">${story.eyebrow || '海龜湯 · 情境推理'}</div>
       <h1>${story.title}</h1>
       <div class="story">${story.story}</div>
@@ -648,7 +654,9 @@ function renderLobby() {
   const app = document.getElementById('app');
   app.innerHTML = `
     <header>
-      <div class="back-btn" id="homeBtn">← 回大廳</div>
+      <div class="header-toolbar">
+        <div class="back-btn" id="homeBtn">← 回大廳</div>
+      </div>
       <div class="eyebrow">海龜湯 · 情境推理</div>
       <h1>選一個湯底</h1>
     </header>
