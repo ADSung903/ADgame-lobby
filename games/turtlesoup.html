@@ -78,6 +78,21 @@
   .mute-btn.muted { color: var(--text-dim); }
   .mute-btn:not(.muted) { color: var(--amber); border-color: var(--amber-dim); }
 
+  .back-btn {
+    position: absolute;
+    top: 26px; left: 20px;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .back-btn:active { border-color: var(--amber-dim); color: var(--amber); }
+
   .progress-wrap {
     padding: 14px 20px;
     border-bottom: 1px solid var(--line);
@@ -282,6 +297,7 @@
 <script src="assets/data/turtlesoup/deep-night-radio.js"></script>
 <script src="assets/data/turtlesoup/birthday-gift.js"></script>
 <script src="assets/data/turtlesoup/vanishing-reflection.js"></script>
+<script src="assets/data/turtlesoup/vanishing-hum.js"></script>
 
 <script>
 /* =========================================================
@@ -443,8 +459,10 @@ function runStory(story) {
   }
 
   const app = document.getElementById('app');
+  const backLabel = STORIES.length > 1 ? '← 湯底選單' : '← 回大廳';
   app.innerHTML = `
     <header>
+      <div class="back-btn" id="backBtn">${backLabel}</div>
       <div class="mute-btn" id="muteBtn">♪</div>
       <div class="eyebrow">${story.eyebrow || '海龜湯 · 情境推理'}</div>
       <h1>${story.title}</h1>
@@ -573,6 +591,15 @@ function runStory(story) {
     }
   }
 
+  document.getElementById('backBtn').onclick = () => {
+    bgmAudio.pause();
+    bgmStarted = false;
+    if (STORIES.length > 1) {
+      renderLobby();
+    } else {
+      window.location.href = '/';
+    }
+  };
   document.getElementById('revealBtn').onclick = () => {
     document.getElementById('solutionText').textContent = story.solution;
     document.getElementById('modalOverlay').classList.add('open');
@@ -617,6 +644,27 @@ function runStory(story) {
 }
 
 /* ---------- 入口：只有一個湯底就直接開始，多個湯底顯示清單 ---------- */
+function renderLobby() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <header>
+      <div class="back-btn" id="homeBtn">← 回大廳</div>
+      <div class="eyebrow">海龜湯 · 情境推理</div>
+      <h1>選一個湯底</h1>
+    </header>
+    <div class="lobby-list" id="lobbyList"></div>
+  `;
+  document.getElementById('homeBtn').onclick = () => { window.location.href = '/'; };
+  const list = document.getElementById('lobbyList');
+  STORIES.forEach(story => {
+    const item = document.createElement('div');
+    item.className = 'lobby-item';
+    item.innerHTML = `<h3>${story.title}</h3><p>${(story.story || '').split('\n')[0]}</p>`;
+    item.onclick = () => runStory(story);
+    list.appendChild(item);
+  });
+}
+
 function boot() {
   if (STORIES.length === 0) {
     document.getElementById('app').innerHTML = '<div style="padding:40px;text-align:center;color:#8c8a84;">找不到湯底資料，請確認 assets/data/turtlesoup/ 底下有正確載入資料檔。</div>';
@@ -626,22 +674,7 @@ function boot() {
     runStory(STORIES[0]);
     return;
   }
-  const app = document.getElementById('app');
-  app.innerHTML = `
-    <header>
-      <div class="eyebrow">海龜湯 · 情境推理</div>
-      <h1>選一個湯底</h1>
-    </header>
-    <div class="lobby-list" id="lobbyList"></div>
-  `;
-  const list = document.getElementById('lobbyList');
-  STORIES.forEach(story => {
-    const item = document.createElement('div');
-    item.className = 'lobby-item';
-    item.innerHTML = `<h3>${story.title}</h3><p>${(story.story || '').split('\n')[0]}</p>`;
-    item.onclick = () => runStory(story);
-    list.appendChild(item);
-  });
+  renderLobby();
 }
 
 boot();
