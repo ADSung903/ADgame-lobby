@@ -281,6 +281,7 @@
 <!-- 每個湯底一支資料檔，之後新增故事只要在這裡多加一行 <script> -->
 <script src="assets/data/turtlesoup/deep-night-radio.js"></script>
 <script src="assets/data/turtlesoup/birthday-gift.js"></script>
+<script src="assets/data/turtlesoup/vanishing-reflection.js"></script>
 
 <script>
 /* =========================================================
@@ -345,6 +346,14 @@ bgmAudio.volume = 0.35;
 let bgmStarted = false;
 
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+/* ---------- 湯底彈窗（全域共用，只綁一次）---------- */
+document.getElementById('modalClose').onclick = () => {
+  document.getElementById('modalOverlay').classList.remove('open');
+};
+document.getElementById('modalOverlay').onclick = (e) => {
+  if (e.target.id === 'modalOverlay') e.currentTarget.classList.remove('open');
+};
 
 /* ---------- 單一湯底 Runner ---------- */
 function runStory(story) {
