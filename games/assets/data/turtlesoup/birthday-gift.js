@@ -15,8 +15,6 @@ window.TURTLESOUP_STORIES.push({
     5: ["ts5_bgm.mp3"]
   },
 
-  gate: { 2: 4, 3: 4, 4: 4, 5: 4 },
-
   questions: [
     // ===== 第1層：案發現場 =====
     { id: 1, tier: 1, text: "小美殺人是在清醒、蓄意的狀態下做的嗎？", ans: "yes", key: true },
