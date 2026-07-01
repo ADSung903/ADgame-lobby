@@ -1048,8 +1048,8 @@ Object.assign(MDEFS, {
   冰霜蜘蛛: {icon:'🕷️',hp:90, atk:20,def:6, agi:26,special:'paralyze',drop:'ring',   exp:62,gold:40,elite:false,element:'ice'},
   暴風雪怪: {icon:'🌬️',hp:110,atk:28,def:14,agi:18,special:'slow',    drop:'helmet', exp:66,gold:44,elite:false,element:'ice'},
   冰封殭屍: {icon:'🧟',hp:130,atk:24,def:20,agi:6, special:'paralyze', drop:'legs',   exp:64,gold:46,elite:false,element:'ice'},
-  霜龍幼體: {icon:'🐉',hp:400,atk:50,def:35,agi:12,special:'regen',   drop:'multi',  exp:220,gold:160,elite:true,element:'ice'},
-  冰原霸主: {icon:'🧊',hp:900,atk:65,def:40,agi:15,special:'boss',    drop:'multi',  exp:750,gold:500,elite:true,element:'ice'},
+  霜龍幼體: {icon:'🐉',hp:400,atk:50,def:35,agi:12,special:'regen',   drop:'multi',  exp:220,gold:160,elite:true,element:'ice', elemResist:{ice:0.3}},
+  冰原霸主: {icon:'🧊',hp:900,atk:65,def:40,agi:15,special:'boss',    drop:'multi',  exp:750,gold:500,elite:true,element:'ice', elemResist:{ice:0.5}},
 });
 const ICE_POOL  = ['雪狼','冰晶精靈','凍土熊','冰霜蜘蛛','暴風雪怪','冰封殭屍'];
 const ICE_ELITE = ['霜龍幼體'];
@@ -1244,7 +1244,7 @@ function scaledMonster(name, baseLevel) {
     name, icon:d.icon, maxHp: Math.floor(d.hp*hpScale), atk: Math.floor(d.atk*atkScale),
     def: Math.floor(d.def*defScale), agi:d.agi, special:d.special,
     drop:d.drop, exp:d.exp+lv*4, gold:Math.floor(d.gold*(1+lv*0.05)),
-    elite:d.elite, lv, element:d.element||'none',
+    elite:d.elite, lv, element:d.element||'none', elemResist:d.elemResist||null,
     hp:0,
     segments: d.special==='segments' ? 3 : 0,
     segHp: d.special==='segments' ? Math.ceil(Math.floor(d.hp*hpScale)/3) : 0,
@@ -3930,6 +3930,7 @@ function startCombat(monName, wx, wy, lv) {
     phase: 1,
     fled: false,
     answered: false,
+    frozenTurns: 0,
   };
   // get/set 相容：combat.monster 永遠指向「目前選定目標」或主怪
   Object.defineProperty(combat, 'monster', {
@@ -4033,14 +4034,41 @@ function allMonstersDead() {
 }
 
 // AOE：對所有存活怪物造成傷害（法師系技能用）
-function attackAllMonsters(dmgEach, label) {
+// 技能傷害統一計算：套用防禦減傷、屬性/王級抗性、當前HP百分比封頂
+// rawAtk: calcAtk()*倍率算出的原始數字；m: 目標怪物；elem: 技能屬性（'ice'/'fire'/null=物理）
+function calcSkillDamage(rawAtk, m, elem) {
+  let dmg = rawAtk;
+
+  // A. 防禦減傷：跟普攻同一套公式，最多減50%
+  const defReduction = Math.min(0.5, m.def / (m.def + 30));
+  dmg = Math.floor(dmg * (1 - defReduction));
+
+  // C. 屬性抗性（怪物身上可選填 elemResist:{ice:0.5} 之類的異變抗性欄位）
+  if (elem && m.elemResist && m.elemResist[elem]) {
+    dmg = Math.floor(dmg * (1 - m.elemResist[elem]));
+  }
+
+  // C. 王級/菁英怪額外抗性（異變韌性，非數值調整，是怪物本身的特性）
+  if (m.elite || m.special === 'boss') {
+    dmg = Math.floor(dmg * 0.7);
+  }
+
+  // B. 傷害封頂：避免技能一擊帶走目標，王級/菁英封頂更嚴格
+  const capRatio = (m.elite || m.special === 'boss') ? 0.4 : 0.6;
+  dmg = Math.min(dmg, Math.ceil(m.hp * capRatio));
+
+  return Math.max(1, dmg);
+}
+
+function attackAllMonsters(dmgEach, label, elem) {
   const alive = combat.monsters.filter(m => m.hp > 0);
   alive.forEach(m => {
-    m.hp = Math.max(0, m.hp - dmgEach);
+    const dmg = calcSkillDamage(dmgEach, m, elem);
+    m.hp = Math.max(0, m.hp - dmg);
     shakeMonster(m.uid);
     updateMonsterHP(m.uid);
   });
-  cbLog('cl-y', `💥 ${label||'範圍攻擊'}！對全體造成 ${wrapCol('cl-r', dmgEach)} 傷害`);
+  cbLog('cl-y', `💥 ${label||'範圍攻擊'}！對全體造成範圍傷害（依防禦/抗性調整）`);
   if (allMonstersDead()) {
     setTimeout(() => endCombatVictory(), 600);
     return true;
@@ -4337,6 +4365,14 @@ function doMonsterAttack(cb) {
   if (!combatActive) return;
   const aliveMonsters = combat.monsters.filter(mm => mm.hp > 0);
   if (aliveMonsters.length === 0) { if (cb) cb(); return; }
+
+  if (combat.frozenTurns > 0) {
+    combat.frozenTurns--;
+    cbLog('cl-p', `🧊 敵人被凍結，無法行動！（剩餘 ${combat.frozenTurns} 回合）`);
+    if (cb && !checkPlayerDead()) cb();
+    return;
+  }
+
   attackSequence(aliveMonsters, 0, cb);
 }
 
@@ -4680,7 +4716,8 @@ function useJobSkill(skillId) {
       break;
     case 'ice_20': { // 冰封王座
       markSkillUsed('ice_20');
-      const dmg = Math.floor(calcAtk() * 5.0);
+      const rawDmg = Math.floor(calcAtk() * 5.0);
+      const dmg = calcSkillDamage(rawDmg, m, 'ice');
       m.hp = Math.max(0, m.hp - dmg);
       combat.frozenTurns = 3;
       cbLog('cl-p', `❄️ 冰封王座！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結3回合！`);
@@ -4692,13 +4729,14 @@ function useJobSkill(skillId) {
     case 'fl_15': { // 冰霜新星（全體AOE，冰霜巫妖）
       markSkillUsed('fl_15');
       const dmg = Math.floor(calcAtk() * 4.0);
-      attackAllMonsters(dmg, '❄️ 冰霜新星');
+      attackAllMonsters(dmg, '❄️ 冰霜新星', 'ice');
       combat.frozenTurns = 2;
       break;
     }
     case 'fl_20': { // 永恆冰封
       markSkillUsed('fl_20');
-      const dmg = Math.floor(calcAtk() * 7.0);
+      const rawDmg = Math.floor(calcAtk() * 7.0);
+      const dmg = calcSkillDamage(rawDmg, m, 'ice');
       m.hp = Math.max(0, m.hp - dmg);
       combat.frozenTurns = 4;
       cbLog('cl-p', `🧊 永恆冰封！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結4回合！`);
@@ -4710,7 +4748,7 @@ function useJobSkill(skillId) {
     case 'am_5': { // 烈焰新星（全體AOE，大魔導士）
       markSkillUsed('am_5');
       const dmg = Math.floor(calcAtk() * 3.5);
-      attackAllMonsters(dmg, '🔥 烈焰新星');
+      attackAllMonsters(dmg, '🔥 烈焰新星', 'fire');
       combat.monsters.forEach(mm => { if (mm.hp > 0) mm.burning = true; });
       break;
     }
