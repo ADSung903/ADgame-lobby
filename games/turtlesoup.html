@@ -280,6 +280,7 @@
 
 <!-- 每個湯底一支資料檔，之後新增故事只要在這裡多加一行 <script> -->
 <script src="assets/data/turtlesoup/deep-night-radio.js"></script>
+<script src="assets/data/turtlesoup/birthday-gift.js"></script>
 
 <script>
 /* =========================================================
@@ -289,7 +290,6 @@
    ========================================================= */
 
 const STORIES = window.TURTLESOUP_STORIES || [];
-const DEFAULT_GATE = { 2: 4, 3: 3, 4: 3, 5: 3 };
 const MAX_TIER = 5;
 const MUTE_KEY = 'turtlesoup_mute';
 
@@ -350,7 +350,6 @@ function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function runStory(story) {
   const QMAP = {};
   story.questions.forEach(q => QMAP[q.id] = q);
-  const gate = Object.assign({}, DEFAULT_GATE, story.gate || {});
 
   const STORAGE_KEY = `turtlesoup_${story.id}_progress`;
   const ORDER_KEY = `turtlesoup_${story.id}_order`;
@@ -385,12 +384,15 @@ function runStory(story) {
     try { localStorage.setItem(BGMCHOICE_KEY, JSON.stringify(bgmChoice)); } catch(e) {}
   }
 
-  function tierAnsweredCount(t) {
-    return answerOrder.filter(id => QMAP[id] && QMAP[id].tier === t).length;
+  function tierKeyTotal(t) {
+    return story.questions.filter(q => q.tier === t && q.key).length;
+  }
+  function tierKeyAnsweredCount(t) {
+    return answerOrder.filter(id => QMAP[id] && QMAP[id].tier === t && QMAP[id].key).length;
   }
   function currentMaxTier() {
     let t = 1;
-    while (t < MAX_TIER && tierAnsweredCount(t) >= (gate[t + 1] || Infinity)) t++;
+    while (t < MAX_TIER && tierKeyAnsweredCount(t) >= tierKeyTotal(t)) t++;
     return t;
   }
   function keyTotal() { return story.questions.filter(q => q.key).length; }
@@ -488,7 +490,7 @@ function runStory(story) {
 
     const hint = document.createElement('div');
     hint.className = 'log-hint';
-    hint.textContent = '每一層都要多問幾題，答案是否無關，才能挖到下一層的線索';
+    hint.textContent = '把這一層能問的都問過一輪，挖出所有關鍵線索，才能深入下一層';
     list.appendChild(hint);
 
     renderProgress();
