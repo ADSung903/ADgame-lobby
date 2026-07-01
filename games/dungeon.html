@@ -6750,7 +6750,7 @@ function openMerchant() {
 function expandBag() {
   const cost = 100000;
   if (state.gold < cost) { toast('金幣不足'); return; }
-  if (state.inventoryMax >= 200) { toast('背包已達上限 200 格'); return; }
+  if (state.inventoryMax >= 400) { toast('背包已達上限 400 格'); return; }
   state.gold -= cost;
   state.inventoryMax += 20;
   toast(`🎒 背包擴充至 ${state.inventoryMax} 格！`);
