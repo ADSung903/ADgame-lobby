@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🔢 幾A幾B 猜數字</title>
+<title>🔢 猜數字 / 猜顏色</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   *{touch-action:manipulation}
@@ -31,6 +31,46 @@
   }
   .digit-box.filled { border-color: #4a4a6a; background: #12122a; }
   .digit-box.error  { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,.2) !important; }
+  .digit-box:disabled { opacity:.45; }
+
+  /* 顏色模式 */
+  .color-slot {
+    width: 60px; height: 68px;
+    border-radius: 14px;
+    background: #0d0d22;
+    border: 1.5px solid #2a2a4a;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .color-slot.filled { border-color: #4a4a6a; background: #12122a; }
+  .color-slot.active {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,.25);
+    background: #12122a;
+  }
+  .color-slot.disabled { opacity:.45; cursor:default; pointer-events:none; }
+
+  .palette-swatch {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 1.5rem;
+    background:#0d0d22;
+    border: 1.5px solid #2a2a4a;
+    cursor:pointer;
+    transition: transform .1s, border-color .15s;
+  }
+  .palette-swatch:active { transform: scale(.9); }
+  .palette-swatch.used { opacity:.3; pointer-events:none; }
+
+  .mode-tab {
+    flex:1; text-align:center; padding:.5rem 0;
+    font-size:.8rem; font-weight:700; border-radius:10px;
+    color:#666; cursor:pointer; transition: all .15s;
+  }
+  .mode-tab.active { background:#7c3aed; color:#fff; }
 
   @keyframes shake {
     0%,100%{ transform:translateX(0) }
@@ -71,27 +111,38 @@
 <body class="min-h-screen flex flex-col items-center py-8 px-4 select-none">
 
 <!-- Topbar -->
-<div class="topbar">
+<div class="topbar" style="justify-content:space-between;">
   <button class="back-btn" onclick="goBack()">← 大廳</button>
+  <button class="back-btn" id="mute-btn" onclick="toggleMute()">🔊</button>
 </div>
 
 <!-- Header -->
-<header class="w-full max-w-sm text-center mb-5">
-  <h1 class="text-2xl font-black text-white tracking-wide">🔢 猜數字</h1>
+<header class="w-full max-w-sm text-center mb-4">
+  <h1 class="text-2xl font-black text-white tracking-wide" id="title">🔢 猜數字</h1>
   <p class="text-xs text-gray-600 mt-1">
-    <span class="text-green-400 font-semibold">A</span> = 數字對＆位置對 ·
-    <span class="text-orange-400 font-semibold">B</span> = 數字對但位置錯
+    <span class="text-green-400 font-semibold">A</span> = <span id="a-desc">數字對＆位置對</span> ·
+    <span class="text-orange-400 font-semibold">B</span> = <span id="b-desc">數字對但位置錯</span>
   </p>
 </header>
 
+<!-- Mode tabs -->
+<div class="w-full max-w-sm flex gap-2 mb-4 bg-[#0a0a1a] border border-[#1e1e3a] rounded-xl p-1">
+  <div id="tab-num" class="mode-tab active" onclick="switchMode('num')">🔢 猜數字</div>
+  <div id="tab-color" class="mode-tab" onclick="switchMode('color')">🎨 猜顏色</div>
+</div>
+
 <!-- Input card -->
 <div class="w-full max-w-sm bg-[#0a0a1a] border border-[#1e1e3a] rounded-2xl p-5 mb-3">
-  <div class="flex justify-center gap-3 mb-4">
+  <div class="flex justify-center gap-3 mb-4" id="slot-row">
     <input id="d0" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
     <input id="d1" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
     <input id="d2" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
     <input id="d3" class="digit-box" maxlength="1" type="tel" inputmode="numeric" autocomplete="off">
   </div>
+
+  <!-- 顏色調色盤（顏色模式才顯示） -->
+  <div id="palette-row" class="hidden flex justify-center gap-2 mb-4 flex-wrap"></div>
+
   <div class="flex gap-2">
     <button onclick="submitGuess()"
       class="flex-1 py-3 rounded-xl font-bold text-sm bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white">
@@ -110,7 +161,7 @@
   <p class="text-xs text-gray-500">
     猜測次數 <span id="cnt" class="text-violet-400 font-bold text-sm">0</span>
   </p>
-  <button onclick="giveUp()" class="text-xs text-gray-600 hover:text-red-400 underline transition-colors">
+  <button onclick="giveUp()" id="giveup-btn" class="text-xs text-gray-600 hover:text-red-400 underline transition-colors">
     放棄並顯示答案
   </button>
 </div>
@@ -147,71 +198,220 @@
   <div class="pop w-full max-w-xs bg-[#0d0d22] border border-red-900 rounded-2xl p-6 text-center">
     <div class="text-4xl mb-3">😔</div>
     <h2 class="text-lg font-black text-white mb-1">答案揭曉</h2>
-    <p class="text-gray-500 text-xs mb-2">謎底是</p>
+    <p class="text-gray-500 text-xs mb-5">謎底是（本局已結束，看過答案就不能再猜囉）</p>
     <div id="up-ans" class="flex justify-center gap-2 mb-5"></div>
     <button onclick="restart()"
-      class="w-full py-3 rounded-xl bg-[#1a1a3a] border border-[#3a3a5a] hover:border-violet-500 active:scale-95 transition-all text-white font-bold mb-2">
+      class="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white font-bold">
       🔄 重新開始
-    </button>
-    <button onclick="document.getElementById('up-modal').classList.add('hidden')"
-      class="w-full py-2 text-gray-600 text-sm hover:text-gray-300 transition-colors">
-      繼續猜
     </button>
   </div>
 </div>
 
 <script>
-// ── 遊戲狀態 ─────────────────────────────────────────
-let secret = '', attempts = 0, over = false;
+// ── 背景音樂 ──────────────────────────────────────────
+const bgm = new Audio('assets/audio/ab/ab.mp3');
+bgm.loop = true;
+bgm.volume = 0.4;
+let muted = localStorage.getItem('ab_muted') === '1';
+updateMuteIcon();
 
-function gen() {
-  const pool = [0,1,2,3,4,5,6,7,8,9];
-  const r = [];
-  while (r.length < 4) {
-    const i = Math.floor(Math.random() * pool.length);
-    r.push(pool.splice(i, 1)[0]);
-  }
-  return r.join('');
+function updateMuteIcon() {
+  document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
 }
 
-function calcAB(guess) {
+function toggleMute() {
+  muted = !muted;
+  localStorage.setItem('ab_muted', muted ? '1' : '0');
+  bgm.muted = muted;
+  updateMuteIcon();
+  if (!muted && bgm.paused) bgm.play().catch(()=>{});
+}
+
+// iOS/行動瀏覽器需要使用者手勢才能播放音訊，監聽第一次互動
+function startBgmOnce() {
+  bgm.muted = muted;
+  if (!muted) bgm.play().catch(()=>{});
+  document.removeEventListener('click', startBgmOnce);
+  document.removeEventListener('touchstart', startBgmOnce);
+}
+document.addEventListener('click', startBgmOnce, { once: true });
+document.addEventListener('touchstart', startBgmOnce, { once: true });
+
+// ── 顏色調色盤定義 ────────────────────────────────────
+const PALETTE = [
+  {id:'r', emoji:'🔴'}, {id:'o', emoji:'🟠'}, {id:'y', emoji:'🟡'},
+  {id:'g', emoji:'🟢'}, {id:'b', emoji:'🔵'}, {id:'p', emoji:'🟣'},
+];
+const EMOJI_OF = Object.fromEntries(PALETTE.map(c => [c.id, c.emoji]));
+
+// ── 每個模式各自獨立的遊戲狀態 ───────────────────────
+const games = {
+  num:   { secret:'', attempts:0, over:false, pool:['0','1','2','3','4','5','6','7','8','9'] },
+  color: { secret:'', attempts:0, over:false, pool: PALETTE.map(c => c.id) }
+};
+let mode = 'num';
+let activeSlot = 0; // 顏色模式用：目前選取的格子
+
+function G() { return games[mode]; }
+
+function gen(pool) {
+  const p = [...pool];
+  const r = [];
+  while (r.length < 4) {
+    const i = Math.floor(Math.random() * p.length);
+    r.push(p.splice(i, 1)[0]);
+  }
+  return r;
+}
+
+function calcAB(guessArr, secretArr) {
   let a = 0, b = 0;
   for (let i = 0; i < 4; i++) {
-    if (guess[i] === secret[i]) a++;
-    else if (secret.includes(guess[i])) b++;
+    if (guessArr[i] === secretArr[i]) a++;
+    else if (secretArr.includes(guessArr[i])) b++;
   }
   return { a, b };
 }
 
-// ── 初始化 ────────────────────────────────────────────
-function init() {
-  secret = gen();
-  attempts = 0; over = false;
-  document.getElementById('cnt').textContent = '0';
+// ── 模式切換 ──────────────────────────────────────────
+function switchMode(m) {
+  if (m === mode) return;
+  mode = m;
+  document.getElementById('tab-num').classList.toggle('active', m === 'num');
+  document.getElementById('tab-color').classList.toggle('active', m === 'color');
+  document.getElementById('slot-row').classList.toggle('hidden', m === 'color');
+  document.getElementById('palette-row').classList.toggle('hidden', m !== 'color');
+
+  if (m === 'num') {
+    document.getElementById('title').textContent = '🔢 猜數字';
+    document.getElementById('a-desc').textContent = '數字對＆位置對';
+    document.getElementById('b-desc').textContent = '數字對但位置錯';
+  } else {
+    document.getElementById('title').textContent = '🎨 猜顏色';
+    document.getElementById('a-desc').textContent = '顏色對＆位置對';
+    document.getElementById('b-desc').textContent = '顏色對但位置錯';
+    buildColorSlots();
+    buildPalette();
+  }
+  renderState();
+}
+
+// ── 顏色模式 DOM 建置 ─────────────────────────────────
+function buildColorSlots() {
+  const row = document.getElementById('slot-row');
+  row.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const el = document.createElement('div');
+    el.className = 'color-slot';
+    el.id = 'cs' + i;
+    el.textContent = '';
+    el.onclick = () => selectSlot(i);
+    row.appendChild(el);
+  }
+  row.classList.remove('hidden');
+}
+
+function buildPalette() {
+  const row = document.getElementById('palette-row');
+  row.innerHTML = '';
+  PALETTE.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'palette-swatch';
+    el.id = 'sw-' + c.id;
+    el.textContent = c.emoji;
+    el.onclick = () => pickColor(c.id);
+    row.appendChild(el);
+  });
+}
+
+function colorVals() { return [0,1,2,3].map(i => document.getElementById('cs'+i)._val || ''); }
+
+function selectSlot(i) {
+  if (G().over) return;
+  activeSlot = i;
+  [0,1,2,3].forEach(j => document.getElementById('cs'+j).classList.toggle('active', j === i));
+}
+
+function pickColor(id) {
+  if (G().over) return;
+  const used = colorVals();
+  if (used.includes(id)) { showErr('這個顏色已經用過囉！'); return; }
+  const slot = document.getElementById('cs' + activeSlot);
+  slot._val = id;
+  slot.textContent = EMOJI_OF[id];
+  slot.classList.add('filled');
+  document.getElementById('err').textContent = '';
+  const next = [0,1,2,3].find(j => !document.getElementById('cs'+j)._val);
+  selectSlot(next !== undefined ? next : activeSlot);
+  refreshPaletteUsed();
+}
+
+function refreshPaletteUsed() {
+  const used = colorVals();
+  PALETTE.forEach(c => {
+    document.getElementById('sw-' + c.id).classList.toggle('used', used.includes(c.id));
+  });
+}
+
+// ── 初始化 / 重置目前模式 ─────────────────────────────
+function init(m) {
+  const g = games[m];
+  g.secret = gen(g.pool);
+  g.attempts = 0;
+  g.over = false;
+}
+
+function renderState() {
+  const g = G();
+  document.getElementById('cnt').textContent = g.attempts;
   document.getElementById('hist').innerHTML = '';
   document.getElementById('empty-hint').style.display = 'block';
   document.getElementById('err').textContent = '';
   document.getElementById('win-modal').classList.add('hidden');
   document.getElementById('up-modal').classList.add('hidden');
+  setLocked(g.over);
   clearInputs(true);
 }
 
-function restart() { init(); }
+function setLocked(locked) {
+  const g = G();
+  document.getElementById('giveup-btn').style.visibility = locked ? 'hidden' : 'visible';
+  if (mode === 'num') {
+    boxes().forEach(b => b.disabled = locked);
+  } else {
+    [0,1,2,3].forEach(i => document.getElementById('cs'+i).classList.toggle('disabled', locked));
+    document.querySelectorAll('.palette-swatch').forEach(el => el.classList.toggle('disabled', locked));
+  }
+}
 
-// ── 輸入控制 ──────────────────────────────────────────
+function restart() { init(mode); renderState(); }
+
+// ── 輸入控制（數字模式） ──────────────────────────────
 function boxes() { return [0,1,2,3].map(i => document.getElementById('d'+i)); }
 
 function clearInputs(silent=false) {
-  boxes().forEach(b => { b.value = ''; b.classList.remove('filled','error'); });
+  if (mode === 'num') {
+    boxes().forEach(b => { b.value = ''; b.classList.remove('filled','error'); });
+    if (!G().over) document.getElementById('d0').focus();
+  } else {
+    if (document.getElementById('cs0')) {
+      [0,1,2,3].forEach(i => {
+        const el = document.getElementById('cs'+i);
+        el._val = ''; el.textContent = ''; el.classList.remove('filled');
+      });
+      refreshPaletteUsed();
+      if (!G().over) selectSlot(0);
+    }
+  }
   if (!silent) document.getElementById('err').textContent = '';
-  document.getElementById('d0').focus();
 }
 
-function getVals() { return boxes().map(b => b.value); }
+function getVals() { return mode === 'num' ? boxes().map(b => b.value) : colorVals(); }
 
 function showErr(msg) {
   document.getElementById('err').textContent = msg;
-  boxes().forEach(b => {
+  const els = mode === 'num' ? boxes() : [0,1,2,3].map(i => document.getElementById('cs'+i));
+  els.forEach(b => {
     b.classList.add('error');
     b.style.animation = 'none';
     requestAnimationFrame(() => { b.style.animation = ''; b.classList.add('shake'); });
@@ -221,36 +421,42 @@ function showErr(msg) {
 
 // ── 提交 ──────────────────────────────────────────────
 function submitGuess() {
-  if (over) return;
+  const g = G();
+  if (g.over) return;
   const vals = getVals();
-  if (vals.some(v => v === ''))        { showErr('請填入 4 個數字'); return; }
-  if (new Set(vals).size < 4)          { showErr('數字不能重複！'); return; }
+  if (vals.some(v => v === ''))        { showErr(mode === 'num' ? '請填入 4 個數字' : '請選滿 4 個顏色'); return; }
+  if (new Set(vals).size < 4)          { showErr(mode === 'num' ? '數字不能重複！' : '顏色不能重複！'); return; }
 
-  const guess = vals.join('');
-  attempts++;
-  document.getElementById('cnt').textContent = attempts;
+  g.attempts++;
+  document.getElementById('cnt').textContent = g.attempts;
 
-  const { a, b } = calcAB(guess);
-  addHistory(guess, a, b);
+  const { a, b } = calcAB(vals, g.secret);
+  addHistory(vals, a, b);
 
   if (a === 4) {
-    over = true;
+    g.over = true;
     try {
       const lobby = JSON.parse(localStorage.getItem('game_lobby_v2') || '{}');
       if (lobby.name) localStorage.setItem('game_pending_score', JSON.stringify({
-        game: 'ab', score: attempts, detail: `${attempts}次猜中`
+        game: 'ab', score: g.attempts, detail: `${mode === 'num' ? '猜數字' : '猜顏色'} ${g.attempts}次猜中`
       }));
     } catch(e) {}
+    setLocked(true);
     setTimeout(showWin, 350);
   }
   clearInputs(true);
 }
 
 // ── 歷史紀錄 ──────────────────────────────────────────
-function addHistory(guess, a, b) {
+function chipHTML(v) {
+  return mode === 'num' ? v : EMOJI_OF[v];
+}
+
+function addHistory(vals, a, b) {
   document.getElementById('empty-hint').style.display = 'none';
   const list = document.getElementById('hist');
   const win  = a === 4;
+  const attempts = G().attempts;
 
   const row = document.createElement('div');
   row.className = 'slide flex items-center gap-3 rounded-xl px-4 py-3 border ' +
@@ -265,8 +471,8 @@ function addHistory(guess, a, b) {
   row.innerHTML = `
     <span class="text-xs text-gray-600 w-5 text-right shrink-0">#${attempts}</span>
     <div class="flex gap-1.5 flex-1">
-      ${guess.split('').map(d =>
-        `<div class="digit-chip ${chipStyle}">${d}</div>`
+      ${vals.map(v =>
+        `<div class="digit-chip ${chipStyle}">${chipHTML(v)}</div>`
       ).join('')}
     </div>
     <div class="flex gap-2 shrink-0 items-center">
@@ -279,9 +485,9 @@ function addHistory(guess, a, b) {
 
 // ── 答案 chips ────────────────────────────────────────
 function ansChips(id) {
-  document.getElementById(id).innerHTML = secret.split('').map(d =>
+  document.getElementById(id).innerHTML = G().secret.map(v =>
     `<div class="w-11 h-11 flex items-center justify-center rounded-xl
-       bg-violet-900/60 border border-violet-500 text-xl font-black text-violet-200">${d}</div>`
+       bg-violet-900/60 border border-violet-500 text-xl font-black text-violet-200">${chipHTML(v)}</div>`
   ).join('');
 }
 
@@ -297,8 +503,8 @@ function rating(n) {
 // ── Win Modal ─────────────────────────────────────────
 function showWin() {
   ansChips('win-ans');
-  document.getElementById('win-cnt').textContent = attempts;
-  const [cls, txt] = rating(attempts);
+  document.getElementById('win-cnt').textContent = G().attempts;
+  const [cls, txt] = rating(G().attempts);
   document.getElementById('win-rating').className = `text-sm font-semibold mb-5 ${cls}`;
   document.getElementById('win-rating').textContent = txt;
   const modal = document.getElementById('win-modal');
@@ -310,14 +516,17 @@ function showWin() {
   card.classList.add('pop');
 }
 
-// ── Give Up ───────────────────────────────────────────
+// ── Give Up：放棄並鎖定，看了答案就不能再猜 ───────────
 function giveUp() {
-  if (over) return;
+  const g = G();
+  if (g.over) return;
+  g.over = true;
+  setLocked(true);
   ansChips('up-ans');
   document.getElementById('up-modal').classList.remove('hidden');
 }
 
-// ── 鍵盤事件 ──────────────────────────────────────────
+// ── 鍵盤事件（數字模式） ──────────────────────────────
 [0,1,2,3].forEach(i => {
   const el = document.getElementById('d' + i);
 
@@ -359,7 +568,10 @@ function giveUp() {
 
 // ── 啟動 ──────────────────────────────────────────────
 function goBack() { window.location.href = '../'; }
-init();
+
+init('num');
+init('color');
+renderState();
 </script>
 </body>
 </html>
