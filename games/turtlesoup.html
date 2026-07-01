@@ -454,8 +454,7 @@ function runStory(story) {
   }
   function startBgmIfNeeded() {
     if (bgmStarted || muted) return;
-    bgmAudio.play().catch(() => {});
-    bgmStarted = true;
+    bgmAudio.play().then(() => { bgmStarted = true; }).catch(() => {});
   }
 
   function ansLabel(ans) {
@@ -621,7 +620,7 @@ function runStory(story) {
       saveProgress();
       rollBgmChoices();
       loadBgmTrack(1);
-      if (!muted && bgmStarted) bgmAudio.play().catch(() => {});
+      if (!muted) bgmAudio.play().then(() => { bgmStarted = true; }).catch(() => {});
       render();
     }
   };
