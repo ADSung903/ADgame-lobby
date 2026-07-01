@@ -7,7 +7,7 @@ window.TURTLESOUP_STORIES.push({
   story: "小明是一名獨居的盲人。某天深夜，他一如往常躺在床上聽著收音機的即時新聞播報。聽到一半，小明突然臉色慘白，猛然起身走到窗邊，毫不猶豫地跳了下去。\n\n請問，為什麼？",
 
   // 音效資源資料夾（相對於本檔案在 games/ 下的路徑）
-  bgmPath: "assets/audio/turtlesoup/deep-night-radio/",
+  bgmPath: "assets/audio/turtlesoup/shared/",
   // 每層可以放多首候選曲目；長度 >1 時，開局／重新開始會隨機挑一首
   // 之後要加開場曲的變化，只要往 tier 1 的陣列裡多塞檔名即可，例如：
   // 1: ["ts_bgm_a.mp3", "ts_bgm_b.mp3", "ts_bgm_c.mp3"]
@@ -18,9 +18,6 @@ window.TURTLESOUP_STORIES.push({
     4: ["ts4_bgm.mp3"],
     5: ["ts5_bgm.mp3"]
   },
-
-  // 進入下一層所需：目前層至少要答滿幾題（不分是否）
-  gate: { 2: 4, 3: 3, 4: 3, 5: 3 },
 
   questions: [
     // ===== 第1層：案發現場 =====
