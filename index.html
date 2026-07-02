@@ -444,34 +444,53 @@ let DB = loadLocal();
 let lbTab = 'all', lbMode = 'online';
 
 // ── 處理從遊戲帶回的成績 ───────────────────────────────────
-const pending = localStorage.getItem(LS_PENDING);
-if(pending){
-  try{
-    const d = JSON.parse(pending);
-    localStorage.removeItem(LS_PENDING);
-    const g = GAMES.find(x => x.id === d.game);
-    if(g && DB.name){
-      if(!DB.scores[d.game]) DB.scores[d.game] = [];
-      DB.scores[d.game].push({name:DB.name, score:d.score, detail:d.detail||'', date:new Date().toLocaleDateString('zh-TW')});
-      DB.scores[d.game].sort((a,b) => g.lower ? a.score-b.score : b.score-a.score);
-      DB.scores[d.game] = DB.scores[d.game].slice(0,100);
-      saveLocal();
-      saveToFirebase(d.game, DB.name, d.score, d.detail, g);
-      setTimeout(()=>toast('✅ '+g.name+' 成績已上傳排行榜！'),300);
+let _pendingPromptShown = false;
+async function processPending(){
+  const raw = localStorage.getItem(LS_PENDING);
+  if(!raw) return;
+  let d;
+  try{ d = JSON.parse(raw); }catch{ localStorage.removeItem(LS_PENDING); return; }
+  const g = GAMES.find(x => x.id === d.game);
+  const score = Number(d.score);
+  // 資料無效（找不到遊戲或分數非數字）：清掉避免卡住
+  if(!g || !Number.isFinite(score)){ localStorage.removeItem(LS_PENDING); return; }
+  // 還沒設定名字：保留成績、提示設定名字（不再丟棄）
+  if(!DB.name){
+    if(!_pendingPromptShown){
+      _pendingPromptShown = true;
+      setTimeout(()=>toast('👤 輸入名字即可把「'+g.name+'」的成績上傳排行榜'),400);
     }
-  }catch(e){}
+    return;
+  }
+  // 記錄本機
+  if(!DB.scores[d.game]) DB.scores[d.game] = [];
+  DB.scores[d.game].push({name:DB.name, score, detail:d.detail||'', date:new Date().toLocaleDateString('zh-TW')});
+  DB.scores[d.game].sort((a,b) => g.lower ? a.score-b.score : b.score-a.score);
+  DB.scores[d.game] = DB.scores[d.game].slice(0,100);
+  saveLocal();
+  // 上傳 Firebase，等結果回來再誠實回報
+  const ok = await saveToFirebase(d.game, DB.name, score, d.detail, g);
+  localStorage.removeItem(LS_PENDING);
+  buildLobby();
+  toast(ok ? '✅ '+g.name+' 成績已上傳排行榜！'
+           : '📱 '+g.name+' 已存本機（線上上傳失敗，稍後再試）');
 }
+processPending();
 
 // ── Firebase ──────────────────────────────────────────────
 async function saveToFirebase(gameId, name, score, detail, g){
   try{
+    name = String(name).slice(0,14);
+    score = Number(score);
+    if(!Number.isFinite(score)) return false;
     const key = encodeURIComponent(name).replace(/\./g,'_');
     const r = ref(db, `scores/${gameId}/${key}`);
-    const snap = await get(r);
+    const snap = await withTimeout(get(r));
     const existing = snap.val();
     const better = !existing || (g.lower ? score < existing.score : score > existing.score);
-    if(better) await set(r, {name, score, detail:detail||'', date:new Date().toLocaleDateString('zh-TW'), ts:Date.now()});
-  }catch(e){ console.warn('Firebase write:', e); }
+    if(better) await withTimeout(set(r, {name, score, detail:detail||'', date:new Date().toLocaleDateString('zh-TW'), ts:Date.now()}));
+    return true;
+  }catch(e){ console.warn('Firebase write:', e); return false; }
 }
 
 function withTimeout(promise, ms=5000){
@@ -617,6 +636,7 @@ document.getElementById('name-inp').value = DB.name;
 document.getElementById('name-inp').addEventListener('input', function(){
   DB.name = this.value.trim(); saveLocal(); buildLobby();
 });
+document.getElementById('name-inp').addEventListener('change', ()=>{ if(DB.name) processPending(); });
 
 // ── 排行榜 ────────────────────────────────────────────────
 document.getElementById('lb-online-btn').addEventListener('click', ()=>setLBMode('online'));
@@ -809,7 +829,7 @@ buildLobby();
 // ── 歡迎彈窗 ──────────────────────────────────────────────
 window.confirmWelcome = function(){
   const name = document.getElementById('welcome-name-inp').value.trim();
-  if(name){ DB.name=name; document.getElementById('name-inp').value=name; saveLocal(); buildLobby(); }
+  if(name){ DB.name=name; document.getElementById('name-inp').value=name; saveLocal(); buildLobby(); processPending(); }
   document.getElementById('welcome-modal').classList.remove('show');
 };
 window.skipWelcome = function(){
