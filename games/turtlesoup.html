@@ -366,6 +366,14 @@ function playSound(kind) {
 const bgmAudio = document.getElementById('bgmAudio');
 bgmAudio.volume = 0.35;
 let bgmStarted = false;
+const SHARED_BGM = 'assets/audio/turtlesoup/shared/ts5_bgm.mp3';
+// 某層級專屬音樂檔不存在（404）時，退回共用曲目，確保一開始就有音樂
+bgmAudio.addEventListener('error', () => {
+  if (!(bgmAudio.currentSrc || bgmAudio.src).endsWith('ts5_bgm.mp3')) {
+    bgmAudio.src = SHARED_BGM;
+    if (!muted) bgmAudio.play().catch(() => {});
+  }
+});
 
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
@@ -437,10 +445,12 @@ function runStory(story) {
   let currentBgmTier = 1;
 
   function bgmFileFor(tier) {
+    const base = story.bgmPath || '';
     const chosen = bgmChoice[tier];
-    if (chosen) return story.bgmPath + chosen;
+    if (chosen && base) return base + chosen;
     const opts = (story.bgmTiers && story.bgmTiers[tier]) || [];
-    return opts.length ? story.bgmPath + opts[0] : null;
+    if (opts.length && base) return base + opts[0];
+    return SHARED_BGM;   // 沒有專屬曲目就用共用曲，確保各層級都有音樂
   }
   function loadBgmTrack(tier) {
     currentBgmTier = tier;
@@ -638,7 +648,11 @@ function runStory(story) {
     if (!muted) playSound('yes');
   };
 
-  document.getElementById('questionList').addEventListener('click', startBgmIfNeeded, { once: true });
+  const _unlockBgm = () => {
+    if (bgmStarted || muted) { document.removeEventListener('pointerdown', _unlockBgm); return; }
+    bgmAudio.play().then(() => { bgmStarted = true; document.removeEventListener('pointerdown', _unlockBgm); }).catch(() => {});
+  };
+  document.addEventListener('pointerdown', _unlockBgm);
 
   loadProgress();
   // 全新一局（沒有任何已存進度）才重新擲骰選開場曲；延續進度中的局，沿用上次選的曲目
