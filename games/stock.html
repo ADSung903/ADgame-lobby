@@ -208,7 +208,8 @@ function _playerName(){
 
 // 上傳股票統計到 Firebase
 async function uploadStockStats(){
-  const key=_playerKey(); if(!key) return;
+  const key=_playerKey();
+  if(!key){ if(!window._stockNameHinted){ window._stockNameHinted=true; toast('👤 在大廳設定名字即可登上投報率排行榜'); } return; }
   const s=JSON.parse(localStorage.getItem('shop24h_stock')||'{}');
   const roi=s.totalInvested>0?s.realizedPnl/s.totalInvested*100:0;
   const best=s.trades&&s.trades.length?s.trades.reduce((b,t)=>t.roi>b?t.roi:b,-Infinity):null;
