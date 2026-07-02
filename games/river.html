@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>
 *{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation}
 body{font-family:sans-serif;background:#0a1628;color:#eee;display:flex;justify-content:center;padding:1rem;min-height:100vh;padding-top:max(1rem,calc(env(safe-area-inset-top,0px) + 0.75rem))}
@@ -168,6 +168,74 @@ const LEVELS=[
     boatForbiddenOnly:true,
     minSteps:5,
     hint:'帶火+石→、法師回←、帶水+草→、法師回←、帶雷→，共5步！',
+  },
+  {
+    title:'💞 兩對佳侶',
+    desc:'兩對情侶過河，船載2人；沒有自己的伴在場時，女生不能和別的男生同岸',
+    diff:'⭐⭐ 簡單',capacity:2,
+    cast:[
+      {e:'🧑',name:'男A',couple:0,isFarmer:true},
+      {e:'👩',name:'女A',couple:0},
+      {e:'👦',name:'男B',couple:1},
+      {e:'👧',name:'女B',couple:1},
+    ],
+    forbidden:[],isCouples:true,minSteps:5,
+    hint:'A情侶先一起過去，男A划船回來接男B，女A再回來，最後女A載女B過河。',
+  },
+  {
+    title:'🐍 食物鏈渡河',
+    desc:'管理員帶5種生物過河，船一次最多帶2種；相鄰食物鏈不能單獨同岸',
+    diff:'⭐⭐⭐ 困難',capacity:2,
+    cast:[
+      {e:'🧑‍🌾',name:'管理員',isFarmer:true},
+      {e:'🦅',name:'鷹'},{e:'🐍',name:'蛇'},
+      {e:'🐸',name:'蛙'},{e:'🐛',name:'蟲'},{e:'🍃',name:'葉'},
+    ],
+    forbidden:[[1,2],[2,3],[3,4],[4,5]],
+    minSteps:7,
+    hint:'鷹吃蛇、蛇吃蛙、蛙吃蟲、蟲吃葉。分批運送時別讓相剋的兩者單獨留在同一岸，善用來回接送。',
+  },
+  {
+    title:'☢️ 危險品運送',
+    desc:'技術員運4種化學品，船一次最多2樣；強酸會和其他三樣都反應',
+    diff:'⭐⭐ 中等',capacity:2,
+    cast:[
+      {e:'🧑‍🔬',name:'技術員',isFarmer:true},
+      {e:'🔩',name:'金屬'},{e:'🧪',name:'強酸'},
+      {e:'🌫️',name:'氧化劑'},{e:'🛢️',name:'有機溶劑'},
+    ],
+    forbidden:[[2,1],[2,3],[2,4]],
+    minSteps:5,
+    hint:'強酸(🧪)和其他三樣都會反應。先把強酸單獨送過去，運別的東西時把強酸接回船上，避免它和留守物獨處。',
+  },
+  {
+    title:'🌉 燭光橋 II',
+    desc:'四人限時過橋，只有一支火把，橋最多2人，須在12分鐘內通過',
+    diff:'⭐⭐⭐ 困難',capacity:2,
+    cast:[
+      {e:'🏃',name:'快(1分)',speed:1},
+      {e:'🚶',name:'速(2分)',speed:2},
+      {e:'🧓',name:'慢(4分)',speed:4},
+      {e:'🐢',name:'最慢(5分)',speed:5},
+    ],
+    forbidden:[],minSteps:5,isBridge:true,timeLimit:12,
+    note:'過橋時間取最慢者，回程1人帶火把',
+    hint:'最佳解：快+速→(2分)、快回(1分)、慢+最慢→(5分)、速回(2分)、快+速→(2分)，剛好12分！',
+  },
+  {
+    title:'🏮 五人夜行',
+    desc:'五人限時過橋，一支火把，橋最多2人，須在25分鐘內通過',
+    diff:'⭐⭐⭐ 困難',capacity:2,
+    cast:[
+      {e:'🐇',name:'1分',speed:1},
+      {e:'🦊',name:'2分',speed:2},
+      {e:'🐻',name:'4分',speed:4},
+      {e:'🦌',name:'6分',speed:6},
+      {e:'🐢',name:'8分',speed:8},
+    ],
+    forbidden:[],minSteps:7,isBridge:true,timeLimit:25,
+    note:'過橋時間取最慢者，回程1人帶火把',
+    hint:'讓最快(1分)當接駁：帶2分過、自己回、帶4分過、自己回、帶6分過、自己回、最後帶8分過，共23分。',
   },
 ];
 
