@@ -485,6 +485,13 @@ function updateMuteIcons(){
   const b = document.getElementById('muteBtnGame'); if(b) b.textContent = icon;
 }
 
+/* 首次互動解鎖背景音樂（瀏覽器自動播放限制，進場當下無法自動播） */
+function _lpUnlockAudio(){
+  ['pointerdown','touchstart','keydown'].forEach(e=>document.removeEventListener(e,_lpUnlockAudio));
+  if(!AudioM.muted && AudioM.currentBgm) AudioM.playBgm(AudioM.currentBgm);
+}
+['pointerdown','touchstart','keydown'].forEach(e=>document.addEventListener(e,_lpUnlockAudio,{passive:true}));
+
 /* ====================== STATE ====================== */
 let state = {
   level: 1,
