@@ -1,4 +1,4 @@
-const CACHE = 'adgame-v4';
+const CACHE = 'adgame-v5';
 
 // App shell + 所有遊戲 HTML（素材類走執行期快取，見下方 fetch）
 const ASSETS = [
@@ -38,8 +38,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
-  // HTML：網路優先（永遠拿最新版），失敗才用快取
-  if (req.headers.get('accept')?.includes('text/html')) {
+  // HTML 或 遊戲資料檔（assets/data/*.js）：網路優先，永遠拿最新版
+  if (req.headers.get('accept')?.includes('text/html') || req.url.includes('/assets/data/')) {
     e.respondWith(
       fetch(req)
         .then(res => {
