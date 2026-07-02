@@ -45,6 +45,20 @@ canvas{display:block;border-radius:14px;background:transparent;touch-action:none
     padding-bottom: env(safe-area-inset-bottom, 16px);
     min-height: 100dvh;
   }
+
+  /* 關卡選單 */
+  #lvl-screen{position:fixed;inset:0;background:rgba(8,8,18,.97);z-index:50;display:none;
+    flex-direction:column;padding:22px 16px calc(22px + env(safe-area-inset-bottom,0)) 16px;overflow:auto}
+  #lvl-screen h2{text-align:center;color:#fff;font-size:20px;font-weight:800;margin:4px 0;letter-spacing:1px}
+  #lvl-screen .sub{text-align:center;color:#8a8ab8;font-size:13px;margin-bottom:16px}
+  #lvl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:12px;max-width:460px;margin:0 auto;width:100%}
+  .lvl-chip{aspect-ratio:1;border-radius:16px;border:1px solid rgba(255,255,255,.1);
+    background:linear-gradient(160deg,#1e1e38,#141426);color:#fff;font-weight:800;font-size:21px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+  .lvl-chip:not(.locked):active{transform:scale(.93)}
+  .lvl-chip.locked{opacity:.38;cursor:default;font-size:18px}
+  .lvl-chip .lc-best{font-size:11px;font-weight:600;color:#ffd34d}
+  #lvl-close{display:block;margin:22px auto 0}
 </style>
 </head><body>
 <div class="app">
@@ -52,6 +66,7 @@ canvas{display:block;border-radius:14px;background:transparent;touch-action:none
     <button class="btn" onclick="window.location.href='/'">← 大廳</button>
     <h1>🌈 彩虹連連看</h1>
     <div class="meta">
+      <button class="btn" id="menu-btn">☰ 關卡</button>
       <span class="pill" id="lvl-pill">LV 1</span>
       <button class="btn" id="undo-btn">↩ 復原</button>
     </div>
@@ -63,6 +78,13 @@ canvas{display:block;border-radius:14px;background:transparent;touch-action:none
     <button class="btn" id="retry-btn">重新開始</button>
     <button class="btn" id="next-btn" style="display:none">下一關 ➜</button>
   </div>
+</div>
+
+<div id="lvl-screen">
+  <h2>🌈 選擇關卡</h2>
+  <div class="sub">從白點畫到金色終點，經過每一格！</div>
+  <div id="lvl-grid"></div>
+  <button class="btn" id="lvl-close" style="display:none">✕ 關閉</button>
 </div>
 
 <script>
@@ -83,6 +105,10 @@ const ctx=cv.getContext('2d');
 
 function key(r,c){return r+','+c;}
 
+// 種子亂數：讓每一關都是「固定同一題」，重玩也是同一盤
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let RNG=Math.random;
+
 function unvisitedNeighborCount(r,c,visited,rows,cols){
   let n=0;
   for(const[dr,dc] of DIRS){
@@ -94,7 +120,7 @@ function unvisitedNeighborCount(r,c,visited,rows,cols){
 
 function shuffle(a){
   for(let i=a.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
+    const j=Math.floor(RNG()*(i+1));
     [a[i],a[j]]=[a[j],a[i]];
   }
   return a;
@@ -104,7 +130,7 @@ function shuffle(a){
 // 讓路徑長度多數很長、但會自然產生不規則孔洞(而非每次都填滿整個矩形)
 function warnsdorffWalk(rows,cols,randomChance){
   const visited=new Set();
-  let r=Math.floor(Math.random()*rows),c=Math.floor(Math.random()*cols);
+  let r=Math.floor(RNG()*rows),c=Math.floor(RNG()*cols);
   const path=[[r,c]];visited.add(key(r,c));
   while(true){
     let cands=[];
@@ -116,13 +142,13 @@ function warnsdorffWalk(rows,cols,randomChance){
     }
     if(!cands.length)break;
     let pick;
-    if(Math.random()<randomChance){
-      pick=cands[Math.floor(Math.random()*cands.length)];
+    if(RNG()<randomChance){
+      pick=cands[Math.floor(RNG()*cands.length)];
     }else{
       cands.sort((a,b)=>a[2]-b[2]);
       const min=cands[0][2];
       const best=cands.filter(x=>x[2]===min);
-      pick=best[Math.floor(Math.random()*best.length)];
+      pick=best[Math.floor(RNG()*best.length)];
     }
     r=pick[0];c=pick[1];path.push([r,c]);visited.add(key(r,c));
   }
@@ -130,27 +156,28 @@ function warnsdorffWalk(rows,cols,randomChance){
 }
 
 function dimsForLevel(n){
-  const grow=Math.min(5,Math.floor((n-1)/2));
-  const rows=Math.min(4+grow,9);
-  const cols=Math.min(4+grow+(n%2),9);
+  const grow=Math.min(2,Math.floor((n-1)/2));
+  const rows=Math.min(4+grow,6);
+  const cols=Math.min(4+grow+(n%2),6);
   return{rows,cols};
 }
 
 function generateBoard(n){
+  RNG=mulberry32((n*2654435761)^0x9E3779B9);   // 依關卡固定種子 → 同一關永遠同一題
   const{rows,cols}=dimsForLevel(n);
-  const minCover=Math.floor(rows*cols*0.7);
+  const full=rows*cols;
   let best=null;
-  for(let i=0;i<8;i++){
-    const p=warnsdorffWalk(rows,cols,0.15);
+  for(let i=0;i<60;i++){
+    const p=warnsdorffWalk(rows,cols,0.10);
     if(!best||p.length>best.length)best=p;
-    if(p.length>=minCover){best=p;break;}
+    if(best.length>=full)break;   // 找到填滿整盤的路徑就用
   }
   // 收緊邊界框，避免大片空白
   let minR=Infinity,maxR=-Infinity,minC=Infinity,maxC=-Infinity;
   best.forEach(([r,c])=>{minR=Math.min(minR,r);maxR=Math.max(maxR,r);minC=Math.min(minC,c);maxC=Math.max(maxC,c);});
   const norm=best.map(([r,c])=>[r-minR,c-minC]);
   const cellSet=new Set(norm.map(([r,c])=>key(r,c)));
-  return{rows:maxR-minR+1,cols:maxC-minC+1,cellSet,start:norm[0]};
+  return{rows:maxR-minR+1,cols:maxC-minC+1,cellSet,start:norm[0],end:norm[norm.length-1]};
 }
 
 function sizeCanvas(){
@@ -171,7 +198,7 @@ function loadLevel(n,reuseBoard){
   document.getElementById('lvl-pill').textContent='LV '+lvl;
   document.getElementById('win').style.display='none';
   document.getElementById('next-btn').style.display='none';
-  document.getElementById('msg').textContent='從白點出發，把所有格子連起來，每格只能經過一次！';
+  document.getElementById('msg').textContent='從白點出發，畫到金色終點，經過每一格（每格只走一次）！';
   render();
 }
 
@@ -234,12 +261,24 @@ cv.addEventListener('pointercancel',()=>{drawing=false;});
 
 function checkWin(){
   if(playerPath.length!==board.cellSet.size)return;
+  const[lr,lc]=playerPath[playerPath.length-1];
+  if(lr!==board.end[0]||lc!==board.end[1]){
+    document.getElementById('msg').textContent='已填滿！但要在金色終點結束才過關喔～';
+    return;
+  }
   drawing=false;
   const elapsed=Math.round((Date.now()-t0)/1000);
   document.getElementById('win').style.display='block';
   document.getElementById('win').textContent='🎉 過關！LV '+lvl+'，'+elapsed+'秒完成！';
   document.getElementById('next-btn').style.display='inline-block';
   document.getElementById('msg').textContent='';
+  // 記錄最佳時間、解鎖下一關
+  try{
+    const bests=JSON.parse(localStorage.getItem('rainbow_best')||'{}');
+    if(!bests[lvl]||elapsed<bests[lvl]){bests[lvl]=elapsed;localStorage.setItem('rainbow_best',JSON.stringify(bests));}
+    const max=Math.max(parseInt(localStorage.getItem('rainbow_max')||'1',10),lvl+1);
+    localStorage.setItem('rainbow_max',String(max));
+  }catch(e){}
   localStorage.setItem('game_pending_score',JSON.stringify({game:'rainbow',score:lvl,detail:'闖到 LV '+lvl+'，'+elapsed+'秒'}));
 }
 
@@ -294,13 +333,24 @@ function render(){
     ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();ctx.globalAlpha=1;
   }
 
-  // 3. 起點標記
+  // 3. 起點標記（白點）
   const[sr,sc]=board.start;
   const sx=PAD+sc*CELL+CELL/2,sy=PAD+sr*CELL+CELL/2;
   ctx.save();
   ctx.beginPath();ctx.arc(sx,sy,CELL*.18,0,Math.PI*2);
   ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowBlur=3;
   ctx.fill();
+  ctx.restore();
+
+  // 4. 終點標記（金色凸出目標環 → 只能在這裡結束）
+  const[er,ec]=board.end;
+  const ex=PAD+ec*CELL+CELL/2,ey=PAD+er*CELL+CELL/2;
+  ctx.save();
+  ctx.beginPath();ctx.arc(ex,ey,CELL*.32,0,Math.PI*2);
+  ctx.lineWidth=Math.max(3,CELL*.10);ctx.strokeStyle='#ffd34d';
+  ctx.shadowColor='rgba(255,211,77,.9)';ctx.shadowBlur=12;ctx.stroke();
+  ctx.beginPath();ctx.arc(ex,ey,CELL*.13,0,Math.PI*2);
+  ctx.fillStyle='#ffd34d';ctx.shadowBlur=6;ctx.fill();
   ctx.restore();
 }
 
@@ -314,7 +364,29 @@ document.getElementById('retry-btn').addEventListener('click',()=>loadLevel(lvl,
 document.getElementById('next-btn').addEventListener('click',()=>loadLevel(lvl+1));
 window.addEventListener('resize',()=>{sizeCanvas();render();});
 
-loadLevel(lvl);
+/* 關卡選單 */
+const MAXLV=40;
+function openLevelSelect(){
+  const max=Math.max(1,parseInt(localStorage.getItem('rainbow_max')||'1',10));
+  let bests={};try{bests=JSON.parse(localStorage.getItem('rainbow_best')||'{}');}catch(e){}
+  const grid=document.getElementById('lvl-grid');grid.innerHTML='';
+  const show=Math.min(MAXLV,max+2);
+  for(let i=1;i<=show;i++){
+    const locked=i>max;
+    const chip=document.createElement('button');
+    chip.className='lvl-chip'+(locked?' locked':'');
+    chip.innerHTML=locked?'🔒':`<span>${i}</span>${bests[i]?`<span class="lc-best">${bests[i]}s</span>`:''}`;
+    if(!locked)chip.addEventListener('click',()=>{closeLevelSelect();loadLevel(i);});
+    grid.appendChild(chip);
+  }
+  document.getElementById('lvl-close').style.display=board?'block':'none';
+  document.getElementById('lvl-screen').style.display='flex';
+}
+function closeLevelSelect(){document.getElementById('lvl-screen').style.display='none';}
+document.getElementById('menu-btn').addEventListener('click',openLevelSelect);
+document.getElementById('lvl-close').addEventListener('click',closeLevelSelect);
+
+openLevelSelect();
 </script>
 <script>
   document.addEventListener('contextmenu', e => e.preventDefault());
