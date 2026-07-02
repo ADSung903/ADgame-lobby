@@ -445,9 +445,24 @@ const AudioM = {
     }
     this.bgmMap = new Audio(AUDIO_BASE + 'bgm_map.mp3');
     this.bgmMap.loop = true; this.bgmMap.volume = 0.45;
-    this.bgmPlay = new Audio(AUDIO_BASE + 'bgm_play.mp3');
-    this.bgmPlay.loop = true; this.bgmPlay.volume = 0.45;
+    // 遊戲場景背景音樂：五首隨機播放（播完自動接下一首隨機）
+    this.playFiles = ['lp_bgm2.mp3','lp_bgm3.mp3','lp_bgm4.mp3','lp_bgm5.mp3','lp_bgm6.mp3'];
+    this.bgmPlay = new Audio();
+    this.bgmPlay.loop = false; this.bgmPlay.volume = 0.45;
+    this.bgmPlay.addEventListener('ended', () => {
+      if(this.currentBgm === 'play' && !this.muted){ this._pickPlay(); this.bgmPlay.play().catch(()=>{}); }
+    });
     try{ this.muted = localStorage.getItem('littleprince_muted') === '1'; }catch(e){}
+  },
+  _pickPlay(){
+    const list = this.playFiles || [];
+    if(!list.length) return;
+    // 避免連續重複同一首
+    let f;
+    do { f = list[Math.floor(Math.random()*list.length)]; } while(list.length>1 && f===this._lastPlay);
+    this._lastPlay = f;
+    this.bgmPlay.src = AUDIO_BASE + f;
+    this.bgmPlay.currentTime = 0;
   },
   play(key){
     if(this.muted) return;
@@ -467,9 +482,13 @@ const AudioM = {
     if(this.bgmPlay) this.bgmPlay.pause();
     this.currentBgm = which;
     if(this.muted || !which) return;
-    const el = which==='map' ? this.bgmMap : this.bgmPlay;
-    el.currentTime = 0;
-    el.play().catch(()=>{});
+    if(which === 'play'){
+      this._pickPlay();
+      this.bgmPlay.play().catch(()=>{});
+    } else {
+      this.bgmMap.currentTime = 0;
+      this.bgmMap.play().catch(()=>{});
+    }
   },
   toggleMute(){
     this.muted = !this.muted;
