@@ -162,6 +162,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
       <button class="btn" id="profile-btn">📊 我的成績</button>
       <button class="btn" id="changelog-btn">📋 開發日誌</button>
       <button class="btn" id="clear-btn">🗑️ 清除記錄</button>
+      <button class="btn" id="backup-btn">💾 備份/還原</button>
     </div>
   </div>
 </div>
@@ -388,6 +389,21 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
     <input class="wm-inp" id="welcome-name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
     <button class="wm-start" onclick="confirmWelcome()">開始遊戲 🎯</button><br>
     <button class="wm-skip" onclick="skipWelcome()">先跳過</button>
+  </div>
+</div>
+
+<div class="wm-overlay" id="backup-modal">
+  <div class="wm-card" style="max-width:400px">
+    <div style="font-size:40px">💾</div>
+    <h2>備份 / 還原存檔</h2>
+    <p style="margin-bottom:.7rem">把備份碼複製並自行保存（記事本、傳給自己的訊息等）。換手機或重灌後貼回來，就能還原所有遊戲的進度與最佳成績。</p>
+    <button class="wm-start" id="bk-export" style="margin-bottom:.6rem">📤 產生備份碼</button>
+    <textarea id="bk-code" class="wm-inp" style="height:88px;resize:none;font-size:11px;text-align:left;font-family:monospace" placeholder="備份碼會出現在這裡…" readonly></textarea>
+    <button class="btn" id="bk-copy" style="width:100%;margin-bottom:1rem">📋 複製備份碼</button>
+    <hr style="border:none;border-top:1px solid #2a2a44;margin:.2rem 0 1rem">
+    <textarea id="bk-in" class="wm-inp" style="height:88px;resize:none;font-size:11px;text-align:left;font-family:monospace" placeholder="貼上備份碼來還原…"></textarea>
+    <button class="wm-start" id="bk-import" style="background:linear-gradient(135deg,#1d9e75,#2fd98a);color:#06241a">📥 還原存檔</button><br>
+    <button class="wm-skip" id="bk-close">關閉</button>
   </div>
 </div>
 
@@ -822,6 +838,49 @@ document.getElementById('profile-back-btn').addEventListener('click', ()=>{ show
 document.getElementById('clear-btn').addEventListener('click', ()=>{
   if(!confirm('確定要清除本機所有成績？（線上排行榜不受影響）')) return;
   DB.scores = {}; saveLocal(); buildLobby(); toast('🗑️ 本機成績已清除');
+});
+
+// ── 備份 / 還原（把全部 localStorage 打包成一段碼）──────────
+function _b64e(s){ return btoa(unescape(encodeURIComponent(s))); }
+function _b64d(s){ return decodeURIComponent(escape(atob(s))); }
+function buildBackupCode(){
+  const data = {};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); data[k]=localStorage.getItem(k); }
+  return 'ADGAME1|' + _b64e(JSON.stringify({ v:1, ts:Date.now(), data }));
+}
+document.getElementById('backup-btn').addEventListener('click', ()=>{
+  document.getElementById('bk-code').value='';
+  document.getElementById('bk-in').value='';
+  document.getElementById('backup-modal').classList.add('show');
+});
+document.getElementById('bk-close').addEventListener('click', ()=>{
+  document.getElementById('backup-modal').classList.remove('show');
+});
+document.getElementById('bk-export').addEventListener('click', ()=>{
+  document.getElementById('bk-code').value = buildBackupCode();
+  toast('✅ 備份碼已產生，請按下方「複製」保存');
+});
+document.getElementById('bk-copy').addEventListener('click', async ()=>{
+  const code = document.getElementById('bk-code').value;
+  if(!code){ toast('請先按「產生備份碼」'); return; }
+  try{ await navigator.clipboard.writeText(code); toast('📋 已複製！請貼到記事本等處保存'); }
+  catch(e){ const ta=document.getElementById('bk-code'); ta.removeAttribute('readonly'); ta.select(); document.execCommand('copy'); ta.setAttribute('readonly',''); toast('📋 已複製'); }
+});
+document.getElementById('bk-import').addEventListener('click', ()=>{
+  const raw = document.getElementById('bk-in').value.trim();
+  if(!raw){ toast('請先貼上備份碼'); return; }
+  let payload;
+  try{
+    if(!raw.startsWith('ADGAME1|')) throw 0;
+    payload = JSON.parse(_b64d(raw.slice(8)));
+    if(!payload || typeof payload.data!=='object') throw 0;
+  }catch(e){ toast('❌ 備份碼無效，請確認有完整複製'); return; }
+  if(!confirm('還原會覆蓋這台裝置目前的所有遊戲進度，確定嗎？')) return;
+  try{
+    Object.keys(payload.data).forEach(k=> localStorage.setItem(k, payload.data[k]));
+    toast('✅ 還原成功！即將重新整理…');
+    setTimeout(()=>location.reload(), 900);
+  }catch(e){ toast('❌ 還原失敗，可能是儲存空間不足'); }
 });
 
 buildLobby();
