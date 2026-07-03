@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>企業模擬經營 v1.1</title>
+<style>
+:root{
+  --bg:#0f1923;--surface:#172030;--surface2:#1e293b;--line:#2a3a4a;
+  --gold:#d3a44c;--gold-dim:#7a5e2a;--text:#e2eaf0;--muted:#8fa1ad;
+  --green:#4caf6d;--yellow:#d3a44c;--orange:#dd7f3a;--red:#cf4a44;
+  --blue:#4a90d9;--purple:#9b6fce;--teal:#3ab8a0;--pink:#c97a9b;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,"Noto Sans TC",system-ui,sans-serif;font-size:13px;overflow:hidden;}
+.screen{display:none;flex-direction:column;height:100vh;}
+.screen.active{display:flex;}
+
+/* SETUP */
+#screen-setup{align-items:center;justify-content:center;padding:40px 20px;overflow-y:auto;}
+#screen-setup h1{font-size:28px;color:var(--gold);letter-spacing:2px;margin-bottom:6px;font-family:"Noto Serif TC",Georgia,serif;}
+.tagline{color:var(--muted);font-size:12px;margin-bottom:32px;}
+.ind-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:820px;}
+.ind-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;cursor:pointer;transition:border-color .15s;}
+.ind-card:hover:not(.disabled){border-color:var(--gold);}
+.ind-card.disabled{opacity:.4;cursor:not-allowed;}
+.ind-name{font-size:14px;font-weight:700;color:var(--gold);margin-bottom:4px;}
+.ind-cap{font-size:11px;color:var(--muted);margin-bottom:8px;}
+.ind-desc{font-size:11px;color:var(--muted);line-height:1.5;}
+.badge-soon{display:inline-block;background:var(--line);color:var(--muted);font-size:10px;padding:2px 8px;border-radius:20px;margin-top:6px;}
+
+/* TOPBAR */
+#topbar{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;background:var(--surface);border-bottom:1px solid var(--line);padding:8px 16px;gap:10px;min-height:48px;}
+.co-name{font-size:15px;font-weight:700;color:var(--gold);}
+.co-month{font-size:11px;color:var(--muted);}
+.topbar-r{display:flex;align-items:center;gap:7px;}
+.tbtn{background:var(--surface2);border:1px solid var(--line);border-radius:7px;color:var(--text);font-size:11px;padding:5px 11px;cursor:pointer;white-space:nowrap;}
+.tbtn:hover{border-color:var(--gold);}
+.tbtn.primary{background:var(--gold);color:#1a1305;border:none;font-weight:700;}
+.tbtn.primary:hover{background:#e3b75c;}
+
+/* GAME BODY */
+#game-body{flex:1;display:flex;overflow:hidden;}
+
+/* OFFICE AREA */
+#office-area{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px;gap:8px;}
+#boss-row{flex-shrink:0;display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--gold-dim);border-radius:10px;padding:8px 14px;}
+.boss-info .name{font-size:13px;font-weight:700;color:var(--gold);}
+.boss-info .sub{font-size:10px;color:var(--muted);}
+#gm-node{display:flex;align-items:center;gap:8px;background:rgba(211,164,76,.07);border:1px solid var(--gold-dim);border-radius:8px;padding:5px 10px;margin-left:8px;}
+#gm-node .gm-label{font-size:11px;color:var(--gold);}
+#gm-node .gm-sub{font-size:10px;color:var(--muted);}
+
+#rooms-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:8px;min-height:0;}
+.room{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:5px;overflow:hidden;}
+.room-hdr{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.room-name{font-size:11px;font-weight:700;}
+.d-badge{font-size:9px;padding:2px 6px;border-radius:20px;background:rgba(74,144,217,.12);color:var(--blue);border:1px solid rgba(74,144,217,.25);white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;}
+.kpi-row{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.kpi-lbl{font-size:9px;color:var(--muted);min-width:44px;}
+.kpi-track{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
+.kpi-fill{height:100%;border-radius:2px;transition:width .4s;}
+.kpi-v{font-size:9px;color:var(--muted);min-width:22px;text-align:right;}
+.room-floor{display:flex;flex-wrap:wrap;gap:5px;align-items:flex-end;flex:1;align-content:flex-end;}
+.emp-fig{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;position:relative;}
+.emp-fig svg,.emp-fig .fig{display:block;}
+.fig{position:relative;display:inline-block;flex-shrink:0;}
+.fig img{width:100%;height:100%;object-fit:contain;object-position:bottom;image-rendering:pixelated;display:block;-webkit-user-drag:none;}
+.fig .mood{position:absolute;top:-1px;right:-2px;width:6px;height:6px;border-radius:50%;border:1px solid rgba(0,0,0,.35);}
+.fig .rband{position:absolute;bottom:-3px;left:15%;width:70%;height:2px;border-radius:2px;opacity:.9;}
+.emp-fig .emp-name{font-size:8px;color:var(--muted);max-width:34px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;}
+.emp-fig .tip{display:none;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:6px 8px;white-space:nowrap;font-size:10px;color:var(--text);z-index:20;}
+.emp-fig:hover .tip{display:block;}
+.plus-slot{width:30px;height:40px;background:var(--surface2);border:1px dashed var(--gold-dim);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--gold);font-size:16px;flex-shrink:0;}
+.plus-slot:hover{background:rgba(211,164,76,.08);}
+.locked-room{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;}
+.locked-room .lroom-name{font-size:12px;font-weight:700;color:var(--muted);}
+.locked-room .lroom-hint{font-size:10px;color:var(--muted);text-align:center;line-height:1.4;}
+.unlock-btn{font-size:10px;padding:4px 10px;background:var(--surface2);border:1px solid var(--gold-dim);color:var(--gold);border-radius:6px;cursor:pointer;}
+.unlock-btn:hover:not(:disabled){background:rgba(211,164,76,.1);}
+.unlock-btn:disabled{opacity:.4;cursor:not-allowed;}
+.invest-row{display:flex;gap:4px;flex-shrink:0;}
+.invest-btn,.expand-btn{font-size:9px;padding:3px 6px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);border-radius:5px;cursor:pointer;}
+.invest-btn:hover:not(:disabled),.expand-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+.invest-btn:disabled,.expand-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* room name colors */
+.room[data-dept=sales] .room-name{color:var(--blue);}
+.room[data-dept=rd] .room-name{color:var(--purple);}
+.room[data-dept=prod] .room-name{color:var(--orange);}
+.room[data-dept=qa] .room-name{color:var(--teal);}
+.room[data-dept=proc] .room-name{color:#7a8fa3;}
+.room[data-dept=fin] .room-name{color:var(--teal);}
+.room[data-dept=global] .room-name{color:var(--pink);}
+
+/* SIDE PANEL */
+#side-panel{width:264px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--surface);transition:width .2s;overflow:hidden;}
+#side-panel.collapsed{width:0;}
+#side-tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0;}
+.s-tab{flex:1;padding:7px 4px;font-size:10px;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.s-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+#side-content{flex:1;overflow-y:auto;padding:10px;}
+.s-stat{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px dashed var(--line);}
+.s-stat:last-child{border-bottom:none;}
+.s-lbl{color:var(--muted);}
+.s-val{font-family:ui-monospace,monospace;}
+.pos{color:var(--green);}.neg{color:var(--red);}
+.true-val{color:var(--teal);}.rpt-val{color:var(--yellow);}
+.risk-wrap{margin-bottom:8px;}
+.risk-hdr{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px;}
+.risk-track{height:4px;background:var(--line);border-radius:2px;overflow:hidden;}
+.risk-fill{height:100%;border-radius:2px;transition:width .3s;}
+.log-item{padding:5px 0;border-bottom:1px solid var(--line);font-size:10px;color:var(--muted);line-height:1.4;}
+.log-m{color:var(--gold);font-family:monospace;margin-right:4px;}
+.pj-card{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px;}
+.pj-nm{font-size:11px;font-weight:700;margin-bottom:4px;}
+.pj-stages{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px;}
+.pj-pill{font-size:8px;padding:2px 4px;border-radius:10px;background:var(--line);color:var(--muted);}
+.pj-pill.active{background:var(--gold);color:#1a1305;font-weight:700;}
+.pj-pill.done{background:var(--green);color:#0a1a10;}
+.pj-info{font-size:10px;color:var(--muted);}
+.pj-info.ok{color:var(--teal);}.pj-info.warn{color:var(--orange);}
+
+/* BOTTOM BAR */
+#bottom-bar{flex-shrink:0;background:var(--surface);border-top:1px solid var(--line);padding:7px 14px;display:flex;gap:14px;align-items:flex-start;overflow-x:auto;}
+.bar-sec{display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+.bar-sec-lbl{font-size:9px;color:var(--gold);letter-spacing:.5px;}
+.bactions{display:flex;gap:5px;flex-wrap:nowrap;}
+.abtn{font-size:10px;padding:5px 9px;background:var(--surface2);border:1px solid var(--line);border-radius:6px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.abtn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+.abtn:disabled{opacity:.35;cursor:not-allowed;}
+.used-tag{font-size:8px;background:var(--line);color:var(--muted);border-radius:3px;padding:1px 4px;}
+.div-v{width:1px;background:var(--line);align-self:stretch;flex-shrink:0;}
+.dirs-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.dir-item{display:flex;align-items:center;gap:4px;}
+.dir-nm{font-size:9px;color:var(--muted);min-width:30px;}
+.dir-sel{background:var(--surface2);border:1px solid var(--line);border-radius:5px;color:var(--text);font-size:9px;padding:3px 4px;max-width:86px;}
+#bar-proj{display:flex;align-items:center;gap:6px;}
+#new-proj-btn{font-size:10px;padding:5px 9px;background:var(--surface2);border:1px dashed var(--gold-dim);border-radius:6px;color:var(--gold);cursor:pointer;white-space:nowrap;}
+#new-proj-btn:hover:not(:disabled){background:rgba(211,164,76,.08);}
+#new-proj-btn:disabled{opacity:.35;cursor:not-allowed;}
+#proj-cap{font-size:9px;color:var(--muted);}
+#side-toggle{font-size:10px;padding:5px 9px;background:var(--surface2);border:1px solid var(--line);border-radius:6px;color:var(--muted);cursor:pointer;}
+#side-toggle:hover{color:var(--text);}
+
+/* MODALS */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,14,22,.82);align-items:center;justify-content:center;z-index:50;}
+#modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--gold-dim);border-radius:14px;width:min(560px,92vw);max-height:88vh;overflow-y:auto;padding:22px;}
+.m-meta{font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:6px;}
+.m-title{font-size:17px;font-weight:700;font-family:"Noto Serif TC",Georgia,serif;margin-bottom:8px;}
+.m-desc{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px;}
+.m-choice{display:block;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:7px;color:var(--text);cursor:pointer;font-size:12px;font-weight:700;}
+.m-choice:hover{border-color:var(--gold);}
+.cand-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.cand-card{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:11px;}
+.cand-hd{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+.cand-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.cand-nm{font-size:11px;font-weight:700;}
+.cand-rt{display:inline-block;font-size:9px;padding:1px 5px;border-radius:4px;margin-top:1px;}
+.ctbl{width:100%;font-size:10px;margin-bottom:7px;}
+.ctbl td{padding:2px 0;}
+.ctbl td:first-child{color:var(--muted);}
+.ctbl td:last-child{text-align:right;}
+.c-eval{font-size:10px;color:var(--gold-dim);font-style:italic;margin-bottom:7px;}
+.c-hint{font-size:9px;color:var(--teal);display:none;margin-top:3px;}
+.c-hint.show{display:block;}
+.c-acts{display:flex;gap:5px;}
+.c-acts button{flex:1;font-size:10px;padding:5px;background:var(--surface);border:1px solid var(--line);color:var(--text);border-radius:6px;cursor:pointer;}
+.c-acts .hire{border-color:var(--gold-dim);color:var(--gold);}
+.c-acts button:hover{border-color:var(--gold);}
+.ct-card{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;}
+.ct-top{display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-bottom:5px;}
+.ct-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:2px 0;}
+.ct-btn{margin-top:7px;width:100%;font-size:11px;padding:6px;background:var(--surface);border:1px solid var(--gold-dim);color:var(--gold);border-radius:7px;cursor:pointer;}
+.ct-btn:hover{background:rgba(211,164,76,.08);}
+.tut-step{font-size:12px;line-height:1.8;color:var(--muted);margin-bottom:10px;padding-left:14px;border-left:2px solid var(--gold-dim);}
+.tut-step b{color:var(--gold);}
+.ap-frm label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;}
+.ap-frm input{background:var(--surface2);border:1px solid var(--line);border-radius:6px;color:var(--text);font-size:12px;padding:6px 10px;width:100%;margin-bottom:8px;}
+.ap-frm .ap-info{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+.btn-cf{background:var(--gold);color:#1a1305;border:none;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;width:100%;margin-bottom:5px;}
+.btn-cc{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:6px;font-size:11px;cursor:pointer;width:100%;}
+
+/* RATING COLORS */
+.r-彩{background:linear-gradient(135deg,#ff8c8c,#ffd077,#6ee6b0,#7cc8ff,#b89eff);}
+.r-紅{background:var(--red);color:#fff;}
+.r-金{background:var(--gold);color:#1a1305;}
+.r-紫{background:var(--purple);color:#fff;}
+.r-藍{background:var(--blue);color:#fff;}
+.r-綠{background:var(--green);color:#0a1a10;}
+.r-白{background:#5a6b78;color:#fff;}
+
+/* ANIMATIONS */
+@keyframes emp-work{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes emp-idle{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-3deg)}}
+@keyframes emp-worry{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+.aw{animation:emp-work 1.4s ease-in-out infinite;}
+.ai{animation:emp-idle 2.5s ease-in-out infinite;}
+.ar{animation:emp-worry .5s ease-in-out infinite;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--gold-dim);border-radius:8px;padding:8px 16px;font-size:11px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="screen-setup" class="screen active">
+  <h1>企業模擬經營</h1>
+  <p class="tagline">v1.1 — 選擇你的產業，開始經營</p>
+  <div class="ind-grid" id="ind-grid"></div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="screen-game" class="screen">
+  <div id="topbar">
+    <div>
+      <div class="co-name" id="co-name"></div>
+      <div class="co-month" id="co-month"></div>
+    </div>
+    <div class="topbar-r">
+      <button class="tbtn" id="btn-sidebar">側欄 ◀</button>
+      <button class="tbtn" id="btn-help">？ 規則</button>
+      <button class="tbtn primary" id="btn-next">下一月 ▶</button>
+    </div>
+  </div>
+
+  <div id="game-body">
+    <div id="office-area">
+      <div id="boss-row">
+        <span id="boss-svg"></span>
+        <div class="boss-info">
+          <div class="name" id="boss-name">老闆</div>
+          <div class="sub" id="boss-sub"></div>
+        </div>
+        <div id="gm-node" style="display:none">
+          <span id="gm-svg"></span>
+          <div><div class="gm-label" id="gm-name"></div><div class="gm-sub" id="gm-sub"></div></div>
+        </div>
+      </div>
+      <div id="rooms-grid"></div>
+    </div>
+
+    <div id="side-panel">
+      <div id="side-tabs">
+        <div class="s-tab active" data-tab="finance">財務</div>
+        <div class="s-tab" data-tab="risk">風險</div>
+        <div class="s-tab" data-tab="projects">案件</div>
+        <div class="s-tab" data-tab="log">紀錄</div>
+      </div>
+      <div id="side-content"></div>
+    </div>
+  </div>
+
+  <div id="bottom-bar">
+    <div class="bar-sec">
+      <div class="bar-sec-lbl">老闆行動（每月各限一次）</div>
+      <div class="bactions" id="boss-actions"></div>
+    </div>
+    <div class="div-v"></div>
+    <div class="bar-sec" id="directives-sec">
+      <div class="bar-sec-lbl">部門指令</div>
+      <div class="dirs-row" id="dirs-row"></div>
+    </div>
+    <div class="div-v"></div>
+    <div class="bar-sec" id="bar-proj">
+      <div class="bar-sec-lbl">案件</div>
+      <button id="new-proj-btn">+ 洽談新案件</button>
+      <div id="proj-cap"></div>
+    </div>
+    <div style="margin-left:auto;flex-shrink:0;">
+      <button class="tbtn" id="side-toggle">◀▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   企業模擬經營 v1.1
+   架構: CONFIG → ENGINE → STATE → DISPATCH → UI
+================================================================ */
+
+/* ============================================================
+   CONFIG LAYER — 所有靜態資料,擴展只動這一段
+============================================================ */
+const CONFIG = {
+
+INDUSTRIES:{
+  "品牌廠OEM_ODM":{label:"品牌廠 OEM/ODM",capital:5000,enabled:true,
+    desc:"筆電/Monitor/手機/耳機/手錶代工。RFQ流程長，客戶議價力強。",
+    stages:["RFI","RFQ","報價議價","EVT","DVT","PVT","認證","MP","量產出貨"],
+    stageDuration:[1,1,1,2,2,2,1,1,null],
+    stageCost:[10,20,15,50,70,90,30,40,0],
+    stageSuccess:[0.9,0.85,0.8,0.75,0.78,0.8,0.85,0.7,null]},
+  "PCM":{label:"PCM 精密機構件",capital:1200,enabled:true,
+    desc:"開模/試模流程，模具是良率天花板，資本支出集中在前期。",
+    stages:["開模","T0試模","修模","T1試模","量產"],
+    stageDuration:[2,1,1,1,null],
+    stageCost:[60,20,15,20,0],
+    stageSuccess:[0.85,0.7,0.8,0.85,null]},
+  "材料":{label:"材料",capital:1200,enabled:false,desc:"配方/製程導向，客戶端SQE認證週期長。"},
+  "光電":{label:"光電",capital:2500,enabled:false,desc:"良率敏感，設備折舊壓力大。"},
+  "半導體":{label:"半導體",capital:10000,enabled:false,desc:"技術門檻最高，前期燒錢期長。"},
+  "傳統產業":{label:"傳統產業",capital:300,enabled:false,desc:"門檻低，適合新手教學。"}
+},
+
+/* 部門定義:
+   effects = {[statePath]: formula_fn(dept, state) → delta}
+   這個設計讓未來新增部門只需在這裡加一筆 */
+DEPT_DEFS:[
+  {key:"sales",name:"業務部",color:"var(--blue)",unlocked:true,cost:0,headPos:"處長",startSlots:3,startEmps:["業務"],
+    unlockCheck:()=>true,unlockHint:"",
+    kpis:[{label:"轉化率",fn:(d,s)=>clamp(40+avgAbility(d,"sales")/2,0,100)},
+           {label:"客戶信任",fn:(d,s)=>s.company.customerTrust}],
+    effects:{cogsRateBonus:(d)=>(d.directive==="negotiate"?-0.01:0),
+             customerTrustDelta:(d)=>(d.directive==="retain"?1:d.directive==="expand"?0.5:0)}},
+  {key:"rd",name:"研發部",color:"var(--purple)",unlocked:true,cost:0,headPos:"經理",startSlots:3,startEmps:["工程師","工程師"],
+    unlockCheck:()=>true,unlockHint:"",
+    kpis:[{label:"製程成功率",fn:(d,s)=>clamp(50+avgAbility(d,"technical")*0.4,0,100)},
+           {label:"平均技術力",fn:(d,s)=>Math.round(avgAbility(d,"technical"))}],
+    effects:{stageSuccessBonus:(d)=>0.04*(d.investLevel-1)+(d.directive==="focus"?0.05:0)}},
+  {key:"prod",name:"產線部",color:"var(--orange)",unlocked:true,cost:0,headPos:"經理",startSlots:5,startEmps:["產線人員","產線人員"],
+    unlockCheck:()=>true,unlockHint:"",
+    kpis:[{label:"產能利用率",fn:(d,s)=>clamp(s.lastFin?Math.round(s.lastFin.demand/Math.max(1,s.lastFin.capacity)*100):0,0,100)},
+           {label:"良率",fn:(d,s)=>Math.round(s.company.trueYieldRate)}],
+    effects:{yieldBonus:(d)=>0.03*(d.investLevel-1)+(d.directive==="focus"?0.04:0),
+             agingDelta:(d)=>(d.directive==="maintain"?-0.006:0)}},
+  {key:"qa",name:"品保部",color:"var(--teal)",unlocked:false,cost:30,headPos:"經理",startSlots:2,startEmps:[],
+    unlockCheck:()=>true,unlockHint:"",
+    kpis:[{label:"退貨率",fn:(d,s)=>+(s.company.returnRate*100).toFixed(1)},
+           {label:"品保強度",fn:(d,s)=>Math.round(avgAbility(d,"technical"))}],
+    effects:{returnRateDelta:(d)=>-(avgAbility(d,"technical")/100)*0.012-(d.investLevel-1)*0.002-(d.directive==="audit"?0.004:0),
+             customerTrustDelta:(d)=>(d.directive==="visit"?1.5:0)}},
+  {key:"proc",name:"採購部",color:"#7a8fa3",unlocked:false,cost:50,headPos:"經理",startSlots:2,startEmps:[],
+    unlockCheck:(s)=>s.company.completedContracts>=2,unlockHint:"需完成過2筆合約",
+    kpis:[{label:"COGS率",fn:(d,s)=>s.lastFin?Math.round(s.lastFin.cogsRate*100):55},
+           {label:"採購風險",fn:(d,s)=>Math.round(s.company.trueRisk.採購舞弊)}],
+    effects:{cogsRateBonus:(d)=>-(avgAbility(d,"technical")/100)*0.05-(d.directive==="negotiate"?0.02:0),
+             riskDelta:{採購舞弊:(d)=>-(avgAbility(d,"integrity")/100)*1.5-(d.directive==="audit"?3:0)}}},
+  {key:"fin",name:"財務部",color:"var(--teal)",unlocked:false,cost:60,headPos:"經理",startSlots:2,startEmps:[],
+    unlockCheck:(s)=>s.company.consecutivePositiveMonths>=3,unlockHint:"需連續3個月淨利為正",
+    kpis:[{label:"回報噪音",fn:(d,s)=>+(s.company.noiseAmp*100).toFixed(0)},
+           {label:"帳務健康",fn:(d,s)=>Math.round(avgAbility(d,"management"))}],
+    effects:{noiseAmpDelta:(d)=>-(avgAbility(d,"management")/100)*0.15-(d.directive==="audit"?0.05:0),
+             riskDelta:{財務造假:(d)=>(d.directive==="refine"?-3:0)}}},
+  {key:"global",name:"海外部",color:"var(--pink)",unlocked:false,cost:100,headPos:"處長",startSlots:2,startEmps:[],
+    unlockCheck:(s)=>s.company.cash>=2000,unlockHint:"現金需達2000萬",
+    kpis:[{label:"海外訂單",fn:(d,s)=>d.employees.length>0?1:0},
+           {label:"國際人才",fn:(d,s)=>d.employees.length}],
+    effects:{globalRecruitBoost:(d)=>d.employees.length>0&&d.unlocked}}
+],
+
+DIRECTIVES:{
+  sales:[{id:"retain",label:"維繫老客戶"},{id:"expand",label:"開發新客戶"},{id:"negotiate",label:"降價磋商"}],
+  rd:[{id:"focus",label:"全力研發"},{id:"train",label:"教育訓練"}],
+  prod:[{id:"focus",label:"全力生產"},{id:"maintain",label:"設備保養"},{id:"safety",label:"安全稽查"}],
+  qa:[{id:"audit",label:"強化稽核"},{id:"visit",label:"客戶巡廠"}],
+  proc:[{id:"negotiate",label:"議價砍價"},{id:"audit",label:"稽核供應商"}],
+  fin:[{id:"audit",label:"帳務稽核"},{id:"refine",label:"精算報表"}],
+  global:[{id:"expand",label:"開拓海外"},{id:"culture",label:"文化培訓"}]
+},
+
+EVENT_POOL:[
+  {id:"E01",bucket:"品質掩蓋",level:"department",name:"量產初期良率崩盤",
+    cond:(s)=>s.projects.some(p=>p.stageIndex===s.industry.stages.length-1),baseProb:0.1,
+    desc:"MP/量產階段良率不如預期，客戶開始關注出貨品質。",
+    options:[
+      {label:"停線排查根因",eff:(s)=>{s.company.cash-=25;s.company.trueRisk.品質掩蓋=clamp(s.company.trueRisk.品質掩蓋-15,0,100);s.company.baseYieldRate=clamp(s.company.baseYieldRate+8,30,99);}},
+      {label:"邊修邊撐production",eff:(s)=>{s.company.trueRisk.品質掩蓋=clamp(s.company.trueRisk.品質掩蓋+12,0,100);}}]},
+  {id:"E02",bucket:"一般營運",level:"department",name:"設備故障停機",
+    cond:(s)=>s.company.month>1,baseProb:0.06,
+    desc:"產線設備老化，本月發生非預期停機。",
+    options:[
+      {label:"緊急維修",eff:(s)=>{s.company.cash-=15;}},
+      {label:"延後維修硬撐",eff:(s)=>{s.company.trueRisk.品質掩蓋=clamp(s.company.trueRisk.品質掩蓋+6,0,100);}}]},
+  {id:"E03",bucket:"一般營運",level:"department",name:"模具異常磨損",
+    cond:(s)=>s.industry.key==="PCM"&&s.projects.some(p=>p.stageIndex<=2),baseProb:0.08,
+    desc:"PCM專屬：模具使用週期已到，繼續用下去風險會累積。",
+    options:[
+      {label:"提前更換模具",eff:(s)=>{s.company.cash-=20;}},
+      {label:"延長使用觀察",eff:(s)=>{s.company.baseYieldRate=clamp(s.company.baseYieldRate-8,20,99);}}]},
+  {id:"E04",bucket:"勞檢",level:"department",name:"部門加班過量引發疲勞事故",
+    cond:(s)=>s.company.month>2&&avgLoyaltyAll(s)<55,baseProb:0.08,
+    desc:"近期排程吃緊，基層員工已連續加班數週。",
+    options:[
+      {label:"增聘人力分擔",eff:(s)=>{s.company.cash-=12;s.company.trueRisk.勞檢=clamp(s.company.trueRisk.勞檢-8,0,100);}},
+      {label:"繼續用加班頂著",eff:(s)=>{s.company.trueRisk.勞檢=clamp(s.company.trueRisk.勞檢+10,0,100);allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty-4,0,100));}}]},
+  {id:"E05",bucket:"採購舞弊",level:"individual",name:"業務人員收受供應商回扣",
+    cond:(s)=>s.company.month>3&&s.departments.find(d=>d.key==="sales")?.employees.length>0,baseProb:0.05,
+    desc:"傳出有人事與供應商之間存在不正常的金流往來。",
+    options:[
+      {label:"舉報並處理",eff:(s)=>{s.company.trueRisk.採購舞弊=clamp(s.company.trueRisk.採購舞弊-15,0,100);}},
+      {label:"默許並分潤",eff:(s)=>{s.company.cash+=8;s.company.trueRisk.採購舞弊=clamp(s.company.trueRisk.採購舞弊+18,0,100);}},
+      {label:"知情不報",eff:(s)=>{s.company.trueRisk.採購舞弊=clamp(s.company.trueRisk.採購舞弊+6,0,100);}}]},
+  {id:"E06",bucket:"忠誠度/人事",level:"individual",name:"高評級員工被獵頭挖角",
+    cond:(s)=>s.company.month>3&&allEmps(s).some(e=>e.loyalty<45&&["彩","紅","金"].includes(e.rating)),
+    baseProb:0.08,
+    resolve:(s)=>{
+      for(const d of s.departments){
+        const e=d.employees.find(e2=>e2.loyalty<45&&["彩","紅","金"].includes(e2.rating));
+        if(e)return{employee:e,dept:d};
+      }
+      if(s.gm&&s.gm.loyalty<45&&["彩","紅","金"].includes(s.gm.rating))return{employee:s.gm,dept:null};
+      return null;
+    },
+    desc:(s,ctx)=>`「${ctx.employee.name}」（${ctx.employee.position} ・ 評級${ctx.employee.rating} ・ 忠誠度偏低）最近接到了同業的邀約，正在考慮是否要跳槽。`,
+    options:[
+      {label:"加薪挽留",eff:(s,ctx)=>{const e=ctx.employee;e.loyalty=clamp(e.loyalty+25,0,100);e.salary+=8;s.company.cash-=8;s.log("人事",`「${e.name}」接受加薪挽留，留了下來。`);}},
+      {label:"尊重員工選擇",eff:(s,ctx)=>{s.log("人事",`「${ctx.employee.name}」選擇離開了公司。`);if(ctx.dept){const i=ctx.dept.employees.indexOf(ctx.employee);if(i>=0)ctx.dept.employees.splice(i,1);}else if(s.gm===ctx.employee){s.hasGM=false;s.gm=null;}}}]},
+  {id:"E07",bucket:"財務造假",level:"company",name:"銀行徵信加嚴",
+    cond:(s)=>s.company.debtRatio()>0.5,baseProb:0.07,
+    desc:"負債比偏高，銀行重新評估你的信用條件。",
+    options:[
+      {label:"接受較高利率續貸",eff:(s)=>{s.company.interestRate+=0.012;}},
+      {label:"縮減資本支出度過",eff:(s)=>{s.company.investmentFrozen=true;}}]},
+  {id:"E08",bucket:"一般營運",level:"company",name:"停電/天災影響產線",
+    cond:(s)=>s.company.month>4&&s.projects.some(p=>p.stageIndex>=s.industry.stages.length-1),baseProb:0.03,
+    desc:"突發停電或天氣事件導致產線停擺，本月產出受影響。",
+    options:[
+      {label:"緊急啟動備援",eff:(s)=>{s.company.cash-=18;}},
+      {label:"順勢延遲交期",eff:(s)=>{s.company.customerTrust=clamp(s.company.customerTrust-8,0,100);}}]}
+],
+
+SCHOOLS_TW:[
+  {name:"國立臺灣大學",score:92},{name:"國立清華大學",score:88},
+  {name:"國立陽明交通大學",score:87},{name:"國立成功大學",score:85},
+  {name:"國立政治大學",score:80},{name:"國立中央大學",score:77},
+  {name:"國立臺北科技大學",score:70},{name:"逢甲大學",score:60},
+  {name:"東吳大學",score:58},{name:"私立科技大學",score:45}
+],
+SCHOOLS_GLOBAL:[
+  {name:"麻省理工學院",score:99},{name:"史丹佛大學",score:98},
+  {name:"牛津大學",score:96},{name:"劍橋大學",score:96},
+  {name:"倫敦帝國學院",score:92},{name:"新加坡國立大學",score:93},
+  {name:"東京大學",score:90},{name:"首爾大學",score:88},
+  {name:"香港大學",score:89},{name:"多倫多大學",score:85},
+  {name:"墨爾本大學",score:83},{name:"北京大學",score:91},
+  {name:"海外社區大學",score:32}
+],
+MAJORS:[
+  {name:"資訊工程",rel:{"工程師":1,"處長":0.6,"經理":0.5}},
+  {name:"電子工程",rel:{"工程師":1,"處長":0.6,"經理":0.5}},
+  {name:"機械工程",rel:{"工程師":0.9,"產線人員":0.7}},
+  {name:"工業工程",rel:{"工程師":0.7,"產線人員":0.6,"經理":0.6,"採購":0.6}},
+  {name:"企業管理",rel:{"業務":0.9,"處長":0.9,"經理":0.9,"採購":0.6,"財務":0.6,"總經理":0.8}},
+  {name:"國際貿易",rel:{"業務":1,"處長":0.7,"海外業務":0.95,"採購":0.7}},
+  {name:"行銷學",rel:{"業務":0.85,"海外業務":0.6}},
+  {name:"財務金融",rel:{"處長":0.6,"經理":0.6,"財務":1,"總經理":0.7}},
+  {name:"哲學",rel:{}},
+  {name:"傳播學",rel:{"業務":0.4,"海外業務":0.5}}
+],
+TRAITS:["拼命型","穩健型","社交強","技術控","誠信存疑"],
+NAMES_F:["陳","林","黃","張","李","王","吳","蔡","鄭","劉"],
+NAMES_M:["志","美","建","怡","俊","佳","宗","雅","承","欣"],
+NAMES_E:["明","華","軒","婷","翔","欣","宇","庭","勳","安"],
+CUSTOMERS:["晨曜電子","遠星科技","信泰精密","捷揚國際","昇陽製造","北極星品牌","凱博實業","聯運科技","飛遠國際","光采精工"],
+RATINGS:["彩","紅","金","紫","藍","綠","白"],
+RATING_POTENTIAL:{"彩":92,"紅":80,"金":68,"紫":57,"藍":47,"綠":37,"白":27},
+RATING_COLORS:{"彩":"#9b6fce","紅":"#cf4a44","金":"#d3a44c","紫":"#7f5fc5","藍":"#4a90d9","綠":"#4caf6d","白":"#5a6b78"},
+POSITION_SALARY:{"處長":75,"經理":52,"工程師":40,"業務":38,"品保":38,"產線人員":26,"採購":42,"財務":48,"海外業務":50,"總經理":110},
+TUTORIAL:[
+  "<b>老闆行動</b>：視察/借款/還款/合約議價這四件事，每月各限用一次。",
+  "<b>部門指令</b>：每個已開設部門每月可指定工作重點，部門越多，你每月要決定的事越多。",
+  "<b>製程鏈</b>：案件依產業跑完整流程（RFI到MP到量產），每階段有成功率，失敗會重工。",
+  "<b>合約</b>：進入量產後，系統會送來合約邀約，訂單量/售價由客戶決定，你只能選接哪張。",
+  "<b>多案件平行</b>：業務部人數決定你能同時負責幾個案件。",
+  "<b>視察</b>：你看到的數字是「回報值」，可能失真。視察可取得真實值，但有總經理後只能看折中值。",
+  "<b>組織擴展</b>：部門員額可擴編，設備可投資升級（1~5級），其他部門達條件後可開設。"
+]
+
+}; // END CONFIG
+
+/* ============================================================
+   ENGINE 工具函式
+============================================================ */
+const rnd=(a,b)=>Math.random()*(b-a)+a;
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function avgAbility(dept,field){
+  if(!dept||!dept.employees.length)return 50;
+  return dept.employees.reduce((a,e)=>a+e.trueAbility[field],0)/dept.employees.length;
+}
+function allEmps(s){
+  const a=s.departments.reduce((acc,d)=>acc.concat(d.employees),[]);
+  if(s.gm)a.push(s.gm);
+  return a;
+}
+function avgLoyaltyAll(s){
+  const e=allEmps(s);
+  return e.length?e.reduce((a,x)=>a+x.loyalty,0)/e.length:50;
+}
+function deptByKey(s,key){return s.departments.find(d=>d.key===key);}
+function moodTier(l){return l>=80?5:l>=60?4:l>=40?3:l>=20?2:1;}
+function moodEmoji(l){return{5:"😍",4:"🙂",3:"😐",2:"😟",1:"😠"}[moodTier(l)];}
+function moodColor(l){return l>=65?"#4caf6d":l>=40?"#d3a44c":"#cf4a44";}
+function moodAnim(l){return l>=65?"aw":l>=40?"ai":"ar";}
+
+function maxProjects(s){
+  const d=deptByKey(s,"sales");
+  return Math.max(1,d?d.employees.length:1);
+}
+function investCost(dept){return dept.investLevel>=5?null:20*dept.investLevel;}
+function expandCost(dept){return Math.round(15*Math.pow(1.5,dept.slots));}
+
+function pickSchool(s){
+  const globalBoost=deptByKey(s,"global")?.unlocked&&deptByKey(s,"global")?.employees.length>0;
+  const twRatio=globalBoost?0.35:0.6;
+  return Math.random()<twRatio?pick(CONFIG.SCHOOLS_TW):pick(CONFIG.SCHOOLS_GLOBAL);
+}
+function pickRatingWeighted(dept){
+  const lvl=dept?.investLevel||1;
+  const weights=CONFIG.RATINGS.map((_,i)=>{
+    const base=[9,7,5,3.5,2.5,1.5,0.8][i];
+    return i<3?base*(1+0.2*(lvl-1)):base*(1-0.05*(lvl-1));
+  });
+  const total=weights.reduce((a,w)=>a+w,0);
+  let r=Math.random()*total;
+  for(let i=0;i<CONFIG.RATINGS.length;i++){if(r<weights[i])return CONFIG.RATINGS[i];r-=weights[i];}
+  return CONFIG.RATINGS[CONFIG.RATINGS.length-1];
+}
+
+function makeEmployee(position,dept,s){
+  const rating=dept?pickRatingWeighted(dept):pick(CONFIG.RATINGS);
+  const potential=CONFIG.RATING_POTENTIAL[rating];
+  const base=clamp(potential+rnd(-10,10),10,100);
+  const school=pickSchool(s||{departments:[]});
+  const major=pick(CONFIG.MAJORS);
+  const majorRel=major.rel[position]??0.3;
+  const expYears=Math.floor(rnd(0,8));
+  const baseSalary=CONFIG.POSITION_SALARY[position]||30;
+  const salary=Math.round(baseSalary*(0.85+school.score/300)*(0.9+expYears*0.03));
+  const evalText=rating==="彩"||rating==="紅"?"不可多得的人才"
+    :rating==="金"||rating==="紫"?"條件不錯，值得一試"
+    :rating==="藍"||rating==="綠"?"中等水準，穩定可用"
+    :"潛力不明，有風險但便宜";
+  return {
+    id:"e"+Math.random().toString(36).slice(2,8),
+    gender:Math.random()<0.5?"m":"f",
+    figv:1+Math.floor(Math.random()*4),
+    name:pick(CONFIG.NAMES_F)+pick(CONFIG.NAMES_M)+pick(CONFIG.NAMES_E),
+    position,rating,school:school.name,major:major.name,
+    traits:[pick(CONFIG.TRAITS)],
+    expYears,expectedSalary:salary,evalText,
+    trueAbility:{
+      technical:clamp(base*(0.6+majorRel*0.6)+rnd(-12,12),10,100),
+      sales:clamp(base*(0.6+majorRel*0.6)+rnd(-12,12),10,100),
+      management:clamp(base+rnd(-12,12),10,100),
+      integrity:clamp(base+rnd(-18,18),5,100)
+    },
+    loyalty:clamp(rnd(45,65),0,100),
+    salary
+  };
+}
+
+/* ============================================================
+   ENGINE — createState
+============================================================ */
+function createState(industryKey){
+  const industry=CONFIG.INDUSTRIES[industryKey];
+  const departments=CONFIG.DEPT_DEFS.map(def=>{
+    const dept={
+      key:def.key,name:def.name,color:def.color,
+      unlocked:def.unlocked,cost:def.cost,headPos:def.headPos,
+      slots:def.startSlots,investLevel:1,
+      directive:CONFIG.DIRECTIVES[def.key]?.[0].id||null,
+      employees:[],
+      unlockCheck:def.unlockCheck,unlockHint:def.unlockHint,
+      kpis:def.kpis,effects:def.effects
+    };
+    dept.employees=def.startEmps.map(p=>makeEmployee(p,dept,{departments:[]}));
+    return dept;
+  });
+
+  const s={
+    industry:{key:industryKey,...industry},
+    company:{
+      name:industry.label+" 工業",
+      month:0,
+      cash:industry.capital,debt:0,equity:industry.capital,
+      interestRate:0.06,investmentFrozen:false,
+      baseYieldRate:70,trueYieldRate:70,reportedYieldRate:70,
+      noiseAmp:0.25,
+      equipmentAging:0.05,returnRate:0.02,customerTrust:55,
+      trueRisk:{財務造假:5,勞檢:5,品質掩蓋:5,採購舞弊:5},
+      reportedRisk:{財務造假:5,勞檢:5,品質掩蓋:5,採購舞弊:5},
+      completedContracts:0,consecutivePositiveMonths:0,
+      bossActions:{inspect:false,borrow:false,repay:false,negotiate:false},
+      inspectMode:null
+    },
+    departments,
+    projects:[],
+    hasGM:false,gm:null,_gmEventFired:false,_pendingEventShown:null,
+    lastFin:null,
+    eventLog:[],
+    ui:{pendingEvents:[],pendingContracts:[],modal:null,sideTab:"finance",sideOpen:true,
+        tempCandidates:[],tempContractProject:null}
+  };
+  s.company.debtRatio=function(){return this.debt/(this.debt+this.equity+1);};
+  s.log=function(tag,msg){this.eventLog.unshift({tag,msg,month:this.company.month});};
+  const firstProj=makeProject(s);
+  s.projects.push(firstProj);
+  s.log("成立",`「${s.company.name}」正式創立，第一個案件已啟動。`);
+  return s;
+}
+
+function makeProject(s){
+  return{
+    id:"pj"+Math.random().toString(36).slice(2,8),
+    customer:pick(CONFIG.CUSTOMERS),
+    stageIndex:0,stageMonthsLeft:s.industry.stageDuration[0],
+    contract:null
+  };
+}
+
+/* ============================================================
+   ENGINE — advanceMonth (main game loop)
+============================================================ */
+function advanceMonth(s){
+  s.company.month++;
+  const c=s.company;
+  c.bossActions={inspect:false,borrow:false,repay:false,negotiate:false};
+  c.inspectMode=null;
+  c.investmentFrozen=false;
+
+  // Risk decay
+  const riskDecay={財務造假:0.025,勞檢:0.04,品質掩蓋:0.03,採購舞弊:0.02};
+  Object.keys(c.trueRisk).forEach(k=>{c.trueRisk[k]=clamp(c.trueRisk[k]*(1-riskDecay[k]),0,100);});
+
+  // Equipment aging — prod directive "maintain" slows it
+  const prod=deptByKey(s,"prod");
+  const agingBase=0.012;
+  const agingDelta=prod?.effects.agingDelta?.(prod)||0;
+  c.equipmentAging=clamp(c.equipmentAging+agingBase+agingDelta,0,1);
+
+  // Directive side effects (training / safety / culture)
+  applyDirectiveSideEffects(s);
+
+  // Advance all project stages
+  s.projects.forEach(p=>advanceProjectStage(p,s));
+
+  // Monthly financials
+  calcMonthly(s);
+
+  // Loyalty drift
+  allEmps(s).forEach(e=>{
+    const gap=(e.salary-(e.trueAbility.technical*0.8))/Math.max(1,e.trueAbility.technical*0.8);
+    const salaryEffect=clamp(gap*5,-4,4);
+    e.loyalty=clamp(e.loyalty+rnd(-2,1)+salaryEffect,0,100);
+  });
+
+  // GM auto-spawn
+  checkGMSpawn(s);
+
+  // Roll events
+  rollEvents(s);
+
+  // Queue contracts for projects that just hit MP
+  s.projects.forEach(p=>{
+    const lastIdx=s.industry.stages.length-1;
+    if(p.stageIndex===lastIdx&&!p.contract&&!s.ui.pendingContracts.includes(p.id)){
+      s.ui.pendingContracts.push(p.id);
+    }
+  });
+}
+
+function applyDirectiveSideEffects(s){
+  const rd=deptByKey(s,"rd");
+  if(rd?.directive==="train"&&rd.employees.length&&Math.random()<0.45){
+    const e=pick(rd.employees);
+    // Diminishing returns: harder to grow at high values
+    const growCap=1-e.trueAbility.technical/120;
+    e.trueAbility.technical=clamp(e.trueAbility.technical+rnd(1,3)*growCap,0,100);
+    s.log("研發",`「${e.name}」的技術力小幅成長。`);
+  }
+  const prod=deptByKey(s,"prod");
+  if(prod?.directive==="safety"&&prod.employees.length){
+    prod.employees.forEach(e=>e.loyalty=clamp(e.loyalty+1.5,0,100));
+  }
+  const global_=deptByKey(s,"global");
+  if(global_?.directive==="culture"&&global_.employees.length){
+    global_.employees.forEach(e=>e.loyalty=clamp(e.loyalty+2,0,100));
+    s.company.customerTrust=clamp(s.company.customerTrust+0.5,0,100);
+  }
+}
+
+function advanceProjectStage(p,s){
+  const ind=s.industry;
+  if(p.stageIndex>=ind.stages.length-1)return;
+  p.stageMonthsLeft--;
+  if(p.stageMonthsLeft>0)return;
+  const rd=deptByKey(s,"rd");
+  const stageSuccessBonus=rd?.effects.stageSuccessBonus?.(rd)||0;
+  const techCoeff=0.6+(avgAbility(rd,"technical")/100)*0.6+stageSuccessBonus;
+  const baseRate=ind.stageSuccess[p.stageIndex];
+  const adjRate=clamp(baseRate*techCoeff,0.2,0.97);
+  const cost=ind.stageCost[p.stageIndex]||0;
+  s.company.cash-=cost;
+  if(Math.random()<adjRate){
+    p.stageIndex++;
+    p.stageMonthsLeft=ind.stageDuration[p.stageIndex];
+    const stageName=ind.stages[p.stageIndex-1];
+    s.log("製程",`「${p.customer}」案件：「${stageName}」通過，進入「${ind.stages[p.stageIndex]}」。`);
+    if(p.stageIndex===ind.stages.length-1)s.log("製程",`「${p.customer}」案件量產正式開始，需要洽談合約。`);
+  } else {
+    p.stageMonthsLeft=1;
+    s.company.cash-=cost*0.5;
+    s.log("製程",`「${p.customer}」案件「${ind.stages[p.stageIndex]}」未通過驗證，需重工。`);
+  }
+}
+
+function calcMonthly(s){
+  const c=s.company;
+  const rd=deptByKey(s,"rd"),sales=deptByKey(s,"sales"),prod=deptByKey(s,"prod");
+  const qa=deptByKey(s,"qa"),proc=deptByKey(s,"proc"),fin=deptByKey(s,"fin");
+  const avgTech=avgAbility(rd,"technical");
+  const avgSales=avgAbility(sales,"sales");
+  const headMgmt=rd?.employees.length?Math.max(...rd.employees.map(e=>e.trueAbility.management)):50;
+  const headIntegrity=rd?.employees.length?Math.min(...rd.employees.map(e=>e.trueAbility.integrity)):50;
+
+  // Yield
+  const yieldBonus=prod?.effects.yieldBonus?.(prod)||0;
+  const engineerCoeff=0.4+(avgTech/100)*0.8+yieldBonus;
+  c.trueYieldRate=clamp(c.baseYieldRate*engineerCoeff*(1-c.equipmentAging*0.4),20,99);
+
+  // Noise / reporting distortion
+  let noiseAmp=(1-headMgmt/100)*0.3;
+  let integrityGap=(100-headIntegrity)/100;
+  if(s.hasGM&&s.gm){
+    noiseAmp+=(1-s.gm.trueAbility.management/100)*0.2;
+    integrityGap=clamp(integrityGap+(100-s.gm.trueAbility.integrity)/100*0.5,0,1.5);
+  }
+  const finNoiseDelta=fin?.effects.noiseAmpDelta?.(fin)||0;
+  noiseAmp=Math.max(0,noiseAmp+finNoiseDelta);
+  c.noiseAmp=noiseAmp;
+  const biasMag=integrityGap*0.18;
+  c.reportedYieldRate=clamp(c.trueYieldRate*(1+(rnd(-1,1)*noiseAmp+biasMag)),20,99);
+  const riskBias=-integrityGap*12;
+  Object.keys(c.trueRisk).forEach(k=>{
+    const n=(rnd(-1,1)*noiseAmp*c.trueRisk[k])+riskBias;
+    c.reportedRisk[k]=clamp(c.trueRisk[k]+n,0,100);
+  });
+
+  // Dept risk effects
+  if(proc?.unlocked&&proc.employees.length){
+    const delta=proc.effects.riskDelta?.採購舞弊?.(proc)||0;
+    c.trueRisk.採購舞弊=clamp(c.trueRisk.採購舞弊+delta,0,100);
+  }
+  if(fin?.unlocked&&fin.employees.length){
+    Object.entries(fin.effects.riskDelta||{}).forEach(([k,fn])=>{
+      c.trueRisk[k]=clamp(c.trueRisk[k]+fn(fin),0,100);
+    });
+  }
+
+  // Return rate (QA)
+  let returnRateDelta=qa?.unlocked&&qa.employees.length?(qa.effects.returnRateDelta?.(qa)||0):0;
+  c.returnRate=clamp(0.02+returnRateDelta,0.005,0.05);
+
+  // COGS rate
+  let cogsRate=0.55;
+  const procBonus=(proc?.unlocked&&proc.employees.length)?(proc.effects.cogsRateBonus?.(proc)||0):0;
+  const salesBonus=sales?.effects.cogsRateBonus?.(sales)||0;
+  cogsRate=clamp(0.55+procBonus+salesBonus,0.35,0.62);
+
+  // Customer trust from depts
+  const salesTrustDelta=sales?.effects.customerTrustDelta?.(sales)||0;
+  const qaTrustDelta=qa?.unlocked?(qa.effects.customerTrustDelta?.(qa)||0):0;
+  const investTrickle=s.departments.reduce((a,d)=>a+(d.unlocked?(d.investLevel-1):0),0)*0.04;
+  c.customerTrust=clamp(c.customerTrust+salesTrustDelta+qaTrustDelta+investTrickle,0,100);
+
+  // Sales art bonus
+  const salesArtBonus=(avgSales/100)*0.25+(sales?(sales.investLevel-1)*0.02:0);
+
+  // Capacity
+  const totalCapacity=Math.round((prod?prod.employees.length:0)*8*(avgTech/70||1));
+  const lastIdx=s.industry.stages.length-1;
+  const activeProj=s.projects.filter(p=>p.stageIndex===lastIdx&&p.contract);
+  const totalDemand=activeProj.reduce((a,p)=>a+p.contract.volume,0);
+  const capRatio=totalDemand>totalCapacity&&totalDemand>0?totalCapacity/totalDemand:1;
+  if(capRatio<1)s.log("產能",`本月產能(${totalCapacity}件)不足以滿足合約需求(${totalDemand}件)，已按比例分配。`);
+
+  let revenue=0,cogsTotal=0;
+  const interest=c.debt*c.interestRate/12;
+  activeProj.forEach(p=>{
+    const effVol=Math.max(0,Math.round(p.contract.volume*capRatio));
+    if(effVol<p.contract.volume)c.customerTrust=clamp(c.customerTrust-2,0,100);
+    const effPrice=p.contract.price*(1+salesArtBonus);
+    const rev=effVol*effPrice*(c.trueYieldRate/100)*(1-c.returnRate);
+    revenue+=rev;cogsTotal+=rev*cogsRate;
+    p.contract.monthsLeft--;
+    if(p.contract.monthsLeft<=0){
+      s.log("合約",`「${p.customer}」案件的合約已結束，需洽談新合約。`);
+      p.contract=null;
+      c.completedContracts++;
+    }
+  });
+
+  const totalSalary=allEmps(s).reduce((a,e)=>a+e.salary,0);
+  let net;
+  if(activeProj.length>0){
+    net=revenue-cogsTotal-totalSalary-interest;
+    c.cash+=net;c.equity+=net;
+  } else {
+    const opex=totalSalary*0.6;
+    net=-opex;c.cash-=opex;c.equity-=opex;
+  }
+  c.consecutivePositiveMonths=net>0?c.consecutivePositiveMonths+1:0;
+  s.lastFin={revenue,cogs:cogsTotal,opex:totalSalary,interest,net,
+    capacity:totalCapacity,demand:totalDemand,cogsRate};
+}
+
+function checkGMSpawn(s){
+  if(s.hasGM||s._gmEventFired)return;
+  const hc=s.departments.reduce((a,d)=>a+d.employees.length,0);
+  if(hc>=10){
+    s._gmEventFired=true;
+    s.ui.pendingEvents.unshift({ev:GM_APPOINT_EVENT,ctx:{headcount:hc}});
+  }
+}
+
+const GM_APPOINT_EVENT={
+  id:"GM_APPOINT",bucket:"組織",level:"company",
+  name:"公司規模擴大，需要任命總經理",
+  cond:()=>false,baseProb:0,
+  desc:function(s,ctx){
+    return "公司員工已達 "+ctx.headcount+" 人，管理複雜度大幅上升。你可以從內部提拔，或向外招募空降兵——兩者各有風險。";
+  },
+  options:[
+    {label:"從現有員工中提拔（你知根知底）",
+     eff:function(s,ctx){promoteInternalGM(s);}},
+    {label:"對外招募空降總經理（可能更強，但是個謎）",
+     eff:function(s,ctx){recruitExternalGM(s);}}
+  ]
+};
+
+function promoteInternalGM(s){
+  const allE=s.departments.reduce(function(a,d){return a.concat(d.employees);},[]);
+  if(!allE.length){s.log("組織","沒有可提拔的員工。");return;}
+  const top=allE.slice().sort(function(a,b){return b.trueAbility.management-a.trueAbility.management;}).slice(0,3);
+  top.forEach(function(e){_regEmp(e);});
+  // Store top candidates for deferred DOM injection
+  window._gmCandidates=top;
+  openModal(
+    "<div class='m-meta'>內部提拔</div>"+
+    "<div class='m-title'>選擇一位員工升任總經理</div>"+
+    "<div class='m-desc'>升任後，你對部門的直接掌控感會下降——視察所得的資訊會先經過他的篩選。</div>"+
+    "<div id='gm-cand-list'></div>"+
+    "<button class='m-choice' style='margin-top:10px' onclick='dispatch(\"CLOSE_MODAL\")'>先不任命（維持現狀）</button>"
+  );
+  // Build list after DOM is ready
+  const list=document.getElementById('gm-cand-list');
+  if(list){
+    top.forEach(function(e){
+      const mgmt=Math.round(e.trueAbility.management);
+      const tech=Math.round(e.trueAbility.technical);
+      const div=document.createElement('div');
+      div.className='emp-list-item';
+      div.style.cursor='pointer';
+      div.innerHTML='<div>'+empSVG(e,18,26)+'</div>'+
+        '<div class="eli-info">'+
+          '<div class="nm">'+e.name+' ['+e.rating+'] '+moodEmoji(e.loyalty)+'</div>'+
+          '<div class="sub">'+e.position+' ・ 管理力 '+mgmt+' ・ 技術力 '+tech+'</div>'+
+        '</div>';
+      const eid=e.id;
+      div.addEventListener('click',function(){_appointGM(eid);});
+      list.appendChild(div);
+    });
+  }
+}
+
+function _appointGM(empId){
+  const s=STATE;
+  // Remove from dept
+  for(const d of s.departments){
+    const idx=d.employees.findIndex(e=>e.id===empId);
+    if(idx>=0){
+      s.gm=d.employees[idx];
+      d.employees.splice(idx,1);
+      break;
+    }
+  }
+  if(!s.gm)return;
+  // Promote: salary bump + loyalty shift
+  s.gm.position="總經理";
+  s.gm.salary=Math.max(s.gm.salary,CONFIG.POSITION_SALARY["總經理"]||110);
+  // Internal promotion often boosts loyalty
+  s.gm.loyalty=Math.min(100,s.gm.loyalty+15);
+  s.hasGM=true;
+  if(!s.gm.growthLog)s.gm.growthLog=[];
+  s.gm.growthLog.unshift({month:s.company.month,field:"management",fieldLabel:"管理力（升任加成）",delta:3});
+  s.gm.trueAbility.management=Math.min(100,s.gm.trueAbility.management+3);
+  s.log("組織","「"+s.gm.name+"」從內部提拔升任總經理。");
+  closeModal();
+  renderAll();
+}
+
+function recruitExternalGM(s){
+  const cands=[makeEmployee("總經理",null,s),makeEmployee("總經理",null,s)];
+  // External GM: slightly higher management potential but truly hidden ability
+  cands.forEach(c=>{
+    c.trueAbility.management=Math.min(100,c.trueAbility.management+rnd(5,15));
+    c.evalText="履歷亮眼，但入職前難以確認真實能力。";
+    c.school=pickSchool(s).name;
+    if(!c.growthLog)c.growthLog=[];
+  });
+  cands.forEach(c=>_regEmp(c));
+  const listHtml=cands.map(c=>`
+    <div class="cand-card">
+      <div class="cand-hd">
+        <div class="cand-av r-${c.rating}">${c.name.charAt(0)}</div>
+        <div><div class="cand-nm">${c.name}</div><span class="cand-rt r-${c.rating}">評級 ${c.rating}</span></div>
+      </div>
+      <table class="ctbl">
+        <tr><td>學歷</td><td>${c.school}</td></tr>
+        <tr><td>科系</td><td>${c.major}</td></tr>
+        <tr><td>前職</td><td>年薪約 ${c.expectedSalary} 萬</td></tr>
+      </table>
+      <div class="c-eval">綜合評估：${c.evalText}</div>
+      <div class="cand-actions" style="margin-top:8px">
+        <button onclick="_appointExternalGM('${c.id}')" class="hire" style="font-size:11px;padding:7px">空降任命</button>
+      </div>
+    </div>`).join("");
+  s.ui.tempCandidates=cands;
+  openModal(
+    "<div class='m-meta'>外部空降</div>"+
+    "<div class='m-title'>人力獵頭帶來 2 位總經理候選人</div>"+
+    "<div class='m-desc'>空降主管的真實管理力和誠信值你完全不知道，跟他共事幾個月後才會漸漸看清。</div>"+
+    "<div class='cand-grid'>"+listHtml+"</div>"+
+    "<button class='m-choice' style='margin-top:10px' onclick='closeModal()'>先不任命（維持現狀）</button>"
+  );
+}
+
+function _appointExternalGM(candId){
+  const s=STATE;
+  const cand=s.ui.tempCandidates.find(c=>c.id===candId);
+  if(!cand)return;
+  cand.position="總經理";
+  cand.salary=Math.max(cand.expectedSalary,CONFIG.POSITION_SALARY["總經理"]||110);
+  // External hire: lower initial loyalty (still figuring out the culture)
+  cand.loyalty=clamp(rnd(35,55),0,100);
+  s.gm=cand;
+  s.hasGM=true;
+  s.log("組織","「"+cand.name+"」空降加入公司，擔任總經理。磨合期需要一段時間。");
+  closeModal();
+  renderAll();
+}
+
+function rollEvents(s){
+  const rp={財務造假:{k:0.03,n:2.5},勞檢:{k:0.02,n:2},品質掩蓋:{k:0.0275,n:2.5},採購舞弊:{k:0.0325,n:2.5}};
+  for(const ev of CONFIG.EVENT_POOL){
+    try{
+      if(!ev.cond(s))continue;
+      let prob=ev.baseProb;
+      const rk=rp[ev.bucket];
+      if(rk){const rv=s.company.trueRisk[ev.bucket]/100||0;prob+=rk.k*Math.pow(rv,rk.n);}
+      if(Math.random()>prob)continue;
+      let ctx=null;
+      if(ev.resolve){ctx=ev.resolve(s);if(!ctx)continue;}
+      s.ui.pendingEvents.push({ev,ctx});
+    }catch(e){}
+  }
+}
+
+function calcEnterpriseIndex(s){
+  const c=s.company;
+  const equity=Math.max(1,c.equity);
+  const scalePts=clamp(Math.log10(equity)/Math.log10(50000)*100,0,100);
+  const f=s.lastFin;
+  const netMargin=f&&f.revenue>0?f.net/f.revenue:0;
+  const finHealth=clamp(50+netMargin*100-c.debtRatio()*50,0,100);
+  const riskAvg=Object.values(c.trueRisk).reduce((a,v)=>a+v,0)/4;
+  const reputation=clamp(c.customerTrust-riskAvg*0.3,0,100);
+  return Math.round(scalePts*0.4+finHealth*0.2+reputation*0.2+avgLoyaltyAll(s)*0.2);
+}
+
+/* ============================================================
+   DISPATCH — single action entry point
+============================================================ */
+let STATE=null;
+
+function dispatch(action,payload={}){
+  const s=STATE;
+  switch(action){
+
+    case "START_GAME":
+      STATE=createState(payload.industryKey);
+      document.getElementById("screen-setup").classList.remove("active");
+      document.getElementById("screen-game").classList.add("active");
+      renderAll();
+      showTutorial();
+      break;
+
+    case "NEXT_MONTH":
+      if(isModalOpen())return;
+      advanceMonth(STATE);
+      renderAll();
+      processUIQueue();
+      break;
+
+    case "INSPECT":
+      if(s.company.bossActions.inspect){toast("本月已視察過了。");return;}
+      s.company.bossActions.inspect=true;
+      s.company.inspectMode=s.hasGM?"partial":"full";
+      s.log("視察",s.hasGM?"老闆視察部門，但資訊先經過總經理篩選，只看到部分真相。":"老闆親自視察部門，本月取得真實數據。");
+      toast(s.hasGM?"視察完成 — 經總經理篩選，僅取得部分真實值":"視察完成 — 本月顯示真實值");
+      renderAll();
+      break;
+
+    case "BORROW":
+      if(s.company.bossActions.borrow){toast("本月已借款過了。");return;}
+      showAPModal("向銀行借款","借款金額（萬）",100,500,
+        `目前利率：${(s.company.interestRate*100).toFixed(1)}% / 年<br>負債比：${(s.company.debtRatio()*100).toFixed(1)}%`,
+        amt=>{s.company.bossActions.borrow=true;s.company.cash+=amt;s.company.debt+=amt;s.log("財務",`借款 ${amt} 萬。`);});
+      break;
+
+    case "REPAY":
+      if(s.company.bossActions.repay){toast("本月已還款過了。");return;}
+      if(s.company.debt<=0){toast("目前無負債。");return;}
+      showAPModal("還款","還款金額（萬）",Math.min(50,s.company.debt),s.company.debt,
+        `目前負債：${s.company.debt.toFixed(1)} 萬`,
+        amt=>{if(amt>s.company.cash){toast("現金不足。");return;}s.company.bossActions.repay=true;s.company.cash-=amt;s.company.debt=Math.max(0,s.company.debt-amt);s.log("財務",`還款 ${amt} 萬。`);});
+      break;
+
+    case "NEGOTIATE":{
+      if(s.company.bossActions.negotiate){toast("本月已議價過了。");return;}
+      const tgt=s.projects.find(p=>p.contract);
+      if(!tgt){toast("目前沒有合約可議價。");return;}
+      s.company.bossActions.negotiate=true;
+      const sales=deptByKey(s,"sales");
+      const chance=0.5+(sales?(sales.investLevel-1)*0.05:0);
+      if(Math.random()<chance){
+        const bonus=Math.round(tgt.contract.price*rnd(0.04,0.08));
+        tgt.contract.price+=bonus;
+        s.log("議價",`「${tgt.customer}」合約單價提升 ${bonus} 萬。`);
+        toast(`議價成功！單價 +${bonus} 萬`);
+      } else {
+        s.company.customerTrust=clamp(s.company.customerTrust-4,0,100);
+        s.log("議價","議價未果，客戶信任小幅下降。");
+        toast("議價失敗，客戶有點不悅。");
+      }
+      renderAll();
+      break;
+    }
+
+    case "SET_DIRECTIVE":{
+      const d=deptByKey(s,payload.deptKey);
+      if(d)d.directive=payload.directive;
+      break;
+    }
+
+    case "NEW_PROJECT":
+      if(s.projects.length>=maxProjects(s)){toast("業務部人力不足，無法同時負責更多案件。");return;}
+      const np=makeProject(s);
+      s.projects.push(np);
+      s.log("業務",`業務部開始洽談新案件：「${np.customer}」。`);
+      renderAll();
+      break;
+
+    case "UNLOCK_DEPT":{
+      const d=deptByKey(s,payload.deptKey);
+      if(!d||d.unlocked)return;
+      if(!d.unlockCheck(s)){toast("尚未達成解鎖條件："+d.unlockHint);return;}
+      if(s.company.cash<d.cost){toast("現金不足。");return;}
+      s.company.cash-=d.cost;d.unlocked=true;
+      const defDirective=CONFIG.DIRECTIVES[d.key]?.[0].id;
+      if(defDirective)d.directive=defDirective;
+      s.log("組織",`開設了「${d.name}」，花費 ${d.cost} 萬。`);
+      renderAll();
+      break;
+    }
+
+    case "INVEST_DEPT":{
+      const d=deptByKey(s,payload.deptKey);
+      if(!d||!d.unlocked)return;
+      const cost=investCost(d);
+      if(cost===null){toast("已達最高設備等級。");return;}
+      if(s.company.cash<cost){toast("現金不足。");return;}
+      s.company.cash-=cost;d.investLevel++;
+      s.log("投資",`「${d.name}」設備升至 Lv.${d.investLevel}，花費 ${cost} 萬。`);
+      renderAll();
+      break;
+    }
+
+    case "EXPAND_DEPT":{
+      const d=deptByKey(s,payload.deptKey);
+      if(!d||!d.unlocked)return;
+      const cost=expandCost(d);
+      if(s.company.cash<cost){toast("現金不足。");return;}
+      s.company.cash-=cost;d.slots++;
+      s.log("組織",`「${d.name}」員額擴編至 ${d.slots} 人，花費 ${cost} 萬。`);
+      renderAll();
+      break;
+    }
+
+    case "RECRUIT_OPEN":{
+      const d=deptByKey(s,payload.deptKey);
+      if(!d||!d.unlocked)return;
+      if(d.employees.length>=d.slots){toast("此部門員額已滿。");return;}
+      const posMap={sales:"業務",rd:"工程師",prod:"產線人員",qa:"品保",proc:"採購",fin:"財務",global:"海外業務"};
+      const pos=posMap[d.key]||"工程師";
+      const cands=[makeEmployee(pos,d,s),makeEmployee(pos,d,s)];
+      if(Math.random()<0.4)cands.push(makeEmployee(pos,d,s));
+      s.ui.tempCandidates=cands.map(c=>({...c,interviewed:false,interviewHint:null}));
+      showRecruitModal(d,s.ui.tempCandidates);
+      break;
+    }
+
+    case "RECRUIT_INTERVIEW":{
+      if(s.company.bossActions.inspect&&s.company.bossActions.borrow&&s.company.bossActions.repay&&s.company.bossActions.negotiate){
+        toast("本月老闆行動均已用完，面試需要老闆親自參與。");return;
+      }
+      const cand=s.ui.tempCandidates.find(c=>c.id===payload.candidateId);
+      if(!cand)return;
+      const dims=["technical","sales","management","integrity"];
+      const dLabels={technical:"技術力",sales:"業務力",management:"管理力",integrity:"誠信值"};
+      const d=pick(dims);
+      const val=cand.trueAbility[d];
+      const range=val<40?"偏低":val<70?"中等":"偏高";
+      cand.interviewHint=`面談後感覺：${dLabels[d]}似乎${range}。`;
+      cand.interviewed=true;
+      // Use up one action slot for the interview
+      if(!s.company.bossActions.inspect)s.company.bossActions.inspect=true;
+      else if(!s.company.bossActions.borrow)s.company.bossActions.borrow=true;
+      renderAll();
+      const d2=payload.deptRef;
+      showRecruitModal(d2,s.ui.tempCandidates);
+      toast("面試完成！");
+      break;
+    }
+
+    case "RECRUIT_HIRE":{
+      const cand=s.ui.tempCandidates.find(c=>c.id===payload.candidateId);
+      const d=deptByKey(s,payload.deptKey);
+      if(!cand||!d)return;
+      d.employees.push(cand);
+      s.log("招募",`「${cand.name}」加入了${d.name}（${cand.school} ・ 評級${cand.rating}）。`);
+      closeModal();
+      renderAll();
+      break;
+    }
+
+    case "ACCEPT_CONTRACT":{
+      const p=s.projects.find(pr=>pr.id===payload.projectId);
+      if(!p)return;
+      p.contract={...payload.offer,monthsLeft:payload.offer.months,totalMonths:payload.offer.months};
+      s.log("合約",`「${p.customer}」案件承接「${payload.offer.customer}」合約：售價${payload.offer.price}萬／${payload.offer.volume}件，為期${payload.offer.months}個月。`);
+      closeModal();
+      processUIQueue();
+      break;
+    }
+
+    case "SKIP_CONTRACT":{
+      s.log("合約",`「STATE.projects.find(p=>p.id===payload.projectId)?.customer」案件本月暫不接單。`);
+      closeModal();
+      processUIQueue();
+      break;
+    }
+
+    case "RESOLVE_EVENT":{
+      const{ev,ctx,optIdx}=payload;
+      ev.options[optIdx].eff(s,ctx);
+      s.log(ev.bucket,`「${ev.name}」→「${ev.options[optIdx].label}」`);
+      closeModal();
+      renderAll();
+      processUIQueue();
+      break;
+    }
+
+    case "SHOW_TUTORIAL": showTutorial(); break;
+    case "TOGGLE_SIDEBAR": toggleSidebar(); break;
+    case "SET_SIDE_TAB": s.ui.sideTab=payload.tab; renderSide(); break;
+    case "CLOSE_MODAL": closeModal(); processUIQueue(); break;
+  }
+}
+
+function maxProjects(s){return maxProjects&&maxProjects(s)||Math.max(1,deptByKey(s,"sales")?.employees.length||1);}
+
+/* ============================================================
+   UI — employee SVG figure
+============================================================ */
+const SPRITE_BASE="sprites/office/";
+function empSprite(e){
+  if(e.sprite)return e.sprite;
+  const g=e.gender||"m";
+  if(e.position==="總經理")return "gm_"+g;
+  if(e.position==="處長"||e.position==="經理")return "manager_"+g+"_"+(((e.figv||1)%2)+1);
+  return "staff_"+g+"_"+(e.figv||1);
+}
+function empSVG(e,w=24,h=34){
+  const rc=CONFIG.RATING_COLORS[e.rating]||"#5a6b78";
+  const mc=moodColor(e.loyalty);
+  const ac=moodAnim(e.loyalty);
+  return `<span class="fig ${ac}" style="width:${w}px;height:${h}px">`+
+    `<img src="${SPRITE_BASE+empSprite(e)}.png" alt="" draggable="false">`+
+    `<i class="mood" style="background:${mc}"></i>`+
+    `<i class="rband" style="background:${rc}"></i>`+
+  `</span>`;
+}
+
+/* ============================================================
+   UI — renderAll
+============================================================ */
+function renderAll(){
+  const s=STATE;
+  if(!s)return;
+  renderTopbar(s);
+  renderBossRow(s);
+  renderRooms(s);
+  renderSide(s);
+  renderBottomBar(s);
+}
+
+function renderTopbar(s){
+  const c=s.company;
+  document.getElementById("co-name").textContent=c.name;
+  document.getElementById("co-month").textContent=`第 ${c.month} 月 ・ 企業指數 ${calcEnterpriseIndex(s)} ・ 設備老化 ${(c.equipmentAging*100).toFixed(0)}%`;
+}
+
+function renderBossRow(s){
+  document.getElementById("boss-svg").innerHTML=empSVG({rating:"彩",loyalty:85,sprite:"extra_m_suit_blond"},32,44);
+  document.getElementById("boss-name").textContent="老闆（你）";
+  document.getElementById("boss-sub").textContent=`第 ${s.company.month} 月 ・ AP：${Object.values(s.company.bossActions).filter(v=>!v).length}/${Object.keys(s.company.bossActions).length} 個行動可用`;
+  const gmNode=document.getElementById("gm-node");
+  if(s.hasGM&&s.gm){
+    gmNode.style.display="flex";
+    document.getElementById("gm-svg").innerHTML=empSVG(s.gm);
+    document.getElementById("gm-name").textContent=`${s.gm.name}（總經理）`;
+    document.getElementById("gm-sub").textContent=`${moodEmoji(s.gm.loyalty)} 管理力：${Math.round(s.gm.trueAbility.management)}（點擊查看）`;
+    document.getElementById("gm-node").onclick=()=>showEmployeeModal(s.gm);
+    document.getElementById("gm-node").style.cursor="pointer";
+  } else {
+    gmNode.style.display="none";
+  }
+}
+
+function renderRooms(s){
+  const grid=document.getElementById("rooms-grid");
+  grid.innerHTML="";
+  s.departments.forEach(dept=>{
+    const def=CONFIG.DEPT_DEFS.find(d=>d.key===dept.key);
+    const div=document.createElement("div");
+    div.className="room";
+    div.dataset.dept=dept.key;
+    if(!dept.unlocked){
+      const condMet=dept.unlockCheck(s);
+      div.innerHTML=`<div class="locked-room">
+        <div class="lroom-name">${dept.name}</div>
+        <div class="lroom-hint">${condMet?"花 "+dept.cost+" 萬即可開設":dept.unlockHint}</div>
+        <button class="unlock-btn"${condMet?"":" disabled"} onclick="dispatch('UNLOCK_DEPT',{deptKey:'${dept.key}'})">${condMet?"開設 · "+dept.cost+"萬":"尚未解鎖"}</button>
+      </div>`;
+    } else {
+      const dirLabel=CONFIG.DIRECTIVES[dept.key]?.find(d=>d.id===dept.directive)?.label||"";
+      const kpi1=def.kpis?.[0];const kpi2=def.kpis?.[1];
+      const v1=kpi1?Math.round(kpi1.fn(dept,s)):0;
+      const v2=kpi2?Math.round(kpi2.fn(dept,s)):0;
+      const kpiColor1=v1>60?"var(--green)":v1>35?"var(--yellow)":"var(--red)";
+      const kpiColor2=v2>60?"var(--green)":v2>35?"var(--yellow)":"var(--red)";
+      const invCost=investCost(dept);
+      const expCost=expandCost(dept);
+      const{floor:floorHtml,headBanner}=deptFloor(dept,s);
+      div.innerHTML=`
+        <div class="room-hdr">
+          <div class="room-name">${dept.name} Lv.${dept.investLevel}</div>
+          <div class="d-badge">${dirLabel}</div>
+        </div>
+        ${kpi1?`<div class="kpi-row"><span class="kpi-lbl">${kpi1.label}</span><div class="kpi-track"><div class="kpi-fill" style="width:${v1}%;background:${kpiColor1}"></div></div><span class="kpi-v">${v1}</span></div>`:""}
+        ${kpi2?`<div class="kpi-row"><span class="kpi-lbl">${kpi2.label}</span><div class="kpi-track"><div class="kpi-fill" style="width:${v2}%;background:${kpiColor2}"></div></div><span class="kpi-v">${v2}</span></div>`:""}
+        ${headBanner}
+        <div class="room-floor">${floorHtml}</div>
+        <div class="invest-row">
+          <button class="invest-btn"${invCost===null?" disabled":""} onclick="dispatch('INVEST_DEPT',{deptKey:'${dept.key}'})">${invCost===null?`設備 Lv.5（已頂）`:`設備升級 ·${invCost}萬`}</button>
+          <button class="expand-btn" onclick="dispatch('EXPAND_DEPT',{deptKey:'${dept.key}'})">擴編+1 ·${expCost}萬</button>
+        </div>`;
+    }
+    grid.appendChild(div);
+  });
+}
+
+function renderSide(s){
+  s=s||STATE;
+  const sp=document.getElementById("side-panel");
+  if(!s.ui.sideOpen){sp.classList.add("collapsed");return;}
+  sp.classList.remove("collapsed");
+  document.querySelectorAll(".s-tab").forEach(t=>{
+    t.classList.toggle("active",t.dataset.tab===s.ui.sideTab);
+  });
+  const sc=document.getElementById("side-content");
+  const c=s.company;
+  const showTrue=c.inspectMode==="full";
+  const showPartial=c.inspectMode==="partial";
+  const yieldDisplay=showTrue?c.trueYieldRate:showPartial?(c.trueYieldRate+c.reportedYieldRate)/2:c.reportedYieldRate;
+  const yieldClass=showTrue?"true-val":showPartial?"rpt-val":"rpt-val";
+  const f=s.lastFin||{revenue:0,cogs:0,opex:0,interest:0,net:0,capacity:0,demand:0};
+  const tab=s.ui.sideTab;
+  if(tab==="finance"){
+    let contractHtml="";
+    s.projects.filter(p=>p.contract).forEach(p=>{
+      contractHtml+=`<div class="s-stat"><span class="s-lbl">${p.customer}·合約</span><span class="s-val">${p.contract.price.toFixed(0)}萬/${p.contract.volume}件·剩${p.contract.monthsLeft}月</span></div>`;
+    });
+    sc.innerHTML=`
+      <div class="s-stat"><span class="s-lbl">現金</span><span class="s-val ${c.cash<0?"neg":""}">${c.cash.toFixed(1)}萬</span></div>
+      <div class="s-stat"><span class="s-lbl">負債</span><span class="s-val">${c.debt.toFixed(1)}萬</span></div>
+      <div class="s-stat"><span class="s-lbl">負債比</span><span class="s-val ${c.debtRatio()>0.6?"neg":""}">${(c.debtRatio()*100).toFixed(1)}%</span></div>
+      <div class="s-stat"><span class="s-lbl">股東權益</span><span class="s-val">${c.equity.toFixed(1)}萬</span></div>
+      <div class="s-stat"><span class="s-lbl">${showTrue?"真實良率":showPartial?"良率(折中)≈":"回報良率≈"}</span><span class="s-val ${yieldClass}">${yieldDisplay.toFixed(1)}%</span></div>
+      <div class="s-stat"><span class="s-lbl">總產能/需求</span><span class="s-val">${f.capacity}/${f.demand}件</span></div>
+      <div class="s-stat"><span class="s-lbl">本月營收</span><span class="s-val">${f.revenue.toFixed(1)}</span></div>
+      <div class="s-stat"><span class="s-lbl">本月COGS</span><span class="s-val">${f.cogs.toFixed(1)}</span></div>
+      <div class="s-stat"><span class="s-lbl">薪資費用</span><span class="s-val">${f.opex.toFixed(1)}</span></div>
+      <div class="s-stat"><span class="s-lbl">本月淨利</span><span class="s-val ${f.net>=0?"pos":"neg"}">${f.net.toFixed(1)}</span></div>
+      <div class="s-stat"><span class="s-lbl">客戶信任</span><span class="s-val">${c.customerTrust.toFixed(0)}</span></div>
+      ${contractHtml}`;
+  } else if(tab==="risk"){
+    const note=showTrue?"本月已視察 — 顯示真實風險值":showPartial?"本月已視察，但經總經理篩選 — 顯示折中值":"顯示回報值（可能失真） — 視察可取得更真實的數據";
+    const rc=v=>v<25?"var(--green)":v<50?"var(--yellow)":v<75?"var(--orange)":"var(--red)";
+    const rt=v=>v<25?"穩定":v<50?"留意":v<75?"偏高":"危險";
+    let rHtml=`<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">${note}</div>`;
+    Object.keys(c.trueRisk).forEach(k=>{
+      const tv=c.trueRisk[k],rv=c.reportedRisk[k];
+      const v=showTrue?tv:showPartial?(tv+rv)/2:rv;
+      rHtml+=`<div class="risk-wrap"><div class="risk-hdr"><span>${k}</span><span style="color:${rc(v)}">${rt(v)}</span></div><div class="risk-track"><div class="risk-fill" style="width:${v}%;background:${rc(v)}"></div></div></div>`;
+    });
+    sc.innerHTML=rHtml;
+  } else if(tab==="projects"){
+    const lastIdx=s.industry.stages.length-1;
+    let pHtml=s.projects.map(p=>{
+      const stages=s.industry.stages.map((st,i)=>`<span class="pj-pill${i<p.stageIndex?" done":i===p.stageIndex?" active":""}">${st}</span>`).join("");
+      let info,cls;
+      if(p.stageIndex<lastIdx){info=`製程中，本階段剩餘 ${p.stageMonthsLeft} 個月`;cls="";}
+      else if(p.contract){info=`合約：${p.contract.customer} · 剩 ${p.contract.monthsLeft} 個月`;cls="ok";}
+      else{info="量產中，尚無合約";cls="warn";}
+      return `<div class="pj-card"><div class="pj-nm">「${p.customer}」</div><div class="pj-stages">${stages}</div><div class="pj-info ${cls}">${info}</div></div>`;
+    }).join("");
+    sc.innerHTML=pHtml||`<div style="font-size:11px;color:var(--muted)">暫無案件</div>`;
+  } else {
+    sc.innerHTML=s.eventLog.slice(0,40).map(item=>`<div class="log-item"><span class="log-m">M${item.month}</span>[${item.tag}] ${item.msg}</div>`).join("");
+  }
+}
+
+function renderBottomBar(s){
+  // Boss actions
+  const ba=s.company.bossActions;
+  const actions=[
+    {id:"inspect",label:"視察部門",action:"INSPECT"},
+    {id:"borrow",label:"借款",action:"BORROW"},
+    {id:"repay",label:"還款",action:"REPAY",disabled:s.company.debt<=0},
+    {id:"negotiate",label:"合約議價",action:"NEGOTIATE",disabled:!s.projects.some(p=>p.contract)}
+  ];
+  document.getElementById("boss-actions").innerHTML=actions.map(a=>{
+    const used=ba[a.id];const dis=used||a.disabled;
+    return`<button class="abtn"${dis?" disabled":""} onclick="dispatch('${a.action}')">${a.label}${used?'<span class="used-tag">已使用</span>':""}</button>`;
+  }).join("");
+
+  // Directives
+  const activeUnlocked=s.departments.filter(d=>d.unlocked&&CONFIG.DIRECTIVES[d.key]);
+  document.getElementById("dirs-row").innerHTML=activeUnlocked.map(d=>{
+    const opts=CONFIG.DIRECTIVES[d.key];
+    return`<div class="dir-item"><span class="dir-nm">${d.name.replace("部","")}</span>
+      <select class="dir-sel" onchange="dispatch('SET_DIRECTIVE',{deptKey:'${d.key}',directive:this.value})">
+        ${opts.map(o=>`<option value="${o.id}"${d.directive===o.id?" selected":""}>${o.label}</option>`).join("")}
+      </select></div>`;
+  }).join("");
+
+  // Project cap
+  const maxP=Math.max(1,deptByKey(s,"sales")?.employees.length||1);
+  document.getElementById("proj-cap").textContent=`${s.projects.length} / ${maxP} 案件`;
+  document.getElementById("new-proj-btn").disabled=s.projects.length>=maxP;
+}
+
+/* ============================================================
+   UI — MODALS
+============================================================ */
+function isModalOpen(){
+  return document.getElementById("modal-overlay").classList.contains("open");
+}
+function openModal(html){
+  document.getElementById("modal-box").innerHTML=html;
+  document.getElementById("modal-overlay").classList.add("open");
+}
+function closeModal(){
+  document.getElementById("modal-overlay").classList.remove("open");
+}
+
+function showTutorial(){
+  openModal(`<div class="m-meta">新手教學</div>
+    <div class="m-title">開始經營前，先看一下基本規則</div>
+    ${CONFIG.TUTORIAL.map(t=>`<div class="tut-step">${t}</div>`).join("")}
+    <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">知道了，開始經營</button>`);
+}
+
+function showAPModal(title,label,defVal,maxVal,infoHtml,onConfirm){
+  openModal(`<div class="m-title">${title}</div>
+    <div class="ap-frm">
+      <label>${label}</label>
+      <input type="number" id="ap-input" value="${defVal}" min="1" max="${maxVal}">
+      <div class="ap-info">${infoHtml}</div>
+    </div>
+    <button class="btn-cf" onclick="(function(){const a=parseFloat(document.getElementById('ap-input').value)||0;if(a<=0)return;(${onConfirm.toString()})(a);closeModal();renderAll();})()">確認</button>
+    <button class="btn-cc" onclick="closeModal()">取消</button>`);
+}
+
+function showRecruitModal(dept,cands){
+  const candsHtml=cands.map(c=>`
+    <div class="cand-card">
+      <div class="cand-hd">
+        <div class="cand-av r-${c.rating}">${c.name.charAt(0)}</div>
+        <div><div class="cand-nm">${c.name}</div><span class="cand-rt r-${c.rating}">評級 ${c.rating}</span></div>
+      </div>
+      <table class="ctbl">
+        <tr><td>學歷</td><td>${c.school}</td></tr>
+        <tr><td>科系</td><td>${c.major}</td></tr>
+        <tr><td>經驗</td><td>${c.expYears} 年</td></tr>
+        <tr><td>要求薪資</td><td>${c.expectedSalary} 萬/月</td></tr>
+      </table>
+      <div class="c-eval">${c.evalText}</div>
+      ${c.interviewHint?`<div class="c-hint show">${c.interviewHint}</div>`:`<div class="c-hint" id="hint-${c.id}"></div>`}
+      <div class="c-acts">
+        <button onclick="dispatch('RECRUIT_INTERVIEW',{candidateId:'${c.id}',deptRef:STATE.departments.find(d=>d.key==='${dept.key}')})">面試了解</button>
+        <button class="hire" onclick="dispatch('RECRUIT_HIRE',{candidateId:'${c.id}',deptKey:'${dept.key}'})">簽約</button>
+      </div>
+    </div>`).join("");
+  openModal(`<div class="m-meta">招募員工 · ${dept.name}</div>
+    <div class="m-title">在人力銀行上搜尋，發現 ${cands.length} 份履歷</div>
+    <div class="m-desc">評級只是標示，不是保證——白評級也可能挖到璧玉，彩評級也可能德不配位。</div>
+    <div class="cand-grid">${candsHtml}</div>
+    <button class="m-choice" style="margin-top:10px" onclick="dispatch('CLOSE_MODAL')">先不招募</button>`);
+}
+
+function showContractModal(project){
+  const base=STATE.industry.key==="PCM"?40:100;
+  const sales=deptByKey(STATE,"sales");
+  const expandBoost=sales?.directive==="expand"?1.12:1;
+  const offers=[
+    {customer:"老客戶 - 穩定單",price:Math.round(base*rnd(0.9,1.0)),volume:Math.round(rnd(15,25)*expandBoost),months:Math.round(rnd(3,5))},
+    {customer:"新客戶 - 高價挑戰單",price:Math.round(base*rnd(1.15,1.35)),volume:Math.round(rnd(8,15)*expandBoost),months:Math.round(rnd(2,3))}
+  ];
+  if(STATE.company.customerTrust>60)
+    offers.push({customer:"大客戶 - 量大單",price:Math.round(base*rnd(0.8,0.92)),volume:Math.round(rnd(28,40)*expandBoost),months:Math.round(rnd(4,6))});
+  const global_=deptByKey(STATE,"global");
+  if(global_?.unlocked&&global_.employees.length)
+    offers.push({customer:"海外客戶 - 高單價大單",price:Math.round(base*rnd(1.2,1.5)*(global_.directive==="expand"?1.15:1)),volume:Math.round(rnd(20,32)),months:Math.round(rnd(3,5))});
+
+  const ctHtml=offers.map((o,i)=>`
+    <div class="ct-card">
+      <div class="ct-top"><span>${o.customer}</span><span>${o.months} 個月</span></div>
+      <div class="ct-row"><span>單價</span><span>${o.price} 萬</span></div>
+      <div class="ct-row"><span>每月訂單量</span><span>${o.volume} 件</span></div>
+      <button class="ct-btn" onclick="dispatch('ACCEPT_CONTRACT',{projectId:'${project.id}',offer:${JSON.stringify(o)}})">承接此合約</button>
+    </div>`).join("");
+  openModal(`<div class="m-meta">合約洽談 · 「${project.customer}」案件</div>
+    <div class="m-title">本案件有 ${offers.length} 張合約邀約</div>
+    <div class="m-desc">訂單量與售價由客戶決定，你能做的是挑哪張單、要不要承接——產能不足會傷客戶信任。</div>
+    ${ctHtml}
+    <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">暫不接單（觀察市場）</button>`);
+}
+
+function showEventModal(evItem){
+  const{ev,ctx}=evItem;
+  const levelLabel={"company":"公司層級","department":"部門層級","individual":"個人層級"}[ev.level]||ev.level;
+  const descText=typeof ev.desc==="function"?ev.desc(STATE,ctx):ev.desc;
+  const optsHtml=ev.options.map((o,i)=>`<button class="m-choice" onclick="dispatch('RESOLVE_EVENT',{ev:STATE.ui.pendingEvents[0]?.ev||STATE._lastEv,ctx:STATE.ui.pendingEvents[0]?.ctx||null,optIdx:${i}})">${o.label}</button>`).join("");
+  STATE._lastEv=ev;STATE._lastCtx=ctx;
+  // Stash on state for inline handler
+  openModal(`<div class="m-meta">${ev.bucket} · ${levelLabel}</div>
+    <div class="m-title">${ev.name}</div>
+    <div class="m-desc">${descText}</div>
+    ${ev.options.map((o,i)=>`<button class="m-choice" onclick="resolveEvent(${i})">${o.label}</button>`).join("")}`);
+}
+
+/* ============================================================
+   UI — Employee detail modal + Adaptive dept floor
+============================================================ */
+const ABILITY_DEFS=[
+  {label:"技術力",key:"technical",color:"var(--purple)"},
+  {label:"業務力",key:"sales",color:"var(--blue)"},
+  {label:"管理力",key:"management",color:"var(--teal)"},
+  {label:"誠信值",key:"integrity",color:"var(--green)"},
+];
+
+// Global lookup for onclick handlers
+window._empLookup={};
+function _regEmp(e){window._empLookup[e.id]=e;return e.id;}
+function _clickEmp(id){showEmployeeModal(window._empLookup[id]);}
+
+function showEmployeeModal(emp){
+  if(!emp)return;
+  var avgAb=Math.round(Object.values(emp.trueAbility).reduce(function(a,v){return a+v;},0)/4);
+  var barsHtml=ABILITY_DEFS.map(function(def){
+    var v=Math.round(emp.trueAbility[def.key]);
+    var recent=(emp.growthLog||[]).filter(function(g){return g.field===def.key&&g.delta>0;}).slice(0,1);
+    var gtag=recent.length?"<span class='growth-tag'>+"+recent[0].delta+" M"+recent[0].month+"</span>":"<span class='growth-tag'></span>";
+    var tier=v>=80?"優秀":v>=60?"良好":v>=40?"普通":v>=20?"偏弱":"很弱";
+    return "<div class='emp-stat-row'>"+
+      "<span class='emp-stat-lbl'>"+def.label+"</span>"+
+      "<div class='emp-stat-track'><div class='emp-stat-fill' style='width:"+v+"%;background:"+def.color+"'></div></div>"+
+      "<span class='emp-stat-val'>"+v+"</span>"+
+      "<span style='font-size:9px;color:var(--muted);min-width:28px'>"+tier+"</span>"+
+      gtag+"</div>";
+  }).join("");
+  var growthHtml=(emp.growthLog||[]).length
+    ?"<div class='growth-log'><div class='growth-log-title'>近期成長紀錄</div>"
+      +(emp.growthLog||[]).slice(0,8).map(function(g){
+        return "<div class='growth-item'><span>M"+g.month+" "+g.fieldLabel+"</span><span class='gi-val'>+"+g.delta+"</span></div>";
+      }).join("")+"</div>"
+    :"<div style='font-size:10px;color:var(--muted);margin-top:10px'>暫無成長紀錄</div>";
+  openModal(
+    "<div class='emp-modal-hd'>"+
+      "<div class='emp-modal-av r-"+emp.rating+"'>"+emp.name.charAt(0)+"</div>"+
+      "<div class='emp-modal-info'>"+
+        "<div class='nm'>"+emp.name+" <span style='font-size:11px;color:var(--muted)'>["+emp.rating+"]</span></div>"+
+        "<div class='sub'>"+emp.position+" ・ 月薪 "+emp.salary+"萬<br>"+emp.school+" ・ "+emp.major+"<br>特質："+(emp.traits||[]).join("/")+" ・ 忠誠度 "+moodEmoji(emp.loyalty)+"</div>"+
+      "</div>"+
+      "<div style='margin-left:auto;text-align:center'>"+
+        "<div style='font-size:22px;font-weight:700;color:var(--gold)'>"+avgAb+"</div>"+
+        "<div style='font-size:9px;color:var(--muted)'>綜合能力</div>"+
+      "</div>"+
+    "</div>"+
+    "<div>"+barsHtml+"</div>"+
+    growthHtml+
+    "<button class='m-choice' style='margin-top:14px' onclick=\"closeModal()\">關閉</button>"
+  );
+}
+
+function deptFloor(dept,s){
+  var emps=dept.employees;
+  var maxVisible=8;
+  var overflow=emps.length>maxVisible?emps.length-maxVisible:0;
+  var visible=overflow?emps.slice(0,maxVisible):emps;
+  var headEmp=emps.length?emps.reduce(function(a,e){return e.trueAbility.management>a.trueAbility.management?e:a;},emps[0]):null;
+  var sizeClass=emps.length<=4?"":emps.length<=7?"sm":"xs";
+  var floor=visible.map(function(e){
+    var isHead=headEmp&&e.id===headEmp.id&&emps.length>1;
+    var eid=_regEmp(e);
+    return "<div class='emp-fig"+(sizeClass?" "+sizeClass:"")+(isHead?" is-head":"")+"' onclick='_clickEmp(\""+eid+"\")'>"+
+      empSVG(e,24,34)+
+      "<div class='emp-name'>"+e.name+"</div></div>";
+  }).join("");
+  if(overflow){
+    floor+="<div class='emp-overflow' onclick='showDeptList(\""+dept.key+"\")'>+"+overflow+"</div>";
+  }
+  if(dept.employees.length<dept.slots){
+    floor+="<div class='plus-slot' onclick='dispatch(\"RECRUIT_OPEN\",{deptKey:\""+dept.key+"\"})'>+</div>";
+  }
+  var headBanner="";
+  if(headEmp&&emps.length>0){
+    var mgmt=Math.round(headEmp.trueAbility.management);
+    var tech=Math.round(headEmp.trueAbility.technical);
+    var hid=_regEmp(headEmp);
+    headBanner="<div style='font-size:9px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-shrink:0;cursor:pointer' onclick='_clickEmp(\""+hid+"\")'>"+
+      "<span>★ "+headEmp.name+" 管理"+mgmt+"</span><span>技術"+tech+"</span></div>";
+  }
+  return{floor:floor,headBanner:headBanner};
+}
+
+function showDeptList(deptKey){
+  var dept=STATE.departments.find(function(d){return d.key===deptKey;});
+  if(!dept)return;
+  // refresh lookup
+  dept.employees.forEach(function(e){_regEmp(e);});
+  var listHtml=dept.employees.map(function(e){
+    return "<div class='emp-list-item' onclick='_clickEmp(\""+e.id+"\")'>"+
+      "<div>"+empSVG(e,18,26)+"</div>"+
+      "<div class='eli-info'>"+
+        "<div class='nm'>"+e.name+" ["+e.rating+"]</div>"+
+        "<div class='sub'>"+e.position+" ・ 月薪"+e.salary+"萬 ・ "+e.traits[0]+"</div>"+
+      "</div>"+
+      "<div class='eli-mood'>"+moodEmoji(e.loyalty)+"</div>"+
+    "</div>";
+  }).join("");
+  openModal(
+    "<div class='m-meta'>"+dept.name+" 全體員工</div>"+
+    "<div class='m-title'>"+dept.employees.length+" 名員工</div>"+
+    "<div>"+listHtml+"</div>"+
+    "<button class='m-choice' style='margin-top:10px' onclick=\"closeModal()\">關閉</button>"
+  );
+}
+
+function resolveEvent(optIdx){
+  const s=STATE;
+  const item=s._pendingEventShown;
+  if(!item)return;
+  item.ev.options[optIdx].eff(s,item.ctx);
+  s.log(item.ev.bucket,`「${item.ev.name}」→「${item.ev.options[optIdx].label}」`);
+  closeModal();renderAll();processUIQueue();
+}
+
+function processUIQueue(){
+  if(isModalOpen())return;
+  const s=STATE;
+  if(s.ui.pendingEvents.length>0){
+    const item=s.ui.pendingEvents.shift();
+    s._pendingEventShown=item;
+    showEventModal(item);
+    return;
+  }
+  if(s.ui.pendingContracts.length>0){
+    const pid=s.ui.pendingContracts.shift();
+    const p=s.projects.find(pr=>pr.id===pid);
+    if(p&&!p.contract){showContractModal(p);return;}
+    processUIQueue();
+  }
+}
+
+function toggleSidebar(){
+  const s=STATE;
+  s.ui.sideOpen=!s.ui.sideOpen;
+  renderSide(s);
+}
+
+/* ============================================================
+   UI — Setup screen
+============================================================ */
+function renderSetup(){
+  const grid=document.getElementById("ind-grid");
+  grid.innerHTML="";
+  Object.entries(CONFIG.INDUSTRIES).forEach(([key,ind])=>{
+    const card=document.createElement("div");
+    card.className="ind-card"+(ind.enabled?"":" disabled");
+    card.innerHTML=`<div class="ind-name">${ind.label}</div>
+      <div class="ind-cap">起始資本 ${ind.capital} 萬</div>
+      <div class="ind-desc">${ind.desc}</div>
+      ${ind.enabled?"":'<span class="badge-soon">設計中，尚未開放</span>'}`;
+    if(ind.enabled)card.onclick=()=>dispatch("START_GAME",{industryKey:key});
+    grid.appendChild(card);
+  });
+}
+
+/* ============================================================
+   Toast
+============================================================ */
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2000);
+}
+
+/* ============================================================
+   INIT — event listeners
+============================================================ */
+document.getElementById("btn-next").onclick=()=>dispatch("NEXT_MONTH");
+document.getElementById("btn-help").onclick=()=>dispatch("SHOW_TUTORIAL");
+document.getElementById("btn-sidebar").onclick=()=>dispatch("TOGGLE_SIDEBAR");
+document.getElementById("side-toggle").onclick=()=>dispatch("TOGGLE_SIDEBAR");
+document.getElementById("new-proj-btn").onclick=()=>dispatch("NEW_PROJECT");
+document.querySelectorAll(".s-tab").forEach(t=>{
+  t.onclick=()=>dispatch("SET_SIDE_TAB",{tab:t.dataset.tab});
+});
+document.getElementById("modal-overlay").onclick=function(e){
+  if(e.target===this)dispatch("CLOSE_MODAL");
+};
+
+renderSetup();
+</script>
+</body>
+</html>
