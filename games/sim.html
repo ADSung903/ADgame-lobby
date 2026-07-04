@@ -46,6 +46,8 @@ body.stage-2{--bg:#101a2e;}
 body.stage-3{--bg:#131f38;}
 body.stage-4{--bg:#16244a;}
 #stage-badge{font-size:10px;color:var(--gold);border:1px solid var(--gold-dim);border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:middle;}
+.pos-tag{display:inline-block;font-size:7px;color:var(--gold);border:1px solid var(--line);border-radius:3px;padding:0 2px;margin-right:1px;vertical-align:middle;}
+.dir-live{background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:10px;font-size:10px;padding:2px 6px;max-width:110px;}
 #side-close{display:none;padding:10px;text-align:center;font-size:12px;color:var(--gold);border-bottom:1px solid var(--line);cursor:pointer;background:var(--surface2);}
 @media(max-width:760px){#side-close{display:block;}}
 
@@ -162,6 +164,8 @@ body.stage-4{--bg:#16244a;}
   #topbar{flex-wrap:wrap;gap:6px;}
   #side-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:65;}
   #side-backdrop.show{display:block;}
+  #directives-sec{display:none !important;}
+  #bottom-bar{flex-wrap:wrap;}
 }
 
 /* MODALS */
@@ -242,6 +246,7 @@ body.stage-4{--bg:#16244a;}
     </div>
     <div class="topbar-r">
       <button class="tbtn" id="btn-sidebar">側欄 ◀</button>
+      <button class="tbtn" onclick="if(confirm('返回遊戲大廳？進度已自動存檔。'))location.href='../index.html'">🏠</button>
       <button class="tbtn" id="btn-mute">🔊</button>
       <button class="tbtn" id="btn-help">？ 規則</button>
       <button class="tbtn primary" id="btn-next">下一月 ▶</button>
@@ -256,6 +261,7 @@ body.stage-4{--bg:#16244a;}
           <div class="name" id="boss-name">老闆</div>
           <div class="sub" id="boss-sub"></div>
         </div>
+        <span id="vp-node" style="display:none;align-items:center;cursor:pointer"></span>
         <button class="tbtn" id="btn-gm-appoint" style="display:none">任命總經理</button>
         <button class="tbtn" id="btn-downsize" style="display:none;border-color:var(--red);color:var(--red)">組織瘦身</button>
         <div id="gm-node" style="display:none">
@@ -2089,6 +2095,15 @@ function renderBossRow(s){
   const gmBtn=document.getElementById("btn-gm-appoint");
   gmBtn.style.display=(!s.hasGM&&hc>=10)?"inline-block":"none";
   gmBtn.onclick=showGMAppointChoice;
+  const vpEl=document.getElementById("vp-node");
+  if(vpEl){
+    if(s.vp){
+      const vpe=allEmps(s).find(e=>e.id===s.vp.id);
+      vpEl.style.display="inline-flex";
+      vpEl.innerHTML=vpe?empSVG(vpe,20,28)+"<span style='font-size:10px;margin-left:4px'>"+vpe.name+"（副總）</span>":"";
+      vpEl.onclick=()=>{if(vpe)_clickEmp(vpe.id);};
+    }else vpEl.style.display="none";
+  }
   const dz=document.getElementById("btn-downsize");
   dz.style.display=hc>=30?"inline-block":"none";
   dz.onclick=showDownsize;
@@ -2147,10 +2162,13 @@ function renderRooms(s){
       const invCost=investCost(dept);
       const expCost=expandCost(dept);
       const{floor:floorHtml,headBanner}=deptFloor(dept,s);
+      const dirOpts=(CONFIG.DIRECTIVES[dept.key]||[]).map(o=>`<option value="${o.id}"${dept.directive===o.id?" selected":""}>${o.label}</option>`).join("");
+      div.setAttribute("data-dk",dept.key);
+      div.onclick=(ev)=>{if(ev.target.closest("button,select,.emp-fig,.plus-slot"))return;if(window.innerWidth<=760)showDeptPanel(dept.key);};
       div.innerHTML=`
         <div class="room-hdr">
-          <div class="room-name">${dept.name} Lv.${dept.investLevel}</div>
-          <div class="d-badge">${dirLabel}</div>
+          <div class="room-name">${dept.name} Lv.${dept.investLevel}${window.innerWidth<=760?' <span style="font-size:9px;color:var(--muted)">（點擊展開）</span>':''}</div>
+          <select class="d-badge dir-live" onchange="dispatch('SET_DIRECTIVE',{deptKey:'${dept.key}',directive:this.value})">${dirOpts}</select>
         </div>
         ${kpi1?`<div class="kpi-row"><span class="kpi-lbl">${kpi1.label}</span><div class="kpi-track"><div class="kpi-fill" style="width:${v1}%;background:${kpiColor1}"></div></div><span class="kpi-v">${v1}</span></div>`:""}
         ${kpi2?`<div class="kpi-row"><span class="kpi-lbl">${kpi2.label}</span><div class="kpi-track"><div class="kpi-fill" style="width:${v2}%;background:${kpiColor2}"></div></div><span class="kpi-v">${v2}</span></div>`:""}
@@ -2167,6 +2185,44 @@ function renderRooms(s){
   });
 }
 
+function showDeptPanel(deptKey){
+  const s=STATE;
+  const dept=deptByKey(s,deptKey);
+  if(!dept||!dept.unlocked)return;
+  const def=CONFIG.DEPT_DEFS.find(x=>x.key===deptKey);
+  const dirOpts=(CONFIG.DIRECTIVES[deptKey]||[]).map(o=>`<option value="${o.id}"${dept.directive===o.id?" selected":""}>${o.label}</option>`).join("");
+  const kpiHtml=(def.kpis||[]).map(k=>{
+    let v=0;try{v=Math.round(k.fn(dept,s));}catch(e){}
+    return `<div class="s-stat"><span class="s-lbl">${k.label}</span><span class="s-val">${v}</span></div>`;
+  }).join("");
+  const head=deptHead(dept);
+  const tmap={"組長":"組","主任":"任","經理":"理","副處長":"副處","處長":"處","副總":"副總"};
+  const empHtml=dept.employees.map(e=>{
+    const tag=tmap[e.position]?`<span class="pos-tag">${tmap[e.position]}</span>`:"";
+    const away=e.training?`<span class="pos-tag" style="color:var(--gold)">訓</span>`:"";
+    const star=(dept.headId===e.id)?"★":"";
+    return `<div class="emp-list-item" onclick="_clickEmp('${e.id}')" style="display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--line);cursor:pointer">
+      ${empSVG(e,20,28)}
+      <div style="flex:1"><div style="font-size:11px">${star}${tag}${away}${e.name}</div>
+      <div style="font-size:9px;color:var(--muted)">${e.position} · ${e.salary}萬/月 · 忠誠${Math.round(e.loyalty)}</div></div></div>`;
+  }).join("")||'<div style="font-size:11px;color:var(--muted);padding:8px">尚無員工</div>';
+  const invCost=investCost(dept);
+  const expCost=expandCost(dept);
+  openModal(`<div class="m-meta">部門管理</div>
+    <div class="m-title">${dept.name} Lv.${dept.investLevel}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0">
+      <span style="font-size:11px;color:var(--muted)">本月方針</span>
+      <select class="d-badge dir-live" onchange="dispatch('SET_DIRECTIVE',{deptKey:'${deptKey}',directive:this.value})">${dirOpts}</select>
+    </div>
+    ${kpiHtml}
+    ${head?`<div class="m-desc" style="margin:4px 0">主管：${dept.headId?"★"+deptHeadTitle(dept):"（代理）"} ${head.name}（管理 ${head.trueAbility.management}）</div>`:""}
+    <div style="max-height:38vh;overflow-y:auto;border:1px solid var(--line);border-radius:6px;margin:6px 0">${empHtml}</div>
+    <button class="m-choice" onclick="closeModal();dispatch('RECRUIT_OPEN',{deptKey:'${deptKey}'})">招募 ${dept.employees.length}/${dept.slots}</button>
+    ${invCost!==null?`<button class="m-choice" onclick="closeModal();dispatch('INVEST_ASK',{deptKey:'${deptKey}'})">設備升級 · ${invCost} 萬</button>`:""}
+    <button class="m-choice" onclick="closeModal();dispatch('EXPAND_DEPT',{deptKey:'${deptKey}'})">擴編 +1 · ${expCost} 萬</button>
+    ${deptKey==="prod"&&s.company.equipmentAging>0.3?`<button class="m-choice" style="border-color:var(--orange);color:var(--orange)" onclick="closeModal();dispatch('REPLACE_EQUIP')">汰換設備（老化 ${Math.round(s.company.equipmentAging*100)}%）· ${replaceEquipCost(s)} 萬</button>`:""}
+    <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">關閉</button>`);
+}
 function renderSide(s){
   s=s||STATE;
   const sp=document.getElementById("side-panel");
@@ -2577,7 +2633,8 @@ function _toggleLeader(empId,on){
 }
 /* 深造 */
 function _trainBtnHtml(emp){
-  if(emp.training)return "<div class='sub' style='margin-top:8px;color:var(--gold)'>📚 進修中，第 "+emp.training.until+" 月歸建</div>";
+  if(emp.position==="總經理")return "";
+  if(emp.training)return "<div class='sub' style='margin-top:8px;color:var(--gold)'>📚 進修中，第 "+emp.training.until+" 月歸建（現在第 "+STATE.company.month+" 月）</div>";
   var c1=esc$(STATE,25),c2=esc$(STATE,120);
   return "<button class='m-choice' style='margin-top:8px' onclick='_train(\""+emp.id+"\",\"local\")'>送訓－國內受訓（"+c1+" 萬，3個月，主能力+5~10）</button>"+
     "<button class='m-choice' style='margin-top:8px' onclick='_train(\""+emp.id+"\",\"abroad\")'>出國深造（"+c2+" 萬，6個月，+15~25＋可能習得技能，10%被挖走）</button>";
@@ -2594,6 +2651,15 @@ function _train(empId,kind){
   saveGame(s);closeModal();renderAll();
 }
 function processTraining(s){
+  if(s.gm&&s.gm.training&&s.company.month>=s.gm.training.until){
+    var g=s.gm;
+    var keys=["technical","sales","management","integrity"];
+    var main=keys.reduce(function(a,k){return g.trueAbility[k]>g.trueAbility[a]?k:a;},"management");
+    var gain=g.training.type==="abroad"?Math.round(rnd(15,25)):Math.round(rnd(5,10));
+    g.trueAbility[main]=clamp(g.trueAbility[main]+gain,0,100);
+    s.log("人事","總經理「"+g.name+"」進修歸建，"+main+" 提升 "+gain+"。");
+    delete g.training;
+  }
   s.departments.forEach(function(d){
     d.employees.slice().forEach(function(e){
       if(!e.training)return;
@@ -2727,9 +2793,12 @@ function deptFloor(dept,s){
     var eid=_regEmp(e);
     var rl=STATE&&STATE._rumorLevel||0;
     var rumor=rl>0&&(parseInt(e.id.slice(2,6),36)%5<rl)?"<span class='rumor-bub'>💬</span>":"";
+    var tmap={"組長":"組","主任":"任","經理":"理","副處長":"副處","處長":"處","副總":"副總"};
+    var ttag=tmap[e.position]?"<span class='pos-tag'>"+tmap[e.position]+"</span>":"";
+    var away=e.training?"<span class='pos-tag' style='color:var(--gold);border-color:var(--gold-dim)'>訓</span>":"";
     return "<div class='emp-fig"+(sizeClass?" "+sizeClass:"")+(isHead?" is-head":"")+"' onclick='_clickEmp(\""+eid+"\")'>"+
       rumor+empSVG(e,24,34)+
-      "<div class='emp-name'>"+e.name+"</div></div>";
+      "<div class='emp-name'>"+ttag+away+e.name+"</div></div>";
   }).join("");
   if(overflow)floor+="<div class='emp-fig "+(sizeClass||"")+"' style='cursor:pointer' onclick='showDeptList(\""+dept.key+"\")'>"+
     "<div style='width:24px;height:34px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);border:1px dashed var(--line);border-radius:4px'>+"+overflow+"</div>"+
@@ -2745,7 +2814,7 @@ function deptFloor(dept,s){
     var mgmt=Math.round(headEmp.trueAbility.management);
     var tech=Math.round(headEmp.trueAbility.technical);
     var hid=_regEmp(headEmp);
-    var hTag=headOfficial?"★ ":"（代理）";
+    var hTag=headOfficial?"★"+deptHeadTitle(dept)+" ":"（代理）";
     var hbLabel="";
     if(headOfficial){
       var hb=headBonus(dept)*(STATE&&STATE._gmAmp||1);
