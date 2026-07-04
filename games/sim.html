@@ -46,6 +46,8 @@ body.stage-2{--bg:#101a2e;}
 body.stage-3{--bg:#131f38;}
 body.stage-4{--bg:#16244a;}
 #stage-badge{font-size:10px;color:var(--gold);border:1px solid var(--gold-dim);border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:middle;}
+#side-close{display:none;padding:10px;text-align:center;font-size:12px;color:var(--gold);border-bottom:1px solid var(--line);cursor:pointer;background:var(--surface2);}
+@media(max-width:760px){#side-close{display:block;}}
 
 /* OFFICE AREA */
 #office-area{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px;gap:8px;}
@@ -266,6 +268,7 @@ body.stage-4{--bg:#16244a;}
 
     <div id="side-backdrop" onclick="toggleSidebar()"></div>
 <div id="side-panel">
+      <div id="side-close" onclick="toggleSidebar()">✕ 關閉側欄</div>
       <div id="side-tabs">
         <div class="s-tab active" data-tab="finance">財務</div>
         <div class="s-tab" data-tab="risk">風險</div>
@@ -746,7 +749,7 @@ function createState(industryKey){
     hasGM:false,gm:null,_gmEventFired:false,_pendingEventShown:null,
     lastFin:null,
     eventLog:[],
-    ui:{pendingEvents:[],pendingContracts:[],modal:null,sideTab:"finance",sideOpen:true,
+    ui:{pendingEvents:[],pendingContracts:[],modal:null,sideTab:"finance",sideOpen:(typeof window!=="undefined"&&window.innerWidth>760),
         tempCandidates:[],tempContractProject:null}
   };
   s.company.debtRatio=function(){return this.debt/(this.debt+this.equity+1);};
@@ -2889,11 +2892,11 @@ function processUIQueue(){
 }
 
 function toggleSidebar(){
-  const bd=document.getElementById("side-backdrop");
-  if(bd)bd.classList.toggle("show",document.getElementById("side-panel").classList.contains("collapsed"));
   const s=STATE;
   s.ui.sideOpen=!s.ui.sideOpen;
   renderSide(s);
+  const bd=document.getElementById("side-backdrop");
+  if(bd)bd.classList.toggle("show",s.ui.sideOpen&&window.innerWidth<=760);
 }
 
 /* ============================================================
