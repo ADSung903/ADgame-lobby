@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>企業模擬經營 v1.51</title>
+<title>企業模擬經營 v1.52</title>
 <style>
 :root{
   --bg:#0f1923;--surface:#172030;--surface2:#1e293b;--line:#2a3a4a;
@@ -209,7 +209,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- SETUP SCREEN -->
 <div id="screen-setup" class="screen active">
   <h1>企業模擬經營</h1>
-  <p class="tagline">v1.51 — 選擇你的產業，開始經營</p>
+  <p class="tagline">v1.52 — 選擇你的產業，開始經營</p>
   <div class="ind-grid" id="ind-grid"></div>
 </div>
 
@@ -286,7 +286,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <script>
 /* ================================================================
-   企業模擬經營 v1.51
+   企業模擬經營 v1.52
    架構: CONFIG → ENGINE → STATE → DISPATCH → UI
 ================================================================ */
 
@@ -573,6 +573,43 @@ function makeEmployee(position,dept,s){
 /* ============================================================
    ENGINE — createState
 ============================================================ */
+const SAVE_KEY="sim_save_v1";
+function serializeState(s){
+  return JSON.stringify({
+    v:1,
+    industryKey:s.industry.key,
+    company:{...s.company,debtRatio:undefined},
+    departments:s.departments.map(d=>({key:d.key,unlocked:d.unlocked,slots:d.slots,investLevel:d.investLevel,directive:d.directive,headId:d.headId,employees:d.employees})),
+    projects:s.projects,
+    eventLog:s.eventLog.slice(0,120),
+    hasGM:s.hasGM,gm:s.gm||null,
+    _gmEventFired:s._gmEventFired||false
+  });
+}
+function saveGame(s){
+  if(!s||s.company.bankrupt)return;
+  try{localStorage.setItem(SAVE_KEY,serializeState(s));}catch(e){}
+}
+function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
+function loadSaveRaw(){
+  try{const r=localStorage.getItem(SAVE_KEY);return r?JSON.parse(r):null;}catch(e){return null;}
+}
+function restoreState(data){
+  const s=createState(data.industryKey);
+  Object.keys(data.company).forEach(k=>{if(k!=="debtRatio"&&data.company[k]!==undefined)s.company[k]=data.company[k];});
+  data.departments.forEach(sd=>{
+    const d=s.departments.find(x=>x.key===sd.key);
+    if(!d)return;
+    d.unlocked=sd.unlocked;d.slots=sd.slots;d.investLevel=sd.investLevel;
+    d.directive=sd.directive;d.headId=sd.headId||null;
+    d.employees=sd.employees||[];
+  });
+  s.projects=data.projects||[];
+  s.eventLog=data.eventLog||[];
+  s.hasGM=!!data.hasGM;s.gm=data.gm||null;
+  s._gmEventFired=!!data._gmEventFired;
+  return s;
+}
 function createState(industryKey){
   const industry=CONFIG.INDUSTRIES[industryKey];
   const departments=CONFIG.DEPT_DEFS.map(def=>{
@@ -1245,8 +1282,21 @@ function dispatch(action,payload={}){
   const s=STATE;
   switch(action){
 
+    case "CONTINUE_GAME":{
+      const sv=loadSaveRaw();
+      if(!sv){toast("找不到存檔。");return;}
+      STATE=restoreState(sv);
+      document.getElementById("screen-setup").classList.remove("active");
+      document.getElementById("screen-game").classList.add("active");
+      renderAll();
+      AUDIO.bgm("bgm_main");
+      toast(`歡迎回來 — 第 ${STATE.company.month} 月`);
+      break;
+    }
+
     case "START_GAME":
       STATE=createState(payload.industryKey);
+      clearSave();
       document.getElementById("screen-setup").classList.remove("active");
       document.getElementById("screen-game").classList.add("active");
       renderAll();
@@ -1268,18 +1318,34 @@ function dispatch(action,payload={}){
       if(cpm===3||cpm===6||cpm===12)setTimeout(()=>AUDIO.sfx("victory"),500);
       renderAll();
       checkSolvency(STATE);
+      saveGame(STATE);
       if(!isModalOpen())processUIQueue();
       break;
     }
 
-    case "INSPECT":
+    case "INSPECT":{
       if(s.company.bossActions.inspect){toast("本月已視察過了。");return;}
       s.company.bossActions.inspect=true;
       s.company.inspectMode=s.hasGM?"partial":"full";
       s.log("視察",s.hasGM?"老闆視察部門，但資訊先經過總經理篩選，只看到部分真相。":"老闆親自視察部門，本月取得真實數據。");
-      toast(s.hasGM?"視察完成 — 經總經理篩選，僅取得部分真實值":"視察完成 — 本月顯示真實值");
+      const c=s.company,partial=s.hasGM;
+      const rows=[{n:"良率",r:c.reportedYieldRate,t:c.trueYieldRate,unit:"%",badHigh:false}]
+        .concat(Object.keys(c.trueRisk).map(k=>({n:k+"風險",r:c.reportedRisk[k],t:c.trueRisk[k],unit:"",badHigh:true})));
+      const trs=rows.map(v=>{
+        const act=partial?(v.t+v.r)/2:v.t;
+        const gap=act-v.r;
+        const bad=v.badHigh?gap>8:gap<-8;
+        const gapTxt=(gap>0?"+":"")+gap.toFixed(1);
+        return `<tr><td>${v.n}</td><td style="text-align:right">${v.r.toFixed(1)}${v.unit}</td><td style="text-align:right">${act.toFixed(1)}${v.unit}</td><td style="text-align:right;color:${bad?"var(--red)":Math.abs(gap)>4?"var(--orange)":"var(--muted)"}">${gapTxt}</td></tr>`;
+      }).join("");
+      openModal(`<div class="m-meta">老闆行動 · 視察</div>
+        <div class="m-title">🔍 視察結果${partial?"（經總經理篩選的折中值）":""}</div>
+        <table class="ctbl" style="width:100%"><tr style="color:var(--muted)"><td>項目</td><td style="text-align:right">回報值</td><td style="text-align:right">${partial?"折中值":"實際值"}</td><td style="text-align:right">落差</td></tr>${trs}</table>
+        <div class="m-desc" style="margin-top:8px;font-size:10px">${partial?"總經理已經替你「整理」過數字——想看到未經修飾的真相，只能在沒有總經理時親自視察。":"落差大的項目，代表回報體系正在美化數字。"}本月側欄與部門卡片將顯示${partial?"折中":"真實"}數據。</div>
+        <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">知道了</button>`);
       renderAll();
       break;
+    }
 
     case "BORROW":{
       if(s.company.bossActions.borrow&&!payload.emergency){toast("本月已借款過了。");return;}
@@ -1531,6 +1597,7 @@ function dispatch(action,payload={}){
       closeModal();
       renderAll();
       checkSolvency(STATE);
+      saveGame(STATE);
       if(!isModalOpen())processUIQueue();
       break;
     }
@@ -2124,6 +2191,7 @@ function resolveEvent(optIdx){
   const hcAfter=allEmps(s).length+(s.hasGM?1:0);
   if(hcAfter<hcBefore)AUDIO.sfx("leave");
   s.log(item.ev.bucket,`「${item.ev.name}」→「${item.ev.options[optIdx].label}」`);
+  saveGame(s);
   renderAll();
   if(!isModalOpen()){
     const lines=_diffReport(before,s);
@@ -2167,6 +2235,22 @@ function toggleSidebar(){
 function renderSetup(){
   const grid=document.getElementById("ind-grid");
   grid.innerHTML="";
+  const sv=loadSaveRaw();
+  if(sv){
+    const card=document.createElement("div");
+    card.className="ind-card";
+    card.style.borderColor="var(--gold)";
+    card.innerHTML=`<div class="ind-name" style="color:var(--gold)">▶ 繼續經營</div>
+      <div class="ind-cap">${sv.company.name} · 第 ${sv.company.month} 月</div>
+      <div class="ind-desc">現金 ${Math.round(sv.company.cash)} 萬 · 員工 ${sv.departments.reduce((a,d)=>a+(d.employees?d.employees.length:0),0)} 人</div>`;
+    card.onclick=()=>dispatch("CONTINUE_GAME");
+    grid.appendChild(card);
+    const del=document.createElement("div");
+    del.style.cssText="grid-column:1/-1;text-align:center;font-size:10px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-bottom:4px";
+    del.textContent="刪除存檔，重新開始";
+    del.onclick=()=>{if(confirm("確定刪除存檔？此動作無法復原。")){clearSave();renderSetup();}};
+    grid.appendChild(del);
+  }
   Object.entries(CONFIG.INDUSTRIES).forEach(([key,ind])=>{
     const card=document.createElement("div");
     card.className="ind-card"+(ind.enabled?"":" disabled");
@@ -2201,6 +2285,7 @@ function checkSolvency(s){
 function doBankrupt(s){
   const c=s.company;
   c.bankrupt=true;
+  clearSave();
   AUDIO.sfx("loss");
   AUDIO.bgm("bgm_crisis");
   s.log("結局","公司資金斷鏈，宣告破產。");
