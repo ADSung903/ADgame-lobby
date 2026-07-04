@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>企業模擬經營 v1.5</title>
+<title>企業模擬經營 v1.51</title>
 <style>
 :root{
   --bg:#0f1923;--surface:#172030;--surface2:#1e293b;--line:#2a3a4a;
@@ -209,7 +209,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- SETUP SCREEN -->
 <div id="screen-setup" class="screen active">
   <h1>企業模擬經營</h1>
-  <p class="tagline">v1.5 — 選擇你的產業，開始經營</p>
+  <p class="tagline">v1.51 — 選擇你的產業，開始經營</p>
   <div class="ind-grid" id="ind-grid"></div>
 </div>
 
@@ -286,7 +286,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <script>
 /* ================================================================
-   企業模擬經營 v1.5
+   企業模擬經營 v1.51
    架構: CONFIG → ENGINE → STATE → DISPATCH → UI
 ================================================================ */
 
@@ -332,7 +332,7 @@ DEPT_DEFS:[
   {key:"prod",name:"產線部",color:"var(--orange)",unlocked:true,cost:0,headPos:"經理",startSlots:5,startEmps:["產線人員","產線人員"],
     unlockCheck:()=>true,unlockHint:"",
     kpis:[{label:"產能利用率",fn:(d,s)=>clamp(s.lastFin?Math.round(s.lastFin.demand/Math.max(1,s.lastFin.capacity)*100):0,0,100)},
-           {label:"良率",fn:(d,s)=>Math.round(s.company.trueYieldRate)}],
+           {label:"良率",fn:(d,s)=>Math.round(s.company.inspectMode==="full"?s.company.trueYieldRate:s.company.inspectMode==="partial"?(s.company.trueYieldRate+s.company.reportedYieldRate)/2:s.company.reportedYieldRate)}],
     effects:{yieldBonus:(d)=>0.03*(d.investLevel-1)+(d.directive==="focus"?0.04:0),
              agingDelta:(d)=>(d.directive==="maintain"?-0.006:0)}},
   {key:"qa",name:"品保部",color:"var(--teal)",unlocked:false,cost:30,headPos:"經理",startSlots:2,startEmps:[],
@@ -461,8 +461,10 @@ MAJORS:[
 ],
 TRAITS:["拼命型","穩健型","社交強","技術控","誠信存疑"],
 NAMES_F:["陳","林","黃","張","李","王","吳","蔡","鄭","劉"],
-NAMES_M:["志","美","建","怡","俊","佳","宗","雅","承","欣"],
-NAMES_E:["明","華","軒","婷","翔","欣","宇","庭","勳","安"],
+NAMES_M:["志","建","俊","宗","承","家","冠","柏","偉","哲"],
+NAMES_E:["明","軒","翔","宇","勳","豪","廷","鴻","凱","誠"],
+NAMES_M_F:["美","怡","雅","欣","佳","淑","慧","詩","宛","采"],
+NAMES_E_F:["婷","華","欣","庭","安","芳","君","瑜","琪","蓉"],
 CUSTOMERS:["晨曜電子","遠星科技","信泰精密","捷揚國際","昇陽製造","北極星品牌","凱博實業","聯運科技","飛遠國際","光采精工"],
 RATINGS:["彩","紅","金","紫","藍","綠","白"],
 RATING_POTENTIAL:{"彩":92,"紅":80,"金":68,"紫":57,"藍":47,"綠":37,"白":27},
@@ -510,8 +512,12 @@ function maxProjects(s){
   const d=deptByKey(s,"sales");
   return Math.max(1,d?d.employees.length:1);
 }
+function replaceEquipCost(s){
+  const prod=deptByKey(s,"prod");
+  return Math.round(80*(prod?prod.investLevel:1)*(0.5+s.company.equipmentAging));
+}
 function investCost(dept){const max=dept.key==="prod"?8:5;return dept.investLevel>=max?null:(dept.key==="prod"?120:20)*dept.investLevel;}
-function expandCost(dept){return Math.round(15*Math.pow(1.5,dept.slots));}
+function expandCost(dept){return Math.round(20*Math.pow(dept.slots,1.5));}
 
 function pickSchool(s){
   const globalBoost=deptByKey(s,"global")?.unlocked&&deptByKey(s,"global")?.employees.length>0;
@@ -544,11 +550,12 @@ function makeEmployee(position,dept,s){
     :rating==="金"||rating==="紫"?"條件不錯，值得一試"
     :rating==="藍"||rating==="綠"?"中等水準，穩定可用"
     :"潛力不明，有風險但便宜";
+  const gender=Math.random()<0.5?"m":"f";
   return {
     id:"e"+Math.random().toString(36).slice(2,8),
-    gender:Math.random()<0.5?"m":"f",
+    gender,
     figv:1+Math.floor(Math.random()*4),
-    name:pick(CONFIG.NAMES_F)+pick(CONFIG.NAMES_M)+pick(CONFIG.NAMES_E),
+    name:(()=>{const g2=gender==="f";return pick(CONFIG.NAMES_F)+pick(g2?CONFIG.NAMES_M_F:CONFIG.NAMES_M)+pick(g2?CONFIG.NAMES_E_F:CONFIG.NAMES_E);})(),
     position,rating,school:school.name,major:major.name,
     traits:[pick(CONFIG.TRAITS)],
     expYears,expectedSalary:salary,evalText,
@@ -663,11 +670,13 @@ function advanceMonth(s){
   c.inspectMode=null;
   c.investmentFrozen=false;
   c.interestRate=baseRate(c)+c.ratePenalty;
+  s.ui.monthCands={};s.ui.monthBulk={};
 
   // Risk decay
   const riskDecay={財務造假:0.025,勞檢:0.04,品質掩蓋:0.03,採購舞弊:0.02};
   Object.keys(c.trueRisk).forEach(k=>{c.trueRisk[k]=clamp(c.trueRisk[k]*(1-riskDecay[k]),0,100);});
   checkRumors(s);
+  if(c.month>0&&c.month%12===0)s.ui.pendingEvents.push({ev:yearEndEvent(s),ctx:{}});
 
   // Equipment aging — prod directive "maintain" slows it
   const prod=deptByKey(s,"prod");
@@ -903,6 +912,20 @@ function calcMonthly(s){
     capacity:totalCapacity,demand:totalDemand,cogsRate};
 }
 
+function yearEndEvent(s){
+  const hc=allEmps(s).length+(s.hasGM?1:0);
+  const c1=Math.round(hc*3),c2=Math.round(hc*1.5),c3=Math.round(hc*0.5);
+  return{
+    name:"年終尾牙",bucket:"人事",
+    desc:`一年又過去了，全公司 ${hc} 人都在看老闆的誠意。尾牙的規格，員工都會記在心裡。`,
+    options:[
+      {label:`高級飯店尾牙＋抽獎（${c1} 萬）`,eff:(s)=>{s.company.cash-=c1;allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty+15,0,100));if(s.gm)s.gm.loyalty=clamp(s.gm.loyalty+15,0,100);s.log("人事","盛大尾牙賓主盡歡，全員士氣大振。");}},
+      {label:`餐廳包場尾牙（${c2} 萬）`,eff:(s)=>{s.company.cash-=c2;allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty+8,0,100));if(s.gm)s.gm.loyalty=clamp(s.gm.loyalty+8,0,100);s.log("人事","尾牙圓滿結束，員工反應不錯。");}},
+      {label:`辦公室加菜金（${c3} 萬）`,eff:(s)=>{s.company.cash-=c3;allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty+3,0,100));s.log("人事","小小心意，聊勝於無。");}},
+      {label:"今年不辦（共體時艱）",eff:(s)=>{allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty-8,0,100));if(s.gm)s.gm.loyalty=clamp(s.gm.loyalty-8,0,100);s.log("人事","尾牙取消，茶水間怨聲載道。");}}
+    ]
+  };
+}
 const RETURN_WAVE_EVENT={
   name:"退貨潮",bucket:"品質掩蓋",
   desc:"良率跌破 75%，多家客戶陸續退貨並要求賠償。客戶的品質工程師已經進駐稽核。",
@@ -1326,6 +1349,50 @@ function dispatch(action,payload={}){
       break;
     }
 
+    case "INVEST_ASK":{
+      const d=deptByKey(s,payload.deptKey);
+      if(!d||!d.unlocked)return;
+      const cost=investCost(d);
+      if(cost===null){toast("已達最高設備等級。");return;}
+      const FX={
+        sales:"議價力 +2%（合約單價微增）",
+        rd:"製程成功率 +4%（案件開發更快通過）",
+        prod:"設備產能 +60 件/月、良率 +3%",
+        qa:"退貨率 -0.2%",
+        proc:"COGS 議價空間增加",
+        fin:"回報噪音降低（數字更可信）",
+        global:"海外訂單單價提升"
+      };
+      openModal(`<div class="m-meta">設備投資 · ${d.name}</div>
+        <div class="m-title">升級至 Lv.${d.investLevel+1}（${cost} 萬）</div>
+        <div class="m-desc">本級效果：<b>${FX[d.key]||"部門效率提升"}</b><br>投資金額計入公司資本額，可提高授信額度。</div>
+        <button class="m-choice" onclick="closeModal();dispatch('INVEST_DEPT',{deptKey:'${d.key}'})">確認升級</button>
+        <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">再想想</button>`);
+      break;
+    }
+
+    case "REPLACE_EQUIP":{
+      const prod=deptByKey(s,"prod");
+      const cost=replaceEquipCost(s);
+      if(s.company.cash<cost){toast("現金不足。");return;}
+      openModal(`<div class="m-meta">設備汰換 · 產線部</div>
+        <div class="m-title">全面汰換老舊設備（${cost} 萬）</div>
+        <div class="m-desc">目前設備老化 <b>${Math.round(s.company.equipmentAging*100)}%</b>，良率正被拖累。汰換後老化歸零，設備等級不變，費用計入資本額。</div>
+        <button class="m-choice" onclick="closeModal();dispatch('REPLACE_EQUIP_GO')">確認汰換</button>
+        <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">再想想</button>`);
+      break;
+    }
+    case "REPLACE_EQUIP_GO":{
+      const cost=replaceEquipCost(s);
+      if(s.company.cash<cost){toast("現金不足。");return;}
+      s.company.cash-=cost;s.company.capital+=cost;
+      s.company.equipmentAging=0.05;
+      AUDIO.sfx("fanfare");
+      s.log("投資",`產線設備全面汰換，花費 ${cost} 萬，設備老化重置。`);
+      renderAll();
+      break;
+    }
+
     case "INVEST_DEPT":{
       const d=deptByKey(s,payload.deptKey);
       if(!d||!d.unlocked)return;
@@ -1355,9 +1422,13 @@ function dispatch(action,payload={}){
       if(d.employees.length>=d.slots){toast("此部門員額已滿。");return;}
       const posMap={sales:"業務",rd:"工程師",prod:"產線人員",qa:"品保",proc:"採購",fin:"財務",global:"海外業務"};
       const pos=posMap[d.key]||"工程師";
-      const cands=[makeEmployee(pos,d,s),makeEmployee(pos,d,s)];
-      if(Math.random()<0.4)cands.push(makeEmployee(pos,d,s));
-      s.ui.tempCandidates=cands.map(c=>({...c,interviewed:false,interviewHint:null}));
+      s.ui.monthCands=s.ui.monthCands||{};
+      if(!s.ui.monthCands[d.key]){
+        const cands=[makeEmployee(pos,d,s),makeEmployee(pos,d,s)];
+        if(Math.random()<0.4)cands.push(makeEmployee(pos,d,s));
+        s.ui.monthCands[d.key]=cands.map(c=>({...c,interviewed:false,interviewHint:null}));
+      }
+      s.ui.tempCandidates=s.ui.monthCands[d.key];
       showRecruitModal(d,s.ui.tempCandidates);
       break;
     }
@@ -1370,7 +1441,10 @@ function dispatch(action,payload={}){
       const posMap={sales:"業務",rd:"工程師",prod:"產線人員",qa:"品保",proc:"採購",fin:"財務",global:"海外業務"};
       const pos=posMap[d.key]||"工程師";
       const n=Math.min(free,8);
-      s.ui.bulkCands=Array.from({length:n},()=>makeEmployee(pos,d,s));
+      s.ui.monthBulk=s.ui.monthBulk||{};
+      if(!s.ui.monthBulk[d.key]||s.ui.monthBulk[d.key].length!==n)
+        s.ui.monthBulk[d.key]=Array.from({length:n},()=>makeEmployee(pos,d,s));
+      s.ui.bulkCands=s.ui.monthBulk[d.key];
       const total=s.ui.bulkCands.reduce((a,c2)=>a+c2.salary,0);
       const rows=s.ui.bulkCands.map(c2=>
         `<tr><td>${c2.name}</td><td><span class="cand-rt r-${c2.rating}">${c2.rating}</span></td><td>${c2.position}</td><td style="text-align:right">${c2.salary} 萬/月</td></tr>`).join("");
@@ -1387,6 +1461,7 @@ function dispatch(action,payload={}){
       const d=deptByKey(s,payload.deptKey);
       if(!d||!s.ui.bulkCands)return;
       const hired=s.ui.bulkCands.splice(0);
+      if(s.ui.monthBulk)delete s.ui.monthBulk[d.key];
       hired.forEach(c2=>{delete c2.interviewed;delete c2.interviewHint;d.employees.push(c2);});
       AUDIO.sfx("hire");
       s.log("招募",`${d.name}一次招募 ${hired.length} 人到職。`);
@@ -1400,12 +1475,12 @@ function dispatch(action,payload={}){
       }
       const cand=s.ui.tempCandidates.find(c=>c.id===payload.candidateId);
       if(!cand)return;
-      const dims=["technical","sales","management","integrity"];
       const dLabels={technical:"技術力",sales:"業務力",management:"管理力",integrity:"誠信值"};
-      const d=pick(dims);
-      const val=cand.trueAbility[d];
-      const range=val<40?"偏低":val<70?"中等":"偏高";
-      cand.interviewHint=`面談後感覺：${dLabels[d]}似乎${range}。`;
+      const primaryMap={sales:"sales",rd:"technical",prod:"technical",qa:"technical",proc:"management",fin:"management",global:"sales"};
+      const dept2=s.departments.find(dd=>s.ui.tempCandidates===s.ui.monthCands?.[dd.key])||_empDept(cand);
+      const pk=primaryMap[dept2?.key]||"technical";
+      const band=v=>{const lo=Math.max(0,Math.round((v-rnd(5,12))/5)*5),hi=Math.min(100,Math.round((v+rnd(5,12))/5)*5);return `約${lo}~${hi}`;};
+      cand.interviewHint=`面談評估 — ${dLabels[pk]}：${band(cand.trueAbility[pk])}｜誠信：${band(cand.trueAbility.integrity)}｜管理：${band(cand.trueAbility.management)}`;
       cand.interviewed=true;
       // Use up one action slot for the interview
       if(!s.company.bossActions.inspect)s.company.bossActions.inspect=true;
@@ -1422,6 +1497,7 @@ function dispatch(action,payload={}){
       const d=deptByKey(s,payload.deptKey);
       if(!cand||!d)return;
       d.employees.push(cand);
+      if(s.ui.monthCands&&s.ui.monthCands[d.key])s.ui.monthCands[d.key]=s.ui.monthCands[d.key].filter(x=>x.id!==cand.id);
       AUDIO.sfx("hire");
       s.log("招募",`「${cand.name}」加入了${d.name}（${cand.school} ・ 評級${cand.rating}）。`);
       closeModal();
@@ -1577,8 +1653,9 @@ function renderRooms(s){
         ${headBanner}
         <div class="room-floor">${floorHtml}</div>
         <div class="invest-row">
-          <button class="invest-btn"${invCost===null?" disabled":""} onclick="dispatch('INVEST_DEPT',{deptKey:'${dept.key}'})">${invCost===null?`設備 Lv.5（已頂）`:`設備升級 ·${invCost}萬`}</button>
+          <button class="invest-btn"${invCost===null?" disabled":""} onclick="dispatch('INVEST_ASK',{deptKey:'${dept.key}'})">${invCost===null?`設備已頂`:`設備升級 ·${invCost}萬`}</button>
           <button class="expand-btn" onclick="dispatch('EXPAND_DEPT',{deptKey:'${dept.key}'})">擴編+1 ·${expCost}萬</button>
+          ${dept.key==="prod"&&STATE.company.equipmentAging>0.3?`<button class="expand-btn" style="border-color:var(--orange);color:var(--orange)" onclick="dispatch('REPLACE_EQUIP')">汰換設備（老化${Math.round(STATE.company.equipmentAging*100)}%）·${replaceEquipCost(STATE)}萬</button>`:""}
         </div>`;
     }
     grid.appendChild(div);
@@ -1611,7 +1688,7 @@ function renderSide(s){
       <div class="s-stat"><span class="s-lbl">負債 / 額度</span><span class="s-val">${c.debt.toFixed(0)} / ${creditLimit(c)}萬</span></div>
       <div class="s-stat"><span class="s-lbl">負債比</span><span class="s-val ${c.debtRatio()>0.6?"neg":""}">${(c.debtRatio()*100).toFixed(1)}%</span></div>
       <div class="s-stat"><span class="s-lbl">股東權益</span><span class="s-val">${c.equity.toFixed(1)}萬</span></div>
-      <div class="s-stat"><span class="s-lbl">${showTrue?"真實良率":showPartial?"良率(折中)≈":"回報良率≈"}</span><span class="s-val ${yieldClass}">${yieldDisplay.toFixed(1)}%</span></div>
+      <div class="s-stat"><span class="s-lbl">${showTrue?"🔍真實良率":showPartial?"🔍良率(折中)≈":"回報良率≈"}</span><span class="s-val ${yieldClass}">${yieldDisplay.toFixed(1)}%${showTrue?`（回報 ${c.reportedYieldRate.toFixed(1)}%）`:""}</span></div>
       <div class="s-stat"><span class="s-lbl">總產能/需求</span><span class="s-val">${f.capacity}/${f.demand}件</span></div>
       <div class="s-stat"><span class="s-lbl">本月營收</span><span class="s-val">${f.revenue.toFixed(1)}</span></div>
       <div class="s-stat"><span class="s-lbl">本月COGS</span><span class="s-val">${f.cogs.toFixed(1)}</span></div>
@@ -1742,7 +1819,7 @@ function showRecruitModal(dept,cands){
     </div>`).join("");
   openModal(`<div class="m-meta">招募員工 · ${dept.name}</div>
     <div class="m-title">在人力銀行上搜尋，發現 ${cands.length} 份履歷</div>
-    <div class="m-desc">評級只是標示，不是保證——白評級也可能挖到璧玉，彩評級也可能德不配位。</div>
+    <div class="m-desc">評級只是標示，不是保證——白評級也可能挖到璧玉，彩評級也可能德不配位。<br><span style="font-size:9.5px;color:var(--muted)">各部門看重：業務/海外→業務力｜研發/產線/品保→技術力｜採購/財務→管理與誠信。本月名單固定，下月更新。</span></div>
     <div class="cand-grid">${candsHtml}</div>
     ${bulkBtn}
     <button class="m-choice" style="margin-top:10px" onclick="dispatch('CLOSE_MODAL')">先不招募</button>`);
@@ -1956,8 +2033,15 @@ function deptFloor(dept,s){
     var tech=Math.round(headEmp.trueAbility.technical);
     var hid=_regEmp(headEmp);
     var hTag=headOfficial?"★ ":"（代理）";
+    var hbLabel="";
+    if(headOfficial){
+      var hb=headBonus(dept)*(STATE&&STATE._gmAmp||1);
+      var pct=function(x){return (x>0?"+":"")+Math.round(x*1000)/10+"%";};
+      var fx={prod:"良率"+pct(hb*0.1),sales:"售價"+pct(hb*0.1),rd:"成功率"+pct(hb*0.15),qa:"退貨"+pct(-hb*0.5),global:"售價"+pct(hb*0.1)}[dept.key]||("士氣"+pct(hb*0.02));
+      hbLabel="<span style='color:"+(hb>=0?"var(--green)":"var(--red)")+"'>"+fx+"</span>";
+    }
     headBanner="<div style='font-size:9px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-shrink:0;cursor:pointer' onclick='_clickEmp(\""+hid+"\")'>"+
-      "<span>"+hTag+headEmp.name+" 管理"+mgmt+"</span><span>技術"+tech+"</span></div>";
+      "<span>"+hTag+headEmp.name+" 管理"+mgmt+"</span><span>技術"+tech+"</span>"+hbLabel+"</div>";
   }
   return{floor:floor,headBanner:headBanner};
 }
