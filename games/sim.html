@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>企業模擬經營 v2.0</title>
+<title>企業模擬經營 v2.2</title>
 <style>
 :root{
   --bg:#0f1923;--surface:#172030;--surface2:#1e293b;--line:#2a3a4a;
@@ -48,7 +48,9 @@ body.stage-4{--bg:#16244a;}
 #stage-badge{font-size:10px;color:var(--gold);border:1px solid var(--gold-dim);border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:middle;}
 .pos-tag{display:inline-block;font-size:7px;color:var(--gold);border:1px solid var(--line);border-radius:3px;padding:0 2px;margin-right:1px;vertical-align:middle;}
 .dir-live{background:var(--surface2);color:var(--text);border:1px solid var(--line);border-radius:10px;font-size:10px;padding:2px 6px;max-width:110px;}
-#side-close{display:none;padding:10px;text-align:center;font-size:12px;color:var(--gold);border-bottom:1px solid var(--line);cursor:pointer;background:var(--surface2);}
+#side-close{display:none;padding:0;text-align:center;font-size:12px;color:var(--gold);border-bottom:1px solid var(--line);cursor:pointer;background:var(--surface2);}
+#side-close span{display:inline-block;padding:10px 0;}
+@media(max-width:760px){#side-close{display:flex;}}
 @media(max-width:760px){#side-close{display:block;}}
 
 /* OFFICE AREA */
@@ -233,7 +235,7 @@ body.stage-4{--bg:#16244a;}
 <!-- SETUP SCREEN -->
 <div id="screen-setup" class="screen active">
   <h1>企業模擬經營</h1>
-  <p class="tagline">v2.0 — 選擇你的產業，開始經營</p>
+  <p class="tagline">v2.2 — 選擇你的產業，開始經營</p>
   <div class="ind-grid" id="ind-grid"></div>
 </div>
 
@@ -275,7 +277,7 @@ body.stage-4{--bg:#16244a;}
 
     <div id="side-backdrop" onclick="toggleSidebar()"></div>
 <div id="side-panel">
-      <div id="side-close" onclick="toggleSidebar()">✕ 關閉側欄</div>
+      <div id="side-close"><span onclick="toggleSidebar()" style="flex:1">✕ 關閉側欄</span><span onclick="dispatch('NEXT_MONTH')" style="flex:1;color:var(--gold);border-left:1px solid var(--line)">下一月 ▶</span></div>
       <div id="side-tabs">
         <div class="s-tab active" data-tab="finance">財務</div>
         <div class="s-tab" data-tab="risk">風險</div>
@@ -318,7 +320,7 @@ body.stage-4{--bg:#16244a;}
 <script src="sim-config.js"></script>
 <script>
 /* ================================================================
-   企業模擬經營 v2.0
+   企業模擬經營 v2.2
    架構: CONFIG → ENGINE → STATE → DISPATCH → UI
 ================================================================ */
 
@@ -390,7 +392,8 @@ function makeEmployee(position,dept,s){
   const majorRel=major.rel[position]??0.3;
   const expYears=Math.floor(rnd(0,8));
   const baseSalary=CONFIG.POSITION_SALARY[position]||30;
-  const salary=Math.round(baseSalary*(0.85+school.score/300)*(0.9+expYears*0.03)*10)/10;
+  const _skills=rollSkills();
+  const salary=Math.round(baseSalary*(0.85+school.score/300)*(0.9+expYears*0.03)*skillSalaryMult(_skills)*10)/10;
   const evalText=rating==="彩"||rating==="紅"?"不可多得的人才"
     :rating==="金"||rating==="紫"?"條件不錯，值得一試"
     :rating==="藍"||rating==="綠"?"中等水準，穩定可用"
@@ -399,7 +402,7 @@ function makeEmployee(position,dept,s){
   return {
     id:"e"+Math.random().toString(36).slice(2,8),
     joinMonth:(s&&s.company)?s.company.month:0,
-    skills:rollSkills(),
+    skills:_skills,
     gender,
     figv:1+Math.floor(Math.random()*4),
     name:(()=>{const g2=gender==="f";return pick(CONFIG.NAMES_F)+pick(g2?CONFIG.NAMES_M_F:CONFIG.NAMES_M)+pick(g2?CONFIG.NAMES_E_F:CONFIG.NAMES_E);})(),
@@ -528,6 +531,14 @@ function makeProject(s){
 /* ============================================================
    ENGINE — advanceMonth (main game loop)
 ============================================================ */
+function crewSize(e){
+  const a=(e.trueAbility.management+e.trueAbility.technical)/2;
+  return clamp(Math.round(4+Math.pow(a/100,1.5)*11),4,15);
+}
+function totalCrew(s){
+  const prod=deptByKey(s,"prod");
+  return prod?prod.employees.filter(e=>!e.training).reduce((a,e)=>a+crewSize(e),0):0;
+}
 function deptHead(d){
   if(!d||!d.employees.length)return null;
   if(d.headId){const h=d.employees.find(e=>e.id===d.headId);if(h)return h;d.headId=null;}
@@ -569,6 +580,8 @@ function advanceMonth(s){
   // Risk decay
   const riskDecay={財務造假:0.025,勞檢:0.04,品質掩蓋:0.03,採購舞弊:0.02};
   Object.keys(c.trueRisk).forEach(k=>{c.trueRisk[k]=clamp(c.trueRisk[k]*(1-riskDecay[k]),0,100);});
+  const _crew=totalCrew(s);
+  if(_crew>60)c.trueRisk.勞檢=clamp(c.trueRisk.勞檢+(_crew-60)*0.005,0,100);
   checkRumors(s);
   checkStage(s);
   if(c.month>0&&c.month%12===0)s.ui.pendingEvents.push({ev:yearEndEvent(s),ctx:{}});
@@ -596,7 +609,7 @@ function advanceMonth(s){
   s.departments.forEach(d=>{
     const hb=headBonus(d);
     d.employees.forEach(e=>{
-      const expect=(CONFIG.POSITION_SALARY[e.position]||4)*(0.75+e.trueAbility.technical/200);
+      const expect=(CONFIG.POSITION_SALARY[e.position]||4)*(0.75+e.trueAbility.technical/200)*skillSalaryMult(e.skills);
       const gap=(e.salary-expect)/Math.max(0.5,expect);
       const salaryEffect=clamp(gap*5,-4,4);
       const shield=(e.skills||[]).some(id=>{const sk=SKILLS.find(k=>k.id===id);return sk&&sk.fx.shield;});
@@ -747,10 +760,15 @@ function calcMonthly(s){
   const pLeaders=prod?(prod.leaderIds||[]).map(id=>prod.employees.find(e=>e.id===id)).filter(Boolean):[];
   const coveredN=(pHead?Math.floor(pHead.trueAbility.management/10):3)+pLeaders.reduce((a,l)=>a+Math.min(8,Math.ceil(l.trueAbility.management/12)),0);
   const uncovered=Math.max(0,prodN-coveredN);
-  const effWorkers=Math.min(prodN,coveredN)+uncovered*0.5;
-  const laborCap=Math.round(effWorkers*8*(avgTech/70||1));
+  const covRatio=prodN>0?Math.min(1,coveredN/prodN):0;
+  const crewOut=prod?prod.employees.filter(e=>!e.training).reduce((a,e)=>a+crewSize(e)*1.2,0):0;
+  const laborCap=Math.round(crewOut*(covRatio+(1-covRatio)*0.5)*(avgTech/70||1));
   const equipCap=(prod?prod.investLevel:1)*60;
-  const totalCapacity=Math.round(Math.min(laborCap,equipCap)*(1+skCap));
+  const autoLv=c.autoLevel||0;
+  const autoManned=prodN>=autoLv; /* 每條自動線需 1 名產線人員監控 */
+  const autoCap=Math.round(autoLv*40*(autoManned?1:0.3));
+  if(autoLv>0&&!autoManned)s.log("產能",`自動化產線缺乏監控人力（需 ${autoLv} 人在崗），僅以 30% 效率運轉。`);
+  const totalCapacity=Math.round(Math.min(laborCap,equipCap)*(1+skCap))+autoCap;
   s._capInfo={laborCap,equipCap,coveredN,uncovered,prodN};
   const lastIdx=s.industry.stages.length-1;
   const activeProj=s.projects.filter(p=>p.stageIndex===lastIdx&&p.contract);
@@ -810,12 +828,13 @@ function calcMonthly(s){
   });
 
   const totalSalary=allEmps(s).reduce((a,e)=>a+e.salary,0);
+  const autoMaint=(c.autoLevel||0)*20*((c.stage||0)+1);
   let net;
   if(activeProj.length>0){
-    net=revenue-cogsTotal-totalSalary-interest;
+    net=revenue-cogsTotal-totalSalary-interest-autoMaint;
     c.cash+=net;c.equity+=net;
   } else {
-    const opex=totalSalary*0.6;
+    const opex=totalSalary*0.6+autoMaint;
     net=nre-opex;c.cash+=net;c.equity+=net;
   }
   c.consecutivePositiveMonths=net>0?c.consecutivePositiveMonths+1:0;
@@ -975,11 +994,11 @@ function gmSuggestion(s){
   return null;
 }
 function yearEndEvent(s){
-  const hc=allEmps(s).length+(s.hasGM?1:0);
+  const hc=allEmps(s).length+(s.hasGM?1:0)+totalCrew(s);
   const c1=Math.round(hc*3),c2=Math.round(hc*1.5),c3=Math.round(hc*0.5);
   return{
     name:"年終尾牙",bucket:"人事",
-    desc:`一年又過去了，全公司 ${hc} 人都在看老闆的誠意。尾牙的規格，員工都會記在心裡。`,
+    desc:`一年又過去了，含產線帶線的派遣作業員，全公司 ${hc} 人都在看老闆的誠意。尾牙的規格，員工都會記在心裡。`,
     options:[
       {label:`高級飯店尾牙＋抽獎（${c1} 萬）`,eff:(s)=>{const mc=allEmps(s).some(e=>(e.skills||[]).includes("mc"))?1.5:1;s.company.cash-=c1;allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty+Math.round(15*mc),0,100));if(s.gm)s.gm.loyalty=clamp(s.gm.loyalty+15,0,100);s.log("人事","盛大尾牙賓主盡歡，全員士氣大振。");}},
       {label:`餐廳包場尾牙（${c2} 萬）`,eff:(s)=>{s.company.cash-=c2;allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty+8,0,100));if(s.gm)s.gm.loyalty=clamp(s.gm.loyalty+8,0,100);s.log("人事","尾牙圓滿結束，員工反應不錯。");}},
@@ -990,6 +1009,16 @@ function yearEndEvent(s){
 }
 /* SKILLS → sim-config.js */
 /* SKILL_TIER_W → sim-config.js */
+function skillSalaryMult(skills){
+  let m=1;
+  (skills||[]).forEach(id=>{
+    const sk=SKILLS.find(k=>k.id===id);
+    if(!sk)return;
+    const up={紫:0.15,金:0.3,紅:0.5,彩:0.8}[sk.tier]||0;
+    m=Math.max(m,1+up);
+  });
+  return m;
+}
 function rollSkills(){
   const r=Math.random();
   const n=r<0.55?0:r<0.9?1:2;
@@ -1648,11 +1677,43 @@ function dispatch(action,payload={}){
         fin:"回報噪音降低（數字更可信）",
         global:"海外訂單單價提升"
       };
+      let capNote="";
+      if(d.key==="prod"&&s._capInfo){
+        const ci=s._capInfo;
+        const newEquip=(d.investLevel+1)*60;
+        const bottleneck=ci.laborCap<ci.equipCap?"人力":"設備";
+        capNote=`<br><br>目前產能：人力 ${ci.laborCap} 件 / 設備 ${ci.equipCap} 件（取小者）<br>升級後設備產能 → ${newEquip} 件。${bottleneck==="人力"?"<b style='color:var(--orange)'>⚠ 目前短板是人力——升級設備不會立即提升總產能，先補人或任命組長更有效。</b>":"✅ 目前短板是設備，升級立即有感。"}`;
+      }
       openModal(`<div class="m-meta">設備投資 · ${d.name}</div>
         <div class="m-title">升級至 Lv.${d.investLevel+1}（${cost} 萬）</div>
-        <div class="m-desc">本級效果：<b>${FX[d.key]||"部門效率提升"}</b><br>投資金額計入公司資本額，可提高授信額度。</div>
-        <button class="m-choice" onclick="closeModal();dispatch('INVEST_DEPT',{deptKey:'${d.key}'})">確認升級</button>
+        <div class="m-desc">本級效果：<b>${FX[d.key]||"部門效率提升"}</b>${capNote}<br>投資金額計入公司資本額，可提高授信額度。</div>
+        <button class="m-choice" onclick="closeModal();dispatch('INVEST_DEPT',{deptKey:'${d.key}',back:${payload.back?1:0}})">確認升級</button>
         <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">再想想</button>`);
+      break;
+    }
+
+    case "AUTO_LINE":{
+      if((s.company.stage||0)<1){toast("中型企業以上才能導入自動化產線。");return;}
+      const lv=s.company.autoLevel||0;
+      const cost=400*(lv+1)*((s.company.stage||0)+1);
+      const maint=20*(lv+1)*((s.company.stage||0)+1);
+      openModal(`<div class="m-meta">自動化投資 · 產線部</div>
+        <div class="m-title">導入第 ${lv+1} 條自動化產線（${cost} 萬）</div>
+        <div class="m-desc">每條自動線：產能 <b>+40 件/月</b>，不佔人力產能，但需 <b>1 名產線人員監控</b>（無人監控只剩 30% 效率）。<br>月維護費：全部自動線共 <b>${maint} 萬/月</b>（隨公司階段上漲）。<br>購置費計入資本額。</div>
+        <button class="m-choice" onclick="closeModal();dispatch('AUTO_LINE_GO')">確認導入</button>
+        <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">再想想</button>`);
+      break;
+    }
+    case "AUTO_LINE_GO":{
+      const lv=s.company.autoLevel||0;
+      const cost=400*(lv+1)*((s.company.stage||0)+1);
+      if(s.company.cash<cost){toast("現金不足。");return;}
+      s.company.cash-=cost;s.company.capital+=cost;
+      s.company.autoLevel=lv+1;
+      AUDIO.sfx("fanfare");
+      s.log("投資",`第 ${lv+1} 條自動化產線上線，花費 ${cost} 萬。`);
+      renderAll();
+      if(window.innerWidth<=760)showDeptPanel("prod");
       break;
     }
 
@@ -1675,6 +1736,7 @@ function dispatch(action,payload={}){
       AUDIO.sfx("fanfare");
       s.log("投資",`產線設備全面汰換，花費 ${cost} 萬，設備老化重置。`);
       renderAll();
+      if(window.innerWidth<=760)showDeptPanel("prod");
       break;
     }
 
@@ -1685,8 +1747,10 @@ function dispatch(action,payload={}){
       if(cost===null){toast("已達最高設備等級。");return;}
       if(s.company.cash<cost){toast("現金不足。");return;}
       s.company.cash-=cost;s.company.capital+=cost;d.investLevel++;
+      s._backPanel=payload.back?d.key:null;
       s.log("投資",`「${d.name}」設備升至 Lv.${d.investLevel}，花費 ${cost} 萬。`);
       renderAll();
+      if(s._backPanel){const k=s._backPanel;s._backPanel=null;showDeptPanel(k);}
       break;
     }
 
@@ -1698,6 +1762,7 @@ function dispatch(action,payload={}){
       s.company.cash-=cost;s.company.capital+=cost;d.slots++;
       s.log("組織",`「${d.name}」員額擴編至 ${d.slots} 人，花費 ${cost} 萬。`);
       renderAll();
+      if(payload.back)showDeptPanel(d.key);
       break;
     }
 
@@ -1765,7 +1830,12 @@ function dispatch(action,payload={}){
       const dept2=s.departments.find(dd=>s.ui.tempCandidates===s.ui.monthCands?.[dd.key])||_empDept(cand);
       const pk=primaryMap[dept2?.key]||"technical";
       const band=v=>{const lo=Math.max(0,Math.round((v-rnd(5,12))/5)*5),hi=Math.min(100,Math.round((v+rnd(5,12))/5)*5);return `約${lo}~${hi}`;};
-      cand.interviewHint=`面談評估 — ${dLabels[pk]}：${band(cand.trueAbility[pk])}｜誠信：${band(cand.trueAbility.integrity)}｜管理：${band(cand.trueAbility.management)}`;
+      let crewHint="";
+      if(cand.position==="產線人員"){
+        const cs=crewSize(cand);
+        crewHint=`｜可帶線 約${Math.max(4,cs-2)}~${Math.min(15,cs+2)}人`;
+      }
+      cand.interviewHint=`面談評估 — ${dLabels[pk]}：${band(cand.trueAbility[pk])}｜誠信：${band(cand.trueAbility.integrity)}｜管理：${band(cand.trueAbility.management)}${crewHint}`;
       cand.interviewed=true;
       // Use up one action slot for the interview
       if(!s.company.bossActions.inspect)s.company.bossActions.inspect=true;
@@ -1785,8 +1855,14 @@ function dispatch(action,payload={}){
       if(s.ui.monthCands&&s.ui.monthCands[d.key])s.ui.monthCands[d.key]=s.ui.monthCands[d.key].filter(x=>x.id!==cand.id);
       AUDIO.sfx("hire");
       s.log("招募",`「${cand.name}」加入了${d.name}（${cand.school} ・ 評級${cand.rating}）。`);
-      closeModal();
       renderAll();
+      s.ui.tempCandidates=(s.ui.monthCands&&s.ui.monthCands[d.key])||[];
+      if(s.ui.tempCandidates.length&&d.employees.length<d.slots){
+        showRecruitModal(d,s.ui.tempCandidates); /* 留在招募視窗，繼續看剩下的人 */
+      }else{
+        closeModal();
+        if(window.innerWidth<=760)showDeptPanel(d.key);
+      }
       break;
     }
 
@@ -1970,7 +2046,7 @@ function renderRooms(s){
       div.onclick=(ev)=>{if(ev.target.closest("button,select,.emp-fig,.plus-slot"))return;if(window.innerWidth<=760)showDeptPanel(dept.key);};
       div.innerHTML=`
         <div class="room-hdr">
-          <div class="room-name">${dept.name} Lv.${dept.investLevel}${window.innerWidth<=760?' <span style="font-size:9px;color:var(--muted)">（點擊展開）</span>':''}</div>
+          <div class="room-name">${dept.name} Lv.${dept.investLevel}${dept.key==="prod"&&dept.employees.length?` <span style="font-size:9px;color:var(--muted)">帶線${totalCrew(STATE)}人</span>`:""}${window.innerWidth<=760?' <span style="font-size:9px;color:var(--muted)">（點）</span>':''}</div>
           <select class="d-badge dir-live" onchange="dispatch('SET_DIRECTIVE',{deptKey:'${dept.key}',directive:this.value})">${dirOpts}</select>
         </div>
         ${kpi1?`<div class="kpi-row"><span class="kpi-lbl">${kpi1.label}</span><div class="kpi-track"><div class="kpi-fill" style="width:${v1}%;background:${kpiColor1}"></div></div><span class="kpi-v">${v1}</span></div>`:""}
@@ -2021,9 +2097,10 @@ function showDeptPanel(deptKey){
     ${head?`<div class="m-desc" style="margin:4px 0">主管：${dept.headId?"★"+deptHeadTitle(dept):"（代理）"} ${head.name}（管理 ${head.trueAbility.management}）</div>`:""}
     <div style="max-height:38vh;overflow-y:auto;border:1px solid var(--line);border-radius:6px;margin:6px 0">${empHtml}</div>
     <button class="m-choice" onclick="closeModal();dispatch('RECRUIT_OPEN',{deptKey:'${deptKey}'})">招募 ${dept.employees.length}/${dept.slots}</button>
-    ${invCost!==null?`<button class="m-choice" onclick="closeModal();dispatch('INVEST_ASK',{deptKey:'${deptKey}'})">設備升級 · ${invCost} 萬</button>`:""}
-    <button class="m-choice" onclick="closeModal();dispatch('EXPAND_DEPT',{deptKey:'${deptKey}'})">擴編 +1 · ${expCost} 萬</button>
+    ${invCost!==null?`<button class="m-choice" onclick="closeModal();dispatch('INVEST_ASK',{deptKey:'${deptKey}',back:1})">設備升級 · ${invCost} 萬</button>`:""}
+    <button class="m-choice" onclick="closeModal();dispatch('EXPAND_DEPT',{deptKey:'${deptKey}',back:1})">擴編 +1 · ${expCost} 萬</button>
     ${deptKey==="prod"&&s.company.equipmentAging>0.3?`<button class="m-choice" style="border-color:var(--orange);color:var(--orange)" onclick="closeModal();dispatch('REPLACE_EQUIP')">汰換設備（老化 ${Math.round(s.company.equipmentAging*100)}%）· ${replaceEquipCost(s)} 萬</button>`:""}
+    ${deptKey==="prod"&&(s.company.stage||0)>=1?`<button class="m-choice" style="border-color:var(--gold);color:var(--gold)" onclick="closeModal();dispatch('AUTO_LINE')">🤖 自動化產線 Lv.${s.company.autoLevel||0} → ${(s.company.autoLevel||0)+1}（${400*((s.company.autoLevel||0)+1)*((s.company.stage||0)+1)} 萬）</button>`:""}
     <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">關閉</button>`);
 }
 function renderSide(s){
@@ -2306,7 +2383,7 @@ function showEventModal(evItem){
   if(ev.skillTag){
     const hit=findSkillHolder(STATE,ev.skillTag);
     if(hit){
-      const rate=Math.round(clamp(55+hit.pow/2,55,92));
+      const rate=Math.round(clamp(50+hit.pow/3,50,78));
       STATE._skillOpt={hit,rate};
       skillBtn=`<button class="m-choice" style="border-color:var(--gold);color:var(--gold)" onclick="resolveEvent(-1)">✨ 讓「${hit.e.name}」出馬（技能【${hit.sk.n}】，成功率 ${rate}%）</button>`;
     }
@@ -2360,6 +2437,7 @@ function showEmployeeModal(emp){
       "<div class='emp-modal-info'>"+
         "<div class='nm'>"+emp.name+" <span style='font-size:11px;color:var(--muted)'>["+emp.rating+"]</span></div>"+
         "<div class='sub'>"+emp.position+" ・ 月薪 "+emp.salary+"萬<br>"+emp.school+" ・ "+emp.major+"<br>特質："+(emp.traits||[]).join("/")+" ・ 忠誠度 "+moodEmoji(emp.loyalty)+
+(emp.position==="產線人員"?"<br>帶線："+crewSize(emp)+" 名派遣作業員":"")+
 ((emp.skills&&emp.skills.length)?"<br>技能："+emp.skills.map(function(id){var sk=SKILLS.find(function(k){return k.id===id;});return sk?"【"+sk.tier+"】"+sk.n+"（"+sk.d+"）":"";}).join("、"):"")+"</div>"+
       "</div>"+
       "<div style='margin-left:auto;text-align:center'>"+
@@ -2705,6 +2783,7 @@ function resolveEvent(optIdx){
     s._pendingEventShown=null;
     closeModal();AUDIO.crisisOff();
     const ok=Math.random()*100<rate;
+    hit.e.loyalty=clamp(hit.e.loyalty-3,0,100);
     if(ok){
       s.log(item.ev.bucket,`「${hit.e.name}」憑【${hit.sk.n}】漂亮化解了「${item.ev.name}」！`);
       AUDIO.sfx("victory");
@@ -2718,7 +2797,7 @@ function resolveEvent(optIdx){
     }
     s.log(item.ev.bucket,`「${hit.e.name}」嘗試處理「${item.ev.name}」但力有未逮，事件照常發生。`);
     item.ev.options[item.ev.options.length-1].eff(s,item.ctx);
-    hit.e.loyalty=clamp(hit.e.loyalty-5,0,100);
+    hit.e.loyalty=clamp(hit.e.loyalty-8,0,100);
     saveGame(s);renderAll();processUIQueue();
     return;
   }
