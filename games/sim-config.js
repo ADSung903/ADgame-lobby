@@ -205,6 +205,37 @@ EVENT_POOL:[
     options:[
       {label:"緊急全員座談＋小幅調薪",eff:(s)=>{const cost=Math.round(allEmps(s).reduce((a,e)=>a+e.salary,0)*0.6);s.company.cash-=cost;allEmps(s).forEach(e=>{e.salary=Math.round(e.salary*1.03*10)/10;e.loyalty=clamp(e.loyalty+8,0,100);});s.log("人事","及時止血，離職潮暫時壓下。");}},
       {label:"要走的留不住（隨機流失2人）",eff:(s)=>{for(let i=0;i<2;i++){const ds=s.departments.filter(d=>d.employees.length>1);if(!ds.length)break;const d=ds[Math.floor(Math.random()*ds.length)];const e=d.employees.sort((a,b)=>a.loyalty-b.loyalty)[0];d.employees=d.employees.filter(x=>x.id!==e.id);if(d.headId===e.id)d.headId=null;s.log("人事",`「${e.name}」離職。`);}}}]},
+  {id:"E25",bucket:"一般營運",level:"company",name:"寒冬砍單",
+    cond:(s)=>(s.company.market||100)<80&&s.projects.some(p=>p.contract&&p.contract.monthsLeft>1),baseProb:0.25,
+    desc:"景氣寒冬，客戶端庫存滿到走廊：「下季拉貨量砍三成，抱歉，大家都難。」",
+    options:[
+      {label:"接受砍量（共體時艱，保關係）",eff:(s)=>{const ps=s.projects.filter(p=>p.contract&&p.contract.monthsLeft>1);const p=ps[Math.floor(Math.random()*ps.length)];if(p){p.contract.volume=Math.max(3,Math.round(p.contract.volume*0.7));s.log("市況",`「${p.contract.customer}」拉貨量減三成。`);}}},
+      {label:"要求照約履行（信任-8，賭他不敢違約）",eff:(s)=>{s.company.customerTrust=clamp(s.company.customerTrust-8,0,100);if(Math.random()<0.35){const ps=s.projects.filter(p=>p.contract);const p=ps[Math.floor(Math.random()*ps.length)];if(p){p.contract=null;s.log("市況","客戶乾脆整張抽單，撕破臉了。");}}}}]},
+  {id:"E30",bucket:"一般營運",level:"company",name:"股東會質詢",
+    cond:(s)=>(s.company.stage||0)>=2,baseProb:0.06,
+    desc:"股東會上，大股東拿著麥克風不放：「帳上現金這麼多，為什麼不配息？」",
+    options:[
+      {label:"宣布配息回饋股東",eff:(s)=>{s.company.cash-=esc$(s,50);s.log("財務","配息安撫股東，市場好評。");s.company.investorAnger=Math.max(0,(s.company.investorAnger||0)-1);}},
+      {label:"堅持保留盈餘擴大投資",eff:(s)=>{s.company.investorAnger=(s.company.investorAnger||0)+1;s.log("財務","股東不滿累積——出售估值可能受影響。");}}]},
+  {id:"E31",bucket:"一般營運",level:"company",name:"分析師報告",
+    cond:(s)=>(s.company.stage||0)>=2,baseProb:0.07,
+    desc:"外資券商發布最新產業報告，你的公司被點名了。",
+    options:[
+      {label:"看看報告怎麼說",eff:(s)=>{
+        if(Math.random()<0.5){s.company._analystBuff={v:0.05,m:3};s.log("市況","分析師「買進」評等！未來三個月訂單議價轉強。");}
+        else{s.company._analystBuff={v:-0.05,m:3};s.log("市況","分析師調降評等至「中立偏空」，客戶下單轉趨觀望。");}}}]},
+  {id:"E32",bucket:"財務造假",level:"company",name:"做空機構狙擊",skillTag:"finance",
+    cond:(s)=>(s.company.stage||0)>=2&&Math.max(...Object.values(s.company.trueRisk))>60,baseProb:0.15,
+    desc:"一家做空機構發布報告，直指你的公司「數字有鬼」。股價劇震，媒體電話打爆公關室。",
+    options:[
+      {label:"火速和解＋公關滅火（花大錢）",eff:(s)=>{s.company.cash-=esc$(s,80);Object.keys(s.company.trueRisk).forEach(k=>s.company.trueRisk[k]=clamp(s.company.trueRisk[k]-8,0,100));s.log("財務","危機處理小組連夜滅火，順便把幾筆帳整理乾淨。");}},
+      {label:"硬扛：召開記者會反擊",eff:(s)=>{if(Math.random()<0.55){s.company.customerTrust=clamp(s.company.customerTrust+5,0,100);s.log("財務","反擊成功，做空報告被打臉，商譽反升。");}else{s.company.cash-=esc$(s,150);s.company.customerTrust=clamp(s.company.customerTrust-15,0,100);s.log("財務","越描越黑——監管機構介入調查，損失慘重。");}}}]},
+  {id:"E33",bucket:"一般營運",level:"company",name:"轉型壓力",
+    cond:(s)=>(s.company.stage||0)>=3&&!s.company.storyMult,baseProb:0.08,
+    desc:"法說會上分析師直問：「代工毛利見頂，貴公司的下一個成長故事是什麼？」",
+    options:[
+      {label:"砸錢投入 ESG＋智慧製造題材",eff:(s)=>{s.company.cash-=esc$(s,120);s.company.storyMult=1;s.log("財務","轉型題材獲市場買單，估值倍數上調！");}},
+      {label:"專注本業，不講故事",eff:(s)=>{s.company._analystBuff={v:-0.05,m:3};s.log("財務","市場失望，評等轉弱三個月。");}}]},
   {id:"E21",bucket:"財務造假",level:"company",name:"會計師換人",skillTag:"audit",
     cond:(s)=>{const f=s.departments.find(d=>d.key==="fin");return f&&f.unlocked&&s.company.month>12;},baseProb:0.04,
     desc:"合作多年的會計師退休，新事務所接手後對舊帳問東問西。",
