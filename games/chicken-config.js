@@ -25,18 +25,18 @@ T: { EXT: 36, HIGH: 20, LOW: 6, MID: 8 },
 
 // ---------- 食物 12 種 [F,P,S,H,L] ----------
 FOODS: {
-  cutlet:       { name:'雞排',     vec:[3,2,0,0,0], satiety:30, joy: 1, icon:'food_cutlet.png' },
-  chili:        { name:'辣椒',     vec:[0,0,0,4,0], satiety: 5, joy:-1, icon:'food_chili.png' },
+  cutlet:       { name:'雞排',     vec:[3,2,0,0,0], satiety:45, joy: 1, icon:'food_cutlet.png' },
+  chili:        { name:'辣椒',     vec:[0,0,0,4,0], satiety: 8, joy:-1, icon:'food_chili.png' },
   josspaper:    { name:'金紙',     vec:[0,0,0,0,2], satiety: 0, joy: 0, icon:'food_josspaper.png' },
-  riceball:     { name:'飯糰',     vec:[1,0,1,0,0], satiety:25, joy: 0, icon:'food_riceball.png' },
-  candy:        { name:'糖果',     vec:[0,0,3,0,0], satiety:10, joy: 2, icon:'food_candy.png' },
-  worm:         { name:'蟲蟲',     vec:[0,3,0,0,0], satiety:15, joy: 1, icon:'food_worm.png' },
-  protein:      { name:'蛋白飲',   vec:[0,4,0,0,0], satiety:15, joy:-1, icon:'food_protein.png' },
-  cake:         { name:'蛋糕',     vec:[2,0,3,0,0], satiety:20, joy: 2, icon:'food_cake.png' },
-  sesamesoup:   { name:'麻油雞湯', vec:[2,0,0,0,2], satiety:25, joy: 1, icon:'food_sesamesoup.png' },
-  pickledchili: { name:'剝皮辣椒', vec:[0,0,2,3,0], satiety:10, joy: 0, icon:'food_pickledchili.png' },
-  saltychicken: { name:'鹹酥雞',   vec:[2,0,0,2,0], satiety:20, joy: 2, icon:'food_saltychicken.png' },
-  vegrice:      { name:'素齋飯',   vec:[0,1,0,0,2], satiety:25, joy: 0, icon:'food_vegrice.png' },
+  riceball:     { name:'飯糰',     vec:[1,0,1,0,0], satiety:40, joy: 0, icon:'food_riceball.png' },
+  candy:        { name:'糖果',     vec:[0,0,3,0,0], satiety:18, joy: 2, icon:'food_candy.png' },
+  worm:         { name:'蟲蟲',     vec:[0,3,0,0,0], satiety:25, joy: 1, icon:'food_worm.png' },
+  protein:      { name:'蛋白飲',   vec:[0,4,0,0,0], satiety:25, joy:-1, icon:'food_protein.png' },
+  cake:         { name:'蛋糕',     vec:[2,0,3,0,0], satiety:35, joy: 2, icon:'food_cake.png' },
+  sesamesoup:   { name:'麻油雞湯', vec:[2,0,0,0,2], satiety:40, joy: 1, icon:'food_sesamesoup.png' },
+  pickledchili: { name:'剝皮辣椒', vec:[0,0,2,3,0], satiety:18, joy: 0, icon:'food_pickledchili.png' },
+  saltychicken: { name:'鹹酥雞',   vec:[2,0,0,2,0], satiety:35, joy: 2, icon:'food_saltychicken.png' },
+  vegrice:      { name:'素齋飯',   vec:[0,1,0,0,2], satiety:40, joy: 0, icon:'food_vegrice.png' },
 },
 
 // ---------- 蛋 4 種 ----------
@@ -137,13 +137,13 @@ TIMING: {
   tickMs:     1000,    // 主循環 1s
 },
 LIFE: {
-  satietyMax: 100, satietyDrain: 0.28,   // 滿到空約 6 分
-  joyMax: 100, joyDrain: 0.10,
+  satietyMax: 100, satietyDrain: 0.22,   // 滿到空約 7.5 分
+  joyMax: 100, joyDrain: 0.03,
   healthMax: 100,
   dmgStarve: 0.25,   // 飽足=0 時每秒健康傷害（來源:starved）
   dmgStuff: 8,       // 飽足=100 再餵一次的傷害（來源:overfed）
-  dmgSpicy: 0.15,    // 辣度>HIGH 期間每秒（來源:burnt）
-  dmgSad:   0.08,    // 快樂=0 時每秒（來源:heartbroken）
+  dmgSpicy: 0.04,    // 辣度>HIGH 期間每秒（來源:burnt）
+  dmgSad:   0.06,    // 快樂=0 時每秒（來源:heartbroken）
   healRate: 0.05,    // 全參數良好時每秒緩慢回復
   healthHideCluesAt: 60, // 健康<60 開始漏線索(掉羽毛/叫聲變低)
 },
@@ -185,6 +185,10 @@ EASTER: {
             line:{ t:'剛剛那是…流星嗎？', tier:'gold' } },
   pokeAngry:{ count:100, fx:'peck_back', achievement:'不要鬧' },
 },
+
+// ---------- 朝向表（原圖朝右的檔案；未列=朝左或正面）----------
+FACING_RIGHT: ['chick_idle.png','chick_pale.png','chick_eat.png','chick_sleep.png',
+  'adult_muscle.png','adult_spicymonk.png','teen_hotblood.png'],
 
 // ---------- 資產路徑 ----------
 ASSET_BASE: 'sprites/chicken/',
