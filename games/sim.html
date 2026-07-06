@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>企業模擬經營 v2.2</title>
+<title>企業模擬經營 v2.3</title>
 <style>
 :root{
   --bg:#0f1923;--surface:#172030;--surface2:#1e293b;--line:#2a3a4a;
@@ -235,7 +235,7 @@ body.stage-4{--bg:#16244a;}
 <!-- SETUP SCREEN -->
 <div id="screen-setup" class="screen active">
   <h1>企業模擬經營</h1>
-  <p class="tagline">v2.2 — 選擇你的產業，開始經營</p>
+  <p class="tagline">v2.3 — 選擇你的產業，開始經營</p>
   <div class="ind-grid" id="ind-grid"></div>
 </div>
 
@@ -267,6 +267,7 @@ body.stage-4{--bg:#16244a;}
         <button class="tbtn" id="btn-gm-appoint" style="display:none">任命總經理</button>
         <button class="tbtn" id="btn-downsize" style="display:none;border-color:var(--red);color:var(--red)">組織瘦身</button>
         <button class="tbtn" id="btn-sell" style="display:none;border-color:var(--gold);color:var(--gold)">出售公司</button>
+        <button class="tbtn" id="btn-invest-side" style="display:none">轉投資</button>
         <div id="gm-node" style="display:none">
           <span id="gm-svg"></span>
           <div><div class="gm-label" id="gm-name"></div><div class="gm-sub" id="gm-sub"></div></div>
@@ -320,7 +321,7 @@ body.stage-4{--bg:#16244a;}
 <script src="sim-config.js"></script>
 <script>
 /* ================================================================
-   企業模擬經營 v2.2
+   企業模擬經營 v2.3
    架構: CONFIG → ENGINE → STATE → DISPATCH → UI
 ================================================================ */
 
@@ -575,16 +576,77 @@ function advanceMonth(s){
   c.inspectMode=null;
   c.investmentFrozen=false;
   c.interestRate=baseRate(c)+c.ratePenalty;
+  c.market=c.market===undefined?100:c.market;
+  c._mktMom=clamp((c._mktMom||0)*0.5+rnd(-4,4),-8,8);
+  c.market=clamp(c.market+c._mktMom+(100-c.market)*0.1,70,130);
+  const mkPrev=c._mktZone;
+  c._mktZone=c.market<80?"寒冬":c.market<92?"趨冷":c.market<=112?"正常":c.market<=120?"暢旺":"過熱";
+  if(mkPrev&&mkPrev!==c._mktZone){
+    if(c._mktZone==="寒冬"){s.log("市況","⛄ 產業進入寒冬——新單量價齊跌，客戶砍單風險升高。");AUDIO.sfx("alarm");}
+    else if(mkPrev==="寒冬")s.log("市況","市況回暖，訂單需求恢復。");
+    else if(c._mktZone==="過熱")s.log("市況","🔥 需求過熱——急單湧現，單價誘人但交期壓力大。");
+  }
+  if(c._analystBuff){c._analystBuff.m--;if(c._analystBuff.m<=0)c._analystBuff=null;}
+  if(c.sideInvest>0&&c.month%3===0){
+    const r=rnd(-0.2,0.35)*(c.market>112?1.2:c.market<85?0.7:1);
+    const delta=Math.round(c.sideInvest*r);
+    c.sideInvest=Math.max(0,c.sideInvest+delta);
+    s.log("財務",`業外投資本季${delta>=0?"獲利 +":"虧損 "}${delta} 萬（部位 ${Math.round(c.sideInvest)} 萬）。`);
+  }
   s.ui.monthCands={};s.ui.monthBulk={};
 
   // Risk decay
   const riskDecay={財務造假:0.025,勞檢:0.04,品質掩蓋:0.03,採購舞弊:0.02};
   Object.keys(c.trueRisk).forEach(k=>{c.trueRisk[k]=clamp(c.trueRisk[k]*(1-riskDecay[k]),0,100);});
+  if(c.customerTrust<35&&Math.random()<0.25){
+    const ps=s.projects.filter(p=>p.contract&&!(p.npiLeft>0));
+    if(ps.length){
+      const p=ps[Math.floor(Math.random()*ps.length)];
+      s.ui.pendingEvents.push({ev:{
+        name:"客戶終止合作",bucket:"一般營運",
+        desc:`「${p.contract.customer}」的採購來電：「連續的品質與交期問題，我們決定轉單。」信任崩壞的代價來了。`,
+        options:[
+          {label:`降價 25% 苦苦挽留`,eff:(s2)=>{p.contract.price=Math.round(p.contract.price*0.75);s2.log("業務",`「${p.contract.customer}」勉強留下，但單價被砍到見骨。`);}},
+          {label:"好聚好散（合約終止）",eff:(s2)=>{p.contract=null;s2.log("業務","又一個客戶離開了。重建信任比什麼都難。");}}
+        ]},ctx:{}});
+    }
+  }
   const _crew=totalCrew(s);
   if(_crew>60)c.trueRisk.勞檢=clamp(c.trueRisk.勞檢+(_crew-60)*0.005,0,100);
+  /* 創投退場壓力：入股滿24月起每6月一次 */
+  if(c.vcShare&&!c.vcHostile&&c.vcMonth!==undefined&&c.month-c.vcMonth>=24&&(c.month-c.vcMonth)%6===0){
+    const buyback=Math.round((netWorth(c)+Math.max(0,(c.history||[]).slice(-12).reduce((a,x)=>a+x.net,0))* [4,6,10,14][c.stage||0]/1)*0.2*1.1);
+    s.ui.pendingEvents.push({ev:{
+      name:"創投要求退場",bucket:"財務",
+      desc:`創投合夥人親自來訪：「基金年限到了，我們需要退場。你有兩條路。」（拒絕次數：${c.vcRefuse||0}/2）`,
+      options:[
+        {label:`回購 20% 股份（${buyback} 萬，貴但一勞永逸）`,eff:(s2)=>{
+          if(s2.company.cash<buyback){s2.log("財務","現金不足以回購，創投悻悻然離開。");s2.company.vcRefuse=(s2.company.vcRefuse||0)+1;return;}
+          s2.company.cash-=buyback;s2.company.vcShare=0;s2.log("財務",`斥資 ${buyback} 萬買回股份，公司 100% 回到你手上。`);}},
+        {label:"同意由創投引薦出售公司",eff:(s2)=>{setTimeout(()=>showSellConfirm(),50);}},
+        {label:"再拖一陣子（累積創投不滿）",eff:(s2)=>{
+          s2.company.vcRefuse=(s2.company.vcRefuse||0)+1;
+          if(s2.company.vcRefuse>=2){s2.company.vcHostile=true;s2.log("財務","創投失去耐性，把股份折價轉賣給身份不明的投資集團——新股東開始「關心」經營。");}
+          else s2.log("財務","創投勉強同意再等等，但臉色很難看。");}}
+      ]},ctx:{}});
+  }
+  /* 惡意股東：每季干預 */
+  if(c.vcHostile&&c.month%3===0){
+    s.ui.pendingEvents.push({ev:{
+      name:"新股東干預",bucket:"財務",
+      desc:"神祕投資集團的代表又來了，這次的「建議」是——削減人事、加速配息。",
+      options:[
+        {label:"配合：配息安撫",eff:(s2)=>{s2.company.cash-=esc$(s2,40);s2.log("財務","被迫配息，現金流失。");}},
+        {label:"抗拒到底（全員忠誠-3、信任-3）",eff:(s2)=>{allEmps(s2).forEach(e=>e.loyalty=clamp(e.loyalty-3,0,100));s2.company.customerTrust=clamp(s2.company.customerTrust-3,0,100);s2.log("財務","經營權攻防戰的傳聞開始影響公司內外。");}}
+      ]},ctx:{}});
+  }
   checkRumors(s);
   checkStage(s);
-  if(c.month>0&&c.month%12===0)s.ui.pendingEvents.push({ev:yearEndEvent(s),ctx:{}});
+  if(c.month>0&&c.month%12===0){
+    c.infl=(c.infl||1)*1.02;
+    s.log("市況","物價年度上漲 2%——員工的薪資期待跟著水漲船高，不調薪士氣會慢慢流失。");
+    s.ui.pendingEvents.push({ev:yearEndEvent(s),ctx:{}});
+  }
   if(s.hasGM&&s.gm&&c.month>0&&c.month%3===0){
     const sug=gmSuggestion(s);
     if(sug)s.ui.pendingEvents.push({ev:sug,ctx:{}});
@@ -609,7 +671,7 @@ function advanceMonth(s){
   s.departments.forEach(d=>{
     const hb=headBonus(d);
     d.employees.forEach(e=>{
-      const expect=(CONFIG.POSITION_SALARY[e.position]||4)*(0.75+e.trueAbility.technical/200)*skillSalaryMult(e.skills);
+      const expect=(CONFIG.POSITION_SALARY[e.position]||4)*(0.75+e.trueAbility.technical/200)*skillSalaryMult(e.skills)*(s.company.infl||1);
       const gap=(e.salary-expect)/Math.max(0.5,expect);
       const salaryEffect=clamp(gap*5,-4,4);
       const shield=(e.skills||[]).some(id=>{const sk=SKILLS.find(k=>k.id===id);return sk&&sk.fx.shield;});
@@ -701,6 +763,13 @@ function calcMonthly(s){
   // Noise / reporting distortion
   let noiseAmp=(1-headMgmt/100)*0.3;
   let integrityGap=(100-headIntegrity)/100;
+  const _staff=allEmps(s).length;
+  const _over=Math.max(0,_staff-30);
+  let _relief=(s.vp?0.06:0);
+  s.departments.forEach(d=>{if(d.headId){const h=d.employees.find(e=>e.id===d.headId);if(h&&h.trueAbility.management>=70)_relief+=0.015;}});
+  const _entropy=Math.max(0,Math.min(0.15,_over*0.004-_relief));
+  s._orgEff=1-_entropy;
+  if(_entropy>0.03&&!s._entropyWarned){s._entropyWarned=true;s.log("組織","公司規模擴大後出現溝通內耗——強化管理層（高管理力主管/副總）可抵銷組織熵。");}
   let gmAmp=1;
   if(s.vp){gmAmp*=1.1;}
   if(s.hasGM&&s.gm){
@@ -751,7 +820,7 @@ function calcMonthly(s){
   c.customerTrust=clamp(c.customerTrust+salesTrustDelta+qaTrustDelta+investTrickle,0,100);
 
   // Sales art bonus
-  const salesArtBonus=(avgSales/100)*0.25+(sales?(sales.investLevel-1)*0.02:0)+headBonus(sales)*0.1*(s._gmAmp||1)+skPrice;
+  const salesArtBonus=((avgSales/100)*0.25+(sales?(sales.investLevel-1)*0.02:0)+headBonus(sales)*0.1*(s._gmAmp||1)+skPrice)*(s._orgEff||1);
 
   // Capacity：勞動力（領班覆蓋）與設備，取小者
   processTraining(s);
@@ -762,7 +831,7 @@ function calcMonthly(s){
   const uncovered=Math.max(0,prodN-coveredN);
   const covRatio=prodN>0?Math.min(1,coveredN/prodN):0;
   const crewOut=prod?prod.employees.filter(e=>!e.training).reduce((a,e)=>a+crewSize(e)*1.2,0):0;
-  const laborCap=Math.round(crewOut*(covRatio+(1-covRatio)*0.5)*(avgTech/70||1));
+  const laborCap=Math.round(crewOut*(covRatio+(1-covRatio)*0.5)*(avgTech/70||1)*(s._orgEff||1));
   const equipCap=(prod?prod.investLevel:1)*60;
   const autoLv=c.autoLevel||0;
   const autoManned=prodN>=autoLv; /* 每條自動線需 1 名產線人員監控 */
@@ -1097,9 +1166,15 @@ function computeValuation(s){
   const c=s.company;
   const h=(c.history||[]).slice(-12);
   const avgNet=h.length?h.reduce((a,x)=>a+x.net,0)/h.length:0;
-  const stageMult=[4,6,10,14][c.stage||0];
+  const stageMult=[4,6,10,14][c.stage||0]+(c.storyMult||0);
   const book=Math.round(netWorth(c)+Math.max(0,avgNet)*12*stageMult);
   const lines=[];let mult=1;
+  if(c.sideInvest>0){
+    lines.push({t:"業外投資部位併入",v:Math.round(c.sideInvest),flat:true});
+    if(c.sideInvest>netWorth(c)*0.5){mult-=0.1;lines.push({t:"本業空洞化（業外占比過高）",v:-0.1});}
+  }
+  if(c.investorAnger>0){mult-=c.investorAnger*0.02;lines.push({t:`股東不滿紀錄 ×${c.investorAnger}`,v:-c.investorAnger*0.02});}
+  if(c.vcHostile){mult-=0.08;lines.push({t:"經營權糾紛（不明股東在列）",v:-0.08});}
   /* 盡職調查扣分（隱藏至出售才揭露） */
   Object.entries(c.trueRisk).forEach(([k,v])=>{
     if(v>30){
@@ -1121,6 +1196,7 @@ function computeValuation(s){
   mult=Math.max(0.3,mult);
   let price=Math.round(book*mult);
   lines.filter(l=>l.flat).forEach(l=>price+=l.v);
+  /* flat 已含業外併入 */
   price=Math.max(0,price-Math.round(c.debt));
   if(c.debt>1)lines.push({t:"買方承接負債",v:-Math.round(c.debt),flat:true});
   const payout=Math.round(price*(1-(c.vcShare||0)));
@@ -1209,7 +1285,7 @@ function checkStage(s){
       name:"創投叩門",bucket:"財務",
       desc:`知名創投看上你的成長曲線，提出以 ${amt} 萬現金換取 20% 股權。錢很甜，但賣掉公司時他們要分走兩成。全程只有這一次機會。`,
       options:[
-        {label:`接受投資（現金 +${amt} 萬，持股降至 80%）`,eff:(s2)=>{s2.company.cash+=amt;s2.company.capital+=amt;s2.company.vcShare=0.2;s2.log("財務",`創投資金 ${amt} 萬到位，公司持股降至 80%。`);}},
+        {label:`接受投資（現金 +${amt} 萬，持股降至 80%）`,eff:(s2)=>{s2.company.cash+=amt;s2.company.capital+=amt;s2.company.vcShare=0.2;s2.company.vcMonth=s2.company.month;s2.log("財務",`創投資金 ${amt} 萬到位，公司持股降至 80%。`);}},
         {label:"婉拒，保住 100% 股權",eff:(s2)=>{s2.company.vcDeclined=true;s2.log("財務","婉拒創投——這家公司，一股都不賣。");}}
       ]},ctx:{}});
   }
@@ -1641,6 +1717,25 @@ function dispatch(action,payload={}){
       break;
     }
 
+    case "SIDE_INVEST":{
+      const c=s.company;
+      const cur=Math.round(c.sideInvest||0);
+      openModal(`<div class="m-meta">老闆行動 · 業外</div>
+        <div class="m-title">轉投資（股票／房地產／同業入股）</div>
+        <div class="m-desc">目前業外部位：<b>${cur} 萬</b><br>每季隨市場波動（約 -20% ~ +35%），賣公司時計入售價。<br>⚠️ 業外占比過高，盡職調查會標記「本業空洞化」扣估值與治理評分。</div>
+        <button class="m-choice" onclick="closeModal();showAPModal('轉投資','投入金額（萬）',100,${Math.max(0,Math.floor(s.company.cash))},'投入後每季隨機損益',amt=>{STATE.company.cash-=amt;STATE.company.sideInvest=(STATE.company.sideInvest||0)+amt;STATE.log('財務','轉投資 '+amt+' 萬進業外部位。');})">加碼投入</button>
+        ${cur>0?`<button class="m-choice" onclick="dispatch('SIDE_REDEEM')">全部贖回（${cur} 萬入帳）</button>`:""}
+        <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">關閉</button>`);
+      break;
+    }
+    case "SIDE_REDEEM":{
+      const cur=Math.round(s.company.sideInvest||0);
+      s.company.cash+=cur;s.company.sideInvest=0;
+      s.log("財務",`業外投資全數贖回，${cur} 萬入帳。`);
+      closeModal();renderAll();
+      break;
+    }
+
     case "SELL_ASK":showSellConfirm();break;
     case "SELL_GO":closeModal();doSell(s);break;
 
@@ -1983,6 +2078,9 @@ function renderBossRow(s){
   const dz=document.getElementById("btn-downsize");
   dz.style.display=hc>=30?"inline-block":"none";
   dz.onclick=showDownsize;
+  const si=document.getElementById("btn-invest-side");
+  si.style.display=s.company.month>=6?"inline-block":"none";
+  si.onclick=()=>dispatch("SIDE_INVEST");
   const sell=document.getElementById("btn-sell");
   sell.style.display=s.company.month>=12&&!s.company.sold?"inline-block":"none";
   sell.onclick=()=>dispatch("SELL_ASK");
@@ -2126,6 +2224,8 @@ function renderSide(s){
     });
     sc.innerHTML=`
       <div class="s-stat"><span class="s-lbl">現金</span><span class="s-val ${c.cash<0?"neg":""}">${c.cash.toFixed(1)}萬</span></div>
+      ${(s._orgEff||1)<0.995?`<div class="s-stat"><span class="s-lbl">組織效率</span><span class="s-val" style="color:var(--orange)">${Math.round((s._orgEff||1)*100)}%</span></div>`:""}
+      <div class="s-stat"><span class="s-lbl">市況</span><span class="s-val" style="color:${c.market<80?"var(--red)":c.market>115?"var(--gold)":"var(--text)"}">${c._mktZone||"正常"}（${Math.round(c.market||100)}）</span></div>
       <div class="s-stat"><span class="s-lbl">負債 / 額度</span><span class="s-val">${c.debt.toFixed(0)} / ${creditLimit(c)}萬</span></div>
       <div class="s-stat"><span class="s-lbl">負債比</span><span class="s-val ${c.debtRatio()>0.6?"neg":""}">${(c.debtRatio()*100).toFixed(1)}%</span></div>
       <div class="s-stat"><span class="s-lbl">股東權益</span><span class="s-val">${c.equity.toFixed(1)}萬</span></div>
@@ -2319,7 +2419,9 @@ function showContractModal(project){
   const sales=deptByKey(STATE,"sales");
   const expandBoost=sales?.directive==="expand"?1.12:1;
   const idx=calcEnterpriseIndex(STATE);
-  const tierUp=1+Math.min(0.4,Math.max(0,(idx-50))/125); /* 企業指數越高單價微升 */
+  const mk=(STATE.company.market||100)/100;
+  const ab=STATE.company._analystBuff?STATE.company._analystBuff.v:0;
+  const tierUp=(1+Math.min(0.4,Math.max(0,(idx-50))/125))*mk*(1+ab);
   const offers=[
     {tier:"std",difficulty:1,customer:"老客戶 - 量產標準單",price:Math.round(base*rnd(0.9,1.0)*tierUp),volume:Math.round(rnd(15,25)*expandBoost),months:Math.round(rnd(3,5))},
     {tier:"npi",difficulty:2,customer:"新客戶 - NPI 新案單",price:Math.round(base*rnd(1.3,1.5)*tierUp),volume:Math.round(rnd(8,15)*expandBoost),months:Math.round(rnd(3,4)),npi:Math.round(rnd(2,3))}
@@ -2327,7 +2429,10 @@ function showContractModal(project){
   if(STATE.company.customerTrust>60)
     offers.push({tier:"std",difficulty:1,customer:"大客戶 - 量大單",price:Math.round(base*rnd(0.8,0.92)*tierUp),volume:Math.round(rnd(28,40)*expandBoost),months:Math.round(rnd(4,6))});
   if(idx>=80)
-    offers.push({tier:"strat",difficulty:3,customer:"戰略客戶 - 長約大單",price:Math.round(base*rnd(1.1,1.25)*tierUp),volume:Math.round(rnd(45,60)),months:Math.round(rnd(8,12))});
+    offers.push({tier:"strat",difficulty:3,customer:"戰略客戶 - 長約大單",price:Math.round(base*rnd(1.1,1.25)*tierUp),volume:Math.round(rnd(45,60)*mk),months:Math.round(rnd(8,12))});
+  if((STATE.company.market||100)>115)
+    offers.push({tier:"std",difficulty:2,customer:"⚡ 急單 - 市場過熱搶產能",price:Math.round(base*rnd(1.25,1.4)*tierUp),volume:Math.round(rnd(25,40)),months:2});
+  offers.forEach(o=>{o.volume=Math.max(4,Math.round(o.volume*Math.min(1,mk+0.1)));});
   const global_=deptByKey(STATE,"global");
   if(global_?.unlocked&&global_.employees.length)
     offers.push({tier:"std",difficulty:2,customer:"海外客戶 - 高單價大單",price:Math.round(base*rnd(1.2,1.5)*tierUp*(global_.directive==="expand"?1.15:1)*(1+avgAbility(global_,"sales")/500)),volume:Math.round(rnd(20,32)*(1+Math.min(global_.employees.length,6)*0.05)),months:Math.round(rnd(3,5))});
