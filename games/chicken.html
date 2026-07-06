@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>寵物雞</title>
+<style>
+:root{ --ink:#3a2a1a; --wood:#8a5a2b; --panel:#f5e6c8; --panel2:#e8d5ae; }
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html,body{ height:100%; overflow:hidden; background:#2a1f14; }
+body{ font-family:"Courier New",monospace; color:var(--ink); user-select:none; -webkit-user-select:none; }
+#app{ height:100dvh; max-width:520px; margin:0 auto; display:flex; flex-direction:column; position:relative; }
+img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
+
+/* ---------- 場景舞台 ---------- */
+#stage{ position:relative; flex:1; overflow:hidden; background:#000; }
+#bgDay,#bgNight{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity 2s; }
+#bgNight{ opacity:0; }
+#skyLayer{ position:absolute; overflow:hidden; pointer-events:auto; } /* 窗戶區 */
+.cloud{ position:absolute; background:#fff; border-radius:2px; opacity:.9;
+  box-shadow:8px 0 0 #fff,16px 0 0 #fff,4px -6px 0 #fff,12px -6px 0 #fff; animation:drift linear infinite; }
+@keyframes drift{ from{ transform:translateX(-40px);} to{ transform:translateX(320px);} }
+.star{ position:absolute; width:3px; height:3px; background:#fff; animation:tw ease-in-out infinite; }
+@keyframes tw{ 0%,100%{opacity:.2} 50%{opacity:1} }
+#meteor{ position:absolute; width:34px; height:2px; background:linear-gradient(90deg,#fff,transparent);
+  transform:rotate(25deg); display:none; }
+@keyframes shoot{ from{ transform:translate(0,0) rotate(25deg); opacity:1;} to{ transform:translate(140px,70px) rotate(25deg); opacity:0;} }
+
+/* ---------- 雞 ---------- */
+#chicken{ position:absolute; bottom:6%; left:40%; width:96px; transition:left 2.5s linear; cursor:pointer; z-index:5; }
+#chickenImg{ width:100%; display:block; animation:idleBob 1s steps(2) infinite; transform-origin:bottom center; }
+@keyframes idleBob{ 0%,100%{ transform:translateY(0) scaleY(1);} 50%{ transform:translateY(-3px) scaleY(.97);} }
+#chicken.flip #chickenImg{ transform:scaleX(-1); }
+#chicken.flip.away #chickenImg{ transform:scaleX(-1); }
+#chicken.sleeping #chickenImg{ animation:none; transform:rotate(-6deg); filter:brightness(.85); }
+#chicken.slowwalk{ transition:left 6s linear; }
+#chicken.eating #chickenImg{ animation:peck .35s steps(2) infinite; }
+@keyframes peck{ 0%,100%{ transform:rotate(0);} 50%{ transform:rotate(14deg) translateY(4px);} }
+.pt{ position:absolute; font-size:14px; animation:rise 1.2s forwards; pointer-events:none; z-index:9; }
+@keyframes rise{ from{ transform:translateY(0); opacity:1;} to{ transform:translateY(-42px); opacity:0;} }
+#zzz{ position:absolute; color:#cfe4ff; font-weight:bold; display:none; animation:rise 2s infinite; z-index:6; }
+
+/* ---------- 對話泡 ---------- */
+#bubble{ position:absolute; max-width:70%; background:var(--panel); border:3px solid var(--ink);
+  border-radius:8px; padding:7px 10px; font-size:13px; line-height:1.5; display:none; z-index:8; }
+#bubble:after{ content:''; position:absolute; bottom:-9px; left:22px; border:5px solid transparent; border-top-color:var(--ink); }
+.tw-gold{ color:#a06800; text-shadow:0 0 6px #fbbf24; } .tw-red{ color:#b91c1c; text-shadow:0 0 6px #f87171; }
+.tw-purple{ color:#7e22ce; } .tw-blue{ color:#1d4ed8; } .tw-green{ color:#15803d; } .tw-white{ color:var(--ink); }
+.tw-rainbow{ background:linear-gradient(90deg,#f00,#fa0,#0a0,#06f,#a0f); -webkit-background-clip:text; color:transparent; }
+
+/* ---------- 頂部狀態 ---------- */
+#hud{ position:absolute; top:0; left:0; right:0; padding:8px 10px calc(env(safe-area-inset-top) + 0px);
+  padding-top:calc(8px + env(safe-area-inset-top)); display:flex; gap:8px; align-items:center; z-index:10; }
+.bar{ flex:1; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:3px 6px; }
+.bar .lb{ font-size:10px; color:#fff; }
+.bar .tk{ height:8px; background:#3a3a3a; border-radius:3px; overflow:hidden; margin-top:2px; }
+.bar .fl{ height:100%; transition:width .4s; }
+#satFl{ background:#f59e0b; } #joyFl{ background:#ec4899; }
+#ageTag{ font-size:11px; color:#fff; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:5px 8px; }
+
+/* ---------- 底部操作 ---------- */
+#dock{ display:flex; gap:8px; padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:var(--wood);
+  border-top:4px solid var(--ink); z-index:10; }
+.btn{ flex:1; background:var(--panel); border:3px solid var(--ink); border-radius:8px; padding:12px 4px;
+  font-family:inherit; font-size:15px; font-weight:bold; color:var(--ink); cursor:pointer; }
+.btn:active{ transform:translateY(2px); }
+.btn.sm{ flex:0 0 52px; }
+
+/* ---------- 食物盤 ---------- */
+#tray{ position:absolute; left:0; right:0; bottom:0; background:var(--panel); border-top:4px solid var(--ink);
+  padding:10px 10px calc(12px + env(safe-area-inset-bottom)); transform:translateY(105%); transition:transform .25s; z-index:20; }
+#tray.open{ transform:translateY(0); }
+#trayGrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.food{ background:var(--panel2); border:3px solid var(--ink); border-radius:8px; padding:6px 2px; text-align:center; cursor:pointer; }
+.food:active{ background:#d9c08c; }
+.food img{ width:38px; height:38px; object-fit:contain; }
+.food .fn{ font-size:11px; font-weight:bold; }
+#trayClose{ width:100%; margin-top:8px; }
+
+/* ---------- 全屏覆蓋（選蛋/進化/結局/圖鑑）---------- */
+.ov{ position:absolute; inset:0; background:rgba(20,12,4,.94); z-index:30; display:none;
+  flex-direction:column; align-items:center; justify-content:center; padding:18px; text-align:center; color:var(--panel); overflow-y:auto; }
+.ov.show{ display:flex; }
+.ov h2{ margin-bottom:14px; font-size:20px; }
+.eggCard{ width:100%; max-width:340px; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.08);
+  border:3px solid var(--panel); border-radius:10px; padding:10px; margin-bottom:10px; cursor:pointer; text-align:left; }
+.eggCard img{ width:52px; height:52px; object-fit:contain; }
+.eggCard.locked{ opacity:.45; }
+.eggCard .en{ font-weight:bold; font-size:15px; } .eggCard .ed{ font-size:12px; opacity:.85; margin-top:2px; }
+#evoOv img{ width:160px; margin:14px 0; }
+.sil{ filter:brightness(0); }
+#evoName{ font-size:24px; font-weight:bold; }
+.glow{ text-shadow:0 0 12px currentColor; }
+#endOv img{ width:150px; margin:10px 0; }
+#endEpitaph{ font-size:14px; margin:10px 0 16px; line-height:1.7; opacity:.9; }
+#dexGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; max-width:380px; margin-bottom:12px; }
+.dexCell{ background:rgba(255,255,255,.07); border:2px solid var(--panel); border-radius:8px; padding:8px 4px; }
+.dexCell img{ width:56px; height:56px; object-fit:contain; }
+.dexCell .dn{ font-size:12px; font-weight:bold; margin-top:3px; }
+.dexCell .dh{ font-size:10px; opacity:.75; margin-top:2px; line-height:1.4; }
+.ovBtns{ display:flex; gap:10px; width:100%; max-width:340px; margin-top:6px; }
+input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px solid var(--ink); border-radius:8px; width:100%; max-width:260px; text-align:center; margin:12px 0; }
+#flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:29; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <img id="bgDay" class="px" alt=""><img id="bgNight" class="px" alt="">
+    <div id="skyLayer"><div id="meteor"></div></div>
+    <div id="chicken"><img id="chickenImg" class="px" alt="雞"></div>
+    <div id="zzz">Z z z</div>
+    <div id="bubble"></div>
+    <div id="hud">
+      <div class="bar"><div class="lb">飽足</div><div class="tk"><div class="fl" id="satFl"></div></div></div>
+      <div class="bar"><div class="lb">快樂</div><div class="tk"><div class="fl" id="joyFl"></div></div></div>
+      <div id="ageTag">0分</div>
+    </div>
+    <div id="flash"></div>
+  </div>
+  <div id="dock">
+    <button class="btn" id="feedBtn">餵食</button>
+    <button class="btn" id="dexBtn">圖鑑</button>
+    <button class="btn sm" id="muteBtn">♪</button>
+    <button class="btn sm" id="homeBtn">🏠</button>
+  </div>
+  <div id="tray"><div id="trayGrid"></div><button class="btn" id="trayClose">關閉</button></div>
+
+  <div class="ov" id="eggOv"><h2>選一顆蛋</h2><div id="eggList"></div></div>
+  <div class="ov" id="nameOv"><h2>孵化了！幫牠取個名字</h2>
+    <input id="nameIn" maxlength="8" placeholder="小雞"><button class="btn" id="nameOk" style="max-width:200px">就叫這個</button></div>
+  <div class="ov" id="evoOv"><h2 id="evoTitle">…有什麼要發生了</h2><img id="evoImg" class="px"><div id="evoName"></div>
+    <button class="btn" id="evoOk" style="max-width:200px;margin-top:16px">！！</button></div>
+  <div class="ov" id="endOv"><h2 id="endTitle"></h2><img id="endImg" class="px"><div id="endName"></div>
+    <div id="endEpitaph"></div><div id="endStats" style="font-size:12px;opacity:.8;margin-bottom:14px"></div>
+    <div class="ovBtns"><button class="btn" id="againBtn">再養一隻</button><button class="btn" id="endDexBtn">圖鑑</button></div></div>
+  <div class="ov" id="dexOv"><h2>圖鑑</h2><div id="dexGrid"></div>
+    <div id="dexEggs" style="font-size:12px;margin-bottom:10px"></div>
+    <button class="btn" id="dexClose" style="max-width:200px">返回</button></div>
+</div>
+
+<script src="chicken-config.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const A = f => CFG.ASSET_BASE + f;
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+
+/* ================= 純邏輯核心（無 DOM）================= */
+const Core = {
+  newGame(egg){
+    const v = CFG.applyEggInit(egg);
+    return { ver:CFG.SAVE_VERSION, egg, name:'', stage:'egg', t:0,
+      vec:{F:v.F,P:v.P,S:v.S,H:v.H,L:v.L},
+      sat:CFG.LIFE.satietyMax, joy:70, hp:CFG.LIFE.healthMax,
+      dmg:{starved:0,overfed:0,burnt:0,heartbroken:0},
+      teen:null, adult:null, feeds:0, pokes:0, hatchBoost:0, lastFeedT:0 };
+  },
+  maxAxis(st){ let m='F'; for(const a of CFG.AXES) if(st.vec[a]>st.vec[m]) m=a; return m; },
+  feed(st, id){
+    const fd = CFG.FOODS[id];
+    let stuffed = false;
+    if (st.sat >= CFG.LIFE.satietyMax - 1){ st.dmg.overfed += CFG.LIFE.dmgStuff; st.hp -= CFG.LIFE.dmgStuff; stuffed = true; }
+    st.sat = Math.min(CFG.LIFE.satietyMax, st.sat + fd.satiety);
+    st.joy = Math.max(0, Math.min(CFG.LIFE.joyMax, st.joy + 3 + fd.joy*4));
+    const f = CFG.applyEggFeed(st.egg, fd.vec);
+    CFG.AXES.forEach((a,i)=>{ st.vec[a] = Math.max(0, st.vec[a] + f[i]); });
+    st.feeds++; st.lastFeedT = st.t;
+    return stuffed;
+  },
+  tick(st){ // 每秒；回傳事件字串或 null
+    st.t++;
+    if (st.stage === 'egg'){
+      if (st.t + st.hatchBoost >= CFG.TIMING.eggHatch) return 'hatch';
+      return null;
+    }
+    const L = CFG.LIFE;
+    st.sat = Math.max(0, st.sat - L.satietyDrain);
+    st.joy = Math.max(0, st.joy - L.joyDrain);
+    if (st.sat <= 0){ st.dmg.starved += L.dmgStarve; st.hp -= L.dmgStarve; }
+    if (st.vec.H >= CFG.T.HIGH){ st.dmg.burnt += L.dmgSpicy; st.hp -= L.dmgSpicy; }
+    if (st.joy <= 0){ st.dmg.heartbroken += L.dmgSad; st.hp -= L.dmgSad; }
+    if (st.sat > 30 && st.joy > 30 && st.vec.H < CFG.T.HIGH) st.hp = Math.min(L.healthMax, st.hp + L.healRate);
+    if (st.hp <= 0) return 'death';
+    if (st.stage === 'chick' && st.t >= CFG.TIMING.judgeTeen) return 'judgeTeen';
+    if (st.stage === 'teen'  && st.t >= CFG.TIMING.judgeAdult) return 'judgeAdult';
+    if (st.stage === 'adult' && st.t >= CFG.TIMING.lifespan) return 'lifespan';
+    return null;
+  },
+  judgeTeen(st){
+    for (const r of CFG.TEEN_RULES) if (r.test(st.vec, CFG.T)) { st.teen = r.id; st.stage='teen'; return r; }
+  },
+  judgeAdult(st, dex){
+    let form = null;
+    for (const r of CFG.ADULT_RULES) if (r.test(st.vec, CFG.T, st.egg)) { form = r; break; }
+    dex.evoCount = (dex.evoCount||0) + 1;
+    dex.pity = (dex.pity||0) + 1;
+    if (Math.random() < CFG.MUTANT.chance || dex.pity >= CFG.MUTANT.pityAfter){
+      if (!(dex.pity >= CFG.MUTANT.pityAfter) || !dex.forms[CFG.MUTANT.id] || Math.random() < CFG.MUTANT.chance){
+        form = CFG.MUTANT; dex.pity = 0;
+      }
+    }
+    st.adult = form.id; st.stage = 'adult';
+    return form;
+  },
+  deathEnding(st){
+    if (st.egg === 'angel') return 'ascension'; // 天使不死，只昇華
+    let top='starved', tv=-1;
+    for (const k in st.dmg) if (st.dmg[k] > tv){ tv = st.dmg[k]; top = k; }
+    return top;
+  },
+  lifespanEnding(st){ return st.egg==='angel' ? 'ascension' : 'natural'; },
+  bucket(st){
+    const near = CFG.TIMING[st.stage==='teen'?'judgeAdult':'judgeTeen'];
+    if ((st.stage==='chick'||st.stage==='teen') && near - st.t < 120 && near - st.t > 0 && Math.random()<.5) return 'preEvo';
+    if (st.hp < 30) return 'weak';
+    if (st.egg==='demon' && Math.random()<.25) return CFG.DARK_BUCKET_EGG==='demon'?'dark':'daily';
+    const mx = Core.maxAxis(st);
+    if (st.vec[mx] < CFG.T.MID) return 'daily';
+    const ties = CFG.AXES.filter(a=>st.vec[a]===st.vec[mx]);
+    return CFG.BUCKET_MAP[rnd(ties)] || 'daily';
+  },
+};
+
+/* ================= 存檔 ================= */
+const Save = {
+  load(){ try{ const s = JSON.parse(localStorage.getItem(CFG.SAVE_KEY)); return (s && s.ver===CFG.SAVE_VERSION) ? Object.assign(Core.newGame(s.egg), s) : null; }catch(e){ return null; } },
+  write(st){ try{ localStorage.setItem(CFG.SAVE_KEY, JSON.stringify(st)); }catch(e){} },
+  clear(){ localStorage.removeItem(CFG.SAVE_KEY); },
+  dex(){ try{ return JSON.parse(localStorage.getItem(CFG.DEX_KEY)) || {forms:{},endings:{},eggs:{bird:true},pity:0,evoCount:0,ach:{}}; }catch(e){ return {forms:{},endings:{},eggs:{bird:true},pity:0,evoCount:0,ach:{}}; } },
+  writeDex(d){ try{ localStorage.setItem(CFG.DEX_KEY, JSON.stringify(d)); }catch(e){} },
+};
+
+/* ================= 音效（WebAudio 合成，零素材）================= */
+const Snd = {
+  ctx:null, muted: localStorage.getItem('chicken_mute')==='1',
+  init(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } },
+  beep(f, dur, type, vol){ if(this.muted||!this.ctx) return;
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type=type||'square'; o.frequency.value=f; g.gain.value=vol||.06;
+    o.connect(g); g.connect(this.ctx.destination); o.start();
+    g.gain.exponentialRampToValueAtTime(.001, this.ctx.currentTime+dur); o.stop(this.ctx.currentTime+dur); },
+  chirp(hp){ const base = 700 + (hp/100)*500; this.beep(base,.09); setTimeout(()=>this.beep(base*1.25,.08),90); },
+  eat(){ this.beep(300,.06,'sawtooth'); setTimeout(()=>this.beep(220,.08,'sawtooth'),70); },
+  evo(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.beep(f,.22,'square',.08), i*160)); },
+  death(){ [400,320,240,160].forEach((f,i)=>setTimeout(()=>this.beep(f,.3,'triangle',.07), i*220)); },
+};
+
+/* ================= 表現層 ================= */
+let st = null, dex = Save.dex(), loopId = null, paused = false;
+let wanderId = null, bubbleId = null, sleeping = false;
+
+function spriteFor(){
+  if (st.stage==='egg'){ const e = CFG.EGGS[st.egg]; return A((st.t+st.hatchBoost > CFG.TIMING.eggHatch*0.7) ? e.sprite.crack : e.sprite.idle); }
+  if (st.stage==='chick'){
+    if (sleeping) return A(CFG.CHICK.sleep);
+    if (st.hp < 40) return A(CFG.CHICK.sick);
+    return A(CFG.CHICK.idle);
+  }
+  if (st.stage==='teen'){ const r = CFG.TEEN_RULES.find(r=>r.id===st.teen); return A(r ? r.sprite : 'teen_plain.png'); }
+  const r = CFG.ADULT_RULES.find(r=>r.id===st.adult) || (st.adult===CFG.MUTANT.id ? CFG.MUTANT : null);
+  return A(r ? r.sprite : 'adult_normal.png');
+}
+function render(){
+  $('chickenImg').src = spriteFor();
+  $('satFl').style.width = st.sat + '%';
+  $('joyFl').style.width = st.joy + '%';
+  $('ageTag').textContent = Math.floor(st.t/60) + '分';
+  const c = $('chicken');
+  c.classList.toggle('slowwalk', st.vec.F >= CFG.T.HIGH);
+  c.classList.toggle('away', st.joy <= 20);
+  c.style.width = st.stage==='egg' ? '72px' : st.stage==='chick' ? '80px' : '110px';
+}
+function particle(txt, x, y){
+  const p = document.createElement('div'); p.className='pt'; p.textContent=txt;
+  p.style.left=x+'px'; p.style.top=y+'px'; $('stage').appendChild(p);
+  setTimeout(()=>p.remove(), 1300);
+}
+function chickenXY(){ const r=$('chicken').getBoundingClientRect(), s=$('stage').getBoundingClientRect();
+  return { x:r.left-s.left+r.width/2, y:r.top-s.top }; }
+
+function say(line){
+  const b = $('bubble'); b.innerHTML = '';
+  const sp = document.createElement('span');
+  sp.className = 'tw-' + (line.tier||'white') + ((CFG.TIERS[line.tier]||{}).glow ? ' glow':'');
+  sp.textContent = line.t; b.appendChild(sp);
+  const p = chickenXY();
+  b.style.left = Math.max(6, Math.min(p.x-40, $('stage').clientWidth-220)) + 'px';
+  b.style.bottom = ($('stage').clientHeight - p.y + 12) + 'px'; b.style.top='auto';
+  b.style.display='block';
+  clearTimeout(bubbleId); bubbleId = setTimeout(()=>b.style.display='none', 3600);
+}
+function speakRandom(){
+  if (!st || st.stage==='egg' || sleeping) return;
+  const pool = CFG.DIALOGUE[Core.bucket(st)] || CFG.DIALOGUE.daily;
+  say(rnd(pool));
+}
+
+/* ---------- 遊走 ---------- */
+function wander(){
+  if (!st || st.stage==='egg' || sleeping || paused) return;
+  const c = $('chicken'), w = $('stage').clientWidth;
+  const nx = 8 + Math.random() * (w - 130);
+  const cur = c.offsetLeft;
+  c.classList.toggle('flip', nx > cur);
+  c.style.left = nx + 'px';
+}
+
+/* ---------- 天空 ---------- */
+function isNight(){ const h = new Date().getHours(); return h >= CFG.BG.nightFrom || h < CFG.BG.nightTo; }
+function buildSky(){
+  const sky = $('skyLayer'); const stg = $('stage');
+  // 窗戶區（背景圖比例定位）
+  Object.assign(sky.style, { left:'50%', top:'10%', width:'42%', height:'50%' });
+  sky.querySelectorAll('.cloud,.star').forEach(e=>e.remove());
+  if (isNight()){
+    $('bgNight').style.opacity = 1; $('bgDay').style.opacity = 0;
+    for (let i=0;i<14;i++){ const s=document.createElement('div'); s.className='star';
+      s.style.left=Math.random()*95+'%'; s.style.top=Math.random()*80+'%';
+      s.style.animationDuration=(1.5+Math.random()*2.5)+'s'; s.style.animationDelay=Math.random()*2+'s';
+      sky.appendChild(s); }
+  } else {
+    $('bgNight').style.opacity = 0; $('bgDay').style.opacity = 1;
+    for (let i=0;i<3;i++){ const c=document.createElement('div'); c.className='cloud';
+      c.style.width='18px'; c.style.height='7px'; c.style.top=(8+Math.random()*35)+'%';
+      c.style.animationDuration=(26+Math.random()*30)+'s'; c.style.animationDelay=(-Math.random()*30)+'s';
+      sky.appendChild(c); }
+  }
+}
+function meteorRoll(){
+  if (!isNight() || !st || st.stage==='egg') return;
+  if (Math.random() < CFG.EASTER.meteor.chance){
+    const m = $('meteor');
+    m.style.left = (10+Math.random()*40)+'%'; m.style.top = (5+Math.random()*30)+'%';
+    m.style.display='block'; m.style.animation='shoot 1.6s linear forwards';
+    m.dataset.live = '1';
+    setTimeout(()=>{ m.style.display='none'; m.style.animation=''; m.dataset.live=''; }, 1700);
+  }
+}
+$('skyLayer').addEventListener('click', ()=>{
+  const m = $('meteor');
+  if (m.dataset.live === '1' && st){
+    st.vec.L += CFG.EASTER.meteor.reward.L;
+    say(CFG.EASTER.meteor.line); Snd.beep(1200,.3,'sine',.08);
+    m.dataset.live = '';
+  }
+});
+
+/* ---------- 睡眠（夜間氛圍：現實 0-6 點雞會打盹，可叫醒）---------- */
+function sleepCheck(){
+  const h = new Date().getHours();
+  const should = (h >= 0 && h < 6) && st && st.stage !== 'egg';
+  if (should && !sleeping){ sleeping = true; $('chicken').classList.add('sleeping'); $('zzz').style.display='block'; }
+  if (!should && sleeping){ wakeUp(); }
+  if (sleeping){ const p = chickenXY(); $('zzz').style.left=(p.x+30)+'px'; $('zzz').style.top=(p.y-10)+'px'; }
+}
+function wakeUp(){ sleeping = false; $('chicken').classList.remove('sleeping'); $('zzz').style.display='none'; }
+
+/* ---------- 主循環 ---------- */
+function startLoop(){
+  stopLoop();
+  loopId = setInterval(()=>{
+    if (paused || !st || st.stage==='dead') return;
+    const ev = Core.tick(st);
+    render();
+    if (st.t % 10 === 0) Save.write(st);
+    if (st.t % 60 === 0) meteorRoll();
+    if (st.t % 25 === 0 && Math.random() < .7) speakRandom();
+    if (st.t % 45 === 0 && st.hp < CFG.LIFE.healthHideCluesAt){ const p=chickenXY(); particle('🪶', p.x, p.y+20); }
+    sleepCheck();
+    if (ev) handleEvent(ev);
+  }, CFG.TIMING.tickMs);
+  wanderId = setInterval(wander, 7000);
+}
+function stopLoop(){ clearInterval(loopId); clearInterval(wanderId); }
+
+function handleEvent(ev){
+  if (ev === 'hatch'){ st.stage='chick'; Save.write(st); showName(); }
+  else if (ev === 'judgeTeen'){ const r = Core.judgeTeen(st); Save.write(st); showEvo(r, '牠…長大了一點'); }
+  else if (ev === 'judgeAdult'){ const r = Core.judgeAdult(st, dex);
+    dex.forms[r.id] = true; Save.writeDex(dex); Save.write(st); showEvo(r, '進化的時刻到了！', true); }
+  else if (ev === 'death'){ endGame(Core.deathEnding(st)); }
+  else if (ev === 'lifespan'){ endGame(Core.lifespanEnding(st)); }
+}
+
+/* ---------- 進化演出 ---------- */
+function showEvo(r, title, isAdult){
+  paused = true; Snd.evo();
+  const f = $('flash'); f.style.transition='opacity .12s'; f.style.opacity=1;
+  setTimeout(()=>{ f.style.transition='opacity .8s'; f.style.opacity=0; }, 200);
+  $('evoTitle').textContent = title;
+  const img = $('evoImg'); img.src = A(r.sprite); img.classList.add('sil');
+  const nameEl = $('evoName'); nameEl.textContent = '？？？'; nameEl.className='';
+  $('evoOv').classList.add('show');
+  setTimeout(()=>{
+    img.classList.remove('sil');
+    const tier = CFG.TIERS[r.tier];
+    nameEl.textContent = r.name;
+    nameEl.className = 'tw-' + r.tier + (tier.glow ? ' glow' : '');
+  }, isAdult ? 1600 : 900);
+}
+$('evoOk').addEventListener('click', ()=>{ $('evoOv').classList.remove('show'); paused = false; render(); });
+
+/* ---------- 結局 ---------- */
+function endGame(key){
+  paused = true; stopLoop(); Snd.death();
+  const E = CFG.ENDINGS[key];
+  st.stage = 'dead'; Save.clear();
+  dex.endings[key] = true;
+  if (E.unlocks) dex.eggs[E.unlocks] = true;
+  if (Object.keys(dex.endings).filter(k=>k!=='natural'&&k!=='ascension').length >= 3) dex.eggs.demon = true;
+  const seen = Object.keys(dex.forms).length + Object.keys(dex.endings).length;
+  if (Object.keys(dex.forms).length >= 10) dex.eggs.dino = true;
+  Save.writeDex(dex);
+  try{ localStorage.setItem('game_pending_score', JSON.stringify({ game:'chicken', score: seen })); }catch(e){}
+  $('endTitle').textContent = (key==='natural'||key==='ascension') ? '一生結束了' : '雞生無常';
+  $('endImg').src = A(E.sprite);
+  const t = CFG.TIERS[E.tier];
+  $('endName').innerHTML = '<span class="tw-'+E.tier+(t.glow?' glow':'')+'" style="font-size:20px;font-weight:bold">'+E.name+'</span>';
+  $('endEpitaph').textContent = '「' + E.epitaph + '」';
+  $('endStats').textContent = (st.name||'小雞') + '　活了 ' + Math.floor(st.t/60) + ' 分鐘　吃了 ' + st.feeds + ' 餐';
+  $('endOv').classList.add('show');
+}
+$('againBtn').addEventListener('click', ()=>{ $('endOv').classList.remove('show'); showEggSelect(); });
+$('endDexBtn').addEventListener('click', ()=>{ showDex(); });
+
+/* ---------- 選蛋 ---------- */
+function showEggSelect(){
+  const list = $('eggList'); list.innerHTML = '';
+  for (const [id, e] of Object.entries(CFG.EGGS)){
+    const unlocked = !!dex.eggs[id];
+    const d = document.createElement('div');
+    d.className = 'eggCard' + (unlocked ? '' : ' locked');
+    d.innerHTML = '<img class="px" src="'+A(e.sprite.idle)+'">' +
+      '<div><div class="en">'+(unlocked ? e.name : '？？？')+'</div>' +
+      '<div class="ed">'+(unlocked ? e.desc : '解鎖條件：'+e.unlockHint)+'</div></div>';
+    if (unlocked) d.addEventListener('click', ()=>{
+      st = Core.newGame(id); Save.write(st);
+      $('eggOv').classList.remove('show'); paused = false; render(); startLoop();
+      say({t: e.origin, tier:'white'});
+    });
+    list.appendChild(d);
+  }
+  $('eggOv').classList.add('show');
+}
+
+/* ---------- 命名 ---------- */
+function showName(){ paused = true; $('nameOv').classList.add('show'); }
+$('nameOk').addEventListener('click', ()=>{
+  st.name = $('nameIn').value.trim() || '小雞';
+  Save.write(st); $('nameOv').classList.remove('show'); paused = false;
+  Snd.chirp(100); render();
+});
+
+/* ---------- 圖鑑 ---------- */
+function showDex(){
+  const g = $('dexGrid'); g.innerHTML = '';
+  const all = [...CFG.ADULT_RULES, CFG.MUTANT];
+  for (const r of all){
+    const seen = !!dex.forms[r.id];
+    const t = CFG.TIERS[r.tier];
+    const d = document.createElement('div'); d.className = 'dexCell';
+    d.innerHTML = '<img class="px'+(seen?'':' sil')+'" src="'+A(r.sprite)+'">' +
+      '<div class="dn'+(seen?' tw-'+r.tier+(t.glow?' glow':''):'')+'">'+(seen?r.name:'？？？')+'</div>' +
+      '<div class="dh">'+(seen ? CFG.TIERS[r.tier].name : (r.hint||''))+'</div>';
+    g.appendChild(d);
+  }
+  for (const [k, E] of Object.entries(CFG.ENDINGS)){
+    const seen = !!dex.endings[k];
+    const t = CFG.TIERS[E.tier];
+    const d = document.createElement('div'); d.className = 'dexCell';
+    d.innerHTML = '<img class="px'+(seen?'':' sil')+'" src="'+A(E.sprite)+'">' +
+      '<div class="dn'+(seen?' tw-'+E.tier+(t.glow?' glow':''):'')+'">'+(seen?E.name:'？？？')+'</div>' +
+      '<div class="dh">'+(seen?'結局':'？？？')+'</div>';
+    g.appendChild(d);
+  }
+  $('dexEggs').textContent = '蛋：' + Object.entries(CFG.EGGS).map(([id,e])=>(dex.eggs[id]?e.name:'？？？')).join('　');
+  $('dexOv').classList.add('show');
+}
+$('dexBtn').addEventListener('click', showDex);
+$('dexClose').addEventListener('click', ()=>{ $('dexOv').classList.remove('show'); if($('endOv').classList.contains('show')) return; });
+
+/* ---------- 互動 ---------- */
+$('chicken').addEventListener('click', (e)=>{
+  Snd.init();
+  if (!st) return;
+  if (st.stage==='egg'){
+    st.hatchBoost = Math.min(st.hatchBoost + 2, CFG.TIMING.eggHatch - 60);
+    const p = chickenXY(); particle('✦', p.x, p.y+30); Snd.beep(500,.05); render(); return;
+  }
+  if (sleeping){ wakeUp(); say({t:'…咕？', tier:'white'}); return; }
+  st.pokes++;
+  const p = chickenXY();
+  if (st.pokes === CFG.EASTER.pokeAngry.count){
+    dex.ach[CFG.EASTER.pokeAngry.achievement] = true; Save.writeDex(dex);
+    say({t:'不要再戳了！！', tier:'red'}); particle('💢', p.x, p.y);
+    if (navigator.vibrate) navigator.vibrate(80);
+    Snd.beep(180,.2,'sawtooth',.1); return;
+  }
+  st.joy = Math.min(CFG.LIFE.joyMax, st.joy + 1);
+  particle(rnd(['♥','♪','✦']), p.x + (Math.random()*30-15), p.y);
+  Snd.chirp(st.hp); render();
+});
+
+/* ---------- 餵食 UI ---------- */
+function buildTray(){
+  const g = $('trayGrid'); g.innerHTML = '';
+  for (const [id, f] of Object.entries(CFG.FOODS)){
+    const d = document.createElement('div'); d.className = 'food';
+    d.innerHTML = '<img class="px" src="'+A(f.icon)+'"><div class="fn">'+f.name+'</div>';
+    d.addEventListener('click', ()=> doFeed(id));
+    g.appendChild(d);
+  }
+}
+function doFeed(id){
+  if (!st || st.stage==='egg' || st.stage==='dead') return;
+  $('tray').classList.remove('open');
+  if (sleeping) wakeUp();
+  const stuffed = Core.feed(st, id);
+  const c = $('chicken');
+  c.classList.add('eating'); Snd.eat();
+  const p = chickenXY();
+  particle(stuffed ? '💧' : '😋', p.x, p.y);
+  if (st.vec.H >= CFG.T.MID) setTimeout(()=>particle('🔥', p.x+14, p.y+8), 350);
+  setTimeout(()=>{ c.classList.remove('eating'); render(); }, 900);
+  Save.write(st); render();
+}
+$('feedBtn').addEventListener('click', ()=>{ Snd.init(); if (st && st.stage!=='egg') $('tray').classList.add('open'); });
+$('trayClose').addEventListener('click', ()=> $('tray').classList.remove('open'));
+
+/* ---------- 系統 ---------- */
+$('muteBtn').addEventListener('click', ()=>{
+  Snd.muted = !Snd.muted; localStorage.setItem('chicken_mute', Snd.muted?'1':'0');
+  $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
+});
+$('homeBtn').addEventListener('click', ()=>{ if(st) Save.write(st); window.location.href='/'; });
+document.addEventListener('visibilitychange', ()=>{
+  if (document.visibilityState === 'hidden'){ paused = true; if(st && st.stage!=='dead') Save.write(st); }
+  else { paused = false; buildSky(); }
+});
+window.addEventListener('pagehide', ()=>{ if(st && st.stage!=='dead') Save.write(st); });
+
+/* ---------- 啟動 ---------- */
+function boot(){
+  $('bgDay').src = A(CFG.BG.day); $('bgNight').src = A(CFG.BG.night);
+  $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
+  buildTray(); buildSky();
+  setInterval(buildSky, 60000); // 跨日夜界線自動切換
+  st = Save.load();
+  if (st){ render(); startLoop(); }
+  else showEggSelect();
+}
+boot();
+</script>
+</body>
+</html>
