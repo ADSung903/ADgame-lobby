@@ -1614,15 +1614,16 @@ function transferToStock(){
   const M=parseFloat(input.value||0);
   if(!M||M<=0){toast('⚠️ 請輸入金額（M 為單位）');return;}
   const amt=Math.floor(M*1e6);
-  const g=cur();
-  if(amt>g.money){toast('⚠️ 店鋪餘額不足');return;}
+  // 股市資金只屬於太陽系，固定從 earth 扣款
+  const earth=state.galaxies.earth;
+  if(amt>earth.money){toast('⚠️ 太陽系餘額不足');return;}
   const sa=getStockAccount();
   sa.cash=(sa.cash||0)+amt;
   saveStockAccount(sa);
-  g.money-=amt;
+  earth.money-=amt;
   input.value='';
   updateUI();renderStats();
-  toast(`✅ 已匯 NT$${fmt(amt)} 進股市帳戶`);
+  toast(`✅ 已從太陽系匯 $${fmt(amt)} 進股市帳戶`);
 }
 
 function transferFromStock(){
@@ -1631,13 +1632,14 @@ function transferFromStock(){
   const total=sa.cash;
   const receive=Math.floor(total*0.1);
   const lost=total-receive;
-  if(!confirm(`⚠️ 匯回確認\n\n股市現金：NT$${fmt(total)}\n兌換損耗（90%）：-NT$${fmt(lost)}\n實際到帳：NT$${fmt(receive)}\n\n資金在股市中已大幅貶值，確定要匯回嗎？`))return;
-  const g=cur();
-  g.money+=receive;g.totalEarned+=receive;g.allTime+=receive;g.weekly+=receive;
+  if(!confirm(`⚠️ 匯回確認\n\n股市現金：NT$${fmt(total)}\n兌換損耗（90%）：-NT$${fmt(lost)}\n實際到帳：$${fmt(receive)}\n（匯回太陽系）\n\n資金在股市中已大幅貶值，確定要匯回嗎？`))return;
+  // 股市資金只屬於太陽系，固定匯回 earth，不能用 cur()（玩家可能在其他星系）
+  const earth=state.galaxies.earth;
+  earth.money+=receive; earth.totalEarned+=receive; earth.allTime+=receive; earth.weekly+=receive;
   sa.cash=0;
   saveStockAccount(sa);
   updateUI();renderStats();
-  toast(`✅ 已從股市匯回 NT$${fmt(receive)}（損耗 NT$${fmt(lost)}）`);
+  toast(`✅ 已從股市匯回 $${fmt(receive)} 至太陽系（損耗 NT$${fmt(lost)}）`);
 }
 
 // ── 存檔 ──────────────────────────────────────────────
