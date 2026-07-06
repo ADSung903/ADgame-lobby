@@ -63,6 +63,11 @@ DEPT_DEFS:[
            {label:"帳務健康",fn:(d,s)=>Math.round(avgAbility(d,"management"))}],
     effects:{noiseAmpDelta:(d)=>-(avgAbility(d,"management")/100)*0.15-(d.directive==="audit"?0.05:0),
              riskDelta:{財務造假:(d)=>(d.directive==="refine"?-3:0)}}},
+  {key:"hr",name:"人資部",color:"var(--pink,#e88fb0)",unlocked:false,cost:80,headPos:"經理",startSlots:2,startEmps:[],
+    unlockCheck:(s)=>allEmps(s).length>=12,unlockHint:"員工達 12 人可開設",
+    kpis:[{label:"招募品質",fn:(d,s)=>clamp(40+avgAbility(d,"management")/2+d.employees.length*5,0,100)},
+           {label:"組織健康",fn:(d,s)=>{const es=allEmps(s);return es.length?Math.round(es.reduce((a,e)=>a+e.loyalty,0)/es.length):50;}}],
+    effects:{}},
   {key:"global",name:"海外部",color:"var(--pink)",unlocked:false,cost:100,headPos:"處長",startSlots:2,startEmps:[],
     unlockCheck:(s)=>s.company.cash>=2000,unlockHint:"現金需達2000萬",
     kpis:[{label:"海外訂單",fn:(d,s)=>d.employees.length>0?1:0},
@@ -331,6 +336,10 @@ const SKILLS=[
 const SKILL_TIER_W={白:30,綠:25,藍:20,紫:12,金:8,紅:4,彩:1};
 
 const VOICES={
+  money:["股票又住套房了，唉。","這個月卡費繳不出來…","房貸壓得我喘不過氣。","樂透…就差一個號碼。","小孩補習費比我薪水漲得快。","儲蓄險到底該不該解約？","同學會不敢去，怕比薪水。","加密貨幣害我睡不著。"],
+  gossip:["聽說業務部那兩個在一起了。","主管的停車位是誰決定的啊？","茶水間的餅乾都是誰吃完的？","三樓影印機又壞了，第八次。","尾牙抽獎絕對有內定。","新來的顏值好高。","隔壁部門聚餐都吃比較好。","老闆的車又換新的了。"],
+  career:["我這個位子五年沒動過了。","證照考完就跳槽。","獵頭又加我LINE了。","年後再說，年終先領。","想去讀個在職專班。","履歷放著，隨時可以走。","這產業還有十年榮景嗎？","我當年也是有夢想的。"],
+  family:["小孩發燒，今天得早退。","爸媽一直催婚，煩。","另一半嫌我都在加班。","週末又要回婆家。","狗生病了，獸醫比人醫貴。","幼稚園抽籤又沒中。"],
   good:["最近的便當變好吃了。","這季獎金有希望吧？","公司氣氛還不錯啦。","主管人滿好的，會罩我們。","茶水間新咖啡機讚。","案子順的時候上班還蠻有成就感。","今年尾牙聽說會辦大的？","同事都蠻好相處的。","薪水準時發就是好公司。","新來的同事蠻強的。","廁所終於修好了。","下班可以準時走，難得。"],
   lowLoyal:["三年沒調薪了，說得過去嗎…","隔壁廠開的價比這裡多兩成。","履歷我都更新好了。","做再多也沒人看見。","主管只會把功勞往上報。","慣老闆…嘖。","年終有夠薄。","誰要跟我一起去投履歷？","這裡就是個跳板啦。","反正做多做少都一樣。","開會開三小時，事情都沒人做。","我上次提的案根本沒人理。"],
   overwork:["這個月加班第80小時了…","我已經忘記準時下班是什麼感覺。","人力就是不夠，撐個屁。","再叫我假日支援我就走人。","眼睛好花，機台看到吐。","昨天做到11點，今天7點又來。"],
