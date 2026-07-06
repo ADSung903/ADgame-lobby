@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>企業模擬經營 v2.3</title>
+<title>企業模擬經營 v2.4</title>
 <style>
 :root{
   --bg:#0f1923;--surface:#172030;--surface2:#1e293b;--line:#2a3a4a;
@@ -235,7 +235,7 @@ body.stage-4{--bg:#16244a;}
 <!-- SETUP SCREEN -->
 <div id="screen-setup" class="screen active">
   <h1>企業模擬經營</h1>
-  <p class="tagline">v2.3 — 選擇你的產業，開始經營</p>
+  <p class="tagline">v2.4 — 選擇你的產業，開始經營</p>
   <div class="ind-grid" id="ind-grid"></div>
 </div>
 
@@ -268,6 +268,7 @@ body.stage-4{--bg:#16244a;}
         <button class="tbtn" id="btn-downsize" style="display:none;border-color:var(--red);color:var(--red)">組織瘦身</button>
         <button class="tbtn" id="btn-sell" style="display:none;border-color:var(--gold);color:var(--gold)">出售公司</button>
         <button class="tbtn" id="btn-invest-side" style="display:none">轉投資</button>
+        <button class="tbtn" id="btn-meeting" style="display:none">主管會議</button>
         <div id="gm-node" style="display:none">
           <span id="gm-svg"></span>
           <div><div class="gm-label" id="gm-name"></div><div class="gm-sub" id="gm-sub"></div></div>
@@ -321,7 +322,7 @@ body.stage-4{--bg:#16244a;}
 <script src="sim-config.js"></script>
 <script>
 /* ================================================================
-   企業模擬經營 v2.3
+   企業模擬經營 v2.4
    架構: CONFIG → ENGINE → STATE → DISPATCH → UI
 ================================================================ */
 
@@ -573,6 +574,7 @@ function advanceMonth(s){
   s.company.month++;
   const c=s.company;
   c.bossActions={inspect:false,borrow:false,repay:false,negotiate:false};
+  c._metThisMonth=false;
   c.inspectMode=null;
   c.investmentFrozen=false;
   c.interestRate=baseRate(c)+c.ratePenalty;
@@ -610,6 +612,26 @@ function advanceMonth(s){
           {label:"好聚好散（合約終止）",eff:(s2)=>{p.contract=null;s2.log("業務","又一個客戶離開了。重建信任比什麼都難。");}}
         ]},ctx:{}});
     }
+  }
+  s.departments.forEach(d=>{
+    if(!d.unlocked||!d.employees.length)return;
+    const dir=d.directive;
+    if(d.key==="prod"&&dir==="safety")c.trueRisk.勞檢=clamp(c.trueRisk.勞檢-1.5,0,100);
+    if(d.key==="qa"&&dir==="strict")c.trueRisk.品質掩蓋=clamp(c.trueRisk.品質掩蓋-1.5,0,100);
+    if(d.key==="fin"&&dir==="audit")c.trueRisk.財務造假=clamp(c.trueRisk.財務造假-1.5,0,100);
+    if(d.key==="proc"&&dir==="audit_sup")c.trueRisk.採購舞弊=clamp(c.trueRisk.採購舞弊-1.5,0,100);
+    if(d.key==="rd"&&dir==="train"&&Math.random()<0.5){
+      const e=d.employees[Math.floor(Math.random()*d.employees.length)];
+      e.trueAbility.technical=clamp(e.trueAbility.technical+1,0,100);
+    }
+  });
+  {
+    const emps2=allEmps(s);
+    const avgLoy2=emps2.length?emps2.reduce((a,e)=>a+e.loyalty,0)/emps2.length:50;
+    const env=clamp(100-c.equipmentAging*80+(c.autoLevel||0)*5+(c._greenBonus||0),0,100);
+    const soc=clamp(avgLoy2*0.7+(100-c.trueRisk.勞檢)*0.3,0,100);
+    const gov=clamp(100-Object.values(c.trueRisk).reduce((a,v)=>a+v,0)/4,0,100);
+    c.esg=Math.round(env*0.3+soc*0.35+gov*0.35);
   }
   const _crew=totalCrew(s);
   if(_crew>60)c.trueRisk.勞檢=clamp(c.trueRisk.勞檢+(_crew-60)*0.005,0,100);
@@ -668,6 +690,8 @@ function advanceMonth(s){
   calcMonthly(s);
 
   // Loyalty drift
+  const _hr=deptByKey(s,"hr");
+  const hrBuf=(_hr?.unlocked&&_hr.employees.length)?Math.min(1,_hr.employees.length*0.5):0;
   s.departments.forEach(d=>{
     const hb=headBonus(d);
     d.employees.forEach(e=>{
@@ -676,7 +700,9 @@ function advanceMonth(s){
       const salaryEffect=clamp(gap*5,-4,4);
       const shield=(e.skills||[]).some(id=>{const sk=SKILLS.find(k=>k.id===id);return sk&&sk.fx.shield;});
       const joy=d.employees.some(x=>(x.skills||[]).some(id=>{const sk=SKILLS.find(k=>k.id===id);return sk&&sk.fx.deptLoyal;}))?0.5:0;
-      e.loyalty=clamp(e.loyalty+rnd(-2,1)+salaryEffect+hb*2+joy-(shield?0:((s._downsizeShock||0)>0?2:0)),0,100);
+      e.loyalty=clamp(e.loyalty+rnd(-2,1)+salaryEffect+hb*2+joy+hrBuf-(shield?0:((s._downsizeShock||0)>0?2:0)),0,100);
+      if(hrBuf>0&&e.loyalty<30&&!e._hrWarned){e._hrWarned=true;s.log("人資",`⚠ HR 預警：「${e.name}」離職傾向極高，建議盡快面談或加薪。`);}
+      if(e.loyalty>=40)e._hrWarned=false;
     });
   });
   if(s.gm)s.gm.loyalty=clamp(s.gm.loyalty+rnd(-2,1),0,100);
@@ -745,6 +771,7 @@ function advanceProjectStage(p,s){
 }
 
 function calcMonthly(s){
+  const staffCoef=(d)=>d&&d.employees.length?Math.min(1,0.4+0.15*d.employees.length):0;
   const c=s.company;
   const rd=deptByKey(s,"rd"),sales=deptByKey(s,"sales"),prod=deptByKey(s,"prod");
   const qa=deptByKey(s,"qa"),proc=deptByKey(s,"proc"),fin=deptByKey(s,"fin");
@@ -779,7 +806,7 @@ function calcMonthly(s){
     integrityGap=clamp(integrityGap+(100-s.gm.trueAbility.integrity)/100*0.3,0,1.5);
   }
   s._gmAmp=gmAmp;
-  const finNoiseDelta=(fin?.unlocked&&fin.employees.length)?(fin.effects.noiseAmpDelta?.(fin)||0):0;
+  const finNoiseDelta=((fin?.unlocked&&fin.employees.length)?(fin.effects.noiseAmpDelta?.(fin)||0):0)*staffCoef(fin);
   noiseAmp=Math.max(0,noiseAmp+finNoiseDelta);
   c.noiseAmp=Math.max(0,noiseAmp+skillFx(s,"noise"));
   const biasMag=integrityGap*0.18;
@@ -808,7 +835,7 @@ function calcMonthly(s){
 
   // COGS rate
   let cogsRate=0.55;
-  const procBonus=(proc?.unlocked&&proc.employees.length)?(proc.effects.cogsRateBonus?.(proc)||0):0;
+  const procBonus=((proc?.unlocked&&proc.employees.length)?(proc.effects.cogsRateBonus?.(proc)||0):0)*staffCoef(proc);
   const salesBonus=sales?.effects.cogsRateBonus?.(sales)||0;
   if(c._cogsBump>0){c._cogsBump--;}
   cogsRate=clamp(0.55+procBonus+salesBonus+skCogs+(c._cogsBump>0?0.05:0),0.35,0.62);
@@ -935,6 +962,8 @@ function pickVoices(s){
   const pool=[];
   const add=(arr,w)=>{for(let i=0;i<w;i++)pool.push(arr);};
   add(VOICES.neutral,2);
+  add(VOICES.money,2);add(VOICES.gossip,2);add(VOICES.family,1);
+  if(avgLoy<55)add(VOICES.career,3);
   add(avgLoy<50?VOICES.lowLoyal:VOICES.good,4);
   if((s._capInfo&&s._capInfo.uncovered>2)||(s.lastFin&&s.lastFin.demand>s.lastFin.capacity))add(VOICES.overwork,3);
   if(c.trueRisk.品質掩蓋>40)add(VOICES.risk品質,3);
@@ -968,6 +997,10 @@ function _skillReward(empId,kind){
     }
   }
   saveGame(s);closeModal();renderAll();processUIQueue();
+}
+function showVoiceActionIdx(i){
+  STATE._voiceHit=(STATE._voiceList||[])[i]||null;
+  showVoiceAction();
 }
 function showVoiceAction(){
   const s=STATE,v=s._voiceHit;
@@ -1193,6 +1226,10 @@ function computeValuation(s){
   if(c.trueYieldRate>=90){mult+=0.05;lines.push({t:"製造品質受肯定（良率 ≥90%）",v:0.05});}
   const avgLoy=emps.length?emps.reduce((a,e)=>a+e.loyalty,0)/emps.length:50;
   if(avgLoy>=70){mult+=0.05;lines.push({t:"幸福企業加分（平均忠誠 ≥70）",v:0.05});}
+  if((c.stage||0)>=2&&c.esg!==undefined){
+    if(c.esg>=70){mult+=0.06;lines.push({t:`ESG 評等優良（${c.esg} 分）`,v:0.06});}
+    else if(c.esg<40){mult-=0.06;lines.push({t:`ESG 評等落後（${c.esg} 分）`,v:-0.06});}
+  }
   mult=Math.max(0.3,mult);
   let price=Math.round(book*mult);
   lines.filter(l=>l.flat).forEach(l=>price+=l.v);
@@ -1211,10 +1248,11 @@ function computeRating(s,price,bankrupt){
   const h=(c.history||[]).slice(-12);
   const margin=h.length?Math.max(0,Math.min(100,(h.reduce((a,x)=>a+x.net,0)/Math.max(1,h.reduce((a,x)=>a+x.rev,0)))*400)):0; /* 獲利力 */
   const scale=Math.max(0,Math.min(100,Math.log10(Math.max(1,price))*22));    /* 規模（對數） */
-  let score=(gov+happy+margin+scale)/4;
+  const esgS=c.esg!==undefined?c.esg:50;
+  let score=(gov+happy+margin+scale+esgS)/5;
   if(bankrupt)score=Math.min(score,32);
   const grade=score>=90?"SSS":score>=80?"SS":score>=70?"S":score>=60?"A":score>=50?"B":score>=40?"C":score>=30?"D":score>=20?"E":"F";
-  return{grade,score:Math.round(score),dims:{公司治理:Math.round(gov),幸福企業:Math.round(happy),獲利力:Math.round(margin),企業規模:Math.round(scale)}};
+  return{grade,score:Math.round(score),dims:{公司治理:Math.round(gov),幸福企業:Math.round(happy),獲利力:Math.round(margin),企業規模:Math.round(scale),ESG:Math.round(esgS)}};
 }
 
 function showSellConfirm(){
@@ -1635,15 +1673,12 @@ function dispatch(action,payload={}){
         <div class="m-desc" style="margin-top:8px;font-size:10px">${partial?"總經理已經替你「整理」過數字——想看到未經修飾的真相，只能在沒有總經理時親自視察。":"落差大的項目，代表回報體系正在美化數字。"}本月側欄與部門卡片將顯示${partial?"折中":"真實"}數據。</div>
         ${(()=>{
           const vs=pickVoices(s);
-          s._voiceHit=null;
+          s._voiceList=vs;
           if(!vs.length)return"";
-          let html='<div class="m-desc" style="margin-top:6px"><b>👂 走動間聽到的員工心聲</b><br>';
-          vs.forEach(v=>{html+=`<span style="font-size:10px;color:var(--muted)">「${v.line}」— ${v.e.name}</span><br>`;});
-          html+='</div>';
-          if(Math.random()<0.15){s._voiceHit=vs[0];}
+          let html='<div class="m-desc" style="margin-top:6px"><b>👂 走動間聽到的員工心聲</b>（點擊可個別處置）</div>';
+          vs.forEach((v,i)=>{html+=`<button class="m-choice" style="font-size:10px;text-align:left" onclick="closeModal();showVoiceActionIdx(${i})">「${v.line}」— ${v.e.name}</button>`;});
           return html;
         })()}
-        ${s._voiceHit?`<button class="m-choice" style="border-color:var(--gold);color:var(--gold)" onclick="closeModal();showVoiceAction()">找「${s._voiceHit.e.name}」聊聊（處理這則心聲）</button>`:""}
         <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">知道了</button>`);
       renderAll();
       break;
@@ -1713,6 +1748,35 @@ function dispatch(action,payload={}){
       const defDirective=CONFIG.DIRECTIVES[d.key]?.[0].id;
       if(defDirective)d.directive=defDirective;
       s.log("組織",`開設了「${d.name}」，花費 ${d.cost} 萬。`);
+      renderAll();
+      break;
+    }
+
+    case "EXEC_MEETING":{
+      if(s.company._metThisMonth){toast("本月已開過主管會議。");return;}
+      s.company._metThisMonth=true;
+      const rows=[];
+      s.departments.forEach(d=>{
+        if(!d.unlocked||!d.headId)return;
+        const h=d.employees.find(e=>e.id===d.headId);
+        if(!h)return;
+        const acc=h.trueAbility.management/100;
+        const honest=h.trueAbility.integrity>=50;
+        const def=CONFIG.DEPT_DEFS.find(x=>x.key===d.key);
+        let v=0;try{v=Math.round(def.kpis[0].fn(d,s));}catch(e){}
+        const noisy=clamp(Math.round(v+(honest?rnd(-1,1):rnd(3,10))*(1.5-acc)*3),0,100);
+        rows.push(`<div class="s-stat"><span class="s-lbl">${d.name} ${h.name}</span><span class="s-val">${def.kpis[0].label}約 ${noisy}${honest?"":" <span style='color:var(--orange)'>(語帶保留)</span>"}</span></div>`);
+      });
+      const gmLine=s.gm?`<div class="m-desc">總經理 ${s.gm.name}：「${(s._orgEff||1)<0.97?"組織有點虛胖，管理層要再補強。":s.company.customerTrust<50?"客戶端的信任是當前隱憂。":s.company.equipmentAging>0.5?"設備老化不能再拖了。":"整體運作正常，維持節奏。"}」</div>`:"";
+      const sug=s.gm?gmSuggestion(s):null;
+      if(sug)s._mtgSug=sug;
+      openModal(`<div class="m-meta">老闆行動 · 每月主管會議</div>
+        <div class="m-title">📋 高階主管會議</div>
+        ${rows.join("")||'<div class="m-desc">尚無正式任命的部門主管——會議室空蕩蕩的。</div>'}
+        ${gmLine}
+        <div class="m-desc" style="font-size:9.5px;color:var(--muted)">主管報告的準確度取決於其管理力；誠信低的主管在會議上也會粉飾數字。</div>
+        ${sug?`<button class="m-choice" style="border-color:var(--gold);color:var(--gold)" onclick="closeModal();STATE.ui.pendingEvents.unshift({ev:STATE._mtgSug,ctx:{}});processUIQueue();">聽取總經理的建議案</button>`:""}
+        <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">散會</button>`);
       renderAll();
       break;
     }
@@ -1871,6 +1935,13 @@ function dispatch(action,payload={}){
       if(!s.ui.monthCands[d.key]){
         const cands=[makeEmployee(pos,d,s),makeEmployee(pos,d,s)];
         if(Math.random()<0.4)cands.push(makeEmployee(pos,d,s));
+        const hr=deptByKey(s,"hr");
+        if(hr?.unlocked&&hr.employees.length){
+          const sum=c2=>Object.values(c2.trueAbility).reduce((x,v)=>x+v,0);
+          const worst=cands.reduce((a,c2,i)=>sum(c2)<sum(cands[a])?i:a,0);
+          cands[worst]=makeEmployee(pos,d,s);
+          s.log("人資","HR 先幫你過濾了一輪履歷，換掉了最不合適的一份。");
+        }
         s.ui.monthCands[d.key]=cands.map(c=>({...c,interviewed:false,interviewHint:null}));
       }
       s.ui.tempCandidates=s.ui.monthCands[d.key];
@@ -2078,6 +2149,10 @@ function renderBossRow(s){
   const dz=document.getElementById("btn-downsize");
   dz.style.display=hc>=30?"inline-block":"none";
   dz.onclick=showDownsize;
+  const mt=document.getElementById("btn-meeting");
+  mt.style.display=(s.hasGM||s.departments.some(d=>d.headId))?"inline-block":"none";
+  mt.disabled=!!s.company._metThisMonth;
+  mt.onclick=()=>dispatch("EXEC_MEETING");
   const si=document.getElementById("btn-invest-side");
   si.style.display=s.company.month>=6?"inline-block":"none";
   si.onclick=()=>dispatch("SIDE_INVEST");
@@ -2225,6 +2300,7 @@ function renderSide(s){
     sc.innerHTML=`
       <div class="s-stat"><span class="s-lbl">現金</span><span class="s-val ${c.cash<0?"neg":""}">${c.cash.toFixed(1)}萬</span></div>
       ${(s._orgEff||1)<0.995?`<div class="s-stat"><span class="s-lbl">組織效率</span><span class="s-val" style="color:var(--orange)">${Math.round((s._orgEff||1)*100)}%</span></div>`:""}
+      <div class="s-stat"><span class="s-lbl">ESG</span><span class="s-val" style="color:${(c.esg||50)>=70?"var(--green)":(c.esg||50)<40?"var(--red)":"var(--text)"}">${c.esg!==undefined?c.esg:"—"}${(c.esg!==undefined&&c.esg<45)?" ⚠戰略客戶止步":""}</span></div>
       <div class="s-stat"><span class="s-lbl">市況</span><span class="s-val" style="color:${c.market<80?"var(--red)":c.market>115?"var(--gold)":"var(--text)"}">${c._mktZone||"正常"}（${Math.round(c.market||100)}）</span></div>
       <div class="s-stat"><span class="s-lbl">負債 / 額度</span><span class="s-val">${c.debt.toFixed(0)} / ${creditLimit(c)}萬</span></div>
       <div class="s-stat"><span class="s-lbl">負債比</span><span class="s-val ${c.debtRatio()>0.6?"neg":""}">${(c.debtRatio()*100).toFixed(1)}%</span></div>
@@ -2428,7 +2504,7 @@ function showContractModal(project){
   ];
   if(STATE.company.customerTrust>60)
     offers.push({tier:"std",difficulty:1,customer:"大客戶 - 量大單",price:Math.round(base*rnd(0.8,0.92)*tierUp),volume:Math.round(rnd(28,40)*expandBoost),months:Math.round(rnd(4,6))});
-  if(idx>=80)
+  if(idx>=80&&(STATE.company.esg===undefined||STATE.company.esg>=45))
     offers.push({tier:"strat",difficulty:3,customer:"戰略客戶 - 長約大單",price:Math.round(base*rnd(1.1,1.25)*tierUp),volume:Math.round(rnd(45,60)*mk),months:Math.round(rnd(8,12))});
   if((STATE.company.market||100)>115)
     offers.push({tier:"std",difficulty:2,customer:"⚡ 急單 - 市場過熱搶產能",price:Math.round(base*rnd(1.25,1.4)*tierUp),volume:Math.round(rnd(25,40)),months:2});
@@ -2552,6 +2628,8 @@ function showEmployeeModal(emp){
     "</div>"+
     "<div>"+barsHtml+"</div>"+
     growthHtml+
+    _gmDismissBtnHtml(emp)+
+    _rewardBtnHtml(emp)+
     _headBtnHtml(emp)+
     _vpBtnHtml(emp)+
     _leaderBtnHtml(emp)+
@@ -2562,6 +2640,33 @@ function showEmployeeModal(emp){
 }
 
 function leaderQuota(d){return Math.floor(d.employees.length/6);}
+function _gmDismissBtnHtml(emp){
+  if(!STATE.gm||emp.id!==STATE.gm.id)return "";
+  const sev=Math.round(emp.salary*6);
+  return "<button class='m-choice' style='margin-top:8px;border-color:var(--red);color:var(--red)' onclick='_askDismissGM()'>撤換總經理（資遣費 "+sev+" 萬）</button>";
+}
+function _askDismissGM(){
+  const s=STATE,g=s.gm;
+  if(!g)return;
+  const sev=Math.round(g.salary*6);
+  openModal(`<div class="m-meta">重大人事</div>
+    <div class="m-title">撤換總經理「${g.name}」？</div>
+    <div class="m-desc">資遣費 <b>${sev} 萬</b>（半年薪資）。<br>影響：全員忠誠 -3（軍心動搖）、視察恢復可見真實值。撤換後可再任命新總經理。</div>
+    <button class="m-choice" style="border-color:var(--red);color:var(--red)" onclick="_doDismissGM()">確認撤換</button>
+    <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">取消</button>`);
+}
+function _doDismissGM(){
+  const s=STATE,g=s.gm;
+  if(!g)return;
+  const sev=Math.round(g.salary*6);
+  if(s.company.cash<sev){toast("現金不足以支付資遣費。");return;}
+  s.company.cash-=sev;
+  s.hasGM=false;s.gm=null;
+  allEmps(s).forEach(e=>e.loyalty=clamp(e.loyalty-3,0,100));
+  AUDIO.sfx("leave");
+  s.log("組織",`總經理「${g.name}」遭撤換離開公司，支付資遣費 ${sev} 萬。`);
+  saveGame(s);closeModal();renderAll();
+}
 function _vpBtnHtml(emp){
   var s=STATE;
   var hc=allEmps(s).length;
@@ -2618,6 +2723,33 @@ function _toggleLeader(empId,on){
   saveGame(s);closeModal();renderAll();
 }
 /* 深造 */
+function _rewardBtnHtml(emp){
+  if(emp.position==="總經理")return "";
+  const cd=(emp._rewardM!==undefined)&&(STATE.company.month-emp._rewardM<3);
+  if(cd)return "<div class='sub' style='margin-top:8px;color:var(--muted)'>本季已獎勵過（第 "+(emp._rewardM+3)+" 月後可再次）</div>";
+  const bonus=Math.max(1,Math.round(emp.salary));
+  return "<button class='m-choice' style='margin-top:8px' onclick='_reward(\""+emp.id+"\",\"bonus\")'>發獎金 "+bonus+" 萬（忠誠 +10）</button>"+
+    "<button class='m-choice' style='margin-top:8px' onclick='_reward(\""+emp.id+"\",\"raise\")'>調薪 10%（忠誠 +15，永久）</button>";
+}
+function _reward(empId,kind){
+  const s=STATE;
+  const e=allEmps(s).find(x=>x.id===empId);
+  if(!e)return;
+  if(kind==="bonus"){
+    const b=Math.max(1,Math.round(e.salary));
+    if(s.company.cash<b){toast("現金不足。");return;}
+    s.company.cash-=b;
+    e.loyalty=clamp(e.loyalty+10,0,100);
+    s.log("人事",`發放獎金 ${b} 萬給「${e.name}」。`);
+  }else{
+    e.salary=Math.round(e.salary*1.1*10)/10;
+    e.loyalty=clamp(e.loyalty+15,0,100);
+    s.log("人事",`「${e.name}」調薪 10%，月薪 ${e.salary} 萬。`);
+  }
+  e._rewardM=s.company.month;
+  AUDIO.sfx("coin");
+  saveGame(s);closeModal();renderAll();
+}
 function _trainBtnHtml(emp){
   if(emp.position==="總經理")return "";
   if(emp.training)return "<div class='sub' style='margin-top:8px;color:var(--gold)'>📚 進修中，第 "+emp.training.until+" 月歸建（現在第 "+STATE.company.month+" 月）</div>";
@@ -2901,9 +3033,16 @@ function resolveEvent(optIdx){
       return;
     }
     s.log(item.ev.bucket,`「${hit.e.name}」嘗試處理「${item.ev.name}」但力有未逮，事件照常發生。`);
+    const _bf=_snapState(s);
     item.ev.options[item.ev.options.length-1].eff(s,item.ctx);
     hit.e.loyalty=clamp(hit.e.loyalty-8,0,100);
-    saveGame(s);renderAll();processUIQueue();
+    AUDIO.sfx("loss");
+    const _fl=_diffReport(_bf,s);
+    openModal(`<div class="m-meta">出馬失敗 · ${item.ev.name}</div>
+      <div class="m-title">😔「${hit.e.name}」力有未逮</div>
+      <div class="m-desc">技能【${hit.sk.n}】這次沒能壓住場面，事件照常發生：<br>${_fl.length?_fl.join("<br>"):"（無直接損失，但風險已埋下）"}<br><br>「${hit.e.name}」自責不已（忠誠 -8）。</div>
+      <button class="m-choice" onclick="dispatch('CLOSE_MODAL')">知道了</button>`);
+    saveGame(s);renderAll();
     return;
   }
   s._pendingEventShown=null;
