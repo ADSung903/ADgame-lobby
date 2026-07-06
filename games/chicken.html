@@ -30,8 +30,7 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 #chicken{ position:absolute; bottom:6%; left:40%; width:96px; transition:left 2.5s linear; cursor:pointer; z-index:5; }
 #chickenImg{ width:100%; display:block; animation:idleBob 1s steps(2) infinite; transform-origin:bottom center; }
 @keyframes idleBob{ 0%,100%{ transform:translateY(0) scaleY(1);} 50%{ transform:translateY(-3px) scaleY(.97);} }
-#chicken.flip #chickenImg{ transform:scaleX(-1); }
-#chicken.flip.away #chickenImg{ transform:scaleX(-1); }
+#chicken.flip{ transform:scaleX(-1); }
 #chicken.sleeping #chickenImg{ animation:none; transform:rotate(-6deg); filter:brightness(.85); }
 #chicken.slowwalk{ transition:left 6s linear; }
 #chicken.eating #chickenImg{ animation:peck .35s steps(2) infinite; }
