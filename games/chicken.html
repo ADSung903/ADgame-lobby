@@ -247,8 +247,14 @@ const Snd = {
 
 /* ================= 表現層 ================= */
 let st = null, dex = Save.dex(), loopId = null, paused = false;
-let wanderId = null, bubbleId = null, sleeping = false;
+let wanderId = null, bubbleId = null, sleeping = false, dirRight = false;
 
+let curSpriteFile = '';
+function applyFacing(){
+  const baseR = CFG.FACING_RIGHT.includes(curSpriteFile);
+  // 想面向右：原圖朝左才翻；想面向左：原圖朝右才翻
+  $('chicken').classList.toggle('flip', dirRight !== baseR);
+}
 function spriteFor(){
   if (st.stage==='egg'){ const e = CFG.EGGS[st.egg]; return A((st.t+st.hatchBoost > CFG.TIMING.eggHatch*0.7) ? e.sprite.crack : e.sprite.idle); }
   if (st.stage==='chick'){
@@ -261,7 +267,10 @@ function spriteFor(){
   return A(r ? r.sprite : 'adult_normal.png');
 }
 function render(){
-  $('chickenImg').src = spriteFor();
+  const sp = spriteFor();
+  curSpriteFile = sp.slice(sp.lastIndexOf('/')+1);
+  $('chickenImg').src = sp;
+  applyFacing();
   $('satFl').style.width = st.sat + '%';
   $('joyFl').style.width = st.joy + '%';
   $('ageTag').textContent = Math.floor(st.t/60) + '分';
@@ -301,7 +310,8 @@ function wander(){
   const c = $('chicken'), w = $('stage').clientWidth;
   const nx = 8 + Math.random() * (w - 130);
   const cur = c.offsetLeft;
-  c.classList.toggle('flip', nx > cur);
+  dirRight = nx > cur;
+  applyFacing();
   c.style.left = nx + 'px';
 }
 
