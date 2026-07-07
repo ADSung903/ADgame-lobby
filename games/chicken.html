@@ -19,7 +19,7 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 #skyLayer{ position:absolute; overflow:hidden; pointer-events:auto; } /* 窗戶區 */
 .cloud{ position:absolute; background:#fff; border-radius:2px; opacity:.9;
   box-shadow:8px 0 0 #fff,16px 0 0 #fff,4px -6px 0 #fff,12px -6px 0 #fff; animation:drift linear infinite; }
-@keyframes drift{ from{ left:-32px;} to{ left:105%;} }
+@keyframes drift{ from{ transform:translateX(-40px);} to{ transform:translateX(320px);} }
 .star{ position:absolute; width:3px; height:3px; background:#fff; animation:tw ease-in-out infinite; }
 @keyframes tw{ 0%,100%{opacity:.2} 50%{opacity:1} }
 #meteor{ position:absolute; width:34px; height:2px; background:linear-gradient(90deg,#fff,transparent);
@@ -41,13 +41,7 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 
 /* ---------- 對話泡 ---------- */
 #bubble{ position:absolute; max-width:70%; background:var(--panel); border:3px solid var(--ink);
-  border-radius:10px; padding:8px 10px; font-size:13px; z-index:8; display:none; transition:background .2s, border-color .2s; }
-#bubble.mood-angry{ background:#fecaca; border-color:#7f1d1d; }
-#bubble.mood-angry:after{ border-top-color:#7f1d1d; }
-#bubble.mood-happy{ background:#fef3c7; border-color:#92400e; }
-#bubble.mood-happy:after{ border-top-color:#92400e; }
-#bubble.mood-sad{ background:#dbeafe; border-color:#1e3a5f; }
-#bubble.mood-sad:after{ border-top-color:#1e3a5f; }
+  border-radius:8px; padding:7px 10px; font-size:13px; line-height:1.5; display:none; z-index:8; }
 #bubble:after{ content:''; position:absolute; bottom:-9px; left:22px; border:5px solid transparent; border-top-color:var(--ink); }
 .tw-gold{ color:#a06800; text-shadow:0 0 6px #fbbf24; } .tw-red{ color:#b91c1c; text-shadow:0 0 6px #f87171; }
 .tw-purple{ color:#7e22ce; } .tw-blue{ color:#1d4ed8; } .tw-green{ color:#15803d; } .tw-white{ color:var(--ink); }
@@ -61,18 +55,15 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 .bar .tk{ height:8px; background:#3a3a3a; border-radius:3px; overflow:hidden; margin-top:2px; }
 .bar .fl{ height:100%; transition:width .4s; }
 #satFl{ background:#f59e0b; } #joyFl{ background:#ec4899; }
-#ageTag{ font-size:11px; color:#fff; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:5px 8px; }
+#ageTag,#goldTag{ font-size:11px; color:#fff; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:5px 8px; }
 
 /* ---------- 底部操作 ---------- */
 #dock{ display:flex; gap:8px; padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:var(--wood);
   border-top:4px solid var(--ink); z-index:10; }
-.btn{ background:var(--panel); border:3px solid var(--ink); border-radius:8px; padding:12px 4px;
+.btn{ flex:1; background:var(--panel); border:3px solid var(--ink); border-radius:8px; padding:12px 4px;
   font-family:inherit; font-size:15px; font-weight:bold; color:var(--ink); cursor:pointer; }
 .btn:active{ transform:translateY(2px); }
-/* flex:1 只用在「水平」按鈕列，直排容器內的按鈕不得伸展 */
-#dock .btn, .ovBtns .btn{ flex:1; }
-#dock .btn.sm{ flex:0 0 52px; }
-.ov > .btn, #tray > .btn{ flex:0 0 auto; width:100%; }
+.btn.sm{ flex:0 0 52px; }
 
 /* ---------- 食物盤 ---------- */
 #tray{ position:absolute; left:0; right:0; bottom:0; background:var(--panel); border-top:4px solid var(--ink);
@@ -108,37 +99,28 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 .dexCell .dh{ font-size:10px; opacity:.75; margin-top:2px; line-height:1.4; }
 .ovBtns{ display:flex; gap:10px; width:100%; max-width:340px; margin-top:6px; }
 input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px solid var(--ink); border-radius:8px; width:100%; max-width:260px; text-align:center; margin:12px 0; }
+#strollScene{ position:relative; width:100%; height:100%; overflow:hidden;
+  background:linear-gradient(#87ceeb 0 52%, #b8b8b8 52% 56%, #6e6e6e 56% 100%); }
+#sBldg{ position:absolute; left:0; right:0; top:10%; height:42%;
+  background:repeating-linear-gradient(90deg,#8a5a2b 0 70px,#a06a35 70px 150px,#6d4a24 150px 230px,#96613a 230px 300px);
+  animation:scrollBg 6s linear infinite; }
+#sBldg:after{ content:''; position:absolute; inset:0; opacity:.5;
+  background:repeating-linear-gradient(90deg,transparent 0 18px,#ffe9a0 18px 30px,transparent 30px 48px),
+             repeating-linear-gradient(0deg,transparent 0 22px,rgba(0,0,0,.25) 22px 34px);
+  animation:scrollBg 6s linear infinite; }
+@keyframes scrollBg{ from{ background-position-x:0;} to{ background-position-x:-300px;} }
+#sRoad{ position:absolute; left:0; right:0; top:56%; height:4px;
+  background:repeating-linear-gradient(90deg,#fff 0 26px,transparent 26px 60px); animation:scrollRoad 1.2s linear infinite; }
+@keyframes scrollRoad{ from{ background-position-x:0;} to{ background-position-x:-60px;} }
+#sChick{ position:absolute; left:16%; top:42%; width:92px; animation:idleBob .5s steps(2) infinite; }
+.sitem{ position:absolute; top:58%; font-size:26px; cursor:pointer; z-index:5; }
+.sitem img{ width:34px; height:34px; object-fit:contain; }
+#sTimer{ position:absolute; top:14px; left:14px; right:110px; height:10px; background:rgba(0,0,0,.4);
+  border:2px solid #fff; border-radius:5px; overflow:hidden; }
+#sTimerFl{ height:100%; background:#fbbf24; width:100%; }
+#sLoot{ position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); left:14px; color:#fff; font-size:13px;
+  background:rgba(0,0,0,.45); padding:6px 10px; border-radius:8px; }
 #flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:29; }
-
-/* ---------- 接蟲蟲小遊戲 ---------- */
-#playOv{ padding:0; }
-#wormHud{ position:absolute; top:calc(env(safe-area-inset-top, 0px) + 12px); left:0; right:0;
-  display:flex; justify-content:center; z-index:5; pointer-events:none; }
-#wormHud .pill{ background:rgba(0,0,0,.55); border:2px solid var(--panel); border-radius:20px;
-  padding:6px 16px; font-size:18px; font-weight:bold; color:var(--panel); }
-#wormTime{ color:#ffd257; font-size:22px; }
-#wormQuit{ position:absolute; top:calc(env(safe-area-inset-top, 0px) + 12px); right:12px; z-index:6;
-  background:var(--panel); border:3px solid var(--ink); border-radius:8px; color:var(--ink);
-  font-family:inherit; font-size:14px; font-weight:bold; padding:8px 12px; }
-#wormField{ position:relative; width:100%; height:100%; overflow:hidden; touch-action:none; }
-#wormChick{ position:absolute; bottom:4%; width:72px; transition:left .18s linear; pointer-events:none; }
-.worm{ position:absolute; width:34px; pointer-events:none; }
-#wormMsg{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; background:rgba(0,0,0,.55); z-index:7; text-align:center; }
-
-/* ---------- 玩耍選單 ---------- */
-#gameMenu .gmBtn{ width:100%; max-width:280px; background:var(--panel); border:3px solid var(--ink);
-  border-radius:12px; color:var(--ink); font-family:inherit; font-size:17px; font-weight:bold;
-  padding:16px; margin-bottom:12px; }
-#gameMenu .gmBtn small{ display:block; font-size:12px; font-weight:normal; opacity:.75; margin-top:4px; }
-
-/* ---------- 杯子藏蟲 ---------- */
-#shellField{ position:relative; width:100%; max-width:360px; height:230px; margin-top:10px; }
-.bowl{ position:absolute; top:60px; width:86px; height:64px; background:linear-gradient(#c98c46,#8a5a2b);
-  border:3px solid var(--ink); border-radius:44px 44px 8px 8px; transition:left .32s ease, top .25s ease; cursor:pointer; }
-.bowl.up{ top:0; }
-#shellWorm{ position:absolute; width:40px; top:88px; transition:left .32s ease; pointer-events:none; }
-#shellMsg{ min-height:26px; font-size:16px; margin-top:8px; }
 </style>
 </head>
 <body>
@@ -152,45 +134,24 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <div id="hud">
       <div class="bar"><div class="lb">飽足</div><div class="tk"><div class="fl" id="satFl"></div></div></div>
       <div class="bar"><div class="lb">快樂</div><div class="tk"><div class="fl" id="joyFl"></div></div></div>
-      <div id="ageTag">0分</div>
+      <div id="goldTag">🪙0</div><div id="ageTag">0分</div>
     </div>
     <div id="flash"></div>
   </div>
   <div id="dock">
     <button class="btn" id="feedBtn">餵食</button>
-    <button class="btn" id="playBtn">玩耍</button>
+    <button class="btn" id="strollBtn">逛街</button>
     <button class="btn" id="dexBtn">圖鑑</button>
     <button class="btn sm" id="muteBtn">♪</button>
     <button class="btn sm" id="homeBtn">🏠</button>
   </div>
   <div id="tray"><div id="trayGrid"></div><button class="btn" id="trayClose">關閉</button></div>
 
-  <div class="ov" id="gameMenu"><h2>要玩什麼？</h2>
-    <button class="gmBtn" id="gmWorm">🐛 接蟲蟲<small>30 秒內接住掉落的蟲蟲</small></button>
-    <button class="gmBtn" id="gmShell">🥣 杯子藏蟲<small>盯緊蟲蟲藏在哪個碗</small></button>
-    <button class="btn" id="gmClose" style="max-width:200px">先不玩</button></div>
-
-  <div class="ov" id="playOv">
-    <div id="wormHud"><span class="pill"><span id="wormTime">30</span> 秒｜🐛 <span id="wormScore">0</span></span></div>
-    <button id="wormQuit">離開</button>
-    <div id="wormField">
-      <img id="wormChick" class="px" alt="">
-    </div>
-    <div id="wormMsg" style="display:none">
-      <h2 id="wormTitle"></h2><div id="wormResult"></div>
-      <button class="btn" id="wormOk" style="max-width:200px;margin-top:14px">好耶</button>
-    </div>
-  </div>
-
-  <div class="ov" id="shellOv"><h2>蟲蟲在哪個碗？</h2>
-    <div id="shellField">
-      <img id="shellWorm" class="px" alt="">
-      <div class="bowl" data-i="0"></div><div class="bowl" data-i="1"></div><div class="bowl" data-i="2"></div>
-    </div>
-    <div id="shellMsg">記住蟲蟲的位置…</div>
-    <button class="btn" id="shellOk" style="max-width:200px;margin-top:10px;display:none">好耶</button>
-  </div>
-
+  <div class="ov" id="strollOv" style="padding:0; background:#000;">
+    <div id="strollScene"><div id="sBldg"></div><div id="sRoad"></div>
+      <img id="sChick" class="px" alt=""><div id="sTimer"><div id="sTimerFl"></div></div><div id="sLoot"></div>
+      <button class="btn" id="sExit" style="position:absolute; top:12px; right:12px; flex:0; padding:8px 14px;">回家</button>
+    </div></div>
   <div class="ov" id="eggOv"><h2>選一顆蛋</h2><div id="eggList"></div></div>
   <div class="ov" id="nameOv"><h2>孵化了！幫牠取個名字</h2>
     <input id="nameIn" maxlength="8" placeholder="小雞"><button class="btn" id="nameOk" style="max-width:200px">就叫這個</button></div>
@@ -225,7 +186,7 @@ const Core = {
   feed(st, id){
     const fd = CFG.FOODS[id];
     let stuffed = false;
-    if (st.sat >= CFG.LIFE.satietyMax - 1){ st.dmg.overfed += CFG.LIFE.dmgStuff; st.hp -= CFG.LIFE.dmgStuff; stuffed = true; }
+    if (st.sat >= 85){ st.dmg.overfed += CFG.LIFE.dmgStuff; st.hp -= CFG.LIFE.dmgStuff; stuffed = true; }
     st.sat = Math.min(CFG.LIFE.satietyMax, st.sat + fd.satiety);
     st.joy = Math.max(0, Math.min(CFG.LIFE.joyMax, st.joy + 3 + fd.joy*4));
     const f = CFG.applyEggFeed(st.egg, fd.vec);
@@ -290,7 +251,7 @@ const Core = {
 /* ================= 存檔 ================= */
 const Save = {
   load(){ try{ const s = JSON.parse(localStorage.getItem(CFG.SAVE_KEY)); return (s && s.ver===CFG.SAVE_VERSION) ? Object.assign(Core.newGame(s.egg), s) : null; }catch(e){ return null; } },
-  write(st){ try{ localStorage.setItem(CFG.SAVE_KEY, JSON.stringify(st)); }catch(e){} },
+  write(st){ try{ st.ts = Date.now(); localStorage.setItem(CFG.SAVE_KEY, JSON.stringify(st)); }catch(e){} },
   clear(){ localStorage.removeItem(CFG.SAVE_KEY); },
   dex(){ try{ return JSON.parse(localStorage.getItem(CFG.DEX_KEY)) || {forms:{},endings:{},eggs:{bird:true},pity:0,evoCount:0,ach:{}}; }catch(e){ return {forms:{},endings:{},eggs:{bird:true},pity:0,evoCount:0,ach:{}}; } },
   writeDex(d){ try{ localStorage.setItem(CFG.DEX_KEY, JSON.stringify(d)); }catch(e){} },
@@ -310,30 +271,6 @@ const Snd = {
   evo(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.beep(f,.22,'square',.08), i*160)); },
   death(){ [400,320,240,160].forEach((f,i)=>setTimeout(()=>this.beep(f,.3,'triangle',.07), i*220)); },
 };
-
-/* ================= 背景音樂 =================
-   優先播 assets/audio/chicken/bgm.mp3（想換專屬曲丟這路徑即可），
-   檔案不存在退回 little-prince 共用曲。
-   重點：整個生命週期只建立「一個」Audio 物件，重試只換 src，
-   對同一元件重複呼叫 play() 不會疊音。*/
-const Music = {
-  el:null, idx:0,
-  SRC: ['assets/audio/chicken/bgm.mp3', 'assets/audio/little-prince/bgm_map.mp3'],
-  ensure(){
-    if (this.el) return;
-    this.el = new Audio(); this.el.loop = true; this.el.volume = .35; this.el.preload = 'auto';
-    this.el.addEventListener('error', ()=>{           // 這個 src 載不到 → 換下一首
-      if (this.idx + 1 < this.SRC.length){ this.el.src = this.SRC[++this.idx]; this.play(); }
-    });
-    this.el.src = this.SRC[this.idx];
-  },
-  play(){ if (Snd.muted || !this.el) return; this.el.play().catch(()=>{}); },
-  start(){ this.ensure(); this.play(); },
-  pause(){ if (this.el) this.el.pause(); },
-  resume(){ this.play(); },
-  setMuted(m){ m ? this.pause() : this.start(); },
-};
-document.addEventListener('pointerdown', ()=>{ Snd.init(); Music.start(); });
 
 /* ================= 表現層 ================= */
 let st = null, dex = Save.dex(), loopId = null, paused = false;
@@ -364,6 +301,7 @@ function render(){
   $('satFl').style.width = st.sat + '%';
   $('joyFl').style.width = st.joy + '%';
   $('ageTag').textContent = Math.floor(st.t/60) + '分';
+  $('goldTag').textContent = '🪙' + (dex.gold||0);
   const c = $('chicken');
   c.classList.toggle('slowwalk', st.vec.F >= CFG.T.HIGH);
   c.classList.toggle('away', st.joy <= 20);
@@ -377,20 +315,8 @@ function particle(txt, x, y){
 function chickenXY(){ const r=$('chicken').getBoundingClientRect(), s=$('stage').getBoundingClientRect();
   return { x:r.left-s.left+r.width/2, y:r.top-s.top }; }
 
-function bubbleMood(line){
-  if (line.mood) return line.mood;                       // 明確指定
-  if (line.tier === 'red') return 'angry';               // 黑暗/生氣台詞
-  if (line.tier === 'gold' || line.tier === 'green') return 'happy';
-  if (st){                                               // 依當下心情推斷
-    if (st.joy <= 25 || st.hp < 30) return 'sad';
-    if (st.joy >= 75) return 'happy';
-  }
-  return '';
-}
 function say(line){
   const b = $('bubble'); b.innerHTML = '';
-  b.className = ''; const md = bubbleMood(line);
-  if (md) b.classList.add('mood-' + md);
   const sp = document.createElement('span');
   sp.className = 'tw-' + (line.tier||'white') + ((CFG.TIERS[line.tier]||{}).glow ? ' glow':'');
   sp.textContent = line.t; b.appendChild(sp);
@@ -400,10 +326,22 @@ function say(line){
   b.style.display='block';
   clearTimeout(bubbleId); bubbleId = setTimeout(()=>b.style.display='none', 3600);
 }
+function pickLine(){
+  const tone = Core.bucket(st);
+  if (tone === 'preEvo') return rnd(CFG.DIALOGUE.preEvo);
+  let state = 'idle';
+  if (st.hp < 30) state = 'weak';
+  else if (st.sat < 30) state = 'hungry';
+  else if (st.joy < 25) state = 'bored';
+  else if (st.sat > 88) state = 'full';
+  else if (st.joy > 88) state = 'happy';
+  const pools = CFG.DIALOGUE[state];
+  const key = (pools[tone] && Math.random() < .55) ? tone : 'daily';
+  return rnd(pools[key] || pools.daily);
+}
 function speakRandom(){
   if (!st || st.stage==='egg' || sleeping) return;
-  const pool = CFG.DIALOGUE[Core.bucket(st)] || CFG.DIALOGUE.daily;
-  say(rnd(pool));
+  say(pickLine());
 }
 
 /* ---------- 遊走 ---------- */
@@ -419,28 +357,10 @@ function wander(){
 
 /* ---------- 天空 ---------- */
 function isNight(){ const h = new Date().getHours(); return h >= CFG.BG.nightFrom || h < CFG.BG.nightTo; }
-
-/* 背景圖原始尺寸與「窗戶天空區」在原圖中的比例（實測 bg_coop_day.png）*/
-const BG_NAT = { w:1024, h:559 };
-const WIN_SKY = { x1:.565, x2:.905, y1:.115, y2:.315 };
-function placeSky(){
-  const stg = $('stage'), sky = $('skyLayer');
-  const sw = stg.clientWidth, sh = stg.clientHeight;
-  if (!sw || !sh) return;
-  // object-fit:cover 的實際縮放與偏移
-  const s  = Math.max(sw / BG_NAT.w, sh / BG_NAT.h);
-  const dw = BG_NAT.w * s, dh = BG_NAT.h * s;
-  const ox = (sw - dw) / 2, oy = (sh - dh) / 2;
-  const L = Math.max(0, ox + WIN_SKY.x1 * dw), R = Math.min(sw, ox + WIN_SKY.x2 * dw);
-  const T = Math.max(0, oy + WIN_SKY.y1 * dh), B = Math.min(sh, oy + WIN_SKY.y2 * dh);
-  Object.assign(sky.style, { left:L+'px', top:T+'px',
-    width:Math.max(0, R-L)+'px', height:Math.max(0, B-T)+'px' });
-}
-window.addEventListener('resize', placeSky);
-
 function buildSky(){
-  const sky = $('skyLayer');
-  placeSky();
+  const sky = $('skyLayer'); const stg = $('stage');
+  // 窗戶區（背景圖比例定位）
+  Object.assign(sky.style, { left:'50%', top:'10%', width:'42%', height:'50%' });
   sky.querySelectorAll('.cloud,.star').forEach(e=>e.remove());
   if (isNight()){
     $('bgNight').style.opacity = 1; $('bgDay').style.opacity = 0;
@@ -627,6 +547,10 @@ $('chicken').addEventListener('click', (e)=>{
     Snd.beep(180,.2,'sawtooth',.1); return;
   }
   st.joy = Math.min(CFG.LIFE.joyMax, st.joy + 1);
+  if (Math.random() < CFG.ECON.pokeGold.chance){
+    dex.gold += CFG.ECON.pokeGold.amount; Save.writeDex(dex);
+    particle('🪙', p.x - 18, p.y + 6);
+  }
   particle(rnd(['♥','♪','✦']), p.x + (Math.random()*30-15), p.y);
   Snd.chirp(st.hp); render();
 });
@@ -635,14 +559,31 @@ $('chicken').addEventListener('click', (e)=>{
 function buildTray(){
   const g = $('trayGrid'); g.innerHTML = '';
   for (const [id, f] of Object.entries(CFG.FOODS)){
+    const free = id === CFG.ECON.freeFood;
+    const n = free ? -1 : (dex.inv[id]||0);
+    const tag = free ? '∞' : (n>0 ? '×'+n : (CFG.ECON.prices[id]||0)+'🪙');
     const d = document.createElement('div'); d.className = 'food';
-    d.innerHTML = '<img class="px" src="'+A(f.icon)+'"><div class="fn">'+f.name+'</div>';
+    if (!free && n<=0) d.style.opacity = .45;
+    d.innerHTML = '<img class="px" src="'+A(f.icon)+'"><div class="fn">'+f.name+'</div>'+
+      '<div class="fn" style="opacity:.75">'+tag+'</div>';
     d.addEventListener('click', ()=> doFeed(id));
     g.appendChild(d);
   }
 }
 function doFeed(id){
   if (!st || st.stage==='egg' || st.stage==='dead') return;
+  if (st.sat >= CFG.LIFE.satietyMax){ say({t:'吃不下了啦。',tier:'white'}); $('tray').classList.remove('open'); return; }
+  if (id !== CFG.ECON.freeFood){
+    if (!dex.inv[id] || dex.inv[id] <= 0){
+      const price = CFG.ECON.prices[id] || 999;
+      if (dex.gold >= price){
+        dex.gold -= price; dex.inv[id] = (dex.inv[id]||0) + 1;
+        Save.writeDex(dex); buildTray(); render(); Snd.beep(700,.1);
+      } else { Snd.beep(200,.15,'sawtooth'); say({t:'金幣不夠…（要 '+price+' 🪙）',tier:'white'}); }
+      return; // 購買後停留在盤上，再點一次才餵
+    }
+    dex.inv[id]--; Save.writeDex(dex);
+  }
   $('tray').classList.remove('open');
   if (sleeping) wakeUp();
   const stuffed = Core.feed(st, id);
@@ -652,206 +593,129 @@ function doFeed(id){
   particle(stuffed ? '💧' : '😋', p.x, p.y);
   if (st.vec.H >= CFG.T.MID) setTimeout(()=>particle('🔥', p.x+14, p.y+8), 350);
   setTimeout(()=>{ c.classList.remove('eating'); render(); }, 900);
-  Save.write(st); render();
+  Save.write(st); buildTray(); render();
 }
 $('feedBtn').addEventListener('click', ()=>{ Snd.init(); if (st && st.stage!=='egg') $('tray').classList.add('open'); });
 $('trayClose').addEventListener('click', ()=> $('tray').classList.remove('open'));
 
-/* ---------- 玩耍：共用冷卻與選單 ---------- */
-const PLAY_COOLDOWN = 180; // 秒
-function playCooldownLeft(){
-  if (!st || !st.lastPlay) return 0;
-  return Math.max(0, PLAY_COOLDOWN - Math.floor((Date.now() - st.lastPlay)/1000));
-}
-$('playBtn').addEventListener('click', ()=>{
-  Snd.init(); Music.start();
-  if (!st || st.stage==='egg' || st.stage==='dead') return;
-  if (sleeping){ say({t:'…Zzz（牠睡得正香）', tier:'white'}); return; }
-  const cd = playCooldownLeft();
-  if (cd > 0){ say({t:'休息一下啦，'+Math.ceil(cd/60)+'分鐘後再玩', tier:'white'}); return; }
-  paused = true; $('gameMenu').classList.add('show');
-});
-$('gmClose').addEventListener('click', ()=>{ $('gameMenu').classList.remove('show'); paused=false; });
-$('gmWorm').addEventListener('click', ()=>{ $('gameMenu').classList.remove('show'); startWormGame(); });
-$('gmShell').addEventListener('click', ()=>{ $('gameMenu').classList.remove('show'); startShellGame(); });
-function finishPlay(gain, title, resultText){
-  st.joy = Math.min(CFG.LIFE.joyMax, st.joy + gain);
-  st.lastPlay = Date.now(); Save.write(st);
-  return { title, resultText };
+/* ---------- 離線結算（半速衰減、傷害1/4、hp地板=1不離線死）---------- */
+function settleOffline(s){
+  const O = CFG.ECON.offline;
+  const now = Date.now();
+  const hrs = Math.min(Math.max(0, (now - (s.ts||now))/3600000), O.capHours);
+  if (hrs < 0.05 || s.stage==='egg' || s.stage==='dead') return null;
+  const satT = s.sat / O.satPerHour, joyT = s.joy / O.joyPerHour; // 幾小時後見底
+  s.sat = Math.max(0, s.sat - O.satPerHour*hrs);
+  s.joy = Math.max(0, s.joy - O.joyPerHour*hrs);
+  let dmg = 0;
+  if (hrs > satT) dmg += O.dmgStarvePerHour * (hrs - satT);
+  if (hrs > joyT) dmg += O.dmgSadPerHour   * (hrs - joyT);
+  if (dmg > 0){ s.dmg.starved += dmg*0.8; s.dmg.heartbroken += dmg*0.2; }
+  s.hp = Math.max(1, s.hp - dmg);
+  Save.write(s);
+  if (s.hp <= 1.5) return {t:'你不在的時候…牠差點撐不下去了。', tier:'red'};
+  if (s.sat <= 0)  return {t:'你回來了！牠已經餓了好一陣子。', tier:'white'};
+  return {t:'（牠一直在等你回來）', tier:'white'};
 }
 
-/* ---------- 接蟲蟲 ---------- */
-const WORM_GAME = { duration:30, spawnMs:850, fallMin:2600, fallMax:4200, joyPerWorm:2, joyCap:20 };
-const WG = { on:false, score:0, timeLeft:0, worms:[], raf:0, spawnId:0, tickId:0, chickX:0 };
-
-function startWormGame(){
-  paused = true; WG.on = true; WG.score = 0; WG.timeLeft = WORM_GAME.duration; WG.worms = [];
-  $('wormScore').textContent = '0'; $('wormTime').textContent = WG.timeLeft;
-  $('wormMsg').style.display = 'none';
-  $('wormField').querySelectorAll('.worm').forEach(e=>e.remove());
-  const ck = $('wormChick'); ck.src = spriteFor();
-  $('playOv').classList.add('show');
-  const fw = $('wormField').clientWidth;
-  WG.chickX = fw/2; ck.style.left = (WG.chickX-36)+'px'; ck.style.transform='';
-  wormPrev = 0;
-  WG.spawnId = setInterval(spawnWorm, WORM_GAME.spawnMs);
-  WG.tickId = setInterval(()=>{
-    WG.timeLeft--; $('wormTime').textContent = WG.timeLeft;
-    if (WG.timeLeft <= 0) endWormGame();
-  }, 1000);
-  WG.raf = requestAnimationFrame(wormLoop);
-}
-function moveChickTo(x){
-  const fw = $('wormField').clientWidth;
-  const nx = Math.max(36, Math.min(fw-36, x));
-  const ck = $('wormChick');
-  ck.style.transform = (nx < WG.chickX) ? 'scaleX(-1)' : ''; // 原圖朝右
-  WG.chickX = nx; ck.style.left = (nx-36)+'px';
-}
-$('wormField').addEventListener('pointerdown', e=>{ if(WG.on) moveChickTo(e.offsetX); });
-$('wormField').addEventListener('pointermove', e=>{ if(WG.on && e.buttons) moveChickTo(e.offsetX); });
-function spawnWorm(){
-  if (!WG.on) return;
-  const f = $('wormField'), fw = f.clientWidth;
-  const el = document.createElement('img');
-  el.className = 'worm px'; el.src = A(CFG.FOODS.worm.icon);
-  const x = 20 + Math.random()*(fw-60);
-  el.style.left = x+'px'; el.style.top = '-40px';
-  f.appendChild(el);
-  WG.worms.push({ el, x:x+17, y:-40,
-    v: f.clientHeight / (WORM_GAME.fallMin + Math.random()*(WORM_GAME.fallMax-WORM_GAME.fallMin)) });
-}
-let wormPrev = 0;
-function wormLoop(ts){
-  if (!WG.on) return;
-  const dt = wormPrev ? (ts - wormPrev) : 16; wormPrev = ts;
-  const fh = $('wormField').clientHeight;
-  const catchY = fh * 0.90;
-  for (let i = WG.worms.length-1; i >= 0; i--){
-    const w = WG.worms[i];
-    w.y += w.v * dt;
-    w.el.style.top = w.y+'px';
-    if (w.y > catchY - 60 && Math.abs(w.x - WG.chickX) < 46){          // 接到
-      WG.score++; $('wormScore').textContent = WG.score;
-      Snd.chirp(st.hp);
-      const p = document.createElement('div'); p.className='pt'; p.textContent='😋';
-      p.style.left = w.x+'px'; p.style.top = (catchY-70)+'px';
-      $('wormField').appendChild(p); setTimeout(()=>p.remove(),1200);
-      w.el.remove(); WG.worms.splice(i,1);
-    } else if (w.y > fh){ w.el.remove(); WG.worms.splice(i,1); }        // 掉出去
-  }
-  WG.raf = requestAnimationFrame(wormLoop);
-}
-function stopWormTimers(){
-  WG.on = false; wormPrev = 0;
-  clearInterval(WG.spawnId); clearInterval(WG.tickId); cancelAnimationFrame(WG.raf);
-  WG.worms.forEach(w=>w.el.remove()); WG.worms = [];   // 清掉殘留的蟲
-}
-function endWormGame(){
-  stopWormTimers();
-  const gain = Math.min(WORM_GAME.joyCap, WG.score * WORM_GAME.joyPerWorm);
-  finishPlay(gain);
-  $('wormTitle').textContent = WG.score >= 10 ? '大豐收！' : WG.score >= 5 ? '吃飽飽～' : '下次再加油';
-  $('wormResult').textContent = '接到 '+WG.score+' 隻蟲蟲，快樂 +'+gain;
-  $('wormMsg').style.display = 'flex';
-}
-$('wormQuit').addEventListener('click', ()=>{        // 中途離開：照已接數量結算
-  if (WG.on) endWormGame();
-  else { $('playOv').classList.remove('show'); paused = false; render(); }
-});
-$('wormOk').addEventListener('click', ()=>{
-  $('playOv').classList.remove('show'); paused = false; render();
-});
-
-/* ---------- 杯子藏蟲 ---------- */
-const SHELL = { on:false, pos:[0,1,2], wormAt:1, busy:false };
-function bowlX(slot){ const fw = $('shellField').clientWidth; return slot*(fw-86)/2; }
-function layoutBowls(){
-  document.querySelectorAll('#shellField .bowl').forEach(b=>{
-    b.style.left = bowlX(SHELL.pos[+b.dataset.i])+'px';
-  });
-}
-function startShellGame(){
-  paused = true; SHELL.on = true; SHELL.busy = true;
-  SHELL.pos = [0,1,2]; SHELL.wormAt = Math.floor(Math.random()*3);
-  $('shellMsg').textContent = '記住蟲蟲的位置…';
-  $('shellOk').style.display = 'none';
-  $('shellOv').classList.add('show');
-  const worm = $('shellWorm'); worm.src = A(CFG.FOODS.worm.icon);
-  worm.style.display = 'block';
-  requestAnimationFrame(()=>{
-    layoutBowls();
-    worm.style.left = (bowlX(SHELL.wormAt)+23)+'px';
-    // 掀碗亮蟲 → 蓋回 → 洗牌
-    document.querySelectorAll('#shellField .bowl').forEach(b=>b.classList.add('up'));
-    setTimeout(()=>{
-      document.querySelectorAll('#shellField .bowl').forEach(b=>b.classList.remove('up'));
-      setTimeout(()=>{ worm.style.display='none'; shuffleBowls(7); }, 350);
-    }, 1400);
-  });
-}
-function shuffleBowls(times){
-  $('shellMsg').textContent = '洗碗中…盯緊了！';
-  let n = 0;
-  const step = ()=>{
-    // 隨機挑兩個碗互換位置
-    const a = Math.floor(Math.random()*3); let b = Math.floor(Math.random()*3);
-    if (b === a) b = (b+1)%3;
-    document.querySelectorAll('#shellField .bowl').forEach(el=>{
-      const i = +el.dataset.i;
-      if (SHELL.pos[i] === a) SHELL.pos[i] = b;
-      else if (SHELL.pos[i] === b) SHELL.pos[i] = a;
-    });
-    if (SHELL.wormAt === a) SHELL.wormAt = b; else if (SHELL.wormAt === b) SHELL.wormAt = a;
-    layoutBowls(); Snd.beep(420 + Math.random()*120, .05, 'square', .03);
-    if (++n < times) setTimeout(step, 380);
-    else { SHELL.busy = false; $('shellMsg').textContent = '蟲蟲在哪？點一個碗！'; }
-  };
-  setTimeout(step, 400);
-}
-document.querySelectorAll('#shellField .bowl').forEach(el=>{
-  el.addEventListener('click', ()=>{
-    if (!SHELL.on || SHELL.busy) return;
-    SHELL.busy = true;
-    const slot = SHELL.pos[+el.dataset.i];
-    const hit = (slot === SHELL.wormAt);
-    // 掀開全部碗、蟲現身在正確位置
-    const worm = $('shellWorm');
-    worm.style.left = (bowlX(SHELL.wormAt)+23)+'px'; worm.style.display='block';
-    document.querySelectorAll('#shellField .bowl').forEach(b=>b.classList.add('up'));
-    const gain = hit ? 12 : 2;
-    finishPlay(gain);
-    if (hit){ Snd.chirp(st.hp); $('shellMsg').textContent = '猜中了！快樂 +'+gain; }
-    else { Snd.beep(200,.2,'sawtooth',.06); $('shellMsg').textContent = '哎呀，在這裡～ 快樂 +'+gain; }
-    $('shellOk').style.display = 'block';
-  });
-});
-$('shellOk').addEventListener('click', ()=>{
-  SHELL.on = false;
-  $('shellOv').classList.remove('show'); paused = false; render();
-});
+/* ---------- 逛街（撿金幣/食物；快樂滿了不出門）---------- */
+const Stroll = {
+  active:false, itv:null, spawnItv:null, t:0, loot:null,
+  start(){
+    if (!st || st.stage==='egg' || st.stage==='dead') return;
+    if (st.joy >= CFG.ECON.stroll.blockAt){ say({t:'現在超開心的，不想出門啦。',tier:'white'}); return; }
+    this.active = true; this.t = 0; this.loot = { gold:0, foods:{} };
+    const sp = spriteFor(); $('sChick').src = sp;
+    const f = sp.slice(sp.lastIndexOf('/')+1);
+    $('sChick').style.transform = CFG.FACING_RIGHT.includes(f) ? '' : 'scaleX(-1)';
+    $('sLoot').textContent = '撿到：—';
+    document.querySelectorAll('.sitem').forEach(e=>e.remove());
+    $('strollOv').classList.add('show');
+    this.itv = setInterval(()=>this.tick(), 100);
+    this.spawnItv = setInterval(()=>this.spawn(), CFG.ECON.stroll.spawnMs);
+  },
+  spawn(){
+    if (paused || !this.active) return;
+    const S = CFG.ECON.stroll;
+    const it = document.createElement('div'); it.className = 'sitem';
+    if (Math.random() < S.foodDropChance){
+      const id = rnd(S.drops); it.dataset.food = id;
+      it.innerHTML = '<img class="px" src="'+A(CFG.FOODS[id].icon)+'">';
+    } else {
+      it.dataset.gold = String(S.goldMin + Math.floor(Math.random()*(S.goldMax - S.goldMin + 1)));
+      it.textContent = '🪙';
+    }
+    it.style.left = '105%'; it.style.top = (52 + Math.random()*18) + '%';
+    it.addEventListener('click', ()=> this.collect(it), { once:true });
+    $('strollScene').appendChild(it);
+    const mv = setInterval(()=>{
+      if (!this.active){ clearInterval(mv); it.remove(); return; }
+      if (paused) return;
+      const p = parseFloat(it.style.left) - 0.9;
+      it.style.left = p + '%';
+      if (p < -10){ clearInterval(mv); it.remove(); }
+    }, 50);
+  },
+  collect(it){
+    Snd.beep(900,.08,'square',.07);
+    if (it.dataset.gold){ const g = parseInt(it.dataset.gold); dex.gold += g; this.loot.gold += g; }
+    else { const id = it.dataset.food; dex.inv[id] = (dex.inv[id]||0) + 1; this.loot.foods[id] = (this.loot.foods[id]||0) + 1; }
+    it.remove(); Save.writeDex(dex);
+    const parts = [];
+    if (this.loot.gold) parts.push('🪙×' + this.loot.gold);
+    for (const k in this.loot.foods) parts.push(CFG.FOODS[k].name + '×' + this.loot.foods[k]);
+    $('sLoot').textContent = '撿到：' + (parts.join('　') || '—');
+    render();
+  },
+  tick(){
+    if (paused || !this.active) return;
+    this.t += 0.1;
+    const D = CFG.ECON.stroll.duration;
+    $('sTimerFl').style.width = Math.max(0, 100 - this.t/D*100) + '%';
+    if (this.t >= D) this.end();
+  },
+  end(){
+    if (!this.active) return;
+    this.active = false; clearInterval(this.itv); clearInterval(this.spawnItv);
+    document.querySelectorAll('.sitem').forEach(e=>e.remove());
+    $('strollOv').classList.remove('show');
+    if (st && st.stage!=='dead'){
+      st.joy = Math.min(CFG.LIFE.joyMax, st.joy + CFG.ECON.stroll.joyGain);
+      Save.write(st);
+    }
+    Save.writeDex(dex); buildTray(); render();
+    say({t:'逛街好開心！', tier:'white'});
+  },
+};
+$('strollBtn').addEventListener('click', ()=>{ Snd.init(); Stroll.start(); });
+$('sExit').addEventListener('click', ()=> Stroll.end());
 
 /* ---------- 系統 ---------- */
 $('muteBtn').addEventListener('click', ()=>{
   Snd.muted = !Snd.muted; localStorage.setItem('chicken_mute', Snd.muted?'1':'0');
-  Music.setMuted(Snd.muted);
   $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
 });
 $('homeBtn').addEventListener('click', ()=>{ if(st) Save.write(st); window.location.href='/'; });
 document.addEventListener('visibilitychange', ()=>{
-  if (document.visibilityState === 'hidden'){ paused = true; Music.pause(); if(st && st.stage!=='dead') Save.write(st); }
-  else { paused = false; Music.resume(); buildSky(); }
+  if (document.visibilityState === 'hidden'){ paused = true; if(st && st.stage!=='dead') Save.write(st); }
+  else { paused = false; buildSky(); }
 });
 window.addEventListener('pagehide', ()=>{ if(st && st.stage!=='dead') Save.write(st); });
 
 /* ---------- 啟動 ---------- */
 function boot(){
+  if (dex.gold == null) dex.gold = 0;
+  if (!dex.inv) dex.inv = Object.assign({}, CFG.ECON.startInv);
   $('bgDay').src = A(CFG.BG.day); $('bgNight').src = A(CFG.BG.night);
   $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
   buildTray(); buildSky();
   setInterval(buildSky, 60000); // 跨日夜界線自動切換
   st = Save.load();
-  if (st){ render(); startLoop(); }
+  if (st){
+    const rep = settleOffline(st);
+    render(); startLoop();
+    if (rep) setTimeout(()=> say(rep), 900);
+  }
   else showEggSelect();
 }
 boot();
