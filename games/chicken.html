@@ -66,10 +66,13 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 /* ---------- 底部操作 ---------- */
 #dock{ display:flex; gap:8px; padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:var(--wood);
   border-top:4px solid var(--ink); z-index:10; }
-.btn{ flex:1; background:var(--panel); border:3px solid var(--ink); border-radius:8px; padding:12px 4px;
+.btn{ background:var(--panel); border:3px solid var(--ink); border-radius:8px; padding:12px 4px;
   font-family:inherit; font-size:15px; font-weight:bold; color:var(--ink); cursor:pointer; }
 .btn:active{ transform:translateY(2px); }
-.btn.sm{ flex:0 0 52px; }
+/* flex:1 只用在「水平」按鈕列，直排容器內的按鈕不得伸展 */
+#dock .btn, .ovBtns .btn{ flex:1; }
+#dock .btn.sm{ flex:0 0 52px; }
+.ov > .btn, #tray > .btn{ flex:0 0 auto; width:100%; }
 
 /* ---------- 食物盤 ---------- */
 #tray{ position:absolute; left:0; right:0; bottom:0; background:var(--panel); border-top:4px solid var(--ink);
@@ -742,6 +745,7 @@ function wormLoop(ts){
 function stopWormTimers(){
   WG.on = false; wormPrev = 0;
   clearInterval(WG.spawnId); clearInterval(WG.tickId); cancelAnimationFrame(WG.raf);
+  WG.worms.forEach(w=>w.el.remove()); WG.worms = [];   // 清掉殘留的蟲
 }
 function endWormGame(){
   stopWormTimers();
