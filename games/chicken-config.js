@@ -159,21 +159,65 @@ CLUES: [
 
 // ---------- 語料庫（tier=句子顏色；★TODO 文案輪補滿至每桶15-20句）----------
 DIALOGUE: {
-  daily:  [ {t:'咕咕。',tier:'white'}, {t:'今天天氣真好。',tier:'white'},
-            {t:'（歪頭看著你）',tier:'white'} ],
-  hot:    [ {t:'哩系咧餵三小，好辣，我喜歡。',tier:'green'},
-            {t:'好熱…但我停不下來。',tier:'blue'} ],
-  spirit: [ {t:'你有聽到鐘聲嗎？',tier:'green'},
-            {t:'萬物皆蛋，蛋即萬物。',tier:'blue'} ],
-  lazy:   [ {t:'不想動…再躺五分鐘…',tier:'green'},
-            {t:'感覺身體…越來越重了…',tier:'blue'} ],
-  dark:   [ {t:'我昨晚夢到你把我吃掉。',tier:'red'},
-            {t:'這顆蛋殼裡，本來還有別的東西。',tier:'red'} ],
-  hero:   [ {t:'吾之血脈正在覺醒——',tier:'green'},
-            {t:'感受到了嗎，這股力量。',tier:'blue'} ],
-  preEvo: [ {t:'…身體好像有什麼要改變了。',tier:'purple'} ], // 判定前3次餵食內
-  event:  [ {t:'有人在看著我們。',tier:'gold'} ],            // 午夜/流星等
-  weak:   [ {t:'咕…咕……',tier:'white'} ],                    // 低健康弱音版
+  idle: {
+    daily: [ {t:'咕咕。',tier:'white'},{t:'今天天氣真好。',tier:'white'},{t:'（歪頭看著你）',tier:'white'},
+      {t:'你今天過得好嗎？',tier:'white'},{t:'（啄了啄地板）',tier:'white'},{t:'外面好像有貓走過去。',tier:'white'},
+      {t:'咕…咕咕？',tier:'white'},{t:'（理了理羽毛）',tier:'white'},{t:'我在想，蛋是從哪裡來的。',tier:'white'},
+      {t:'你看窗外，雲在動耶。',tier:'white'} ],
+    hot: [ {t:'好想吃點刺激的。',tier:'green'},{t:'血液在沸騰…咦我有血嗎？',tier:'green'},
+      {t:'哩公蝦毀？我聽不懂啦。',tier:'green'},{t:'今天也是衝衝衝的一天！',tier:'green'},{t:'心裡有一把火在燒。',tier:'blue'} ],
+    spirit: [ {t:'你有聽到鐘聲嗎？',tier:'green'},{t:'萬物皆蛋，蛋即萬物。',tier:'blue'},
+      {t:'（閉目，一動也不動）',tier:'green'},{t:'剛剛好像看到光。',tier:'green'},{t:'施主，該放下了。',tier:'blue'} ],
+    lazy: [ {t:'不想動…再躺五分鐘…',tier:'green'},{t:'走路好累，用滾的可以嗎？',tier:'green'},
+      {t:'（攤在地上）',tier:'green'},{t:'感覺身體越來越重了…',tier:'blue'},{t:'夢到自己變成布丁。',tier:'green'} ],
+    dark: [ {t:'我昨晚夢到你把我吃掉。',tier:'red'},{t:'這顆蛋殼裡，本來還有別的東西。',tier:'red'},
+      {t:'半夜不要回頭看窗戶。',tier:'red'},{t:'牠們在土裡說話。',tier:'red'},{t:'你養我，還是我養你？',tier:'red'} ],
+    hero: [ {t:'吾之血脈正在覺醒——',tier:'green'},{t:'感受到了嗎，這股力量。',tier:'blue'},
+      {t:'總有一天我要飛出這扇窗。',tier:'green'},{t:'風在呼喚我的名字。',tier:'green'},{t:'（擺出帥氣的姿勢）',tier:'green'} ],
+  },
+  hungry: {
+    daily: [ {t:'肚子好餓…',tier:'white'},{t:'咕嚕嚕…是我的肚子在叫。',tier:'white'},{t:'有東西吃嗎？拜託拜託。',tier:'white'},
+      {t:'（盯著餵食按鈕）',tier:'white'},{t:'我瘦了，你看。',tier:'white'},{t:'餓到可以吃下一整袋飼料。',tier:'white'} ],
+    hot: [ {t:'餓！快！上菜！',tier:'green'},{t:'餓到火都燒不起來了…',tier:'blue'},{t:'沒吃的我要翻桌了喔。',tier:'green'} ],
+    spirit: [ {t:'辟穀…也是一種修行。',tier:'blue'},{t:'餓，是身體在說話。',tier:'green'},{t:'（摸著肚子打坐）',tier:'green'} ],
+    lazy: [ {t:'餓了…但懶得叫…',tier:'green'},{t:'可以直接把食物放我嘴裡嗎。',tier:'green'},{t:'餓到沒力氣耍廢。',tier:'blue'} ],
+    dark: [ {t:'再不餵我，我就自己找吃的。',tier:'red'},{t:'餓的時候，什麼都想咬。',tier:'red'},{t:'你的手指看起來不錯。',tier:'red'} ],
+    hero: [ {t:'空腹是戰士的試煉！',tier:'green'},{t:'餓著也要抬頭挺胸！',tier:'green'},{t:'吾需要能量！',tier:'blue'} ],
+  },
+  full: {
+    daily: [ {t:'好飽…好幸福…',tier:'white'},{t:'吃不下了啦。',tier:'white'},{t:'（摸摸圓滾滾的肚子）',tier:'white'},
+      {t:'打嗝。呃，失禮了。',tier:'white'},{t:'再吃就要變成球了。',tier:'white'},{t:'飽到走不動…',tier:'white'} ],
+    hot: [ {t:'飽了！但辣的是另一個胃。',tier:'green'},{t:'呼…嘴巴還在麻。',tier:'green'},{t:'吃飽才有力氣衝。',tier:'green'} ],
+    spirit: [ {t:'過飽則昏沉，適量即可。',tier:'blue'},{t:'感恩這一餐。',tier:'green'},{t:'（飯後打坐消化）',tier:'green'} ],
+    lazy: [ {t:'吃飽睡，睡飽吃，完美。',tier:'green'},{t:'飽了…直接原地躺平。',tier:'green'},{t:'消化也交給你可以嗎。',tier:'green'} ],
+    dark: [ {t:'吃飽了。這次先放過你。',tier:'red'},{t:'飽足感…讓黑暗安分了一點。',tier:'red'},{t:'（滿足地舔了舔喙）',tier:'red'} ],
+    hero: [ {t:'能量充填完畢！',tier:'green'},{t:'這份力量…要好好使用。',tier:'blue'},{t:'吃飽了，世界都是我的。',tier:'green'} ],
+  },
+  bored: {
+    daily: [ {t:'好無聊喔…',tier:'white'},{t:'陪我玩嘛。',tier:'white'},{t:'（用腳畫圈圈）',tier:'white'},
+      {t:'天花板我都看膩了。',tier:'white'},{t:'帶我出去走走好不好？',tier:'white'} ],
+    hot: [ {t:'無聊到想找人吵架。',tier:'green'},{t:'給我一點刺激！',tier:'green'} ],
+    spirit: [ {t:'無聊，也是一種空。',tier:'blue'},{t:'（默默數自己的羽毛）',tier:'green'} ],
+    lazy: [ {t:'無聊，但也懶得無聊。',tier:'green'},{t:'廢著廢著一天就過了。',tier:'green'} ],
+    dark: [ {t:'無聊的時候，我會想一些可怕的事。',tier:'red'},{t:'好安靜。太安靜了。',tier:'red'} ],
+    hero: [ {t:'英雄不該被關在雞舍！',tier:'green'},{t:'我的冒險魂在燃燒！',tier:'green'} ],
+  },
+  happy: {
+    daily: [ {t:'今天超開心的！',tier:'white'},{t:'啦啦啦～♪',tier:'white'},{t:'（開心地轉圈圈）',tier:'white'},
+      {t:'跟你在一起真好。',tier:'white'},{t:'咕咕咕♪咕咕♪',tier:'white'} ],
+    hot: [ {t:'爽啦！',tier:'green'},{t:'就是這個感覺！',tier:'green'} ],
+    spirit: [ {t:'心中一片祥和。',tier:'green'},{t:'這就是小確幸吧。',tier:'green'} ],
+    lazy: [ {t:'開心，但用躺的表達。',tier:'green'},{t:'幸福就是不用動。',tier:'green'} ],
+    dark: [ {t:'開心到想惡作劇。',tier:'red'},{t:'（露出神祕的微笑）',tier:'red'} ],
+    hero: [ {t:'哈哈哈！痛快！',tier:'green'},{t:'今天的我無所不能！',tier:'blue'} ],
+  },
+  weak: {
+    daily: [ {t:'咕…咕……',tier:'white'},{t:'（縮成一團發抖）',tier:'white'},
+      {t:'我好像…不太舒服…',tier:'white'},{t:'（羽毛掉了一地）',tier:'white'} ],
+  },
+  preEvo: [ {t:'…身體好像有什麼要改變了。',tier:'purple'},{t:'心跳得好快…這是什麼感覺？',tier:'purple'},
+    {t:'（全身微微發光）',tier:'purple'} ],
+  event:  [ {t:'有人在看著我們。',tier:'gold'} ],
 },
 // 向量→語料桶對映（引擎取最高軸；並列則混抽）
 BUCKET_MAP: { H:'hot', L:'spirit', F:'lazy', S:'lazy', P:'hero' },
@@ -184,6 +228,19 @@ EASTER: {
   meteor: { nightOnly:true, rollEverySec:60, chance:0.05, reward:{ L:1 },
             line:{ t:'剛剛那是…流星嗎？', tier:'gold' } },
   pokeAngry:{ count:100, fx:'peck_back', achievement:'不要鬧' },
+},
+
+// ---------- 經濟（金幣/庫存跨代永久，存 DEX_KEY）----------
+ECON: {
+  freeFood: 'riceball', // 唯一無限的低階食物
+  prices: { cutlet:12, chili:6, josspaper:8, candy:5, worm:5, protein:10, cake:12,
+            sesamesoup:15, pickledchili:8, saltychicken:12, vegrice:10 },
+  startInv: { worm:3, candy:2 },
+  pokeGold: { chance:0.2, amount:1 },       // 互動掉金幣
+  stroll: { duration:45, joyGain:25, blockAt:95, spawnMs:1500,
+            goldMin:1, goldMax:3, foodDropChance:0.35,
+            drops:['worm','candy','chili','josspaper','riceball'] },
+  offline: { satPerHour:10, joyPerHour:8, dmgStarvePerHour:2.5, dmgSadPerHour:1.5, capHours:48 }, // 離線天級節奏；hp地板=1不離線死
 },
 
 // ---------- 朝向表（原圖朝右的檔案；未列=朝左或正面）----------
