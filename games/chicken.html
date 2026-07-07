@@ -260,7 +260,7 @@ const Save = {
 /* ================= 音效（WebAudio 合成，零素材）================= */
 const Snd = {
   ctx:null, muted: localStorage.getItem('chicken_mute')==='1',
-  init(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } },
+  init(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(this.ctx) Bgm.start(); },
   beep(f, dur, type, vol){ if(this.muted||!this.ctx) return;
     const o=this.ctx.createOscillator(), g=this.ctx.createGain();
     o.type=type||'square'; o.frequency.value=f; g.gain.value=vol||.06;
@@ -270,6 +270,41 @@ const Snd = {
   eat(){ this.beep(300,.06,'sawtooth'); setTimeout(()=>this.beep(220,.08,'sawtooth'),70); },
   evo(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.beep(f,.22,'square',.08), i*160)); },
   death(){ [400,320,240,160].forEach((f,i)=>setTimeout(()=>this.beep(f,.3,'triangle',.07), i*220)); },
+};
+const Bgm = {
+  playing:false, step:0, nextT:0, timer:null,
+  mel:  [523,0,659,0,784,659,523,0, 587,659,523,0,440,494,523,0,
+         659,0,784,0,880,784,659,0, 587,0,523,494,440,0,523,0],
+  bass: [131,0,0,0,165,0,0,0, 147,0,0,0,110,0,123,0,
+         131,0,0,0,165,0,0,0, 147,0,0,0,131,0,0,0],
+  start(){
+    if (this.playing || Snd.muted || !Snd.ctx) return;
+    if (Snd.ctx.state === 'suspended') Snd.ctx.resume();
+    this.playing = true; this.nextT = Snd.ctx.currentTime + 0.1;
+    this.timer = setInterval(()=>this.sched(), 150);
+  },
+  stop(){ this.playing = false; clearInterval(this.timer); },
+  sched(){
+    if (!this.playing) return;
+    const eggMode = st && st.stage === 'egg';
+    const dur = eggMode ? 0.44 : 0.26;
+    while (this.nextT < Snd.ctx.currentTime + 0.5){
+      const i = this.step % 32;
+      const m = this.mel[i];
+      if (m) this.note(eggMode ? m*2 : m, dur*1.6, eggMode ? 'sine' : 'square', eggMode ? .03 : .028, this.nextT);
+      const b = this.bass[i];
+      if (b && !eggMode) this.note(b, dur*1.8, 'triangle', .05, this.nextT);
+      this.step++; this.nextT += dur;
+    }
+  },
+  note(f,d,type,vol,t){
+    const o = Snd.ctx.createOscillator(), g = Snd.ctx.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.connect(g); g.connect(Snd.ctx.destination);
+    o.start(t); o.stop(t + d);
+  },
 };
 
 /* ================= 表現層 ================= */
@@ -694,11 +729,12 @@ $('sExit').addEventListener('click', ()=> Stroll.end());
 $('muteBtn').addEventListener('click', ()=>{
   Snd.muted = !Snd.muted; localStorage.setItem('chicken_mute', Snd.muted?'1':'0');
   $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
+  if (Snd.muted) Bgm.stop(); else Snd.init();
 });
 $('homeBtn').addEventListener('click', ()=>{ if(st) Save.write(st); window.location.href='/'; });
 document.addEventListener('visibilitychange', ()=>{
-  if (document.visibilityState === 'hidden'){ paused = true; if(st && st.stage!=='dead') Save.write(st); }
-  else { paused = false; buildSky(); }
+  if (document.visibilityState === 'hidden'){ paused = true; Bgm.stop(); if(st && st.stage!=='dead') Save.write(st); }
+  else { paused = false; buildSky(); if (Snd.ctx && !Snd.muted) Bgm.start(); }
 });
 window.addEventListener('pagehide', ()=>{ if(st && st.stage!=='dead') Save.write(st); });
 
