@@ -19,7 +19,7 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 #skyLayer{ position:absolute; overflow:hidden; pointer-events:auto; } /* 窗戶區 */
 .cloud{ position:absolute; background:#fff; border-radius:2px; opacity:.9;
   box-shadow:8px 0 0 #fff,16px 0 0 #fff,4px -6px 0 #fff,12px -6px 0 #fff; animation:drift linear infinite; }
-@keyframes drift{ from{ transform:translateX(-40px);} to{ transform:translateX(320px);} }
+@keyframes drift{ from{ left:-32px;} to{ left:105%;} }
 .star{ position:absolute; width:3px; height:3px; background:#fff; animation:tw ease-in-out infinite; }
 @keyframes tw{ 0%,100%{opacity:.2} 50%{opacity:1} }
 #meteor{ position:absolute; width:34px; height:2px; background:linear-gradient(90deg,#fff,transparent);
@@ -100,6 +100,15 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 .ovBtns{ display:flex; gap:10px; width:100%; max-width:340px; margin-top:6px; }
 input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px solid var(--ink); border-radius:8px; width:100%; max-width:260px; text-align:center; margin:12px 0; }
 #flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:29; }
+
+/* ---------- 接蟲蟲小遊戲 ---------- */
+#playOv{ padding:0; }
+#wormHud{ position:absolute; top:14px; left:0; right:0; text-align:center; font-size:15px; z-index:2; }
+#wormField{ position:relative; width:100%; height:100%; overflow:hidden; touch-action:none; }
+#wormChick{ position:absolute; bottom:4%; width:72px; transition:left .18s linear; pointer-events:none; }
+.worm{ position:absolute; width:34px; pointer-events:none; }
+#wormMsg{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; background:rgba(0,0,0,.55); z-index:3; text-align:center; }
 </style>
 </head>
 <body>
@@ -119,11 +128,23 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
   </div>
   <div id="dock">
     <button class="btn" id="feedBtn">餵食</button>
+    <button class="btn" id="playBtn">玩耍</button>
     <button class="btn" id="dexBtn">圖鑑</button>
     <button class="btn sm" id="muteBtn">♪</button>
     <button class="btn sm" id="homeBtn">🏠</button>
   </div>
   <div id="tray"><div id="trayGrid"></div><button class="btn" id="trayClose">關閉</button></div>
+
+  <div class="ov" id="playOv">
+    <div id="wormHud"><span id="wormTime">30</span>秒｜接到 <span id="wormScore">0</span> 隻</div>
+    <div id="wormField">
+      <img id="wormChick" class="px" alt="">
+    </div>
+    <div id="wormMsg" style="display:none">
+      <h2 id="wormTitle"></h2><div id="wormResult"></div>
+      <button class="btn" id="wormOk" style="max-width:200px;margin-top:14px">好耶</button>
+    </div>
+  </div>
 
   <div class="ov" id="eggOv"><h2>選一顆蛋</h2><div id="eggList"></div></div>
   <div class="ov" id="nameOv"><h2>孵化了！幫牠取個名字</h2>
@@ -317,10 +338,28 @@ function wander(){
 
 /* ---------- 天空 ---------- */
 function isNight(){ const h = new Date().getHours(); return h >= CFG.BG.nightFrom || h < CFG.BG.nightTo; }
+
+/* 背景圖原始尺寸與「窗戶天空區」在原圖中的比例（實測 bg_coop_day.png）*/
+const BG_NAT = { w:1024, h:559 };
+const WIN_SKY = { x1:.565, x2:.905, y1:.115, y2:.315 };
+function placeSky(){
+  const stg = $('stage'), sky = $('skyLayer');
+  const sw = stg.clientWidth, sh = stg.clientHeight;
+  if (!sw || !sh) return;
+  // object-fit:cover 的實際縮放與偏移
+  const s  = Math.max(sw / BG_NAT.w, sh / BG_NAT.h);
+  const dw = BG_NAT.w * s, dh = BG_NAT.h * s;
+  const ox = (sw - dw) / 2, oy = (sh - dh) / 2;
+  const L = Math.max(0, ox + WIN_SKY.x1 * dw), R = Math.min(sw, ox + WIN_SKY.x2 * dw);
+  const T = Math.max(0, oy + WIN_SKY.y1 * dh), B = Math.min(sh, oy + WIN_SKY.y2 * dh);
+  Object.assign(sky.style, { left:L+'px', top:T+'px',
+    width:Math.max(0, R-L)+'px', height:Math.max(0, B-T)+'px' });
+}
+window.addEventListener('resize', placeSky);
+
 function buildSky(){
-  const sky = $('skyLayer'); const stg = $('stage');
-  // 窗戶區（背景圖比例定位）
-  Object.assign(sky.style, { left:'50%', top:'10%', width:'42%', height:'50%' });
+  const sky = $('skyLayer');
+  placeSky();
   sky.querySelectorAll('.cloud,.star').forEach(e=>e.remove());
   if (isNight()){
     $('bgNight').style.opacity = 1; $('bgDay').style.opacity = 0;
@@ -536,6 +575,95 @@ function doFeed(id){
 }
 $('feedBtn').addEventListener('click', ()=>{ Snd.init(); if (st && st.stage!=='egg') $('tray').classList.add('open'); });
 $('trayClose').addEventListener('click', ()=> $('tray').classList.remove('open'));
+
+/* ---------- 接蟲蟲小遊戲 ---------- */
+const WORM_GAME = { duration:30, cooldownSec:180, spawnMs:850, fallMin:2600, fallMax:4200,
+  joyPerWorm:2, joyCap:20 };
+const WG = { on:false, score:0, timeLeft:0, worms:[], raf:0, spawnId:0, tickId:0, chickX:0 };
+
+function playCooldownLeft(){
+  if (!st || !st.lastPlay) return 0;
+  return Math.max(0, WORM_GAME.cooldownSec - Math.floor((Date.now() - st.lastPlay)/1000));
+}
+$('playBtn').addEventListener('click', ()=>{
+  Snd.init();
+  if (!st || st.stage==='egg' || st.stage==='dead') return;
+  if (sleeping){ say({t:'…Zzz（牠睡得正香）', tier:'white'}); return; }
+  const cd = playCooldownLeft();
+  if (cd > 0){ say({t:'休息一下啦，'+Math.ceil(cd/60)+'分鐘後再玩', tier:'white'}); return; }
+  startWormGame();
+});
+function startWormGame(){
+  paused = true; WG.on = true; WG.score = 0; WG.timeLeft = WORM_GAME.duration; WG.worms = [];
+  $('wormScore').textContent = '0'; $('wormTime').textContent = WG.timeLeft;
+  $('wormMsg').style.display = 'none';
+  $('wormField').querySelectorAll('.worm').forEach(e=>e.remove());
+  const ck = $('wormChick'); ck.src = spriteFor();
+  $('playOv').classList.add('show');
+  const fw = $('wormField').clientWidth;
+  WG.chickX = fw/2; ck.style.left = (WG.chickX-36)+'px'; ck.style.transform='';
+  wormPrev = 0;
+  WG.spawnId = setInterval(spawnWorm, WORM_GAME.spawnMs);
+  WG.tickId = setInterval(()=>{
+    WG.timeLeft--; $('wormTime').textContent = WG.timeLeft;
+    if (WG.timeLeft <= 0) endWormGame();
+  }, 1000);
+  WG.raf = requestAnimationFrame(wormLoop);
+}
+function moveChickTo(x){
+  const fw = $('wormField').clientWidth;
+  const nx = Math.max(36, Math.min(fw-36, x));
+  const ck = $('wormChick');
+  ck.style.transform = (nx < WG.chickX) ? 'scaleX(-1)' : ''; // 原圖朝右
+  WG.chickX = nx; ck.style.left = (nx-36)+'px';
+}
+$('wormField').addEventListener('pointerdown', e=>{ if(WG.on) moveChickTo(e.offsetX); });
+$('wormField').addEventListener('pointermove', e=>{ if(WG.on && e.buttons) moveChickTo(e.offsetX); });
+function spawnWorm(){
+  if (!WG.on) return;
+  const f = $('wormField'), fw = f.clientWidth;
+  const el = document.createElement('img');
+  el.className = 'worm px'; el.src = A(CFG.FOODS.worm.icon);
+  const x = 20 + Math.random()*(fw-60);
+  el.style.left = x+'px'; el.style.top = '-40px';
+  f.appendChild(el);
+  WG.worms.push({ el, x:x+17, y:-40,
+    v: f.clientHeight / (WORM_GAME.fallMin + Math.random()*(WORM_GAME.fallMax-WORM_GAME.fallMin)) });
+}
+let wormPrev = 0;
+function wormLoop(ts){
+  if (!WG.on) return;
+  const dt = wormPrev ? (ts - wormPrev) : 16; wormPrev = ts;
+  const fh = $('wormField').clientHeight;
+  const catchY = fh * 0.90;
+  for (let i = WG.worms.length-1; i >= 0; i--){
+    const w = WG.worms[i];
+    w.y += w.v * dt;
+    w.el.style.top = w.y+'px';
+    if (w.y > catchY - 60 && Math.abs(w.x - WG.chickX) < 46){          // 接到
+      WG.score++; $('wormScore').textContent = WG.score;
+      Snd.chirp(st.hp);
+      const p = document.createElement('div'); p.className='pt'; p.textContent='😋';
+      p.style.left = w.x+'px'; p.style.top = (catchY-70)+'px';
+      $('wormField').appendChild(p); setTimeout(()=>p.remove(),1200);
+      w.el.remove(); WG.worms.splice(i,1);
+    } else if (w.y > fh){ w.el.remove(); WG.worms.splice(i,1); }        // 掉出去
+  }
+  WG.raf = requestAnimationFrame(wormLoop);
+}
+function endWormGame(){
+  WG.on = false; wormPrev = 0;
+  clearInterval(WG.spawnId); clearInterval(WG.tickId); cancelAnimationFrame(WG.raf);
+  const gain = Math.min(WORM_GAME.joyCap, WG.score * WORM_GAME.joyPerWorm);
+  st.joy = Math.min(CFG.LIFE.joyMax, st.joy + gain);
+  st.lastPlay = Date.now(); Save.write(st);
+  $('wormTitle').textContent = WG.score >= 10 ? '大豐收！' : WG.score >= 5 ? '吃飽飽～' : '下次再加油';
+  $('wormResult').textContent = '接到 '+WG.score+' 隻蟲蟲，快樂 +'+gain;
+  $('wormMsg').style.display = 'flex';
+}
+$('wormOk').addEventListener('click', ()=>{
+  $('playOv').classList.remove('show'); paused = false; render();
+});
 
 /* ---------- 系統 ---------- */
 $('muteBtn').addEventListener('click', ()=>{
