@@ -27,7 +27,7 @@ T: { EXT: 36, HIGH: 20, LOW: 6, MID: 8 },
 FOODS: {
   cutlet:       { name:'雞排',     vec:[3,2,0,0,0], satiety:45, joy: 1, icon:'food_cutlet.png' },
   chili:        { name:'辣椒',     vec:[0,0,0,4,0], satiety: 8, joy:-1, icon:'food_chili.png' },
-  josspaper:    { name:'金紙',     vec:[0,0,0,0,2], satiety: 0, joy: 0, icon:'food_josspaper.png' },
+  josspaper:    { name:'金元寶',     vec:[0,0,0,0,2], satiety: 0, joy: 0, icon:'food_josspaper.png' },
   riceball:     { name:'飯糰',     vec:[1,0,1,0,0], satiety:40, joy: 0, icon:'food_riceball.png' },
   candy:        { name:'糖果',     vec:[0,0,3,0,0], satiety:18, joy: 2, icon:'food_candy.png' },
   worm:         { name:'蟲蟲',     vec:[0,3,0,0,0], satiety:25, joy: 1, icon:'food_worm.png' },
