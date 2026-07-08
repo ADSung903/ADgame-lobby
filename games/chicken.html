@@ -754,7 +754,13 @@ function boot(){
   }
   else showEggSelect();
 }
-boot();
+try { boot(); } catch(err){
+  const d = document.createElement('div');
+  d.style.cssText = 'position:absolute;top:40%;left:10%;right:10%;z-index:99;background:#fff;color:#b00;border:3px solid #b00;border-radius:8px;padding:12px;font-size:12px;word-break:break-all;';
+  d.textContent = '啟動失敗：' + err.message + '（通常是快取到舊版檔案，請清除網站資料後重試）';
+  document.getElementById('stage').appendChild(d);
+  throw err;
+}
 </script>
 </body>
 </html>
