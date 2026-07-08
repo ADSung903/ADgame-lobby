@@ -138,7 +138,7 @@ TIMING: {
 },
 LIFE: {
   satietyMax: 100, satietyDrain: 0.22,   // 滿到空約 7.5 分
-  joyMax: 100, joyDrain: 0.03,
+  joyMax: 100, joyDrain: 0.08,
   healthMax: 100,
   dmgStarve: 0.25,   // 飽足=0 時每秒健康傷害（來源:starved）
   dmgStuff: 8,       // 飽足=100 再餵一次的傷害（來源:overfed）
@@ -236,7 +236,7 @@ ECON: {
   prices: { cutlet:12, chili:6, josspaper:8, candy:5, worm:5, protein:10, cake:12,
             sesamesoup:15, pickledchili:8, saltychicken:12, vegrice:10 },
   startInv: { worm:3, candy:2 },
-  pokeGold: { chance:0.2, amount:1 },       // 互動掉金幣
+  pokeGold: { chance:0.2, amount:1, happyBonusAt:70, happyMult:2 }, // 快樂≥70掉幣率翻倍
   stroll: { duration:45, joyGain:25, blockAt:95, spawnMs:1500,
             goldMin:1, goldMax:3, foodDropChance:0.35,
             drops:['worm','candy','chili','josspaper','riceball'],
