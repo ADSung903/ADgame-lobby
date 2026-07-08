@@ -31,6 +31,7 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 #chickenImg{ width:100%; display:block; animation:idleBob 1s steps(2) infinite; transform-origin:bottom center; }
 @keyframes idleBob{ 0%,100%{ transform:translateY(0) scaleY(1);} 50%{ transform:translateY(-3px) scaleY(.97);} }
 #chicken.flip{ transform:scaleX(-1); }
+#chicken.away #chickenImg{ filter:saturate(.55) brightness(.9); }
 #chicken.sleeping #chickenImg{ animation:none; transform:rotate(-6deg); filter:brightness(.85); }
 #chicken.slowwalk{ transition:left 6s linear; }
 #chicken.eating #chickenImg{ animation:peck .35s steps(2) infinite; }
@@ -234,6 +235,7 @@ const Core = {
     if (st.egg === 'angel') return 'ascension'; // 天使不死，只昇華
     let top='starved', tv=-1;
     for (const k in st.dmg) if (st.dmg[k] > tv){ tv = st.dmg[k]; top = k; }
+    if (top === 'starved' && st.vec.L >= CFG.T.HIGH) return 'feathered'; // 只餵金紙的辟穀者
     return top;
   },
   lifespanEnding(st){ return st.egg==='angel' ? 'ascension' : 'natural'; },
@@ -315,8 +317,13 @@ let wanderId = null, bubbleId = null, sleeping = false, dirRight = false;
 let curSpriteFile = '';
 function applyFacing(){
   const baseR = CFG.FACING_RIGHT.includes(curSpriteFile);
-  // 想面向右：原圖朝左才翻；想面向左：原圖朝右才翻
-  $('chicken').classList.toggle('flip', dirRight !== baseR);
+  let wantRight = dirRight;
+  // 鬧脾氣：背對玩家＝面向離畫面中心較遠的一側
+  if ($('chicken').classList.contains('away')){
+    const c = $('chicken'), w = $('stage').clientWidth;
+    wantRight = (c.offsetLeft + c.offsetWidth/2) > w/2;
+  }
+  $('chicken').classList.toggle('flip', wantRight !== baseR);
 }
 function spriteFor(){
   if (st.stage==='egg'){ const e = CFG.EGGS[st.egg]; return A((st.t+st.hatchBoost > CFG.TIMING.eggHatch*0.7) ? e.sprite.crack : e.sprite.idle); }
@@ -497,12 +504,19 @@ function endGame(key){
   const seen = Object.keys(dex.forms).length + Object.keys(dex.endings).length;
   if (Object.keys(dex.forms).length >= 10) dex.eggs.dino = true;
   Save.writeDex(dex);
+  const newEggs = Object.keys(dex.eggs).filter(k=>!before.has(k));
+  if (newEggs.length){
+    const names = newEggs.map(k=>CFG.EGGS[k].name).join('、');
+    $('endStats').textContent += '\n✨ 解鎖了新的蛋：' + names + '！';
+    $('endStats').style.whiteSpace = 'pre-line';
+  }
   try{ localStorage.setItem('game_pending_score', JSON.stringify({ game:'chicken', score: seen })); }catch(e){}
   $('endTitle').textContent = (key==='natural'||key==='ascension') ? '一生結束了' : '雞生無常';
   $('endImg').src = A(E.sprite);
   const t = CFG.TIERS[E.tier];
   $('endName').innerHTML = '<span class="tw-'+E.tier+(t.glow?' glow':'')+'" style="font-size:20px;font-weight:bold">'+E.name+'</span>';
   $('endEpitaph').textContent = '「' + E.epitaph + '」';
+  const before = new Set(Object.keys(dex.eggs||{}));
   $('endStats').textContent = (st.name||'小雞') + '　活了 ' + Math.floor(st.t/60) + ' 分鐘　吃了 ' + st.feeds + ' 餐';
   $('endOv').classList.add('show');
 }
