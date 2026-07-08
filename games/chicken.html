@@ -116,6 +116,13 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
 #sTimerFl{ height:100%; background:#fbbf24; width:100%; }
 #sLoot{ position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); left:14px; color:#fff; font-size:13px;
   background:rgba(0,0,0,.45); padding:6px 10px; border-radius:8px; }
+#tipCard{ position:absolute; left:12px; right:12px; bottom:14px; background:var(--panel);
+  border:3px solid var(--ink); border-radius:10px; padding:12px; font-size:13px; line-height:1.7;
+  white-space:pre-line; z-index:22; display:none; }
+#tipCard .btn{ margin-top:8px; padding:8px; }
+#helpBtn{ font-size:12px; color:#fff; background:rgba(0,0,0,.45); border:2px solid var(--ink);
+  border-radius:6px; padding:5px 9px; cursor:pointer; }
+#helpOv .hp{ text-align:left; max-width:340px; font-size:13px; line-height:1.9; }
 #flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:29; }
 </style>
 </head>
@@ -130,8 +137,9 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <div id="hud">
       <div class="bar"><div class="lb">飽足</div><div class="tk"><div class="fl" id="satFl"></div></div></div>
       <div class="bar"><div class="lb">快樂</div><div class="tk"><div class="fl" id="joyFl"></div></div></div>
-      <div id="goldTag">🪙0</div><div id="ageTag">0分</div>
+      <div id="goldTag">🪙0</div><div id="ageTag">0分</div><div id="helpBtn">❓</div>
     </div>
+    <div id="tipCard"><div id="tipTxt"></div><button class="btn" id="tipOk">知道了</button></div>
     <div id="flash"></div>
   </div>
   <div id="dock">
@@ -154,6 +162,15 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
       </div><div id="sLoot"></div>
       <button class="btn" id="sExit" style="position:absolute; top:12px; right:12px; flex:0; padding:8px 14px;">回家</button>
     </div></div>
+  <div class="ov" id="helpOv"><h2>飼養說明</h2><div class="hp">
+🍚 <b>飽足</b>：會隨時間下降（離開遊戲也會慢慢餓）。見底太久會傷身，太撐硬餵也會。<br>
+💗 <b>快樂</b>：摸摸牠、帶牠逛街會提升。太低牠會鬧脾氣背對你，久了會傷心。開心的雞（70以上）摸起來比較容易掉金幣。<br>
+🪙 <b>金幣</b>：摸雞和逛街獲得，可購買食物，永久保留。<br>
+🏙 <b>逛街</b>:消耗飽足、增加快樂，路上點擊撿金幣和食物。太餓出不了門、太開心不想出門。<br>
+🐔 <b>成長</b>：蛋→小雞→中雞→成雞。吃什麼、怎麼養，據說都會影響牠變成什麼…<br>
+📖 <b>圖鑑</b>：收集所有型態和結局。死亡不是終點，是收藏。<br>
+🌙 <b>作息</b>：現實深夜牠會睡覺，白天黑夜跟真實時間同步。</div>
+<button class="btn" id="helpClose" style="max-width:200px;margin-top:12px">返回</button></div>
   <div class="ov" id="eggOv"><h2>選一顆蛋</h2><div id="eggList"></div></div>
   <div class="ov" id="nameOv"><h2>孵化了！幫牠取個名字</h2>
     <input id="nameIn" maxlength="8" placeholder="小雞"><button class="btn" id="nameOk" style="max-width:200px">就叫這個</button></div>
@@ -459,6 +476,9 @@ function startLoop(){
     if (st.t % 60 === 0) meteorRoll();
     if (st.t % 25 === 0 && Math.random() < .7) speakRandom();
     if (st.t % 45 === 0 && st.hp < CFG.LIFE.healthHideCluesAt){ const p=chickenXY(); particle('🪶', p.x, p.y+20); }
+    if (st.hp < 50) tipOnce('lowHealth');
+    if ((st.stage==='chick' && CFG.TIMING.judgeTeen - st.t === 120) ||
+        (st.stage==='teen' && CFG.TIMING.judgeAdult - st.t === 120)) tipOnce('preJudge');
     sleepCheck();
     if (ev) handleEvent(ev);
   }, CFG.TIMING.tickMs);
@@ -491,7 +511,10 @@ function showEvo(r, title, isAdult){
     nameEl.className = 'tw-' + r.tier + (tier.glow ? ' glow' : '');
   }, isAdult ? 1600 : 900);
 }
-$('evoOk').addEventListener('click', ()=>{ $('evoOv').classList.remove('show'); paused = false; render(); });
+$('evoOk').addEventListener('click', ()=>{
+  $('evoOv').classList.remove('show'); paused = false; render();
+  showTip(st.stage === 'teen' ? CFG.TIPS.stage.teen : CFG.TIPS.stage.adult);
+});
 
 /* ---------- 結局 ---------- */
 function endGame(key){
@@ -549,6 +572,7 @@ $('nameOk').addEventListener('click', ()=>{
   st.name = $('nameIn').value.trim() || '小雞';
   Save.write(st); $('nameOv').classList.remove('show'); paused = false;
   Snd.chirp(100); render();
+  showTip(CFG.TIPS.stage.chick);
 });
 
 /* ---------- 圖鑑 ---------- */
@@ -645,9 +669,25 @@ function doFeed(id){
   if (st.vec.H >= CFG.T.MID) setTimeout(()=>particle('🔥', p.x+14, p.y+8), 350);
   setTimeout(()=>{ c.classList.remove('eating'); render(); }, 900);
   Save.write(st); buildTray(); render();
+  tipOnce('firstFeed');
 }
 $('feedBtn').addEventListener('click', ()=>{ Snd.init(); if (st && st.stage!=='egg') $('tray').classList.add('open'); });
 $('trayClose').addEventListener('click', ()=> $('tray').classList.remove('open'));
+
+/* ---------- 教學提示 ---------- */
+function showTip(txt){
+  $('tipTxt').textContent = txt;
+  $('tipCard').style.display = 'block';
+}
+$('tipOk').addEventListener('click', ()=> $('tipCard').style.display = 'none');
+$('helpBtn').addEventListener('click', ()=> $('helpOv').classList.add('show'));
+$('helpClose').addEventListener('click', ()=> $('helpOv').classList.remove('show'));
+function tipOnce(key){
+  dex.tips = dex.tips || {};
+  if (dex.tips[key]) return;
+  dex.tips[key] = true; Save.writeDex(dex);
+  showTip(CFG.TIPS.once[key]);
+}
 
 /* ---------- 離線結算（半速衰減、傷害1/4、hp地板=1不離線死）---------- */
 function settleOffline(s){
@@ -687,6 +727,8 @@ const Stroll = {
     $('strollOv').classList.add('show');
     this.itv = setInterval(()=>this.tick(), 100);
     this.spawnItv = setInterval(()=>this.spawn(), CFG.ECON.stroll.spawnMs);
+    if (!(dex.tips||{}).firstStroll){ dex.tips = dex.tips||{}; dex.tips.firstStroll = true; Save.writeDex(dex);
+      $('sLoot').textContent = '💡 看到金幣和食物，點下去就能撿！'; }
   },
   spawn(){
     if (paused || !this.active) return;
