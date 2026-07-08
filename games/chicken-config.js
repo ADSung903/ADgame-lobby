@@ -239,7 +239,9 @@ ECON: {
   pokeGold: { chance:0.2, amount:1 },       // 互動掉金幣
   stroll: { duration:45, joyGain:25, blockAt:95, spawnMs:1500,
             goldMin:1, goldMax:3, foodDropChance:0.35,
-            drops:['worm','candy','chili','josspaper','riceball'] },
+            drops:['worm','candy','chili','josspaper','riceball'],
+            satCost:18, minSat:30,   // 逛一趟耗18飽足；低於30太餓不能出門
+            streets:['stroll_street_1.png','stroll_street_2.png','stroll_street_3.png'] },
   offline: { satPerHour:10, joyPerHour:8, dmgStarvePerHour:2.5, dmgSadPerHour:1.5, capHours:48 }, // 離線天級節奏；hp地板=1不離線死
 },
 
