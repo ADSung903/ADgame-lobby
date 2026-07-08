@@ -99,20 +99,15 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 .dexCell .dh{ font-size:10px; opacity:.75; margin-top:2px; line-height:1.4; }
 .ovBtns{ display:flex; gap:10px; width:100%; max-width:340px; margin-top:6px; }
 input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px solid var(--ink); border-radius:8px; width:100%; max-width:260px; text-align:center; margin:12px 0; }
-#strollScene{ position:relative; width:100%; height:100%; overflow:hidden;
-  background:linear-gradient(#87ceeb 0 52%, #b8b8b8 52% 56%, #6e6e6e 56% 100%); }
-#sBldg{ position:absolute; left:0; right:0; top:10%; height:42%;
-  background:repeating-linear-gradient(90deg,#8a5a2b 0 70px,#a06a35 70px 150px,#6d4a24 150px 230px,#96613a 230px 300px);
-  animation:scrollBg 6s linear infinite; }
-#sBldg:after{ content:''; position:absolute; inset:0; opacity:.5;
-  background:repeating-linear-gradient(90deg,transparent 0 18px,#ffe9a0 18px 30px,transparent 30px 48px),
-             repeating-linear-gradient(0deg,transparent 0 22px,rgba(0,0,0,.25) 22px 34px);
-  animation:scrollBg 6s linear infinite; }
-@keyframes scrollBg{ from{ background-position-x:0;} to{ background-position-x:-300px;} }
-#sRoad{ position:absolute; left:0; right:0; top:56%; height:4px;
-  background:repeating-linear-gradient(90deg,#fff 0 26px,transparent 26px 60px); animation:scrollRoad 1.2s linear infinite; }
-@keyframes scrollRoad{ from{ background-position-x:0;} to{ background-position-x:-60px;} }
-#sChick{ position:absolute; left:16%; top:42%; width:92px; animation:idleBob .5s steps(2) infinite; }
+#strollScene{ position:relative; width:100%; height:100%; overflow:hidden; background:#87ceeb; }
+#sStreet{ position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:64%;
+  background-repeat:repeat-x; background-size:auto 100%; image-rendering:pixelated;
+  animation:scrollStreet 22s linear infinite; }
+@keyframes scrollStreet{ from{ background-position-x:0;} to{ background-position-x:-2000px;} }
+#sChick{ position:absolute; left:16%; top:52%; width:84px; animation:idleBob .5s steps(2) infinite; z-index:4; }
+#sHud{ position:absolute; top:36px; left:14px; right:14px; display:flex; gap:8px; align-items:center; z-index:6; }
+#sHud .bar{ background:rgba(0,0,0,.5); }
+#sGold{ font-size:12px; color:#fff; background:rgba(0,0,0,.5); border:2px solid var(--ink); border-radius:6px; padding:4px 8px; }
 .sitem{ position:absolute; top:58%; font-size:26px; cursor:pointer; z-index:5; }
 .sitem img{ width:34px; height:34px; object-fit:contain; }
 #sTimer{ position:absolute; top:14px; left:14px; right:110px; height:10px; background:rgba(0,0,0,.4);
@@ -148,8 +143,14 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
   <div id="tray"><div id="trayGrid"></div><button class="btn" id="trayClose">關閉</button></div>
 
   <div class="ov" id="strollOv" style="padding:0; background:#000;">
-    <div id="strollScene"><div id="sBldg"></div><div id="sRoad"></div>
-      <img id="sChick" class="px" alt=""><div id="sTimer"><div id="sTimerFl"></div></div><div id="sLoot"></div>
+    <div id="strollScene"><div id="sStreet"></div>
+      <img id="sChick" class="px" alt="">
+      <div id="sTimer"><div id="sTimerFl"></div></div>
+      <div id="sHud">
+        <div class="bar"><div class="lb">飽足</div><div class="tk"><div class="fl" id="sSatFl" style="background:#f59e0b"></div></div></div>
+        <div class="bar"><div class="lb">快樂</div><div class="tk"><div class="fl" id="sJoyFl" style="background:#ec4899"></div></div></div>
+        <div id="sGold">🪙0</div>
+      </div><div id="sLoot"></div>
       <button class="btn" id="sExit" style="position:absolute; top:12px; right:12px; flex:0; padding:8px 14px;">回家</button>
     </div></div>
   <div class="ov" id="eggOv"><h2>選一顆蛋</h2><div id="eggList"></div></div>
@@ -659,7 +660,10 @@ const Stroll = {
   start(){
     if (!st || st.stage==='egg' || st.stage==='dead') return;
     if (st.joy >= CFG.ECON.stroll.blockAt){ say({t:'現在超開心的，不想出門啦。',tier:'white'}); return; }
+    if (st.sat < CFG.ECON.stroll.minSat){ say({t:'肚子好餓…先吃點東西再出門。',tier:'white'}); return; }
     this.active = true; this.t = 0; this.loot = { gold:0, foods:{} };
+    $('sStreet').style.backgroundImage = 'url(' + A(rnd(CFG.ECON.stroll.streets)) + ')';
+    this.updateHud();
     const sp = spriteFor(); $('sChick').src = sp;
     const f = sp.slice(sp.lastIndexOf('/')+1);
     $('sChick').style.transform = CFG.FACING_RIGHT.includes(f) ? '' : 'scaleX(-1)';
@@ -680,7 +684,7 @@ const Stroll = {
       it.dataset.gold = String(S.goldMin + Math.floor(Math.random()*(S.goldMax - S.goldMin + 1)));
       it.textContent = '🪙';
     }
-    it.style.left = '105%'; it.style.top = (52 + Math.random()*18) + '%';
+    it.style.left = '105%'; it.style.top = (56 + Math.random()*14) + '%';
     it.addEventListener('click', ()=> this.collect(it), { once:true });
     $('strollScene').appendChild(it);
     const mv = setInterval(()=>{
@@ -700,16 +704,24 @@ const Stroll = {
     if (this.loot.gold) parts.push('🪙×' + this.loot.gold);
     for (const k in this.loot.foods) parts.push(CFG.FOODS[k].name + '×' + this.loot.foods[k]);
     $('sLoot').textContent = '撿到：' + (parts.join('　') || '—');
-    render();
+    this.updateHud(); render();
   },
   tick(){
     if (paused || !this.active) return;
     this.t += 0.1;
-    const D = CFG.ECON.stroll.duration;
-    $('sTimerFl').style.width = Math.max(0, 100 - this.t/D*100) + '%';
-    if (this.t >= D) this.end();
+    const S = CFG.ECON.stroll;
+    st.sat = Math.max(0, st.sat - S.satCost/(S.duration*10));
+    $('sTimerFl').style.width = Math.max(0, 100 - this.t/S.duration*100) + '%';
+    if (this.t % 1 < 0.11) this.updateHud();
+    if (st.sat <= 0){ this.end(true); return; }
+    if (this.t >= S.duration) this.end();
   },
-  end(){
+  updateHud(){
+    $('sSatFl').style.width = st.sat + '%';
+    $('sJoyFl').style.width = st.joy + '%';
+    $('sGold').textContent = '🪙' + (dex.gold||0);
+  },
+  end(starving){
     if (!this.active) return;
     this.active = false; clearInterval(this.itv); clearInterval(this.spawnItv);
     document.querySelectorAll('.sitem').forEach(e=>e.remove());
@@ -719,7 +731,7 @@ const Stroll = {
       Save.write(st);
     }
     Save.writeDex(dex); buildTray(); render();
-    say({t:'逛街好開心！', tier:'white'});
+    say(starving ? {t:'餓到走不動…先回家了。', tier:'white'} : {t:'逛街好開心！', tier:'white'});
   },
 };
 $('strollBtn').addEventListener('click', ()=>{ Snd.init(); Stroll.start(); });
