@@ -583,7 +583,8 @@ $('chicken').addEventListener('click', (e)=>{
     Snd.beep(180,.2,'sawtooth',.1); return;
   }
   st.joy = Math.min(CFG.LIFE.joyMax, st.joy + 1);
-  if (Math.random() < CFG.ECON.pokeGold.chance){
+  const gChance = CFG.ECON.pokeGold.chance * (st.joy >= CFG.ECON.pokeGold.happyBonusAt ? CFG.ECON.pokeGold.happyMult : 1);
+  if (Math.random() < gChance){
     dex.gold += CFG.ECON.pokeGold.amount; Save.writeDex(dex);
     particle('🪙', p.x - 18, p.y + 6);
   }
