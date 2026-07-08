@@ -126,6 +126,8 @@ ENDINGS: {
                  epitaph:'一生平凡，一生圓滿。', unlocks:'angel' },
   ascension:   { name:'昇華離家', tier:'gold',  sprite:'end_ascension.png',
                  epitaph:'牠回去了。牠說會記得你。', eggOnly:'angel' },
+  feathered:   { name:'羽化登仙', tier:'gold',  sprite:'end_ascension.png',
+                 epitaph:'不食五穀，吸風飲露。牠做到了，以雞之身。' },
 },
 
 // ---------- 時間與生命（活躍秒數；visibilitychange 暫停）----------
