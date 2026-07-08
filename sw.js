@@ -1,4 +1,4 @@
-const CACHE = 'adgame-v5';
+const CACHE = 'adgame-v6';
 
 // App shell + 所有遊戲 HTML（素材類走執行期快取，見下方 fetch）
 const ASSETS = [
@@ -11,6 +11,7 @@ const ASSETS = [
   '/games/q20.html', '/games/quiz.html', '/games/rainbow.html',
   '/games/river.html', '/games/shop.html', '/games/stock.html',
   '/games/suika.html', '/games/turtlesoup.html', '/games/witch.html',
+  '/games/chicken.html',
 ];
 
 // 安裝：逐一預快取，單一檔案失敗不會讓整個安裝失敗
@@ -39,7 +40,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
 
   // HTML 或 遊戲資料檔（assets/data/*.js）：網路優先，永遠拿最新版
-  if (req.headers.get('accept')?.includes('text/html') || req.url.includes('/assets/data/')) {
+  if (req.headers.get('accept')?.includes('text/html') || req.url.includes('/assets/data/') || /\/games\/[^/]+\.js(\?|$)/.test(req.url)) {
     e.respondWith(
       fetch(req)
         .then(res => {
