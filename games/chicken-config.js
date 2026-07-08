@@ -247,6 +247,21 @@ ECON: {
   offline: { satPerHour:10, joyPerHour:8, dmgStarvePerHour:2.5, dmgSadPerHour:1.5, capHours:48 }, // 離線天級節奏；hp地板=1不離線死
 },
 
+// ---------- 教學與提示 ----------
+TIPS: {
+  stage: {
+    chick: '🐣 孵化了！\n餵食會讓牠長大——但聽說，吃什麼樣的食物，會決定牠變成什麼樣的雞。\n注意「飽足」別見底，「快樂」低了就帶牠出門逛逛。',
+    teen:  '🐔 牠長大了一點！\n這個樣子…好像透露了牠正在往某個方向成長？\n距離真正的大變身還有一段時間，現在吃的每一口都算數。',
+    adult: '✨ 最終進化完成！\n這就是你養出來的雞。牠的樣子被記進圖鑑了。\n接下來好好陪牠到最後吧——結局也是收藏的一部分。',
+  },
+  once: {
+    firstFeed:  '每種食物的效果都不一樣。多觀察牠吃完後的反應和說的話，也許能找到線索…',
+    lowHealth:  '牠看起來不太舒服（掉羽毛、叫聲變弱）。想想最近的照顧方式：太餓？太撐？還是吃了太刺激的東西？',
+    preJudge:   '牠好像快要變化了！傳說變身前吃的東西影響特別大…',
+    firstStroll:'逛街會消耗飽足，但能撿金幣和食物，還會變開心。看到東西直接點！',
+  },
+},
+
 // ---------- 朝向表（原圖朝右的檔案；未列=朝左或正面）----------
 FACING_RIGHT: ['chick_idle.png','chick_pale.png','chick_eat.png','chick_sleep.png',
   'adult_muscle.png','adult_spicymonk.png','teen_hotblood.png'],
