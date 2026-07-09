@@ -49,13 +49,22 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 .tw-rainbow{ background:linear-gradient(90deg,#f00,#fa0,#0a0,#06f,#a0f); -webkit-background-clip:text; color:transparent; }
 
 /* ---------- 頂部狀態 ---------- */
-#hud{ position:absolute; top:0; left:0; right:0; padding:8px 10px calc(env(safe-area-inset-top) + 0px);
-  padding-top:calc(8px + env(safe-area-inset-top)); display:flex; gap:8px; align-items:center; z-index:10; }
-.bar{ flex:1; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:3px 6px; }
-.bar .lb{ font-size:10px; color:#fff; }
-.bar .tk{ height:8px; background:#3a3a3a; border-radius:3px; overflow:hidden; margin-top:2px; }
+#hud{ position:absolute; top:0; left:0; right:0;
+  padding:6px 8px; padding-top:calc(6px + env(safe-area-inset-top));
+  display:flex; flex-direction:column; gap:4px; z-index:10; }
+#hudRow1,#hudRow2{ display:flex; gap:6px; align-items:center; }
+#moodTag{ font-size:22px; line-height:1; flex-shrink:0; }
+.bar{ flex:1; background:rgba(0,0,0,.5); border:2px solid rgba(255,255,255,.3); border-radius:6px; padding:2px 5px; }
+.bar .lb{ font-size:9px; color:rgba(255,255,255,.8); }
+.bar .tk{ height:7px; background:#2a2a2a; border-radius:3px; overflow:hidden; margin-top:1px; }
 .bar .fl{ height:100%; transition:width .4s; }
 #satFl{ background:#f59e0b; } #joyFl{ background:#ec4899; }
+#staminaFl{ background:#60a5fa; } #cleanFl{ background:#86efac; }
+#hudRight{ display:flex; gap:5px; align-items:center; flex-shrink:0; }
+#goldTag,#ageTag{ font-size:11px; color:#fff; background:rgba(0,0,0,.5);
+  border:2px solid rgba(255,255,255,.3); border-radius:6px; padding:4px 7px; }
+#helpBtn{ font-size:11px; color:#fff; background:rgba(0,0,0,.5); border:2px solid rgba(255,255,255,.3);
+  border-radius:6px; padding:4px 7px; cursor:pointer; }
 #ageTag,#goldTag{ font-size:11px; color:#fff; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:5px 8px; }
 
 /* ---------- 底部操作 ---------- */
@@ -82,6 +91,10 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
   flex-direction:column; align-items:center; justify-content:center; padding:18px; text-align:center; color:var(--panel); overflow-y:auto; }
 .ov.show{ display:flex; }
 .ov h2{ margin-bottom:14px; font-size:20px; }
+.ov .btn{ max-width:280px; align-self:center; flex:none; }
+.ovBtns .btn{ max-width:160px; flex:1; }
+.ovBtns{ justify-content:center; }
+.ov .hp{ overflow-y:auto; max-height:55dvh; padding-right:4px; }
 .eggCard{ width:100%; max-width:340px; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.08);
   border:3px solid var(--panel); border-radius:10px; padding:10px; margin-bottom:10px; cursor:pointer; text-align:left; }
 .eggCard img{ width:52px; height:52px; object-fit:contain; }
@@ -129,15 +142,23 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
 <body>
 <div id="app">
   <div id="stage">
-    <img id="bgDay" class="px" alt=""><img id="bgNight" class="px" alt="">
+    <img id="bgMain" class="px" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .8s" alt="">
     <div id="skyLayer"><div id="meteor"></div></div>
     <div id="chicken"><img id="chickenImg" class="px" alt="雞"></div>
     <div id="zzz">Z z z</div>
     <div id="bubble"></div>
     <div id="hud">
-      <div class="bar"><div class="lb">飽足</div><div class="tk"><div class="fl" id="satFl"></div></div></div>
-      <div class="bar"><div class="lb">快樂</div><div class="tk"><div class="fl" id="joyFl"></div></div></div>
-      <div id="goldTag">🪙0</div><div id="ageTag">0分</div><div id="helpBtn">❓</div>
+      <div id="hudRow1">
+        <div id="moodTag">😄</div>
+        <div class="bar"><div class="lb">🍚 飽足</div><div class="tk"><div class="fl" id="satFl"></div></div></div>
+        <div class="bar"><div class="lb">⚡ 體力</div><div class="tk"><div class="fl" id="staminaFl"></div></div></div>
+        <div id="hudRight"><div id="goldTag">🪙0</div><div id="helpBtn">❓</div></div>
+      </div>
+      <div id="hudRow2">
+        <div class="bar"><div class="lb">💗 快樂</div><div class="tk"><div class="fl" id="joyFl"></div></div></div>
+        <div class="bar"><div class="lb">✨ 整潔</div><div class="tk"><div class="fl" id="cleanFl"></div></div></div>
+        <div id="ageTag">0分</div>
+      </div>
     </div>
     <div id="tipCard"><div id="tipTxt"></div><button class="btn" id="tipOk">知道了</button></div>
     <div id="flash"></div>
@@ -150,6 +171,14 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <button class="btn sm" id="homeBtn">🏠</button>
   </div>
   <div id="tray"><div id="trayGrid"></div><button class="btn" id="trayClose">關閉</button></div>
+  <div id="feedMenu" style="display:none;position:absolute;left:8%;right:8%;bottom:88px;
+    background:var(--panel);border:3px solid var(--ink);border-radius:12px;padding:14px;
+    flex-direction:column;gap:8px;z-index:25;text-align:center;">
+    <div id="feedMenuName" style="font-weight:bold;font-size:16px;margin-bottom:2px"></div>
+    <button class="btn" id="feedBtn1"></button>
+    <button class="btn" id="feedBtn2"></button>
+    <button class="btn" style="opacity:.7" id="feedCancel">取消</button>
+  </div>
 
   <div class="ov" id="strollOv" style="padding:0; background:#000;">
     <div id="strollScene"><div id="sStreet"></div>
@@ -362,6 +391,10 @@ function render(){
   $('joyFl').style.width = st.joy + '%';
   $('ageTag').textContent = Math.floor(st.t/60) + '分';
   $('goldTag').textContent = '🪙' + (dex.gold||0);
+  const mood = st.joy>=80?'😄':st.joy>=55?'🙂':st.joy>=35?'😐':st.joy>=15?'🙁':'😢';
+  $('moodTag').textContent = mood;
+  $('staminaFl').style.width = (st.stamina??100)+'%';
+  $('cleanFl').style.width = (st.clean??100)+'%';
   const c = $('chicken');
   c.classList.toggle('slowwalk', st.vec.F >= CFG.T.HIGH);
   c.classList.toggle('away', st.joy <= 20);
@@ -416,20 +449,29 @@ function wander(){
 }
 
 /* ---------- 天空 ---------- */
-function isNight(){ const h = new Date().getHours(); return h >= CFG.BG.nightFrom || h < CFG.BG.nightTo; }
+let _rainToday = false;
+function currentBg(){
+  if (_rainToday) return CFG.BG.rain.file;
+  const h = new Date().getHours();
+  for (const s of CFG.BG.slots)
+    if (s.from < s.to ? (h>=s.from&&h<s.to) : (h>=s.from||h<s.to)) return s.file;
+  return CFG.BG.slots[0].file;
+}
+function isNight(){ const h=new Date().getHours(); return h>=20||h<6; }
 function buildSky(){
+  $('bgMain').src = A(currentBg());
   const sky = $('skyLayer'); const stg = $('stage');
   // 窗戶區（背景圖比例定位）
   Object.assign(sky.style, { left:'50%', top:'10%', width:'42%', height:'50%' });
   sky.querySelectorAll('.cloud,.star').forEach(e=>e.remove());
   if (isNight()){
-    $('bgNight').style.opacity = 1; $('bgDay').style.opacity = 0;
+
     for (let i=0;i<14;i++){ const s=document.createElement('div'); s.className='star';
       s.style.left=Math.random()*95+'%'; s.style.top=Math.random()*80+'%';
       s.style.animationDuration=(1.5+Math.random()*2.5)+'s'; s.style.animationDelay=Math.random()*2+'s';
       sky.appendChild(s); }
   } else {
-    $('bgNight').style.opacity = 0; $('bgDay').style.opacity = 1;
+
     for (let i=0;i<3;i++){ const c=document.createElement('div'); c.className='cloud';
       c.style.width='18px'; c.style.height='7px'; c.style.top=(8+Math.random()*35)+'%';
       c.style.animationDuration=(26+Math.random()*30)+'s'; c.style.animationDelay=(-Math.random()*30)+'s';
@@ -645,34 +687,43 @@ function buildTray(){
     g.appendChild(d);
   }
 }
+let _feedTarget = null;
 function doFeed(id){
   if (!st || st.stage==='egg' || st.stage==='dead') return;
   if (st.sat >= CFG.LIFE.satietyMax){ say({t:'吃不下了啦。',tier:'white'}); $('tray').classList.remove('open'); return; }
-  if (id !== CFG.ECON.freeFood){
-    if (!dex.inv[id] || dex.inv[id] <= 0){
-      const price = CFG.ECON.prices[id] || 999;
-      if (dex.gold >= price){
-        dex.gold -= price; dex.inv[id] = (dex.inv[id]||0) + 1;
-        Save.writeDex(dex); buildTray(); render(); Snd.beep(700,.1);
-      } else { Snd.beep(200,.15,'sawtooth'); say({t:'金幣不夠…（要 '+price+' 🪙）',tier:'white'}); }
-      return; // 購買後停留在盤上，再點一次才餵
-    }
-    dex.inv[id]--; Save.writeDex(dex);
-  }
+  _feedTarget = id; showFeedMenu(id);
+}
+function showFeedMenu(id){
+  const fd = CFG.FOODS[id], free = id===CFG.ECON.freeFood;
+  const n = free ? -1 : (dex.inv[id]||0), price = CFG.ECON.prices[id]||0;
+  $('feedMenuName').textContent = fd.name;
+  const b1=$('feedBtn1'); b1.textContent = free?'🍴 餵食（無限）':n>0?`🍴 餵食（庫存 ${n}）`:'🍴 無庫存'; b1.disabled=!free&&n<=0;
+  const b2=$('feedBtn2'); b2.textContent = free?'—':`🛒 購買（${price}🪙）`; b2.disabled=free||dex.gold<price;
+  $('feedMenu').style.display='flex';
+}
+function execFeed(id){
+  $('feedMenu').style.display='none';
+  if (id!==CFG.ECON.freeFood){ dex.inv[id]--; Save.writeDex(dex); }
   $('tray').classList.remove('open');
   if (sleeping) wakeUp();
   const stuffed = Core.feed(st, id);
-  const c = $('chicken');
-  c.classList.add('eating'); Snd.eat();
-  const p = chickenXY();
-  particle(stuffed ? '💧' : '😋', p.x, p.y);
-  if (st.vec.H >= CFG.T.MID) setTimeout(()=>particle('🔥', p.x+14, p.y+8), 350);
+  const ck=$('chicken'); ck.classList.add('eating'); Snd.eat();
+  const p=chickenXY(); particle(stuffed?'💧':'😋',p.x,p.y);
+  if(st.vec.H>=CFG.T.MID) setTimeout(()=>particle('🔥',p.x+14,p.y+8),350);
   setTimeout(()=>{ c.classList.remove('eating'); render(); }, 900);
   Save.write(st); buildTray(); render();
   tipOnce('firstFeed');
 }
-$('feedBtn').addEventListener('click', ()=>{ Snd.init(); if (st && st.stage!=='egg') $('tray').classList.add('open'); });
+$('feedBtn').addEventListener('click', ()=>{ Snd.init(); if(st&&st.stage!=='egg') $('tray').classList.add('open'); });
 $('trayClose').addEventListener('click', ()=> $('tray').classList.remove('open'));
+$('feedBtn1').addEventListener('click', ()=>{ if(_feedTarget){execFeed(_feedTarget);_feedTarget=null;} });
+$('feedBtn2').addEventListener('click', ()=>{
+  if(!_feedTarget) return;
+  const price=CFG.ECON.prices[_feedTarget]||0;
+  if(dex.gold>=price){ dex.gold-=price; dex.inv[_feedTarget]=(dex.inv[_feedTarget]||0)+1;
+    Save.writeDex(dex); buildTray(); render(); showFeedMenu(_feedTarget); Snd.beep(700,.1); }
+});
+$('feedCancel').addEventListener('click', ()=>{ $('feedMenu').style.display='none'; _feedTarget=null; });
 
 /* ---------- 教學提示 ---------- */
 function showTip(txt){
@@ -811,7 +862,11 @@ window.addEventListener('pagehide', ()=>{ if(st && st.stage!=='dead') Save.write
 function boot(){
   if (dex.gold == null) dex.gold = 0;
   if (!dex.inv) dex.inv = Object.assign({}, CFG.ECON.startInv);
-  $('bgDay').src = A(CFG.BG.day); $('bgNight').src = A(CFG.BG.night);
+  if (!dex.rain) dex.rain = {};
+  _rainToday = (dex.rain.date===new Date().toDateString()) ? dex.rain.isRain
+    : (()=>{ const r=Math.random()<CFG.BG.rain.chance;
+        dex.rain={date:new Date().toDateString(),isRain:r}; Save.writeDex(dex); return r; })();
+
   $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
   buildTray(); buildSky();
   setInterval(buildSky, 60000); // 跨日夜界線自動切換
