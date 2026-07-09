@@ -27,7 +27,7 @@ T: { EXT: 36, HIGH: 20, LOW: 6, MID: 8 },
 FOODS: {
   cutlet:       { name:'雞排',     vec:[3,2,0,0,0], satiety:45, joy: 1, icon:'food_cutlet.png' },
   chili:        { name:'辣椒',     vec:[0,0,0,4,0], satiety: 8, joy:-1, icon:'food_chili.png' },
-  josspaper:    { name:'金元寶',     vec:[0,0,0,0,2], satiety: 0, joy: 0, icon:'food_josspaper.png' },
+  josspaper:    { name:'金紙',     vec:[0,0,0,0,2], satiety: 0, joy: 0, icon:'food_josspaper.png' },
   riceball:     { name:'飯糰',     vec:[1,0,1,0,0], satiety:40, joy: 0, icon:'food_riceball.png' },
   candy:        { name:'糖果',     vec:[0,0,3,0,0], satiety:18, joy: 2, icon:'food_candy.png' },
   worm:         { name:'蟲蟲',     vec:[0,3,0,0,0], satiety:25, joy: 1, icon:'food_worm.png' },
@@ -220,6 +220,10 @@ DIALOGUE: {
   preEvo: [ {t:'…身體好像有什麼要改變了。',tier:'purple'},{t:'心跳得好快…這是什麼感覺？',tier:'purple'},
     {t:'（全身微微發光）',tier:'purple'} ],
   event:  [ {t:'有人在看著我們。',tier:'gold'} ],
+  rain: [ {t:'下雨了，哪裡都不想去。',tier:'white'},
+          {t:'（聽著雨聲發呆）',tier:'white'},
+          {t:'雨天…好想吃點熱的。',tier:'white'},
+          {t:'滴答滴答…',tier:'white'} ],
 },
 // 向量→語料桶對映（引擎取最高軸；並列則混抽）
 BUCKET_MAP: { H:'hot', L:'spirit', F:'lazy', S:'lazy', P:'hero' },
@@ -238,7 +242,7 @@ ECON: {
   prices: { cutlet:12, chili:6, josspaper:8, candy:5, worm:5, protein:10, cake:12,
             sesamesoup:15, pickledchili:8, saltychicken:12, vegrice:10 },
   startInv: { worm:3, candy:2 },
-  pokeGold: { chance:0.2, amount:1, happyBonusAt:70, happyMult:2 }, // 快樂≥70掉幣率翻倍
+  pokeGold: { chance:0.08, amount:1, happyBonusAt:70, happyMult:2 }, // 快樂≥70掉幣率翻倍
   stroll: { duration:45, joyGain:25, blockAt:95, spawnMs:1500,
             goldMin:1, goldMax:3, foodDropChance:0.35,
             drops:['worm','candy','chili','josspaper','riceball'],
@@ -268,7 +272,14 @@ FACING_RIGHT: ['chick_idle.png','chick_pale.png','chick_eat.png','chick_sleep.pn
 
 // ---------- 資產路徑 ----------
 ASSET_BASE: 'sprites/chicken/',
-BG: { day:'bg_coop_day.png', night:'bg_coop_night.png', nightFrom:18, nightTo:6 },
+BG: {
+    slots:[
+      { file:'bg_day.png',    from:6,  to:17 },
+      { file:'bg_sunset.png', from:17, to:20 },
+      { file:'bg_night.png',  from:20, to:6  },
+    ],
+    rain: { file:'bg_rain.png', chance:0.3 },  // 每日30%下雨
+  },
 CHICK: { idle:'chick_idle.png', eat:'chick_eat.png', sleep:'chick_sleep.png', sick:'chick_pale.png' },
 
 // ---------- 存檔 ----------
