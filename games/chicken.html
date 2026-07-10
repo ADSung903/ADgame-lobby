@@ -106,7 +106,7 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 .glow{ text-shadow:0 0 12px currentColor; }
 #endOv img{ width:150px; margin:10px 0; }
 #endEpitaph{ font-size:14px; margin:10px 0 16px; line-height:1.7; opacity:.9; }
-#dexGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; max-width:380px; margin-bottom:12px; }
+#dexGrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; max-width:380px; margin-bottom:12px; overflow-y:auto; max-height:calc(100dvh - 200px); padding-right:2px; }
 .dexCell{ background:rgba(255,255,255,.07); border:2px solid var(--panel); border-radius:8px; padding:8px 4px; }
 .dexCell img{ width:56px; height:56px; object-fit:contain; }
 .dexCell .dn{ font-size:12px; font-weight:bold; margin-top:3px; }
@@ -572,7 +572,7 @@ function stopLoop(){ clearInterval(loopId); clearInterval(wanderId); }
 
 function handleEvent(ev){
   if (ev === 'hatch'){ st.stage='chick'; Save.write(st); showName(); }
-  else if (ev === 'judgeTeen'){ const r = Core.judgeTeen(st); Save.write(st); showEvo(r, '牠…長大了一點'); }
+  else if (ev === 'judgeTeen'){ const r = Core.judgeTeen(st); dex.teens=dex.teens||{}; dex.teens[r.id]=true; Save.writeDex(dex); Save.write(st); showEvo(r, '牠…長大了一點'); }
   else if (ev === 'judgeAdult'){ const r = Core.judgeAdult(st, dex);
     dex.forms[r.id] = true; Save.writeDex(dex); Save.write(st); showEvo(r, '進化的時刻到了！', true); }
   else if (ev === 'death'){ endGame(Core.deathEnding(st)); }
@@ -660,27 +660,36 @@ $('nameOk').addEventListener('click', ()=>{
 });
 
 /* ---------- 圖鑑 ---------- */
+function makeDexCell(sprite, name, tier, hint, seen){
+  const t = CFG.TIERS[tier]||{};
+  const d = document.createElement('div'); d.className = 'dexCell';
+  d.innerHTML = '<img class="px'+(seen?'':' sil')+'" src="'+A(sprite)+'">' +
+    '<div class="dn'+(seen?' tw-'+tier+(t.glow?' glow':''):'')+'">'+(seen?name:'？？？')+'</div>' +
+    '<div class="dh">'+(seen?(t.name||hint):(hint||'？？？'))+'</div>';
+  return d;
+}
 function showDex(){
   const g = $('dexGrid'); g.innerHTML = '';
-  const all = [...CFG.ADULT_RULES, CFG.MUTANT];
-  for (const r of all){
-    const seen = !!dex.forms[r.id];
-    const t = CFG.TIERS[r.tier];
-    const d = document.createElement('div'); d.className = 'dexCell';
-    d.innerHTML = '<img class="px'+(seen?'':' sil')+'" src="'+A(r.sprite)+'">' +
-      '<div class="dn'+(seen?' tw-'+r.tier+(t.glow?' glow':''):'')+'">'+(seen?r.name:'？？？')+'</div>' +
-      '<div class="dh">'+(seen ? CFG.TIERS[r.tier].name : (r.hint||''))+'</div>';
-    g.appendChild(d);
+  // 中雞區
+  const teenHdr = document.createElement('div');
+  teenHdr.style.cssText='grid-column:1/-1;font-size:11px;opacity:.7;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,.2);margin-top:4px';
+  teenHdr.textContent='▸ 成長型態'; g.appendChild(teenHdr);
+  for (const r of CFG.TEEN_RULES){
+    const seen = !!(dex.teens||{})[r.id];
+    g.appendChild(makeDexCell(r.sprite, r.name, r.tier||'white', '中雞', seen));
   }
-  for (const [k, E] of Object.entries(CFG.ENDINGS)){
-    const seen = !!dex.endings[k];
-    const t = CFG.TIERS[E.tier];
-    const d = document.createElement('div'); d.className = 'dexCell';
-    d.innerHTML = '<img class="px'+(seen?'':' sil')+'" src="'+A(E.sprite)+'">' +
-      '<div class="dn'+(seen?' tw-'+E.tier+(t.glow?' glow':''):'')+'">'+(seen?E.name:'？？？')+'</div>' +
-      '<div class="dh">'+(seen?'結局':'？？？')+'</div>';
-    g.appendChild(d);
-  }
+  // 成雞區
+  const adultHdr = document.createElement('div');
+  adultHdr.style.cssText='grid-column:1/-1;font-size:11px;opacity:.7;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,.2);margin-top:4px';
+  adultHdr.textContent='▸ 最終型態'; g.appendChild(adultHdr);
+  for (const r of [...CFG.ADULT_RULES, CFG.MUTANT])
+    g.appendChild(makeDexCell(r.sprite, r.name, r.tier, r.hint||'', !!dex.forms[r.id]));
+  // 結局區
+  const endHdr = document.createElement('div');
+  endHdr.style.cssText='grid-column:1/-1;font-size:11px;opacity:.7;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,.2);margin-top:4px';
+  endHdr.textContent='▸ 結局'; g.appendChild(endHdr);
+  for (const [k,E] of Object.entries(CFG.ENDINGS))
+    g.appendChild(makeDexCell(E.sprite, E.name, E.tier, '結局', !!dex.endings[k]));
   $('dexEggs').textContent = '蛋：' + Object.entries(CFG.EGGS).map(([id,e])=>(dex.eggs[id]?e.name:'？？？')).join('　');
   $('dexOv').classList.add('show');
 }
