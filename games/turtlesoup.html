@@ -215,11 +215,6 @@
     cursor: pointer;
   }
   .btn-reveal { background: var(--amber); color: #1a1408; }
-  .guess-opt { display:block; width:100%; text-align:left; margin:8px 0; padding:12px 14px;
-    border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.04);
-    color:var(--text); font-size:14px; line-height:1.55; cursor:pointer; }
-  .guess-opt:active { transform:scale(.985); }
-  .guess-opt:hover { background:rgba(255,255,255,.09); }
   .btn-restart { background: transparent; border: 1px solid var(--line); color: var(--text-dim); }
 
   .modal-overlay {
@@ -293,8 +288,7 @@
 
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <h2 id="modalTitle">🐢 湯底揭曉</h2>
-    <div id="guessOptions" style="display:none"></div>
+    <h2>🐢 湯底揭曉</h2>
     <p id="solutionText"></p>
     <button class="modal-close" id="modalClose">關閉</button>
   </div>
@@ -310,6 +304,12 @@
 <script src="assets/data/turtlesoup/punctual-headline.js"></script>
 <script src="assets/data/turtlesoup/silent-seismic-window.js"></script>
 <script src="assets/data/turtlesoup/midnight-entryway.js"></script>
+<script src="assets/data/turtlesoup/original-turtle-soup.js"></script>
+<script src="assets/data/turtlesoup/read-receipt-message.js"></script>
+<script src="assets/data/turtlesoup/tide-mismatch-photo.js"></script>
+<script src="assets/data/turtlesoup/smart-coffee-log.js"></script>
+<script src="assets/data/turtlesoup/atm-receipt-anomaly.js"></script>
+<script src="assets/data/turtlesoup/faded-photo-paper.js"></script>
 
 <script>
 /* =========================================================
@@ -372,14 +372,6 @@ function playSound(kind) {
 const bgmAudio = document.getElementById('bgmAudio');
 bgmAudio.volume = 0.35;
 let bgmStarted = false;
-const SHARED_BGM = 'assets/audio/turtlesoup/shared/ts5_bgm.mp3';
-// 某層級專屬音樂檔不存在（404）時，退回共用曲目，確保一開始就有音樂
-bgmAudio.addEventListener('error', () => {
-  if (!(bgmAudio.currentSrc || bgmAudio.src).endsWith('ts5_bgm.mp3')) {
-    bgmAudio.src = SHARED_BGM;
-    if (!muted) bgmAudio.play().catch(() => {});
-  }
-});
 
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
@@ -451,12 +443,10 @@ function runStory(story) {
   let currentBgmTier = 1;
 
   function bgmFileFor(tier) {
-    const base = story.bgmPath || '';
     const chosen = bgmChoice[tier];
-    if (chosen && base) return base + chosen;
+    if (chosen) return story.bgmPath + chosen;
     const opts = (story.bgmTiers && story.bgmTiers[tier]) || [];
-    if (opts.length && base) return base + opts[0];
-    return SHARED_BGM;   // 沒有專屬曲目就用共用曲，確保各層級都有音樂
+    return opts.length ? story.bgmPath + opts[0] : null;
   }
   function loadBgmTrack(tier) {
     currentBgmTier = tier;
@@ -502,7 +492,7 @@ function runStory(story) {
     <main id="questionList"></main>
     <footer>
       <button class="action btn-restart" id="restartBtn">重新開始</button>
-      <button class="action btn-reveal" id="revealBtn">🎯 猜劇情</button>
+      <button class="action btn-reveal" id="revealBtn">查看湯底</button>
     </footer>
   `;
 
@@ -588,8 +578,8 @@ function runStory(story) {
           autoRevealed = true;
           setTimeout(() => {
             playSound('complete');
-            pendingBanner = '🎯 線索已經足夠了！點下方「猜劇情」來破解真相吧。';
-            render();
+            document.getElementById('solutionText').textContent = story.solution;
+            document.getElementById('modalOverlay').classList.add('open');
           }, 550);
         }
       };
@@ -623,48 +613,10 @@ function runStory(story) {
       window.location.href = '/';
     }
   };
-  function _shufArr(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-  function openGuess(){
-    const pq = story.plotQuiz;
-    const box = document.getElementById('guessOptions');
-    const st = document.getElementById('solutionText');
-    if(!pq || !pq.correct){   // 沒有猜題資料 → 直接揭曉（相容舊故事）
-      document.getElementById('modalTitle').textContent = '🐢 湯底揭曉';
-      box.style.display='none'; st.style.display='block'; st.textContent = story.solution;
-      document.getElementById('modalClose').textContent = '關閉';
-      document.getElementById('modalOverlay').classList.add('open');
-      return;
-    }
-    const wrongs = _shufArr((pq.wrong||[]).slice()).slice(0,2);
-    const opts = _shufArr([{t:pq.correct,ok:true}, ...wrongs.map(w=>({t:w,ok:false}))]);
-    document.getElementById('modalTitle').textContent = '🎯 猜猜真相是…（猜錯就結束囉）';
-    st.style.display='none'; st.textContent='';
-    box.style.display='block'; box.innerHTML='';
-    opts.forEach(o => {
-      const b=document.createElement('button');
-      b.className='guess-opt'; b.textContent=o.t;
-      b.onclick=()=>resolveGuess(o.ok);
-      box.appendChild(b);
-    });
-    document.getElementById('modalClose').textContent = '取消';
+  document.getElementById('revealBtn').onclick = () => {
+    document.getElementById('solutionText').textContent = story.solution;
     document.getElementById('modalOverlay').classList.add('open');
-  }
-  function resolveGuess(ok){
-    const box=document.getElementById('guessOptions');
-    const st=document.getElementById('solutionText');
-    box.style.display='none'; box.innerHTML='';
-    st.style.display='block';
-    if(ok){
-      playSound('complete');
-      document.getElementById('modalTitle').textContent = '🎉 猜對了！湯底揭曉';
-      st.textContent = story.solution;
-    } else {
-      document.getElementById('modalTitle').textContent = '❌ 猜錯了，遊戲結束';
-      st.textContent = '正確的真相是：\n\n' + story.solution;
-    }
-    document.getElementById('modalClose').textContent = '關閉';
-  }
-  document.getElementById('revealBtn').onclick = openGuess;
+  };
   document.getElementById('restartBtn').onclick = () => {
     if (confirm('確定要重新開始嗎？所有已回答的問題將被清除。')) {
       answered = {};
@@ -692,11 +644,7 @@ function runStory(story) {
     if (!muted) playSound('yes');
   };
 
-  const _unlockBgm = () => {
-    if (bgmStarted || muted) { document.removeEventListener('pointerdown', _unlockBgm); return; }
-    bgmAudio.play().then(() => { bgmStarted = true; document.removeEventListener('pointerdown', _unlockBgm); }).catch(() => {});
-  };
-  document.addEventListener('pointerdown', _unlockBgm);
+  document.getElementById('questionList').addEventListener('click', startBgmIfNeeded, { once: true });
 
   loadProgress();
   // 全新一局（沒有任何已存進度）才重新擲骰選開場曲；延續進度中的局，沿用上次選的曲目
