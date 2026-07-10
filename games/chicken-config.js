@@ -248,7 +248,10 @@ ECON: {
             drops:['worm','candy','chili','josspaper','riceball'],
             satCost:18, minSat:30,   // 逛一趟耗18飽足；低於30太餓不能出門
             streets:['stroll_street_1.png','stroll_street_2.png','stroll_street_3.png'] },
-  offline: { satPerHour:10, joyPerHour:8, dmgStarvePerHour:2.5, dmgSadPerHour:1.5, capHours:48 }, // 離線天級節奏；hp地板=1不離線死
+  offline: { satPerHour:10, joyPerHour:8, dmgStarvePerHour:2.5, dmgSadPerHour:1.5, capHours:48 },
+  stamina: { max:100, costStroll:30, costGame:15, recoverPerMin:10,
+             satNeeded:30, satNeededRate:0.5, // 飽足<30睡眠回復減半
+             sleepSatDrain:0.5 },             // 睡覺中飽足半速消耗 // 離線天級節奏；hp地板=1不離線死
 },
 
 // ---------- 整潔系統 ----------
@@ -266,6 +269,25 @@ CLEAN: {
     { above:0,  mult:3.0 },
   ],
   cleanReward: 2,
+},
+
+// ---------- 小遊戲 ----------
+MINIGAMES: {
+  guessLR: {
+    id:'guessLR', name:'猜左右', icon:'🤜',
+    rounds:5, baseGold:3, winMult:2,
+    desc:'猜雞把金幣藏在哪邊！連贏倍增，連輸清空。',
+  },
+  shellGame: {
+    id:'shellGame', name:'猜小雞', icon:'🥚',
+    rounds:5, baseGold:2, speed:[900,700,500,400,300],
+    desc:'三顆蛋蓋著小雞，跟著洗牌找出牠！',
+  },
+  catchCoin: {
+    id:'catchCoin', name:'吃金幣', icon:'🪙',
+    duration:20, spawnMs:800, goldPerCoin:1, missLimit:5,
+    desc:'左右移動接住掉落的金幣，別讓它跑掉！',
+  },
 },
 
 // ---------- 教學與提示 ----------
