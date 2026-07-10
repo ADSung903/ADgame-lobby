@@ -129,6 +129,17 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
 #sTimerFl{ height:100%; background:#fbbf24; width:100%; }
 #sLoot{ position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); left:14px; color:#fff; font-size:13px;
   background:rgba(0,0,0,.45); padding:6px 10px; border-radius:8px; }
+.gameCard{ background:var(--panel2);border:3px solid var(--ink);border-radius:10px;padding:10px 4px;text-align:center;cursor:pointer; }
+.gameCard:active{ background:#d9c08c; }
+.gameCard .gi{ font-size:28px; } .gameCard .gn{ font-size:12px;font-weight:bold;margin-top:4px; }
+.gameCard .gd{ font-size:10px;opacity:.7;margin-top:2px;line-height:1.4; }
+.lrBtn{ flex:1;font-size:28px;padding:16px;max-width:140px; }
+.shellCup{ font-size:52px;cursor:pointer;transition:transform .15s;display:inline-block; }
+.shellCup:active{ transform:scale(.9); }
+#ccArena{ position:relative;width:100%;height:260px;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.15);border-radius:8px;overflow:hidden;margin:0 auto; }
+#ccChick{ position:absolute;bottom:8px;font-size:36px;transition:left .15s; }
+.ccCoin{ position:absolute;font-size:22px;animation:fall linear; }
+@keyframes fall{ from{top:-30px} to{top:290px} }
 #tipCard{ position:absolute; left:12px; right:12px; bottom:14px; background:var(--panel);
   border:3px solid var(--ink); border-radius:10px; padding:12px; font-size:13px; line-height:1.7;
   white-space:pre-line; z-index:22; display:none; }
@@ -171,6 +182,10 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <button class="btn sm" id="muteBtn">♪</button>
     <button class="btn sm" id="homeBtn">🏠</button>
   </div>
+  <div id="gameMenu" style="position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:4px solid var(--ink);padding:12px 12px calc(12px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .25s;z-index:20;">
+    <div id="gameMenuGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px;"></div>
+    <button class="btn" id="gameMenuClose">關閉</button>
+  </div>
   <div id="tray"><div id="trayGrid"></div><button class="btn" id="trayClose">關閉</button></div>
   <div id="feedMenu" style="display:none;position:absolute;left:8%;right:8%;bottom:88px;
     background:var(--panel);border:3px solid var(--ink);border-radius:12px;padding:14px;
@@ -182,6 +197,7 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
   </div>
 
   <div class="ov" id="strollOv" style="padding:0; background:#000;">
+<div id="sleepMask" style="display:none;position:absolute;inset:0;background:rgba(10,10,30,.55);align-items:center;justify-content:center;font-size:48px;z-index:8;flex-direction:column;gap:8px;"><span>💤</span><span style="font-size:14px;color:#aac">睡覺中…點擊叫醒</span></div>
     <div id="strollScene"><div id="sStreet"></div>
       <img id="sChick" class="px" alt="">
       <div id="sTimer"><div id="sTimerFl"></div></div>
@@ -201,6 +217,11 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
 📖 <b>圖鑑</b>：收集所有型態和結局。死亡不是終點，是收藏。<br>
 🌙 <b>作息</b>：現實深夜牠會睡覺，白天黑夜跟真實時間同步。</div>
 <button class="btn" id="helpClose" style="max-width:200px;margin-top:12px">返回</button></div>
+<div class="ov" id="mgOv">
+    <div id="mgHud" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:8px;font-size:14px;color:#fff;font-weight:bold;width:100%;"></div>
+    <div id="mgStage" style="position:relative;width:100%;flex:1;overflow:hidden;padding:8px;"></div>
+    <button class="btn" id="mgQuit" style="max-width:160px;margin:10px 0">離開遊戲</button>
+  </div>
   <div class="ov" id="eggOv"><h2>選一顆蛋</h2><div id="eggList"></div></div>
   <div class="ov" id="nameOv"><h2>孵化了！幫牠取個名字</h2>
     <input id="nameIn" maxlength="8" placeholder="小雞"><button class="btn" id="nameOk" style="max-width:200px">就叫這個</button></div>
@@ -905,7 +926,119 @@ const Stroll = {
 $('strollBtn').addEventListener('click', ()=>{ Snd.init(); Stroll.start(); });
 $('sExit').addEventListener('click', ()=> Stroll.end());
 
+/* ---------- 小遊戲 ---------- */
+function buildGameMenu(){
+  const g=$('gameMenuGrid'); g.innerHTML='';
+  for(const [id,mg] of Object.entries(CFG.MINIGAMES)){
+    const d=document.createElement('div'); d.className='gameCard';
+    d.innerHTML='<div class="gi">'+mg.icon+'</div><div class="gn">'+mg.name+'</div><div class="gd">'+mg.desc+'</div>';
+    d.addEventListener('click',()=>{ $('gameMenu').classList.remove('open'); startGame(id); });
+    g.appendChild(d);
+  }
+}
+function canPlayGame(){
+  if(!st||st.stage==='egg'||st.stage==='dead') return false;
+  if((st.stamina??100)<CFG.ECON.stamina.costGame){ say({t:'太累了…先睡一覺補體力。',tier:'white'}); return false; }
+  return true;
+}
+function endMinigame(goldEarned){
+  $('mgOv').classList.remove('show');
+  if(st&&st.stage!=='dead'){
+    st.stamina=Math.max(0,(st.stamina??100)-CFG.ECON.stamina.costGame);
+    st.joy=Math.min(CFG.LIFE.joyMax,st.joy+8);
+    if(goldEarned>0){ dex.gold+=goldEarned; Save.writeDex(dex); }
+    Save.write(st); render();
+  }
+  if(goldEarned>0){ const p=chickenXY(); particle('🪙x'+goldEarned,p.x-20,p.y-30); }
+  Bgm.start();
+}
+function startGuessLR(){
+  const mg=CFG.MINIGAMES.guessLR; let pot=mg.baseGold,streak=0;
+  function upHud(){ $('mgHud').innerHTML='💰底池 <b>'+pot+'</b>🪙　連勝 <b>'+streak+'</b>'; }
+  $('mgStage').innerHTML='<div style="text-align:center;padding:20px;color:#fff"><div style="font-size:40px;margin-bottom:12px" id="lrChick">🐔</div><div id="lrResult" style="font-size:16px;min-height:28px;margin-bottom:16px"></div><div style="display:flex;gap:16px;justify-content:center"><button class="btn lrBtn" id="lrL">👈 左</button><button class="btn lrBtn" id="lrR">右 👉</button></div><div style="font-size:11px;opacity:.5;margin-top:10px">猜對翻倍，猜錯歸零，逢128收割</div></div>';
+  upHud();
+  function guess(side){
+    const ans=Math.random()<.5?'L':'R',win=side===ans;
+    $('lrChick').textContent=ans==='L'?'🤜🐔':'🐔🤛';
+    if(win){ streak++;pot*=mg.winMult;$('lrResult').innerHTML='<span style="color:#4ade80">猜對！底池'+pot+'🪙</span>';upHud();
+      if(pot>=128) setTimeout(()=>endMinigame(pot),1000); }
+    else{ const won=streak>0?Math.floor(pot/mg.winMult):0;
+      $('lrResult').innerHTML='<span style="color:#f87171">猜錯，底池歸零。</span>';
+      streak=0;pot=mg.baseGold;upHud();if(won>0) setTimeout(()=>endMinigame(won),1000); }
+  }
+  $('lrL').addEventListener('click',()=>guess('L'));
+  $('lrR').addEventListener('click',()=>guess('R'));
+}
+function startShellGame(){
+  const mg=CFG.MINIGAMES.shellGame; let score=0,round=0;
+  function nextRound(){
+    if(round>=mg.rounds){ endMinigame(score*mg.baseGold); return; }
+    const pos=Math.floor(Math.random()*3);
+    $('mgHud').innerHTML='第'+(round+1)+'/'+mg.rounds+'關 💰'+(score*mg.baseGold)+'🪙';
+    $('mgStage').innerHTML='<div style="text-align:center;padding:20px;color:#fff"><div style="font-size:20px;margin-bottom:16px">小雞藏在哪顆蛋？</div><div id="shellRow" style="display:flex;justify-content:center;gap:24px">'+[0,1,2].map(i=>'<span class="shellCup" data-i="'+i+'">🥚</span>').join('')+'</div><div id="shellMsg" style="margin-top:14px;font-size:16px;min-height:24px"></div></div>';
+    setTimeout(()=>{
+      document.querySelectorAll('.shellCup').forEach(el=>{
+        el.addEventListener('click',function(){
+          document.querySelectorAll('.shellCup').forEach((e,j)=>{ if(j===pos) e.textContent='🐣'; });
+          if(+this.dataset.i===pos){ score++;$('shellMsg').innerHTML='<span style="color:#4ade80">找到了！</span>'; }
+          else $('shellMsg').innerHTML='<span style="color:#f87171">不在這裡…</span>';
+          document.querySelectorAll('.shellCup').forEach(e=>e.style.pointerEvents='none');
+          round++;setTimeout(nextRound,900);
+        },{once:true});
+      });
+    },mg.speed[Math.min(round,mg.speed.length-1)]);
+  }
+  nextRound();
+}
+function startCatchCoin(){
+  const mg=CFG.MINIGAMES.catchCoin; let gold=0,miss=0,done=false;
+  const W=Math.min(($('mgStage').clientWidth||300)-16,340);
+  $('mgHud').innerHTML='🪙<b id="ccG">0</b>　💔<b id="ccM">0</b>/'+mg.missLimit;
+  $('mgStage').innerHTML='<div style="padding:4px 0"><div id="ccArena" style="width:'+W+'px"><div id="ccChick" style="left:'+(W/2-18)+'px">🐔</div></div><div style="display:flex;justify-content:center;gap:16px;margin-top:8px"><button class="btn" id="ccL" style="max-width:110px;font-size:22px">👈</button><button class="btn" id="ccR" style="max-width:110px;font-size:22px">👉</button></div></div>';
+  const chick=$('ccChick'); let cx=W/2-18;
+  function mv(d){ cx=Math.max(0,Math.min(W-36,cx+d*52)); chick.style.left=cx+'px'; }
+  $('ccL').addEventListener('click',()=>mv(-1)); $('ccR').addEventListener('click',()=>mv(1));
+  let tx0=0;
+  $('ccArena').addEventListener('touchstart',e=>tx0=e.touches[0].clientX,{passive:true});
+  $('ccArena').addEventListener('touchmove',e=>{ const d=e.touches[0].clientX-tx0; if(Math.abs(d)>20){mv(d>0?1:-1);tx0=e.touches[0].clientX;} },{passive:true});
+  function spawn(){
+    if(done) return;
+    const coin=document.createElement('div'); coin.className='ccCoin'; coin.textContent='🪙';
+    const lx=Math.random()*(W-24); coin.style.left=lx+'px';
+    coin.style.animationDuration=(1.4+Math.random()*.8)+'s';
+    $('ccArena').appendChild(coin);
+    coin.addEventListener('animationend',()=>{
+      if(!coin.parentNode) return;
+      if(Math.abs(lx-cx)<44){ gold++;if($('ccG'))$('ccG').textContent=gold; }
+      else{ miss++;if($('ccM'))$('ccM').textContent=miss;
+        if(miss>=mg.missLimit&&!done){ done=true;clearInterval(si);clearTimeout(tt);endMinigame(gold); } }
+      coin.remove();
+    });
+  }
+  const si=setInterval(spawn,mg.spawnMs);
+  const tt=setTimeout(()=>{ done=true;clearInterval(si);endMinigame(gold); },mg.duration*1000);
+}
+function startGame(id){
+  if(!canPlayGame()) return;
+  if(sleeping) wakeUp();
+  $('mgOv').classList.add('show'); $('mgStage').innerHTML=''; $('mgHud').innerHTML='';
+  Bgm.stop();
+  if(id==='guessLR') startGuessLR();
+  else if(id==='shellGame') startShellGame();
+  else if(id==='catchCoin') startCatchCoin();
+}
+$('mgQuit').addEventListener('click',()=>endMinigame(0));
+
 /* ---------- 系統 ---------- */
+$('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg'){ buildGameMenu(); $('gameMenu').classList.add('open'); } });
+$('gameMenuClose').addEventListener('click',()=>$('gameMenu').classList.remove('open'));
+$('sleepBtn').addEventListener('click',()=>{
+  Snd.init(); if(!st||st.stage==='egg') return;
+  if(sleeping){ wakeUp(); return; }
+  sleeping=true; $('chicken').classList.add('sleeping'); $('zzz').style.display='block';
+  $('sleepMask').style.display='flex'; $('sleepBtn').textContent='☀️'; Snd.beep(300,.4,'sine',.04);
+});
+$('sleepMask').addEventListener('click',()=>wakeUp());
 $('muteBtn').addEventListener('click', ()=>{
   Snd.muted = !Snd.muted; localStorage.setItem('chicken_mute', Snd.muted?'1':'0');
   $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
