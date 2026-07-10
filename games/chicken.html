@@ -281,9 +281,10 @@ const Core = {
     const isSleeping = typeof sleeping !== 'undefined' && sleeping;
     const satRate = isSleeping ? SE.sleepSatDrain : 1;
     st.sat = Math.max(0, st.sat - L.satietyDrain * satRate);
-    if (isSleeping && st.t % 60 === 0){
+    if (isSleeping){
       const ok = st.sat >= SE.satNeeded;
-      st.stamina = Math.min(SE.max, (st.stamina??100) + SE.recoverPerMin * (ok ? 1 : SE.satNeededRate));
+      const rate = ok ? 1 : SE.satNeededRate;
+      st.stamina = Math.min(SE.max, (st.stamina??100) + (SE.recoverPerMin/60) * rate);
     }
     const C = CFG.CLEAN;
     const joyMult = (C.joyMulti.find(m=>st.clean > m.above)||{mult:3}).mult;
@@ -1033,13 +1034,14 @@ $('mgQuit').addEventListener('click',()=>endMinigame(0));
 /* ---------- 系統 ---------- */
 $('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg'){ buildGameMenu(); $('gameMenu').classList.add('open'); } });
 $('gameMenuClose').addEventListener('click',()=>$('gameMenu').classList.remove('open'));
-$('sleepBtn').addEventListener('click',()=>{
-  Snd.init(); if(!st||st.stage==='egg') return;
+$('sleepBtn').addEventListener('click',(e)=>{
+  e.stopPropagation(); Snd.init(); if(!st||st.stage==='egg') return;
   if(sleeping){ wakeUp(); return; }
   sleeping=true; $('chicken').classList.add('sleeping'); $('zzz').style.display='block';
   $('sleepMask').style.display='flex'; $('sleepBtn').textContent='☀️'; Snd.beep(300,.4,'sine',.04);
+  // 延遲 300ms 才掛叫醒 listener，防止點擊事件冒泡立刻觸發
+  setTimeout(()=> $('sleepMask').addEventListener('click', wakeUp, {once:true}), 300);
 });
-$('sleepMask').addEventListener('click',()=>wakeUp());
 $('muteBtn').addEventListener('click', ()=>{
   Snd.muted = !Snd.muted; localStorage.setItem('chicken_mute', Snd.muted?'1':'0');
   $('muteBtn').textContent = Snd.muted ? '✕' : '♪';
