@@ -226,9 +226,10 @@ const Core = {
     const v = CFG.applyEggInit(egg);
     return { ver:CFG.SAVE_VERSION, egg, name:'', stage:'egg', t:0,
       vec:{F:v.F,P:v.P,S:v.S,H:v.H,L:v.L},
-      sat:CFG.LIFE.satietyMax, joy:70, hp:CFG.LIFE.healthMax,
+      sat:CFG.LIFE.satietyMax, joy:70, hp:CFG.LIFE.healthMax, clean:100, stamina:100,
       dmg:{starved:0,overfed:0,burnt:0,heartbroken:0},
-      teen:null, adult:null, feeds:0, pokes:0, hatchBoost:0, lastFeedT:0 };
+      teen:null, adult:null, feeds:0, pokes:0, hatchBoost:0, lastFeedT:0,
+      poops:[], nextPoopAt:-1 };
   },
   maxAxis(st){ let m='F'; for(const a of CFG.AXES) if(st.vec[a]>st.vec[m]) m=a; return m; },
   feed(st, id){
@@ -240,6 +241,10 @@ const Core = {
     const f = CFG.applyEggFeed(st.egg, fd.vec);
     CFG.AXES.forEach((a,i)=>{ st.vec[a] = Math.max(0, st.vec[a] + f[i]); });
     st.feeds++; st.lastFeedT = st.t;
+    if (Math.random() < CFG.CLEAN.poopAfterFeed.chance && (!st.nextPoopAt||st.nextPoopAt<0)){
+      const p = CFG.CLEAN.poopAfterFeed;
+      st.nextPoopAt = st.t + p.delayMin + Math.floor(Math.random()*(p.delayMax-p.delayMin));
+    }
     return stuffed;
   },
   tick(st){ // 每秒；回傳事件字串或 null
@@ -250,7 +255,16 @@ const Core = {
     }
     const L = CFG.LIFE;
     st.sat = Math.max(0, st.sat - L.satietyDrain);
-    st.joy = Math.max(0, st.joy - L.joyDrain);
+    const C = CFG.CLEAN;
+    const joyMult = (C.joyMulti.find(m=>st.clean > m.above)||{mult:3}).mult;
+    st.joy = Math.max(0, st.joy - L.joyDrain * joyMult);
+    if (st.poops && st.poops.length > 0)
+      st.clean = Math.max(0, st.clean - C.drainPerPoop * st.poops.length);
+    if (st.nextPoopAt > 0 && st.t >= st.nextPoopAt){
+      st.poops = st.poops || [];
+      st.poops.push({ type: Math.random()<0.65?0:1, id: st.t });
+      st.nextPoopAt = -1;
+    }
     if (st.sat <= 0){ st.dmg.starved += L.dmgStarve; st.hp -= L.dmgStarve; }
     if (st.vec.H >= CFG.T.HIGH){ st.dmg.burnt += L.dmgSpicy; st.hp -= L.dmgSpicy; }
     if (st.joy <= 0){ st.dmg.heartbroken += L.dmgSad; st.hp -= L.dmgSad; }
@@ -382,6 +396,33 @@ function spriteFor(){
   const r = CFG.ADULT_RULES.find(r=>r.id===st.adult) || (st.adult===CFG.MUTANT.id ? CFG.MUTANT : null);
   return A(r ? r.sprite : 'adult_normal.png');
 }
+function syncPoops(){
+  const stage = $('stage');
+  stage.querySelectorAll('.poop').forEach(el=>{
+    if(!st.poops||!st.poops.find(p=>p.id===+el.dataset.pid)) el.remove();
+  });
+  for(const p of (st.poops||[])){
+    if(stage.querySelector('.poop[data-pid="'+p.id+'"]')) continue;
+    const el=document.createElement('div'); el.className='poop'; el.dataset.pid=p.id;
+    el.textContent=CFG.CLEAN.poopTypes[p.type].emoji;
+    el.style.left=(15+Math.random()*62)+'%'; el.style.bottom=(8+Math.random()*18)+'%';
+    el.addEventListener('click',()=>cleanPoop(p.id,el));
+    stage.appendChild(el);
+  }
+}
+function cleanPoop(id,el){
+  if(!st) return;
+  el.classList.add('cleaning'); Snd.beep(800,.08,'square',.05);
+  setTimeout(()=>el.remove(),260);
+  st.poops=st.poops.filter(p=>p.id!==id);
+  st.clean=Math.min(CFG.CLEAN.max,st.clean+8);
+  st.joy=Math.min(CFG.LIFE.joyMax,st.joy+CFG.CLEAN.cleanReward);
+  const sl=el.style.left, sb=el.style.bottom;
+  const px=parseFloat(sl)/100*($('stage').clientWidth||390);
+  const py=($('stage').clientHeight||700)*(1-parseFloat(sb)/100);
+  particle('✨',px,py-20); Snd.beep(1000,.1,'square',.05);
+  Save.write(st); render();
+}
 function render(){
   const sp = spriteFor();
   curSpriteFile = sp.slice(sp.lastIndexOf('/')+1);
@@ -395,6 +436,7 @@ function render(){
   $('moodTag').textContent = mood;
   $('staminaFl').style.width = (st.stamina??100)+'%';
   $('cleanFl').style.width = (st.clean??100)+'%';
+  if(st && st.stage!=='egg') syncPoops();
   const c = $('chicken');
   c.classList.toggle('slowwalk', st.vec.F >= CFG.T.HIGH);
   c.classList.toggle('away', st.joy <= 20);
@@ -754,6 +796,7 @@ function settleOffline(s){
   if (hrs > joyT) dmg += O.dmgSadPerHour   * (hrs - joyT);
   if (dmg > 0){ s.dmg.starved += dmg*0.8; s.dmg.heartbroken += dmg*0.2; }
   s.hp = Math.max(1, s.hp - dmg);
+  s.poops = []; s.nextPoopAt = -1;
   Save.write(s);
   if (s.hp <= 1.5) return {t:'你不在的時候…牠差點撐不下去了。', tier:'red'};
   if (s.sat <= 0)  return {t:'你回來了！牠已經餓了好一陣子。', tier:'white'};
