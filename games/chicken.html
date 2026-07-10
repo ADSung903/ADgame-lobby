@@ -152,7 +152,7 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
         <div id="moodTag">😄</div>
         <div class="bar"><div class="lb">🍚 飽足</div><div class="tk"><div class="fl" id="satFl"></div></div></div>
         <div class="bar"><div class="lb">⚡ 體力</div><div class="tk"><div class="fl" id="staminaFl"></div></div></div>
-        <div id="hudRight"><div id="goldTag">🪙0</div><div id="helpBtn">❓</div></div>
+        <div id="hudRight"><div id="goldTag">🪙0</div><div id="dexBtn" style="font-size:11px;color:#fff;background:rgba(0,0,0,.5);border:2px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 7px;cursor:pointer">📖</div><div id="helpBtn">❓</div></div>
       </div>
       <div id="hudRow2">
         <div class="bar"><div class="lb">💗 快樂</div><div class="tk"><div class="fl" id="joyFl"></div></div></div>
@@ -164,9 +164,10 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <div id="flash"></div>
   </div>
   <div id="dock">
-    <button class="btn" id="feedBtn">餵食</button>
-    <button class="btn" id="strollBtn">逛街</button>
-    <button class="btn" id="dexBtn">圖鑑</button>
+    <button class="btn" id="feedBtn">🍴 餵食</button>
+    <button class="btn" id="strollBtn">🏙 逛街</button>
+    <button class="btn" id="gameBtn">🎮 玩耍</button>
+    <button class="btn sm" id="sleepBtn">💤</button>
     <button class="btn sm" id="muteBtn">♪</button>
     <button class="btn sm" id="homeBtn">🏠</button>
   </div>
@@ -254,7 +255,14 @@ const Core = {
       return null;
     }
     const L = CFG.LIFE;
-    st.sat = Math.max(0, st.sat - L.satietyDrain);
+    const SE = CFG.ECON.stamina;
+    const isSleeping = typeof sleeping !== 'undefined' && sleeping;
+    const satRate = isSleeping ? SE.sleepSatDrain : 1;
+    st.sat = Math.max(0, st.sat - L.satietyDrain * satRate);
+    if (isSleeping && st.t % 60 === 0){
+      const ok = st.sat >= SE.satNeeded;
+      st.stamina = Math.min(SE.max, (st.stamina??100) + SE.recoverPerMin * (ok ? 1 : SE.satNeededRate));
+    }
     const C = CFG.CLEAN;
     const joyMult = (C.joyMulti.find(m=>st.clean > m.above)||{mult:3}).mult;
     st.joy = Math.max(0, st.joy - L.joyDrain * joyMult);
@@ -761,7 +769,7 @@ function execFeed(id){
   const ck=$('chicken'); ck.classList.add('eating'); Snd.eat();
   const p=chickenXY(); particle(stuffed?'💧':'😋',p.x,p.y);
   if(st.vec.H>=CFG.T.MID) setTimeout(()=>particle('🔥',p.x+14,p.y+8),350);
-  setTimeout(()=>{ c.classList.remove('eating'); render(); }, 900);
+  setTimeout(()=>{ ck.classList.remove('eating'); render(); }, 900);
   Save.write(st); buildTray(); render();
   tipOnce('firstFeed');
 }
