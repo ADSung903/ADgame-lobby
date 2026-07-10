@@ -251,6 +251,23 @@ ECON: {
   offline: { satPerHour:10, joyPerHour:8, dmgStarvePerHour:2.5, dmgSadPerHour:1.5, capHours:48 }, // 離線天級節奏；hp地板=1不離線死
 },
 
+// ---------- 整潔系統 ----------
+CLEAN: {
+  max: 100,
+  poopAfterFeed: { chance:0.6, delayMin:60, delayMax:180 },
+  poopTypes: [
+    { emoji:'💩', drain:0.8, label:'大便' },
+    { emoji:'💧', drain:0.4, label:'尿尿' },
+  ],
+  drainPerPoop: 0.06,
+  joyMulti: [
+    { above:60, mult:1.0 },
+    { above:30, mult:1.8 },
+    { above:0,  mult:3.0 },
+  ],
+  cleanReward: 2,
+},
+
 // ---------- 教學與提示 ----------
 TIPS: {
   stage: {
