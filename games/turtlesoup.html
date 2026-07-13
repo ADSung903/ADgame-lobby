@@ -259,6 +259,43 @@
     border-radius: 8px;
   }
 
+  /* 猜湯底 */
+  .guess-intro {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+  .guess-option {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    font-size: 13.5px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .guess-option:active { transform: scale(0.99); }
+  .guess-option.eliminated {
+    opacity: 0.4;
+    cursor: default;
+    border-color: var(--red);
+    text-decoration: line-through;
+  }
+  .guess-option.correct-flash {
+    border-color: var(--green);
+    background: rgba(91,138,107,0.12);
+  }
+  .guess-feedback {
+    text-align: center;
+    font-size: 13px;
+    color: var(--amber);
+    min-height: 20px;
+    margin-top: 6px;
+  }
+
   /* 選湯底列表（多故事時顯示） */
   .lobby-list { padding: 20px; }
   .lobby-item {
@@ -291,6 +328,16 @@
     <h2>🐢 湯底揭曉</h2>
     <p id="solutionText"></p>
     <button class="modal-close" id="modalClose">關閉</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="guessOverlay">
+  <div class="modal">
+    <h2>🐢 真相只有一個</h2>
+    <div class="guess-intro">根據你問到的線索，猜猜看真正的湯底是哪一個——選錯了也沒關係，淘汰法本身就是推理的一部分。</div>
+    <div id="guessOptionsList"></div>
+    <div class="guess-feedback" id="guessFeedback"></div>
+    <button class="modal-close" id="guessSkip">直接看湯底</button>
   </div>
 </div>
 
@@ -578,8 +625,7 @@ function runStory(story) {
           autoRevealed = true;
           setTimeout(() => {
             playSound('complete');
-            document.getElementById('solutionText').textContent = story.solution;
-            document.getElementById('modalOverlay').classList.add('open');
+            openGuessOrSolution();
           }, 550);
         }
       };
@@ -604,6 +650,62 @@ function runStory(story) {
     }
   }
 
+  const GUESSED_KEY = `turtlesoup_${story.id}_guessed`;
+  let guessedCorrect = false;
+  try { guessedCorrect = localStorage.getItem(GUESSED_KEY) === '1'; } catch(e) {}
+
+  function showSolution() {
+    document.getElementById('solutionText').textContent = story.solution;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function openGuessOrSolution() {
+    const opts = story.guessOptions;
+    if (guessedCorrect || !opts || opts.length < 3) {
+      showSolution();
+      return;
+    }
+    renderGuessOptions();
+    document.getElementById('guessOverlay').classList.add('open');
+  }
+
+  function renderGuessOptions() {
+    const shuffled = story.guessOptions.slice().sort(() => Math.random() - 0.5);
+    const list = document.getElementById('guessOptionsList');
+    const feedback = document.getElementById('guessFeedback');
+    feedback.textContent = '';
+    list.innerHTML = '';
+    shuffled.forEach(opt => {
+      const card = document.createElement('div');
+      card.className = 'guess-option';
+      card.textContent = opt.text;
+      card.onclick = () => {
+        if (card.classList.contains('eliminated')) return;
+        if (opt.correct) {
+          card.classList.add('correct-flash');
+          feedback.textContent = '就是這個！正在展開完整真相…';
+          playSound('complete');
+          guessedCorrect = true;
+          try { localStorage.setItem(GUESSED_KEY, '1'); } catch(e) {}
+          setTimeout(() => {
+            document.getElementById('guessOverlay').classList.remove('open');
+            showSolution();
+          }, 900);
+        } else {
+          card.classList.add('eliminated');
+          feedback.textContent = '不是這個方向，再想想其他線索…';
+          playSound('no');
+        }
+      };
+      list.appendChild(card);
+    });
+  }
+
+  document.getElementById('guessSkip').onclick = () => {
+    document.getElementById('guessOverlay').classList.remove('open');
+    showSolution();
+  };
+
   document.getElementById('backBtn').onclick = () => {
     bgmAudio.pause();
     bgmStarted = false;
@@ -614,8 +716,7 @@ function runStory(story) {
     }
   };
   document.getElementById('revealBtn').onclick = () => {
-    document.getElementById('solutionText').textContent = story.solution;
-    document.getElementById('modalOverlay').classList.add('open');
+    openGuessOrSolution();
   };
   document.getElementById('restartBtn').onclick = () => {
     if (confirm('確定要重新開始嗎？所有已回答的問題將被清除。')) {
