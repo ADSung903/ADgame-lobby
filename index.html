@@ -49,6 +49,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
 .game-card.played{border-color:#2a2a4a}
 .game-card.played:hover{border-color:#7c3aed}
 .gc-badge{position:absolute;top:8px;right:8px;font-size:10px;padding:2px 7px;border-radius:10px;background:#1a1a3a;color:#7788aa;border:0.5px solid #2a2a4a}
+.gc-age{display:inline-block;font-size:10px;color:#86efac;border:0.5px solid #28513b;background:#0a1a0f;border-radius:8px;padding:2px 6px;margin-top:.3rem}
 .gc-icon{font-size:32px;margin-bottom:.4rem}
 .gc-name{font-size:14px;font-weight:600;margin-bottom:.2rem}
 .gc-desc{font-size:11px;color:#6677aa;line-height:1.45;margin-bottom:.35rem}
@@ -150,6 +151,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
       <h1>🎮 <span class="neon">歡樂遊戲大廳</span></h1>
       <p>選一個遊戲開始玩吧！</p>
       <span class="free-badge">✅ 完全免費 · 永久無廣告 · 無訂閱</span>
+      <div id="safety-status" style="font-size:11px;color:#86efac;margin-top:.55rem"></div>
     </div>
     <div class="player-bar">
       <label>👤</label>
@@ -163,6 +165,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
       <button class="btn" id="changelog-btn">📋 開發日誌</button>
       <button class="btn" id="clear-btn">🗑️ 清除記錄</button>
       <button class="btn" id="backup-btn">💾 備份/還原</button>
+      <button class="btn" id="safety-btn">🛡️ 遊戲分級</button>
     </div>
   </div>
 </div>
@@ -422,6 +425,10 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
   </div>
 </div>
 
+<div class="wm-overlay" id="safety-modal">
+  <div class="wm-card"><div style="font-size:40px">🛡️</div><h2>遊戲分級設定</h2><p>兒童模式只顯示「適合所有年齡」的遊戲，成績只儲存在這台裝置，不會上傳線上排行榜。</p><button class="wm-start" id="safety-child-btn">👶 使用兒童模式</button><br><button class="btn" id="safety-full-btn" style="margin-top:.6rem">👨‍👩‍👧 顯示完整遊戲庫</button><br><button class="wm-skip" id="safety-close">關閉</button></div>
+</div>
+
 <div class="wm-overlay" id="backup-modal">
   <div class="wm-card" style="max-width:400px">
     <div style="font-size:40px">💾</div>
@@ -485,6 +492,11 @@ const GAMES = [
 // ── localStorage ───────────────────────────────────────────
 const LS_LOBBY   = 'game_lobby_v2';
 const LS_PENDING = 'game_pending_score';
+const LS_SAFE_MODE = 'adgame_safe_mode';
+const MATURE_GAME_IDS = new Set(['dungeon','stock','sim','witch','turtlesoup','mbti','iq']);
+function isChildMode(){ try{return localStorage.getItem(LS_SAFE_MODE)!=='full';}catch{return true;} }
+function gameSafety(g){ return MATURE_GAME_IDS.has(g.id)?'12+':['shop','fishing_rod','chicken'].includes(g.id)?'9+':'所有年齡'; }
+function visibleGames(){ return GAMES.filter(g=>!isChildMode()||gameSafety(g)==='所有年齡'); }
 function loadLocal(){ try{ return JSON.parse(localStorage.getItem(LS_LOBBY))||{name:'',scores:{}}; }catch{ return{name:'',scores:{}}; } }
 function saveLocal(){ localStorage.setItem(LS_LOBBY, JSON.stringify(DB)); }
 
@@ -640,7 +652,7 @@ function buildLobby(){
   const container = document.getElementById('game-sections');
   container.innerHTML = '';
   CAT_META.forEach(cat => {
-    const games = GAMES.filter(g => g.category === cat.key);
+    const games = visibleGames().filter(g => g.category === cat.key);
     if(!games.length) return;
     const sec = document.createElement('div');
     const gridId = 'cat-grid-' + cat.key;
@@ -649,6 +661,7 @@ function buildLobby(){
     renderGrid(gridId, games, cat.key === 'self');
   });
   document.getElementById('total-pts').textContent = Math.round(getTotalPtsLocal(DB.name));
+  document.getElementById('safety-status').textContent=isChildMode()?'🛡️ 兒童模式：所有年齡內容・成績僅存本機':'👨‍👩‍👧 完整遊戲庫：請留意年齡建議';
 }
 
 function renderGrid(gridId, games, isSelf=false){
@@ -675,6 +688,7 @@ function renderGrid(gridId, games, isSelf=false){
       <div class="gc-icon">${g.icon}</div>
       <div class="gc-name">${g.name}</div>
       <div class="gc-desc">${g.desc}</div>
+      <div class="gc-age">🛡️ ${gameSafety(g)}</div>
       ${bottomHtml}`;
     grid.appendChild(a);
   });
@@ -691,6 +705,7 @@ document.getElementById('lb-online-btn').addEventListener('click', ()=>setLBMode
 document.getElementById('lb-local-btn').addEventListener('click',  ()=>setLBMode('local'));
 
 function setLBMode(m){
+  if(isChildMode() && m==='online'){ toast('🛡️ 兒童模式只使用本機記錄'); m='local'; }
   lbMode = m;
   document.getElementById('lb-online-btn').classList.toggle('active', m==='online');
   document.getElementById('lb-local-btn').classList.toggle('active',  m==='local');
@@ -698,6 +713,7 @@ function setLBMode(m){
 }
 
 function openLB(tabId){
+  if(isChildMode()) lbMode='local';
   lbTab = tabId||'all';
   buildLBTabs();
   renderLB();
@@ -707,7 +723,7 @@ function openLB(tabId){
 function buildLBTabs(){
   const row = document.getElementById('lb-tabs');
   row.innerHTML = '';
-  [{id:'all',label:'🏆 總榜'}, ...GAMES.filter(g=>g.category!=='self').map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
+  [{id:'all',label:'🏆 總榜'}, ...visibleGames().filter(g=>g.category!=='self').map(g=>({id:g.id,label:g.icon+' '+g.name}))].forEach(t=>{
     const b = document.createElement('button');
     b.className = 'tab' + (t.id===lbTab?' active':'');
     b.textContent = t.label;
@@ -862,6 +878,10 @@ window.skipWelcome = window.skipWelcome || function(){};
 
 // ── 事件 ──────────────────────────────────────────────────
 document.getElementById('lb-btn').addEventListener('click', ()=>openLB('all'));
+document.getElementById('safety-btn').addEventListener('click', ()=>document.getElementById('safety-modal').classList.add('show'));
+document.getElementById('safety-close').addEventListener('click', ()=>document.getElementById('safety-modal').classList.remove('show'));
+document.getElementById('safety-child-btn').addEventListener('click', ()=>{localStorage.removeItem(LS_SAFE_MODE);document.getElementById('safety-modal').classList.remove('show');buildLobby();});
+document.getElementById('safety-full-btn').addEventListener('click', ()=>{localStorage.setItem(LS_SAFE_MODE,'full');document.getElementById('safety-modal').classList.remove('show');buildLobby();});
 document.getElementById('lb-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
 document.getElementById('changelog-btn').addEventListener('click', ()=>showScreen('screen-changelog'));
 document.getElementById('changelog-back-btn').addEventListener('click', ()=>{ showScreen('screen-lobby'); buildLobby(); });
