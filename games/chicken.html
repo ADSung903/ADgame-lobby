@@ -431,15 +431,32 @@ let st = null, dex = Save.dex(), loopId = null, paused = false;
 let wanderId = null, bubbleId = null, sleeping = false, dirRight = false;
 
 let curSpriteFile = '';
+// Visually audited source directions. Front-view poses do not mirror.
+const SPRITE_FACING = {
+  'chick_idle.png':'right', 'adult_normal.png':'right',
+  'teen_hotblood.png':'left', 'teen_plain.png':'front', 'adult_muscle.png':'front'
+};
+let movementUntil = 0;
 function applyFacing(){
-  const baseR = CFG.FACING_RIGHT.includes(curSpriteFile);
+  const facing = SPRITE_FACING[curSpriteFile] || (CFG.FACING_RIGHT.includes(curSpriteFile) ? 'right' : 'left');
   let wantRight = dirRight;
-  // 鬧脾氣：背對玩家＝面向離畫面中心較遠的一側
-  if ($('chicken').classList.contains('away')){
+  // Mood may change the idle pose, but must never reverse walking direction.
+  if (Date.now() >= movementUntil && $('chicken').classList.contains('away')){
     const c = $('chicken'), w = $('stage').clientWidth;
     wantRight = (c.offsetLeft + c.offsetWidth/2) > w/2;
   }
-  $('chicken').classList.toggle('flip', wantRight !== baseR);
+  $('chicken').classList.toggle('flip', facing !== 'front' && wantRight !== (facing === 'right'));
+}
+function movePetTo(target){
+  const c = $('chicken'), w = $('stage').clientWidth;
+  const desired = typeof target === 'string' && target.endsWith('%') ? parseFloat(target)/100*w : Number(target);
+  if (!Number.isFinite(desired)) return;
+  const nx = Math.max(0, Math.min(Math.max(0,w-c.offsetWidth), desired));
+  if (Math.abs(nx-c.offsetLeft) < 1) return;
+  dirRight = nx > c.offsetLeft;
+  movementUntil = Date.now() + (c.classList.contains('slowwalk') ? 6100 : 2600);
+  applyFacing();
+  c.style.left = nx + 'px';
 }
 function spriteFor(){
   if (st.stage==='egg'){ const e = CFG.EGGS[st.egg]; return A((st.t+st.hatchBoost > CFG.TIMING.eggHatch*0.7) ? e.sprite.crack : e.sprite.idle); }
@@ -565,10 +582,7 @@ function wander(){
   if (!st || st.stage==='egg' || sleeping || paused) return;
   const c = $('chicken'), w = $('stage').clientWidth;
   const nx = 8 + Math.random() * (w - 130);
-  const cur = c.offsetLeft;
-  dirRight = nx > cur;
-  applyFacing();
-  c.style.left = nx + 'px';
+  movePetTo(nx);
 }
 
 /* ---------- 天空 ---------- */
@@ -902,7 +916,8 @@ const Stroll = {
     this.updateHud();
     const sp = spriteFor(); $('sChick').src = sp;
     const f = sp.slice(sp.lastIndexOf('/')+1);
-    $('sChick').style.transform = CFG.FACING_RIGHT.includes(f) ? '' : 'scaleX(-1)';
+    const facing = SPRITE_FACING[f] || (CFG.FACING_RIGHT.includes(f) ? 'right' : 'left');
+    $('sChick').style.transform = facing === 'left' ? 'scaleX(-1)' : '';
     $('sLoot').textContent = '撿到：—';
     document.querySelectorAll('.sitem').forEach(e=>e.remove());
     $('strollOv').classList.add('show');
@@ -1089,7 +1104,7 @@ document.addEventListener('keydown',e=>{if(Adventure.active&&['ArrowLeft','Arrow
 function room(){
  let toy=$('roomToy');if(!toy){toy=document.createElement('button');toy.id='roomToy';$('stage').append(toy);}
  toy.hidden=Adventure.total()<3;toy.textContent=Adventure.total()>=6?'🌷':'⚽';toy.setAttribute('aria-label','和寵物玩房間玩具');
- toy.onclick=()=>{if(!st||sleeping||st.stage==='egg')return;st.joy=Math.min(100,st.joy+3);$('chicken').style.left='65%';say({t:'新玩具！一起來玩～'});toy.animate([{transform:'translateY(0)'},{transform:'translateY(-35px)'},{transform:'translateY(0)'}],{duration:600});recordCare('pet');Save.write(st);render();};
+ toy.onclick=()=>{if(!st||sleeping||st.stage==='egg')return;st.joy=Math.min(100,st.joy+3);movePetTo('65%');say({t:'新玩具！一起來玩～'});toy.animate([{transform:'translateY(0)'},{transform:'translateY(-35px)'},{transform:'translateY(0)'}],{duration:600});recordCare('pet');Save.write(st);render();};
 }
 // Keep care meaningful between visits without the original seven-minute hunger cliff.
 CFG.LIFE.satietyDrain=10/3600;CFG.LIFE.joyDrain=8/3600;
@@ -1097,7 +1112,7 @@ CFG.TIPS.stage.adult='已長成！帶牠挑戰冒險地圖，收集星星與房�
 const originalRender=render;
 render=function(){originalRender();const next=st.stage==='chick'?CFG.TIMING.judgeTeen:CFG.TIMING.judgeAdult;
  $('petGoal').textContent=st.stage==='egg'?'輕點蛋幫助孵化。':sleeping?'正在休息恢復體力，按 ☀️ 叫醒。':st.sat<30?'牠走到食物旁：先吃一餐再冒險吧。':st.clean<50?'房間需要整理，點地上的髒污或 🫶 清潔。':st.stamina<15?'打哈欠了，睡一覺再探險。':'🌟 冒險收星 → 解鎖房間玩具'+(st.stage==='adult'?' · 已成年':' · 成長 '+Math.min(100,Math.floor(st.t/next*100))+'%');};
-setInterval(()=>{if(!st||paused||sleeping||st.stage==='egg'||st.stage==='dead')return;if(st.sat<30){$('chicken').style.left='12%';say({t:'我準備好吃飯了。'});}else if(st.stamina<25)say({t:'眼皮有點重，想睡一下。'});else if(Adventure.total()>=3){room();$('chicken').style.left='65%';say({t:'想玩玩具，也想出去探險！'});}},18000);
+setInterval(()=>{if(!st||paused||sleeping||st.stage==='egg'||st.stage==='dead')return;if(st.sat<30){movePetTo('12%');say({t:'我準備好吃飯了。'});}else if(st.stamina<25)say({t:'眼皮有點重，想睡一下。'});else if(Adventure.total()>=3){room();movePetTo('65%');say({t:'想玩玩具，也想出去探險！'});}},18000);
 
 try { boot(); room(); } catch(err){
   const d = document.createElement('div');
