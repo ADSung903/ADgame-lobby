@@ -73,7 +73,7 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 #careTag{color:#fde68a}
 
 /* ---------- 底部操作 ---------- */
-#dock{ display:flex; gap:8px; padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:var(--wood);
+#dock{ display:grid;grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:var(--wood);
   border-top:4px solid var(--ink); z-index:10; }
 .btn{ flex:1; background:var(--panel); border:3px solid var(--ink); border-radius:8px; padding:12px 4px;
   font-family:inherit; font-size:15px; font-weight:bold; color:var(--ink); cursor:pointer; }
@@ -154,6 +154,18 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
   border-radius:6px; padding:5px 9px; cursor:pointer; }
 #helpOv .hp{ text-align:left; max-width:340px; font-size:13px; line-height:1.9; }
 #flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:29; }
+
+#petGoal{background:#f5e6c8;padding:8px 12px;font-size:12px;line-height:1.5;min-height:42px;border-top:3px solid #3a2a1a}
+#stage{min-height:180px} #dock{gap:5px;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}.btn{padding:9px 4px;font-size:13px}
+.poop{position:absolute;font-size:26px;z-index:6;cursor:pointer}.cleaning{opacity:0;transition:opacity .2s}
+#careMenu{bottom:140px!important}#careMenu .btn{padding:8px}
+#bubble{pointer-events:none}#sleepMask{pointer-events:auto}
+#mgStage{display:flex;flex-direction:column;min-height:0;width:100%;overflow-y:auto!important}.trail{flex:1;height:auto;min-height:220px;max-height:430px;position:relative;overflow:hidden;border-radius:18px;background:repeating-linear-gradient(90deg,#224d43 0%,#224d43 32%,#366451 32%,#366451 33.33%);border:2px solid #a5d8ac;touch-action:none}
+.runner{position:absolute;width:64px;height:64px;bottom:4%;transform:translateX(-50%);transition:left .1s;object-fit:contain;z-index:2}.drop{position:absolute;font-size:30px;transform:translate(-50%,-50%)}
+.trail-controls{display:flex;gap:12px;margin-top:10px}.trail-controls button{font-size:24px;flex:1!important;max-width:none!important;min-height:48px}
+.map-card{width:100%;padding:14px;margin:6px 0;background:#f5e6c8;border:3px solid #a47848;border-radius:12px;color:#38281c;font:inherit;cursor:pointer}.map-card:disabled{opacity:.5;cursor:default}
+#roomToy{position:absolute;bottom:8%;right:10%;font-size:40px;z-index:4;background:none;border:0;cursor:pointer}
+@media(prefers-reduced-motion:reduce){#chickenImg{animation:none!important}}
 </style>
 </head>
 <body>
@@ -180,10 +192,11 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <div id="tipCard"><div id="tipTxt"></div><button class="btn" id="tipOk">知道了</button></div>
     <div id="flash"></div>
   </div>
+  <div id="petGoal" role="status"></div>
   <div id="dock">
     <button class="btn" id="feedBtn">🍴 餵食</button>
     <button class="btn" id="strollBtn">🏙 逛街</button>
-    <button class="btn" id="gameBtn">🎮 玩耍</button>
+    <button class="btn" id="gameBtn">🌟 冒險</button>
     <button class="btn sm" id="careBtn">🫶</button>
     <button class="btn sm" id="sleepBtn">💤</button>
     <button class="btn sm" id="muteBtn">♪</button>
@@ -207,8 +220,8 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <button class="btn" style="opacity:.7" id="feedCancel">取消</button>
   </div>
 
-  <div class="ov" id="strollOv" style="padding:0; background:#000;">
 <div id="sleepMask" style="display:none;position:absolute;inset:0;background:rgba(10,10,30,.55);align-items:center;justify-content:center;font-size:48px;z-index:8;flex-direction:column;gap:8px;"><span>💤</span><span style="font-size:14px;color:#aac">睡覺中…點擊叫醒</span></div>
+  <div class="ov" id="strollOv" style="padding:0;background:#000">
     <div id="strollScene"><div id="sStreet"></div>
       <img id="sChick" class="px" alt="">
       <div id="sTimer"><div id="sTimerFl"></div></div>
@@ -225,8 +238,8 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
 🪙 <b>金幣</b>：摸雞和逛街獲得，可購買食物，永久保留。<br>
 🏙 <b>逛街</b>:消耗飽足、增加快樂，路上點擊撿金幣和食物。太餓出不了門、太開心不想出門。<br>
 🐔 <b>成長</b>：蛋→小雞→中雞→成雞。吃什麼、怎麼養，據說都會影響牠變成什麼…<br>
-📖 <b>圖鑑</b>：收集所有型態和結局。死亡不是終點，是收藏。<br>
-🌙 <b>作息</b>：現實深夜牠會睡覺，白天黑夜跟真實時間同步。</div>
+📖 <b>圖鑑</b>：收集成長型態。成年後能繼續探險，不會因滿一小時被強制結束。<br>
+🌟 <b>冒險</b>：左右移動接星星並避開石頭，30秒一局。餵飽增加護盾、每局消耗15體力。收集星星解鎖關卡與房間玩具。<br>🌙 <b>作息</b>：現實深夜牠會睡覺，白天黑夜跟真實時間同步。</div>
 <button class="btn" id="helpClose" style="max-width:200px;margin-top:12px">返回</button></div>
 <div class="ov" id="mgOv">
     <div id="mgHud" style="display:flex;gap:10px;align-items:center;justify-content:center;padding:8px;font-size:14px;color:#fff;font-weight:bold;width:100%;"></div>
@@ -315,7 +328,7 @@ const Core = {
     if (st.hp <= 0) return 'death';
     if (st.stage === 'chick' && st.t >= CFG.TIMING.judgeTeen) return 'judgeTeen';
     if (st.stage === 'teen'  && st.t >= CFG.TIMING.judgeAdult) return 'judgeAdult';
-    if (st.stage === 'adult' && st.t >= CFG.TIMING.lifespan) return 'lifespan';
+    // Adult companions remain available for adventures; retirement is not forced.
     return null;
   },
   judgeTeen(st){
@@ -610,12 +623,13 @@ $('skyLayer').addEventListener('click', ()=>{
 /* ---------- 睡眠（夜間氛圍：現實 0-6 點雞會打盹，可叫醒）---------- */
 function sleepCheck(){
   const h = new Date().getHours();
-  const should = (h >= 0 && h < 6) && st && st.stage !== 'egg';
+  const should = (h >= 0 && h < 6) && st && st.stage !== 'egg' && Date.now() >= (st.awakeUntil||0);
   if (should && !sleeping){ sleeping = true; $('chicken').classList.add('sleeping'); $('zzz').style.display='block'; }
-  if (!should && sleeping){ wakeUp(); }
+  if (!should && sleeping && !st.manualSleep){ wakeUp(); }
+  $('sleepBtn').textContent=sleeping?'☀️':'💤';
   if (sleeping){ const p = chickenXY(); $('zzz').style.left=(p.x+30)+'px'; $('zzz').style.top=(p.y-10)+'px'; }
 }
-function wakeUp(){ sleeping = false; $('chicken').classList.remove('sleeping'); $('zzz').style.display='none'; }
+function wakeUp(){ if(st){st.manualSleep=false;st.awakeUntil=Date.now()+600000;} $('sleepMask').style.display='none'; $('sleepBtn').textContent='💤'; sleeping = false; $('chicken').classList.remove('sleeping'); $('zzz').style.display='none'; }
 
 /* ---------- 主循環 ---------- */
 function startLoop(){
@@ -671,6 +685,8 @@ $('evoOk').addEventListener('click', ()=>{
 /* ---------- 結局 ---------- */
 function endGame(key){
   paused = true; stopLoop(); Snd.death();
+  Adventure.cancel(); paused=true;
+  const before = new Set(Object.keys(dex.eggs||{}));
   const E = CFG.ENDINGS[key];
   st.stage = 'dead'; Save.clear();
   dex.endings[key] = true;
@@ -680,19 +696,14 @@ function endGame(key){
   if (Object.keys(dex.forms).length >= 10) dex.eggs.dino = true;
   Save.writeDex(dex);
   const newEggs = Object.keys(dex.eggs).filter(k=>!before.has(k));
-  if (newEggs.length){
-    const names = newEggs.map(k=>CFG.EGGS[k].name).join('、');
-    $('endStats').textContent += '\n✨ 解鎖了新的蛋：' + names + '！';
-    $('endStats').style.whiteSpace = 'pre-line';
-  }
   try{ localStorage.setItem('game_pending_score', JSON.stringify({ game:'chicken', score: seen })); }catch(e){}
   $('endTitle').textContent = (key==='natural'||key==='ascension') ? '一生結束了' : '雞生無常';
   $('endImg').src = A(E.sprite);
   const t = CFG.TIERS[E.tier];
   $('endName').innerHTML = '<span class="tw-'+E.tier+(t.glow?' glow':'')+'" style="font-size:20px;font-weight:bold">'+E.name+'</span>';
   $('endEpitaph').textContent = '「' + E.epitaph + '」';
-  const before = new Set(Object.keys(dex.eggs||{}));
   $('endStats').textContent = (st.name||'小雞') + '　活了 ' + Math.floor(st.t/60) + ' 分鐘　吃了 ' + st.feeds + ' 餐';
+  if(newEggs.length) $('endStats').textContent+=' · 解鎖 '+newEggs.map(k=>CFG.EGGS[k].name).join('、');
   $('endOv').classList.add('show');
 }
 $('againBtn').addEventListener('click', ()=>{ $('endOv').classList.remove('show'); showEggSelect(); });
@@ -768,6 +779,7 @@ $('dexClose').addEventListener('click', ()=>{ $('dexOv').classList.remove('show'
 $('chicken').addEventListener('click', (e)=>{
   Snd.init();
   if (!st) return;
+  if (st.stage==='dead') return;
   if (st.stage==='egg'){
     st.hatchBoost = Math.min(st.hatchBoost + 2, CFG.TIMING.eggHatch - 60);
     const p = chickenXY(); particle('✦', p.x, p.y+30); Snd.beep(500,.05); render(); return;
@@ -846,10 +858,7 @@ $('feedBtn2').addEventListener('click', ()=>{
 $('feedCancel').addEventListener('click', ()=>{ $('feedMenu').style.display='none'; _feedTarget=null; });
 
 /* ---------- 教學提示 ---------- */
-function showTip(txt){
-  $('tipTxt').textContent = txt;
-  $('tipCard').style.display = 'block';
-}
+function showTip(txt){ $('petGoal').textContent=txt.replace(/\n/g,' '); }
 $('tipOk').addEventListener('click', ()=> $('tipCard').style.display = 'none');
 $('helpBtn').addEventListener('click', ()=> $('helpOv').classList.add('show'));
 $('helpClose').addEventListener('click', ()=> $('helpOv').classList.remove('show'));
@@ -967,119 +976,20 @@ $('strollBtn').addEventListener('click', ()=>{ Snd.init(); Stroll.start(); });
 $('sExit').addEventListener('click', ()=> Stroll.end());
 
 /* ---------- 小遊戲 ---------- */
-function buildGameMenu(){
-  const g=$('gameMenuGrid'); g.innerHTML='';
-  for(const [id,mg] of Object.entries(CFG.MINIGAMES)){
-    const d=document.createElement('div'); d.className='gameCard';
-    d.innerHTML='<div class="gi">'+mg.icon+'</div><div class="gn">'+mg.name+'</div><div class="gd">'+mg.desc+'</div>';
-    d.addEventListener('click',()=>{ $('gameMenu').classList.remove('open'); startGame(id); });
-    g.appendChild(d);
-  }
-}
-function canPlayGame(){
-  if(!st||st.stage==='egg'||st.stage==='dead') return false;
-  if((st.stamina??100)<CFG.ECON.stamina.costGame){ say({t:'太累了…先睡一覺補體力。',tier:'white'}); return false; }
-  return true;
-}
-function endMinigame(goldEarned){
-  $('mgOv').classList.remove('show');
-  if(st&&st.stage!=='dead'){
-    st.stamina=Math.max(0,(st.stamina??100)-CFG.ECON.stamina.costGame);
-    st.joy=Math.min(CFG.LIFE.joyMax,st.joy+8);
-    if(goldEarned>0){ dex.gold+=goldEarned; Save.writeDex(dex); }
-    Save.write(st); recordCare('play'); say({t:'剛剛玩得好開心！',tier:'green'}); render();
-  }
-  if(goldEarned>0){ const p=chickenXY(); particle('🪙x'+goldEarned,p.x-20,p.y-30); }
-  Bgm.start();
-}
-function startGuessLR(){
-  const mg=CFG.MINIGAMES.guessLR; let pot=mg.baseGold,streak=0;
-  function upHud(){ $('mgHud').innerHTML='💰底池 <b>'+pot+'</b>🪙　連勝 <b>'+streak+'</b>'; }
-  $('mgStage').innerHTML='<div style="text-align:center;padding:20px;color:#fff"><div style="font-size:40px;margin-bottom:12px" id="lrChick">🐔</div><div id="lrResult" style="font-size:16px;min-height:28px;margin-bottom:16px"></div><div style="display:flex;gap:16px;justify-content:center"><button class="btn lrBtn" id="lrL">👈 左</button><button class="btn lrBtn" id="lrR">右 👉</button></div><div style="font-size:11px;opacity:.5;margin-top:10px">猜對翻倍，猜錯歸零，逢128收割</div></div>';
-  upHud();
-  function guess(side){
-    const ans=Math.random()<.5?'L':'R',win=side===ans;
-    $('lrChick').textContent=ans==='L'?'🤜🐔':'🐔🤛';
-    if(win){ streak++;pot*=mg.winMult;$('lrResult').innerHTML='<span style="color:#4ade80">猜對！底池'+pot+'🪙</span>';upHud();
-      if(pot>=128) setTimeout(()=>endMinigame(pot),1000); }
-    else{ const won=streak>0?Math.floor(pot/mg.winMult):0;
-      $('lrResult').innerHTML='<span style="color:#f87171">猜錯，底池歸零。</span>';
-      streak=0;pot=mg.baseGold;upHud();if(won>0) setTimeout(()=>endMinigame(won),1000); }
-  }
-  $('lrL').addEventListener('click',()=>guess('L'));
-  $('lrR').addEventListener('click',()=>guess('R'));
-}
-function startShellGame(){
-  const mg=CFG.MINIGAMES.shellGame; let score=0,round=0;
-  function nextRound(){
-    if(round>=mg.rounds){ endMinigame(score*mg.baseGold); return; }
-    const pos=Math.floor(Math.random()*3);
-    $('mgHud').innerHTML='第'+(round+1)+'/'+mg.rounds+'關 💰'+(score*mg.baseGold)+'🪙';
-    $('mgStage').innerHTML='<div style="text-align:center;padding:20px;color:#fff"><div style="font-size:20px;margin-bottom:16px">小雞藏在哪顆蛋？</div><div id="shellRow" style="display:flex;justify-content:center;gap:24px">'+[0,1,2].map(i=>'<span class="shellCup" data-i="'+i+'">🥚</span>').join('')+'</div><div id="shellMsg" style="margin-top:14px;font-size:16px;min-height:24px"></div></div>';
-    setTimeout(()=>{
-      document.querySelectorAll('.shellCup').forEach(el=>{
-        el.addEventListener('click',function(){
-          document.querySelectorAll('.shellCup').forEach((e,j)=>{ if(j===pos) e.textContent='🐣'; });
-          if(+this.dataset.i===pos){ score++;$('shellMsg').innerHTML='<span style="color:#4ade80">找到了！</span>'; }
-          else $('shellMsg').innerHTML='<span style="color:#f87171">不在這裡…</span>';
-          document.querySelectorAll('.shellCup').forEach(e=>e.style.pointerEvents='none');
-          round++;setTimeout(nextRound,900);
-        },{once:true});
-      });
-    },mg.speed[Math.min(round,mg.speed.length-1)]);
-  }
-  nextRound();
-}
-function startCatchCoin(){
-  const mg=CFG.MINIGAMES.catchCoin; let gold=0,miss=0,done=false;
-  const W=Math.min(($('mgStage').clientWidth||300)-16,340);
-  $('mgHud').innerHTML='🪙<b id="ccG">0</b>　💔<b id="ccM">0</b>/'+mg.missLimit;
-  $('mgStage').innerHTML='<div style="padding:4px 0"><div id="ccArena" style="width:'+W+'px"><div id="ccChick" style="left:'+(W/2-18)+'px">🐔</div></div><div style="display:flex;justify-content:center;gap:16px;margin-top:8px"><button class="btn" id="ccL" style="max-width:110px;font-size:22px">👈</button><button class="btn" id="ccR" style="max-width:110px;font-size:22px">👉</button></div></div>';
-  const chick=$('ccChick'); let cx=W/2-18;
-  function mv(d){ cx=Math.max(0,Math.min(W-36,cx+d*52)); chick.style.left=cx+'px'; }
-  $('ccL').addEventListener('click',()=>mv(-1)); $('ccR').addEventListener('click',()=>mv(1));
-  let tx0=0;
-  $('ccArena').addEventListener('touchstart',e=>tx0=e.touches[0].clientX,{passive:true});
-  $('ccArena').addEventListener('touchmove',e=>{ const d=e.touches[0].clientX-tx0; if(Math.abs(d)>20){mv(d>0?1:-1);tx0=e.touches[0].clientX;} },{passive:true});
-  function spawn(){
-    if(done) return;
-    const coin=document.createElement('div'); coin.className='ccCoin'; coin.textContent='🪙';
-    const lx=Math.random()*(W-24); coin.style.left=lx+'px';
-    coin.style.animationDuration=(1.4+Math.random()*.8)+'s';
-    $('ccArena').appendChild(coin);
-    coin.addEventListener('animationend',()=>{
-      if(!coin.parentNode) return;
-      if(Math.abs(lx-cx)<44){ gold++;if($('ccG'))$('ccG').textContent=gold; }
-      else{ miss++;if($('ccM'))$('ccM').textContent=miss;
-        if(miss>=mg.missLimit&&!done){ done=true;clearInterval(si);clearTimeout(tt);endMinigame(gold); } }
-      coin.remove();
-    });
-  }
-  const si=setInterval(spawn,mg.spawnMs);
-  const tt=setTimeout(()=>{ done=true;clearInterval(si);endMinigame(gold); },mg.duration*1000);
-}
-function startGame(id){
-  if(!canPlayGame()) return;
-  if(sleeping) wakeUp();
-  $('mgOv').classList.add('show'); $('mgStage').innerHTML=''; $('mgHud').innerHTML='';
-  Bgm.stop();
-  if(id==='guessLR') startGuessLR();
-  else if(id==='shellGame') startShellGame();
-  else if(id==='catchCoin') startCatchCoin();
-}
-$('mgQuit').addEventListener('click',()=>endMinigame(0));
+function startGame(){ Adventure.open(); }
+$('mgQuit').addEventListener('click',()=>Adventure.leave());
 
 /* ---------- 系統 ---------- */
-$('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg'){ buildGameMenu(); $('gameMenu').classList.add('open'); } });
+$('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg'&&st.stage!=='dead'){ Adventure.open(); } });
 $('gameMenuClose').addEventListener('click',()=>$('gameMenu').classList.remove('open'));
 $('careBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; updateCareUI(); $('careMenu').style.display='flex'; });
 $('careClose').addEventListener('click',()=>$('careMenu').style.display='none');
-$('petBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; st.joy=Math.min(100,st.joy+4); recordCare('pet'); const p=chickenXY(); particle('♥',p.x,p.y); $('chicken').classList.add('petted'); setTimeout(()=>$('chicken').classList.remove('petted'),950); say({t:'嘿嘿，摸摸最喜歡了！',tier:'green'}); Snd.chirp(st.hp); Save.write(st); render(); });
-$('tidyBtn').addEventListener('click',()=>{ if(!st)return; const count=(st.poops||[]).length; st.poops=[]; st.clean=Math.min(100,st.clean+Math.max(6,count*8)); st.joy=Math.min(100,st.joy+2); recordCare('clean'); document.querySelectorAll('.poop').forEach(e=>e.remove()); const p=chickenXY(); particle(count?'✨':'🧹',p.x,p.y); say({t:count?'房間香香的，好舒服！':'房間本來就很整齊，但謝謝你檢查！',tier:'green'}); Save.write(st); render(); });
+$('petBtn').addEventListener('click',()=>{ $('careMenu').style.display='none'; Snd.init(); if(!st||st.stage==='egg')return; st.joy=Math.min(100,st.joy+4); recordCare('pet'); const p=chickenXY(); particle('♥',p.x,p.y); $('chicken').classList.add('petted'); setTimeout(()=>$('chicken').classList.remove('petted'),950); say({t:'嘿嘿，摸摸最喜歡了！',tier:'green'}); Snd.chirp(st.hp); Save.write(st); render(); });
+$('tidyBtn').addEventListener('click',()=>{ $('careMenu').style.display='none'; Snd.init(); if(!st)return; const count=(st.poops||[]).length; st.poops=[]; st.clean=Math.min(100,st.clean+Math.max(6,count*8)); st.joy=Math.min(100,st.joy+2); recordCare('clean'); document.querySelectorAll('.poop').forEach(e=>e.remove()); const p=chickenXY(); particle(count?'✨':'🧹',p.x,p.y); say({t:count?'房間香香的，好舒服！':'房間本來就很整齊，但謝謝你檢查！',tier:'green'}); Save.write(st); render(); });
 $('sleepBtn').addEventListener('click',(e)=>{
   e.stopPropagation(); Snd.init(); if(!st||st.stage==='egg') return;
   if(sleeping){ wakeUp(); return; }
-  sleeping=true; $('chicken').classList.add('sleeping'); $('zzz').style.display='block';
+  st.manualSleep=true; sleeping=true; $('chicken').classList.add('sleeping'); $('zzz').style.display='block';
   $('sleepMask').style.display='flex'; $('sleepBtn').textContent='☀️'; Snd.beep(300,.4,'sine',.04);
   // 延遲 300ms 才掛叫醒 listener，防止點擊事件冒泡立刻觸發
   setTimeout(()=> $('sleepMask').addEventListener('click', wakeUp, {once:true}), 300);
@@ -1092,7 +1002,7 @@ $('muteBtn').addEventListener('click', ()=>{
 $('homeBtn').addEventListener('click', ()=>{ if(st) Save.write(st); window.location.href='/'; });
 document.addEventListener('visibilitychange', ()=>{
   if (document.visibilityState === 'hidden'){ paused = true; Bgm.stop(); if(st && st.stage!=='dead') Save.write(st); }
-  else { paused = false; buildSky(); if (Snd.ctx && !Snd.muted) Bgm.start(); }
+  else { if(st) settleOffline(st); paused = Adventure.active || ['nameOv','evoOv','endOv'].some(id=>$(id).classList.contains('show')); buildSky(); if (Snd.ctx && !Snd.muted) Bgm.start(); }
 });
 window.addEventListener('pagehide', ()=>{ if(st && st.stage!=='dead') Save.write(st); });
 
@@ -1110,13 +1020,86 @@ function boot(){
   setInterval(buildSky, 60000); // 跨日夜界線自動切換
   st = Save.load();
   if (st){
+    sleeping=!!st.manualSleep;
+    $('chicken').classList.toggle('sleeping',sleeping);
+    $('sleepBtn').textContent=sleeping?'☀️':'💤';
     const rep = settleOffline(st);
     render(); startLoop();
     if (rep) setTimeout(()=> say(rep), 900);
   }
   else showEggSelect();
 }
-try { boot(); } catch(err){
+
+/* Adventure lifecycle: one timer, one payout, persistent stars, no wagers. */
+const Adventure = {
+ active:false, timer:null, run:null,
+ levels:[{name:'草地散步',goal:4,speed:19},{name:'森林小徑',goal:6,speed:23},{name:'星光山丘',goal:8,speed:27}],
+ progress(){ dex.adventure=dex.adventure||{best:[0,0,0],runs:0}; return dex.adventure; },
+ total(){ return this.progress().best.reduce((a,b)=>a+b,0); },
+ open(){
+  if(!st||st.stage==='egg'||st.stage==='dead')return;
+  $('careMenu').style.display='none'; $('tray').classList.remove('open');
+  const p=this.progress();
+  $('mgOv').classList.add('show'); $('mgHud').textContent='🌟 寵物探險隊 · '+this.total()+'/9 星';
+  $('mgStage').innerHTML='';
+  const intro=document.createElement('p'); intro.textContent='左右移動接星星、閃開石頭。餵飽再出發，可多帶一個護盾。';intro.style='line-height:1.8;margin-bottom:12px';$('mgStage').append(intro);
+  this.levels.forEach((l,i)=>{
+   const b=document.createElement('button');b.className='map-card';b.disabled=i>0&&p.best[i-1]===0;
+   b.textContent=(b.disabled?'🔒 ':'')+l.name+'　'+('★'.repeat(p.best[i])+'☆'.repeat(3-p.best[i]));
+   b.onclick=()=>this.start(i);$('mgStage').append(b);
+  });
+  const info=document.createElement('p');info.textContent='3 星解鎖房間皮球 · 6 星解鎖星光花盆 · 9 星探險大師';info.style='font-size:12px;line-height:1.8;margin-top:12px';$('mgStage').append(info);
+ },
+ start(level){
+  if(this.active)return;
+  if((st.stamina??100)<15){say({t:'先睡一覺，恢復體力再探險吧。'});this.leave();return;}
+  wakeUp();Stroll.end();Snd.init();this.active=true;paused=true;
+  this.run={level,lane:1,time:0,spawn:0,items:[],caught:0,lives:st.sat>=60?4:3,serial:0};
+  st.stamina=Math.max(0,st.stamina-15);Save.write(st);
+  $('mgStage').innerHTML='<div class="trail" id="trail"><img class="runner px" id="runner" alt="你的寵物"></div><div class="trail-controls"><button class="btn" id="trailLeft" aria-label="向左">◀</button><button class="btn" id="trailRight" aria-label="向右">▶</button></div>';
+  $('runner').src=spriteFor();$('runner').style.left='50%';
+  $('trailLeft').onclick=()=>this.move(-1);$('trailRight').onclick=()=>this.move(1);
+  $('trail').onpointerdown=e=>{const r=$('trail').getBoundingClientRect();this.run.lane=Math.min(2,Math.max(0,Math.floor((e.clientX-r.left)/r.width*3)));this.move(0);};
+  this.hud();this.timer=setInterval(()=>this.tick(.05),50);
+ },
+ move(d){if(!this.active)return;this.run.lane=Math.max(0,Math.min(2,this.run.lane+d));$('runner').style.left=(16.67+this.run.lane*33.33)+'%';},
+ hud(){const r=this.run; $('mgHud').textContent='⭐ '+r.caught+'/'+this.levels[r.level].goal+'　🛡️ '+r.lives+'　⏱ '+Math.ceil(30-r.time)+'秒';},
+ tick(dt){
+  if(!this.active||document.hidden)return;const r=this.run,l=this.levels[r.level];r.time+=dt;r.spawn+=dt;
+  if(r.spawn>=.85){r.spawn=0;const el=document.createElement('span');el.className='drop';const rock=r.serial++%3===2;el.textContent=rock?'🪨':'⭐';const lane=Math.floor(Math.random()*3);el.style.left=(16.67+lane*33.33)+'%';$('trail').append(el);r.items.push({el,lane,y:-5,rock});}
+  r.items=r.items.filter(it=>{it.y+=dt*l.speed;it.el.style.top=it.y+'%';if(it.y>=84){if(it.lane===r.lane){if(it.rock){r.lives--;Snd.beep(180,.12);$('runner').animate([{opacity:.2},{opacity:1}],{duration:300});}else{r.caught++;Snd.beep(880,.08);}}it.el.remove();return false;}return true;});
+  this.hud();if(r.time>=30||r.lives<=0)this.finish();
+ },
+ finish(){
+  if(!this.active)return;const r=this.run,l=this.levels[r.level];const stars=r.caught>=l.goal?(r.lives>=3?3:r.lives>0?2:1):0;
+  this.cancel();const p=this.progress();p.best[r.level]=Math.max(p.best[r.level],stars);p.runs++;
+  const coins=r.caught;dex.gold=(dex.gold||0)+coins;st.joy=Math.min(100,st.joy+12);st.sat=Math.max(0,st.sat-5);
+  // Skill progress helps growth, while the existing food-based evolution remains intact.
+  if(st.stage==='chick')st.t=Math.min(CFG.TIMING.judgeTeen,st.t+stars*45);
+  else if(st.stage==='teen')st.t=Math.min(CFG.TIMING.judgeAdult,st.t+stars*45);
+  recordCare('play');Save.writeDex(dex);Save.write(st);render();room();
+  $('mgHud').textContent=stars?'闖關完成！ '+ '★'.repeat(stars):'這次探險結束';
+  $('mgStage').innerHTML='<p style="padding:24px;line-height:2">收集 '+r.caught+' 顆星星 · 獲得 '+coins+' 金幣<br>成長進度 +'+stars*45+' 秒<br>總收藏 '+this.total()+'/9 星</p><button class="map-card" id="againTrail">返回冒險地圖</button>';
+  $('againTrail').onclick=()=>this.open();
+ },
+ cancel(){clearInterval(this.timer);this.timer=null;this.active=false;paused=false;},
+ leave(){this.cancel();$('mgOv').classList.remove('show');$('mgStage').innerHTML='';if(st)render();}
+};
+document.addEventListener('keydown',e=>{if(Adventure.active&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();Adventure.move(e.key==='ArrowLeft'?-1:1);}});
+function room(){
+ let toy=$('roomToy');if(!toy){toy=document.createElement('button');toy.id='roomToy';$('stage').append(toy);}
+ toy.hidden=Adventure.total()<3;toy.textContent=Adventure.total()>=6?'🌷':'⚽';toy.setAttribute('aria-label','和寵物玩房間玩具');
+ toy.onclick=()=>{if(!st||sleeping||st.stage==='egg')return;st.joy=Math.min(100,st.joy+3);$('chicken').style.left='65%';say({t:'新玩具！一起來玩～'});toy.animate([{transform:'translateY(0)'},{transform:'translateY(-35px)'},{transform:'translateY(0)'}],{duration:600});recordCare('pet');Save.write(st);render();};
+}
+// Keep care meaningful between visits without the original seven-minute hunger cliff.
+CFG.LIFE.satietyDrain=10/3600;CFG.LIFE.joyDrain=8/3600;
+CFG.TIPS.stage.adult='已長成！帶牠挑戰冒險地圖，收集星星與房間玩具。';
+const originalRender=render;
+render=function(){originalRender();const next=st.stage==='chick'?CFG.TIMING.judgeTeen:CFG.TIMING.judgeAdult;
+ $('petGoal').textContent=st.stage==='egg'?'輕點蛋幫助孵化。':sleeping?'正在休息恢復體力，按 ☀️ 叫醒。':st.sat<30?'牠走到食物旁：先吃一餐再冒險吧。':st.clean<50?'房間需要整理，點地上的髒污或 🫶 清潔。':st.stamina<15?'打哈欠了，睡一覺再探險。':'🌟 冒險收星 → 解鎖房間玩具'+(st.stage==='adult'?' · 已成年':' · 成長 '+Math.min(100,Math.floor(st.t/next*100))+'%');};
+setInterval(()=>{if(!st||paused||sleeping||st.stage==='egg'||st.stage==='dead')return;if(st.sat<30){$('chicken').style.left='12%';say({t:'我準備好吃飯了。'});}else if(st.stamina<25)say({t:'眼皮有點重，想睡一下。'});else if(Adventure.total()>=3){room();$('chicken').style.left='65%';say({t:'想玩玩具，也想出去探險！'});}},18000);
+
+try { boot(); room(); } catch(err){
   const d = document.createElement('div');
   d.style.cssText = 'position:absolute;top:40%;left:10%;right:10%;z-index:99;background:#fff;color:#b00;border:3px solid #b00;border-radius:8px;padding:12px;font-size:12px;word-break:break-all;';
   d.textContent = '啟動失敗：' + err.message + '（通常是快取到舊版檔案，請清除網站資料後重試）';
@@ -1126,3 +1109,4 @@ try { boot(); } catch(err){
 </script>
 </body>
 </html>
+
