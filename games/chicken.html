@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>寵物雞</title>
+<title>口袋寵物｜第一隻：小雞</title>
 <style>
 :root{ --ink:#3a2a1a; --wood:#8a5a2b; --panel:#f5e6c8; --panel2:#e8d5ae; }
 *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
@@ -65,7 +65,8 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
   border:2px solid rgba(255,255,255,.3); border-radius:6px; padding:4px 7px; }
 #helpBtn{ font-size:11px; color:#fff; background:rgba(0,0,0,.5); border:2px solid rgba(255,255,255,.3);
   border-radius:6px; padding:4px 7px; cursor:pointer; }
-#ageTag,#goldTag{ font-size:11px; color:#fff; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:5px 8px; }
+#ageTag,#goldTag,#careTag{ font-size:11px; color:#fff; background:rgba(0,0,0,.45); border:2px solid var(--ink); border-radius:6px; padding:5px 8px; }
+#careTag{color:#fde68a}
 
 /* ---------- 底部操作 ---------- */
 #dock{ display:flex; gap:8px; padding:10px 10px calc(10px + env(safe-area-inset-bottom)); background:var(--wood);
@@ -169,7 +170,7 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
       <div id="hudRow2">
         <div class="bar"><div class="lb">💗 快樂</div><div class="tk"><div class="fl" id="joyFl"></div></div></div>
         <div class="bar"><div class="lb">✨ 整潔</div><div class="tk"><div class="fl" id="cleanFl"></div></div></div>
-        <div id="ageTag">0分</div>
+        <div id="ageTag">0分</div><div id="careTag" title="每日照顧">📅0/3</div>
       </div>
     </div>
     <div id="tipCard"><div id="tipTxt"></div><button class="btn" id="tipOk">知道了</button></div>
@@ -179,6 +180,7 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <button class="btn" id="feedBtn">🍴 餵食</button>
     <button class="btn" id="strollBtn">🏙 逛街</button>
     <button class="btn" id="gameBtn">🎮 玩耍</button>
+    <button class="btn sm" id="careBtn">🫶</button>
     <button class="btn sm" id="sleepBtn">💤</button>
     <button class="btn sm" id="muteBtn">♪</button>
     <button class="btn sm" id="homeBtn">🏠</button>
@@ -188,6 +190,10 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
     <button class="btn" id="gameMenuClose">關閉</button>
   </div>
   <div id="tray"><div id="trayGrid"></div><button class="btn" id="trayClose">關閉</button></div>
+  <div id="careMenu" style="display:none;position:absolute;left:8%;right:8%;bottom:88px;background:var(--panel);border:3px solid var(--ink);border-radius:12px;padding:14px;flex-direction:column;gap:8px;z-index:25;text-align:center;">
+    <div style="font-weight:bold;font-size:16px">今日照顧</div><div id="careSummary" style="font-size:12px;line-height:1.6"></div>
+    <button class="btn" id="petBtn">🫳 摸摸牠（提升快樂）</button><button class="btn" id="tidyBtn">🧽 整理房間</button><button class="btn" id="careClose">關閉</button>
+  </div>
   <div id="feedMenu" style="display:none;position:absolute;left:8%;right:8%;bottom:88px;
     background:var(--panel);border:3px solid var(--ink);border-radius:12px;padding:14px;
     flex-direction:column;gap:8px;z-index:25;text-align:center;">
@@ -240,6 +246,8 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
+// 第一個完整物種是小雞；後續新增貓、狗或其他寵物時可共用這套照顧循環與存檔。
+const PET_SYSTEM = { starter:'chicken', title:'口袋寵物' };
 const A = f => CFG.ASSET_BASE + f;
 const rnd = a => a[Math.floor(Math.random()*a.length)];
 
@@ -452,7 +460,18 @@ function cleanPoop(id,el){
   const px=parseFloat(sl)/100*($('stage').clientWidth||390);
   const py=($('stage').clientHeight||700)*(1-parseFloat(sb)/100);
   particle('✨',px,py-20); Snd.beep(1000,.1,'square',.05);
-  Save.write(st); render();
+  Save.write(st); recordCare('clean'); render();
+}
+function careToday(){
+  dex.care=dex.care||{}; const today=new Date().toDateString();
+  if(dex.care.date!==today) dex.care={date:today,actions:{}};
+  return dex.care;
+}
+function recordCare(action){ const c=careToday(); c.actions[action]=true; Save.writeDex(dex); }
+function careCount(){ return Object.keys(careToday().actions).length; }
+function updateCareUI(){
+  const n=Math.min(3,careCount()); $('careTag').textContent='📅'+n+'/3';
+  if($('careSummary')) $('careSummary').textContent=n>=3?'今天的照顧完成了！牠很安心。':'完成 '+n+'/3 項：餵食、玩耍、清潔或互動。';
 }
 function render(){
   const sp = spriteFor();
@@ -463,6 +482,7 @@ function render(){
   $('joyFl').style.width = st.joy + '%';
   $('ageTag').textContent = Math.floor(st.t/60) + '分';
   $('goldTag').textContent = '🪙' + (dex.gold||0);
+  updateCareUI();
   const mood = st.joy>=80?'😄':st.joy>=55?'🙂':st.joy>=35?'😐':st.joy>=15?'🙁':'😢';
   $('moodTag').textContent = mood;
   $('staminaFl').style.width = (st.stamina??100)+'%';
@@ -737,6 +757,7 @@ $('chicken').addEventListener('click', (e)=>{
   }
   if (sleeping){ wakeUp(); say({t:'…咕？', tier:'white'}); return; }
   st.pokes++;
+  recordCare('pet');
   const p = chickenXY();
   if (st.pokes === CFG.EASTER.pokeAngry.count){
     dex.ach[CFG.EASTER.pokeAngry.achievement] = true; Save.writeDex(dex);
@@ -793,7 +814,7 @@ function execFeed(id){
   const p=chickenXY(); particle(stuffed?'💧':'😋',p.x,p.y);
   if(st.vec.H>=CFG.T.MID) setTimeout(()=>particle('🔥',p.x+14,p.y+8),350);
   setTimeout(()=>{ ck.classList.remove('eating'); render(); }, 900);
-  Save.write(st); buildTray(); render();
+  Save.write(st); recordCare('feed'); buildTray(); render();
   tipOnce('firstFeed');
 }
 $('feedBtn').addEventListener('click', ()=>{ Snd.init(); if(st&&st.stage!=='egg') $('tray').classList.add('open'); });
@@ -949,7 +970,7 @@ function endMinigame(goldEarned){
     st.stamina=Math.max(0,(st.stamina??100)-CFG.ECON.stamina.costGame);
     st.joy=Math.min(CFG.LIFE.joyMax,st.joy+8);
     if(goldEarned>0){ dex.gold+=goldEarned; Save.writeDex(dex); }
-    Save.write(st); render();
+    Save.write(st); recordCare('play'); render();
   }
   if(goldEarned>0){ const p=chickenXY(); particle('🪙x'+goldEarned,p.x-20,p.y-30); }
   Bgm.start();
@@ -1034,6 +1055,10 @@ $('mgQuit').addEventListener('click',()=>endMinigame(0));
 /* ---------- 系統 ---------- */
 $('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg'){ buildGameMenu(); $('gameMenu').classList.add('open'); } });
 $('gameMenuClose').addEventListener('click',()=>$('gameMenu').classList.remove('open'));
+$('careBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; updateCareUI(); $('careMenu').style.display='flex'; });
+$('careClose').addEventListener('click',()=>$('careMenu').style.display='none');
+$('petBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; st.joy=Math.min(100,st.joy+4); recordCare('pet'); const p=chickenXY(); particle('♥',p.x,p.y); Snd.chirp(st.hp); Save.write(st); render(); });
+$('tidyBtn').addEventListener('click',()=>{ if(!st)return; const count=(st.poops||[]).length; st.poops=[]; st.clean=Math.min(100,st.clean+Math.max(6,count*8)); st.joy=Math.min(100,st.joy+2); recordCare('clean'); document.querySelectorAll('.poop').forEach(e=>e.remove()); Save.write(st); render(); });
 $('sleepBtn').addEventListener('click',(e)=>{
   e.stopPropagation(); Snd.init(); if(!st||st.stage==='egg') return;
   if(sleeping){ wakeUp(); return; }
