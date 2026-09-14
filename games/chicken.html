@@ -162,7 +162,7 @@ input#nameIn{ font-family:inherit; font-size:16px; padding:10px; border:3px soli
 #bubble{pointer-events:none}#sleepMask{pointer-events:auto}
 #mgStage{display:flex;flex-direction:column;min-height:0;width:100%;overflow-y:auto!important}.trail{flex:1;height:auto;min-height:220px;max-height:430px;position:relative;overflow:hidden;border-radius:18px;background:repeating-linear-gradient(90deg,#224d43 0%,#224d43 32%,#366451 32%,#366451 33.33%);border:2px solid #a5d8ac;touch-action:none}
 .runner{position:absolute;width:64px;height:64px;bottom:4%;transform:translateX(-50%);transition:left .1s;object-fit:contain;z-index:2}.drop{position:absolute;font-size:30px;transform:translate(-50%,-50%)}
-.trail-controls{display:flex;gap:12px;margin-top:10px}.trail-controls button{font-size:24px}
+.trail-controls{display:flex;gap:12px;margin-top:10px}.trail-controls button{font-size:24px;flex:1!important;max-width:none!important;min-height:48px}
 .map-card{width:100%;padding:14px;margin:6px 0;background:#f5e6c8;border:3px solid #a47848;border-radius:12px;color:#38281c;font:inherit;cursor:pointer}.map-card:disabled{opacity:.5;cursor:default}
 #roomToy{position:absolute;bottom:8%;right:10%;font-size:40px;z-index:4;background:none;border:0;cursor:pointer}
 @media(prefers-reduced-motion:reduce){#chickenImg{animation:none!important}}
@@ -623,12 +623,13 @@ $('skyLayer').addEventListener('click', ()=>{
 /* ---------- 睡眠（夜間氛圍：現實 0-6 點雞會打盹，可叫醒）---------- */
 function sleepCheck(){
   const h = new Date().getHours();
-  const should = (h >= 0 && h < 6) && st && st.stage !== 'egg';
+  const should = (h >= 0 && h < 6) && st && st.stage !== 'egg' && Date.now() >= (st.awakeUntil||0);
   if (should && !sleeping){ sleeping = true; $('chicken').classList.add('sleeping'); $('zzz').style.display='block'; }
   if (!should && sleeping && !st.manualSleep){ wakeUp(); }
+  $('sleepBtn').textContent=sleeping?'☀️':'💤';
   if (sleeping){ const p = chickenXY(); $('zzz').style.left=(p.x+30)+'px'; $('zzz').style.top=(p.y-10)+'px'; }
 }
-function wakeUp(){ if(st) st.manualSleep=false; $('sleepMask').style.display='none'; $('sleepBtn').textContent='💤'; sleeping = false; $('chicken').classList.remove('sleeping'); $('zzz').style.display='none'; }
+function wakeUp(){ if(st){st.manualSleep=false;st.awakeUntil=Date.now()+600000;} $('sleepMask').style.display='none'; $('sleepBtn').textContent='💤'; sleeping = false; $('chicken').classList.remove('sleeping'); $('zzz').style.display='none'; }
 
 /* ---------- 主循環 ---------- */
 function startLoop(){
@@ -975,36 +976,11 @@ $('strollBtn').addEventListener('click', ()=>{ Snd.init(); Stroll.start(); });
 $('sExit').addEventListener('click', ()=> Stroll.end());
 
 /* ---------- 小遊戲 ---------- */
-function buildGameMenu(){
-  const g=$('gameMenuGrid'); g.innerHTML='';
-  for(const [id,mg] of Object.entries(CFG.MINIGAMES)){
-    const d=document.createElement('div'); d.className='gameCard';
-    d.innerHTML='<div class="gi">'+mg.icon+'</div><div class="gn">'+mg.name+'</div><div class="gd">'+mg.desc+'</div>';
-    d.addEventListener('click',()=>{ $('gameMenu').classList.remove('open'); startGame(id); });
-    g.appendChild(d);
-  }
-}
-function canPlayGame(){
-  if(!st||st.stage==='egg'||st.stage==='dead') return false;
-  if((st.stamina??100)<CFG.ECON.stamina.costGame){ say({t:'太累了…先睡一覺補體力。',tier:'white'}); return false; }
-  return true;
-}
-function endMinigame(goldEarned){
-  $('mgOv').classList.remove('show');
-  if(st&&st.stage!=='dead'){
-    st.stamina=Math.max(0,(st.stamina??100)-CFG.ECON.stamina.costGame);
-    st.joy=Math.min(CFG.LIFE.joyMax,st.joy+8);
-    if(goldEarned>0){ dex.gold+=goldEarned; Save.writeDex(dex); }
-    Save.write(st); recordCare('play'); say({t:'剛剛玩得好開心！',tier:'green'}); render();
-  }
-  if(goldEarned>0){ const p=chickenXY(); particle('🪙x'+goldEarned,p.x-20,p.y-30); }
-  Bgm.start();
-}
 function startGame(){ Adventure.open(); }
 $('mgQuit').addEventListener('click',()=>Adventure.leave());
 
 /* ---------- 系統 ---------- */
-$('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg'){ Adventure.open(); } });
+$('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg'&&st.stage!=='dead'){ Adventure.open(); } });
 $('gameMenuClose').addEventListener('click',()=>$('gameMenu').classList.remove('open'));
 $('careBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; updateCareUI(); $('careMenu').style.display='flex'; });
 $('careClose').addEventListener('click',()=>$('careMenu').style.display='none');
