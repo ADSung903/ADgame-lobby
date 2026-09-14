@@ -35,6 +35,10 @@ img,.px{ image-rendering:pixelated; image-rendering:crisp-edges; }
 #chicken.sleeping #chickenImg{ animation:none; transform:rotate(-6deg); filter:brightness(.85); }
 #chicken.slowwalk{ transition:left 6s linear; }
 #chicken.eating #chickenImg{ animation:peck .35s steps(2) infinite; }
+#chicken.petted #chickenImg{ animation:petHappy .22s ease-in-out 4; }
+#chicken.celebrate #chickenImg{ animation:celebrate .42s ease-in-out 3; }
+@keyframes petHappy{50%{transform:translateY(-10px) scale(1.12) rotate(-5deg)}}
+@keyframes celebrate{50%{transform:translateY(-16px) scale(1.08)}}
 @keyframes peck{ 0%,100%{ transform:rotate(0);} 50%{ transform:rotate(14deg) translateY(4px);} }
 .pt{ position:absolute; font-size:14px; animation:rise 1.2s forwards; pointer-events:none; z-index:9; }
 @keyframes rise{ from{ transform:translateY(0); opacity:1;} to{ transform:translateY(-42px); opacity:0;} }
@@ -460,18 +464,31 @@ function cleanPoop(id,el){
   const px=parseFloat(sl)/100*($('stage').clientWidth||390);
   const py=($('stage').clientHeight||700)*(1-parseFloat(sb)/100);
   particle('✨',px,py-20); Snd.beep(1000,.1,'square',.05);
-  Save.write(st); recordCare('clean'); render();
+  Save.write(st); recordCare('clean'); say({t:'房間變得乾乾淨淨！',tier:'green'}); render();
 }
 function careToday(){
   dex.care=dex.care||{}; const today=new Date().toDateString();
   if(dex.care.date!==today) dex.care={date:today,actions:{}};
   return dex.care;
 }
-function recordCare(action){ const c=careToday(); c.actions[action]=true; Save.writeDex(dex); }
+function recordCare(action){
+  const c=careToday(); const wasDone=!!c.actions[action]; c.actions[action]=true;
+  const count=Object.keys(c.actions).length;
+  if(!wasDone && count>=3 && !c.rewarded){
+    c.rewarded=true; dex.gold=(dex.gold||0)+5;
+    setTimeout(()=>{ if(st&&st.stage!=='egg'){ const p=chickenXY(); particle('🎁 +5🪙',p.x-24,p.y-22); $('chicken').classList.add('celebrate'); setTimeout(()=>$('chicken').classList.remove('celebrate'),1400); say({t:'今天被照顧得好幸福！',tier:'gold'}); Snd.beep(1047,.18,'square',.08); } },0);
+  }
+  Save.writeDex(dex);
+}
 function careCount(){ return Object.keys(careToday().actions).length; }
 function updateCareUI(){
   const n=Math.min(3,careCount()); $('careTag').textContent='📅'+n+'/3';
-  if($('careSummary')) $('careSummary').textContent=n>=3?'今天的照顧完成了！牠很安心。':'完成 '+n+'/3 項：餵食、玩耍、清潔或互動。';
+  if($('careSummary')){
+    const a=careToday().actions;
+    $('careSummary').innerHTML='今日紀錄<br>'+
+      ['feed','pet','clean','play'].map(k=>({feed:'🍴 餵食',pet:'🫳 互動',clean:'🧽 整理',play:'🎮 玩耍'})[k]+' '+(a[k]?'✅':'⬜')).join('　')+
+      (n>=3?'<br><span style="color:#a06800">🎁 今日照顧獎勵已收到</span>':'<br>完成任意三項可獲得 🎁 5🪙');
+  }
 }
 function render(){
   const sp = spriteFor();
@@ -814,7 +831,7 @@ function execFeed(id){
   const p=chickenXY(); particle(stuffed?'💧':'😋',p.x,p.y);
   if(st.vec.H>=CFG.T.MID) setTimeout(()=>particle('🔥',p.x+14,p.y+8),350);
   setTimeout(()=>{ ck.classList.remove('eating'); render(); }, 900);
-  Save.write(st); recordCare('feed'); buildTray(); render();
+  Save.write(st); recordCare('feed'); say({t:stuffed?'吃太飽啦，先休息一下。':'好吃！謝謝你～',tier:stuffed?'white':'green'}); buildTray(); render();
   tipOnce('firstFeed');
 }
 $('feedBtn').addEventListener('click', ()=>{ Snd.init(); if(st&&st.stage!=='egg') $('tray').classList.add('open'); });
@@ -970,7 +987,7 @@ function endMinigame(goldEarned){
     st.stamina=Math.max(0,(st.stamina??100)-CFG.ECON.stamina.costGame);
     st.joy=Math.min(CFG.LIFE.joyMax,st.joy+8);
     if(goldEarned>0){ dex.gold+=goldEarned; Save.writeDex(dex); }
-    Save.write(st); recordCare('play'); render();
+    Save.write(st); recordCare('play'); say({t:'剛剛玩得好開心！',tier:'green'}); render();
   }
   if(goldEarned>0){ const p=chickenXY(); particle('🪙x'+goldEarned,p.x-20,p.y-30); }
   Bgm.start();
@@ -1057,8 +1074,8 @@ $('gameBtn').addEventListener('click',()=>{ Snd.init(); if(st&&st.stage!=='egg')
 $('gameMenuClose').addEventListener('click',()=>$('gameMenu').classList.remove('open'));
 $('careBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; updateCareUI(); $('careMenu').style.display='flex'; });
 $('careClose').addEventListener('click',()=>$('careMenu').style.display='none');
-$('petBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; st.joy=Math.min(100,st.joy+4); recordCare('pet'); const p=chickenXY(); particle('♥',p.x,p.y); Snd.chirp(st.hp); Save.write(st); render(); });
-$('tidyBtn').addEventListener('click',()=>{ if(!st)return; const count=(st.poops||[]).length; st.poops=[]; st.clean=Math.min(100,st.clean+Math.max(6,count*8)); st.joy=Math.min(100,st.joy+2); recordCare('clean'); document.querySelectorAll('.poop').forEach(e=>e.remove()); Save.write(st); render(); });
+$('petBtn').addEventListener('click',()=>{ if(!st||st.stage==='egg')return; st.joy=Math.min(100,st.joy+4); recordCare('pet'); const p=chickenXY(); particle('♥',p.x,p.y); $('chicken').classList.add('petted'); setTimeout(()=>$('chicken').classList.remove('petted'),950); say({t:'嘿嘿，摸摸最喜歡了！',tier:'green'}); Snd.chirp(st.hp); Save.write(st); render(); });
+$('tidyBtn').addEventListener('click',()=>{ if(!st)return; const count=(st.poops||[]).length; st.poops=[]; st.clean=Math.min(100,st.clean+Math.max(6,count*8)); st.joy=Math.min(100,st.joy+2); recordCare('clean'); document.querySelectorAll('.poop').forEach(e=>e.remove()); const p=chickenXY(); particle(count?'✨':'🧹',p.x,p.y); say({t:count?'房間香香的，好舒服！':'房間本來就很整齊，但謝謝你檢查！',tier:'green'}); Save.write(st); render(); });
 $('sleepBtn').addEventListener('click',(e)=>{
   e.stopPropagation(); Snd.init(); if(!st||st.stage==='egg') return;
   if(sleeping){ wakeUp(); return; }
