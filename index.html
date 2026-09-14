@@ -529,11 +529,13 @@ async function processPending(){
   DB.scores[d.game] = DB.scores[d.game].slice(0,100);
   saveLocal();
   // 上傳 Firebase，等結果回來再誠實回報
-  const ok = await saveToFirebase(d.game, DB.name, score, d.detail, g);
+  const allowOnline = !isChildMode();
+  const ok = allowOnline && await saveToFirebase(d.game, DB.name, score, d.detail, g);
   localStorage.removeItem(LS_PENDING);
   buildLobby();
-  toast(ok ? '✅ '+g.name+' 成績已上傳排行榜！'
-           : '📱 '+g.name+' 已存本機（線上上傳失敗，稍後再試）');
+  toast(allowOnline
+    ? (ok ? '✅ '+g.name+' 成績已上傳排行榜！' : '📱 '+g.name+' 已存本機（線上上傳失敗，稍後再試）')
+    : '📱 '+g.name+' 成績已存本機（兒童模式不會上傳）');
 }
 processPending();
 
