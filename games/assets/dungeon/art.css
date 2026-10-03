@@ -1,0 +1,38 @@
+/* Adventure journal: ink, brass, moss and parchment. */
+:root{--bg:#0e191c;--bg2:#172529;--bg3:#203136;--border:#3d5050;--accent:#d7bb80;--gold:#edc979;--text:#f0e8d6;--sub:#a7b8ae;--green:#a5cf98;--blue:#99cbd1;--red:#ef9b84}
+body{background:radial-gradient(ellipse at top,#31433e,#0b151b 75%);font-family:Georgia,'Noto Serif TC','Segoe UI',sans-serif}
+.app{box-shadow:0 0 80px #0008;border-inline:1px solid #52605655}
+.topbar{background:linear-gradient(#243630,#172529);padding-top:calc(env(safe-area-inset-top,0px) + 14px)}
+.game-title{letter-spacing:2px;text-shadow:0 2px #000;font-size:17px}
+.status-bar{background:#142326;padding-block:7px}.lv-badge{background:#302c21;border-color:#947c4c}
+.map-wrap{position:relative;border-top:1px solid #8b805455;background:#0d1b20;box-shadow:inset 0 0 50px #0008;margin-top:0}
+.map-wrap:after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse,transparent 40%,#06101988);z-index:1}
+.controls{background:linear-gradient(#253633,#132226);padding-top:9px;gap:8px;border-top:1px solid #a0885555}
+.dpad-btn,.act-btn{background:linear-gradient(#344944,#20312e);border:1px solid #71806a66;box-shadow:inset 0 1px #ffffff15,0 3px #081416;color:#eadbb8}
+.dpad-btn:active,.act-btn:active{background:#465c4c;box-shadow:inset 0 2px 4px #0006}
+.modal-sheet{background:linear-gradient(145deg,#223532,#152428);border-color:#897b5355;box-shadow:0 -15px 80px #0008}
+.modal-head{background:#10212588;border-color:#8a795455}.modal-title{color:#e7c78c;letter-spacing:1px}
+.inv-slot,.eq-slot,.eq-weapon-row,.merchant-item{background:linear-gradient(135deg,#30413b,#1b2e30);border-color:#60706766;box-shadow:inset 0 1px #ffffff0a}
+.inv-slot.gold{border-color:#d9b96999;background:linear-gradient(135deg,#4d4530,#203333)}
+.item-card{background:linear-gradient(145deg,#2b3d36,#14242a);box-shadow:0 15px 90px #0009}.ic-flavor{background:#0c1c2077;color:#b6c2ab}
+.mi-buy,.alloc-btn,.ic-btn-equip{color:#162422;background:#d7bb80}
+.combat-overlay{background:radial-gradient(ellipse at 50% 25%,var(--scene-light,#75965b),var(--scene-dark,#173c31) 65%,#0b1921);overflow:hidden}
+.combat-overlay:before{content:'';position:absolute;inset:0;background:linear-gradient(170deg,transparent 38%,#07191e88 39%,transparent 41%),linear-gradient(25deg,#05151acc 35%,transparent 36%);pointer-events:none}
+.combat-center{padding:0 12px;justify-content:flex-start;background:linear-gradient(transparent 30%,#0a1a20cc 75%)}
+.cb-mon-group{margin-top:calc(env(safe-area-inset-top,0px) + 96px);padding:10px 0 20px;gap:12px;flex-wrap:nowrap;align-items:flex-end;background:radial-gradient(ellipse at bottom,#e1d0a322,transparent 70%);min-height:155px}
+.cb-mon-unit{flex:1;min-width:0;max-width:120px}.cb-mon-sprite{width:100%;max-width:112px;filter:drop-shadow(0 8px 4px #0005);line-height:0}.cb-mon-sprite svg{display:block;width:100%;height:auto}
+.cb-mon-unit-name{max-width:115px;font-size:12px;color:#f3e3bf;text-shadow:0 2px 3px #000}.cb-mon-unit-hptrack{width:82px;height:7px}.cb-mon-unit-hptxt{color:#dfdfc8}
+.cb-log{max-height:18dvh;background:#102126aa;border:1px solid #d6bc7433;border-radius:12px;margin:6px 0;padding:8px 12px}.cb-line{font-size:12px}
+.cb-q{margin-top:8px;padding:14px 8px;background:#efe3c9;color:#273b3c;border:2px solid #b99b66;border-radius:14px;box-shadow:0 5px 0 #08191c55}.cb-q-text{font-family:Georgia,serif;font-size:29px;letter-spacing:2px}
+.cb-timer-track{background:#c8bd9f;border-color:#8f8a72}.cb-footer{margin-top:8px;padding:4px 3px 95px}.cb-row{min-height:36px}
+.ans-btn{width:83px;background:linear-gradient(135deg,#f2e5c8,#cfbd94);border-color:#9e865a;color:#233838;box-shadow:0 4px 16px #0004}.ans-btn .ans-label{color:#606850}
+#ans-tl,#ans-tr{padding-top:calc(env(safe-area-inset-top,0px) + 14px);min-height:78px}
+.toast{background:#203b36;border-color:#d7bb80;color:#f2dfb3;white-space:normal;width:max-content;max-width:90vw}
+@media(max-height:700px){.cb-mon-group{margin-top:80px;min-height:105px;padding-block:0}.cb-mon-sprite{max-width:80px}.cb-log{max-height:13dvh}.cb-q{padding:8px}.cb-q-text{font-size:23px}.cb-footer{margin-top:3px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+.combat-overlay{background-image:var(--scene-art);background-position:center top;background-size:auto 48%;background-repeat:no-repeat;background-color:var(--scene-dark,#173c31)}
+#player-svg-wrap{z-index:2;filter:drop-shadow(0 2px 2px #0008)}
+#quick-bar{z-index:3}
+#dungeon-overlay{background:radial-gradient(ellipse at top,#34433b,#111e25)!important}
+#dungeon-canvas{border:2px solid #ac9361;border-radius:8px;box-shadow:0 12px 40px #0006}
+.combat-center{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}

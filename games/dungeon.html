@@ -399,6 +399,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   right:.5rem;background:rgba(7,7,15,.85);border:.5px solid var(--accent);
   border-radius:8px;padding:3px 8px;font-size:10px;color:#c4b5fd;z-index:10;pointer-events:none}
 </style>
+<link rel="stylesheet" href="assets/dungeon/art.css">
 </head><body>
 <div class="app" id="app">
   <div class="topbar">
@@ -580,16 +581,16 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 <!-- COMBAT OVERLAY -->
 <div class="combat-overlay" id="combat-overlay">
   <button class="ans-btn" id="ans-tl" onclick="answerQ('tl')">
-    <span id="ans-tl-val">?</span><span class="ans-label">TL</span>
+    <span id="ans-tl-val">?</span><span class="ans-label">選擇答案</span>
   </button>
   <button class="ans-btn" id="ans-tr" onclick="answerQ('tr')">
-    <span id="ans-tr-val">?</span><span class="ans-label">TR</span>
+    <span id="ans-tr-val">?</span><span class="ans-label">選擇答案</span>
   </button>
   <button class="ans-btn" id="ans-bl" onclick="answerQ('bl')">
-    <span id="ans-bl-val">?</span><span class="ans-label">BL</span>
+    <span id="ans-bl-val">?</span><span class="ans-label">選擇答案</span>
   </button>
   <button class="ans-btn" id="ans-br" onclick="answerQ('br')">
-    <span id="ans-br-val">?</span><span class="ans-label">BR</span>
+    <span id="ans-br-val">?</span><span class="ans-label">選擇答案</span>
   </button>
   <div class="combat-center">
     <div class="cb-mon-group" id="cb-mon-group"></div>
@@ -715,6 +716,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="toast" id="toast"></div>
 
+<script src="assets/dungeon/art.js"></script>
 <script>
 'use strict';
 // ═══════════════════════════════════════════════
@@ -2694,6 +2696,7 @@ function initCanvas() {
 }
 
 function drawTerrain(ctx, ter, cx, cy, size, wx, wy) {
+  if (DungeonArt.drawTerrain(ctx, ter, cx, cy, size, wx, wy, getContinent(wx, wy), !!getVillageAt(wx, wy))) return;
   // 用座標當 seed 做偽隨機，讓每格細節固定
   const s1 = Math.sin(wx * 127.1 + wy * 311.7) * 43758.5453;
   const s2 = Math.sin(wx * 269.5 + wy * 183.3) * 43758.5453;
@@ -2997,8 +3000,7 @@ function renderMap() {
           if (mon) {
             ctx.fillStyle = MDEFS[mon.name]?.elite ? 'rgba(245,158,11,0.35)' : 'rgba(248,113,113,0.35)';
             ctx.fillRect(cx, cy, TILE, TILE);
-            ctx.font = `${Math.floor(TILE * 0.65)}px serif`;
-            ctx.fillText(MDEFS[mon.name]?.icon || '👾', cx + 3, cy + TILE - 3);
+            DungeonArt.drawMonster(ctx, mon.name, MDEFS[mon.name], cx, cy, TILE);
           }
         }
       }
@@ -3006,9 +3008,9 @@ function renderMap() {
   }
 
   // Player fixed at center (col=7, row=7)
-  ctx.fillStyle = '#3b0764';
+  ctx.fillStyle = 'rgba(235,192,108,.18)';
   ctx.fillRect(7 * TILE, 7 * TILE, TILE, TILE);
-  ctx.strokeStyle = '#a855f7';
+  ctx.strokeStyle = '#e6c181';
   ctx.lineWidth = 2;
   ctx.strokeRect(7 * TILE + 1, 7 * TILE + 1, TILE - 2, TILE - 2);
 
@@ -3071,7 +3073,7 @@ function isHiddenUnlocked() {
 
 function move(dx, dy) {
   unlockAudio();
-  if (moveCooldown || combatActive || deathActive) return;
+  if (moveCooldown || combatActive || deathActive || dungeonState || document.querySelector('.modal-back.open,.item-card-back.open')) return;
   const nx = px + dx, ny = py + dy;
 
   // 隱藏大陸解鎖檢查：需礦工Lv.50技能或角色Lv.80+
@@ -3944,11 +3946,11 @@ function startCombat(monName, wx, wy, lv) {
   });
 
   combatActive = true;
+  DungeonArt.setScene(getContinent(wx, wy));
   updateBGMForContext();
   cbTextQ = []; cbTextRunning = false;
   answerActive = false;
   resetCombatSkills();
-  tickSkillCDs();
 
   document.getElementById('combat-overlay').classList.add('active');
   // 保護措施：清除可能殘留的 inline position 樣式（避免舊版bug造成畫面錯位）
@@ -3995,7 +3997,7 @@ function renderMonsterGroup() {
     const pct = Math.max(0, Math.floor(m.hp / m.maxHp * 100));
     const isDead = m.hp <= 0;
     return `<div class="cb-mon-unit ${isDead?'dead':''}" id="cb-mon-unit-${m.uid}" data-uid="${m.uid}">
-      <div class="cb-mon-sprite" id="cb-mon-sprite-${m.uid}">${m.icon}</div>
+      <div class="cb-mon-sprite" id="cb-mon-sprite-${m.uid}">${DungeonArt.monsterSVG(m.name, m.element, m.elite)}</div>
       <div class="cb-mon-unit-name">${m.name}</div>
       <div class="cb-mon-unit-hptrack"><div class="cb-mon-unit-hpfill" id="cb-mon-hpfill-${m.uid}" style="width:${pct}%"></div></div>
       <div class="cb-mon-unit-hptxt" id="cb-mon-hptxt-${m.uid}">${Math.max(0,m.hp)}/${m.maxHp}</div>
@@ -4084,6 +4086,7 @@ function attackAllMonsters(dmgEach, label, elem) {
 function startCombatTurn(monGoesFirst) {
   if (!combatActive) return;
   combat.turn++;
+  if (combat.turn > 1) { tickSkillCDs(); tickEffects(); }
   combat.answered = false;
 
   // Paladin regen
@@ -4187,6 +4190,8 @@ function showQuestion() {
     });
   });
   answerActive = true;
+  combat.questionStartedAt = performance.now();
+  combat.questionDuration = tl;
   cbTimer = setTimeout(() => onTimeout(), tl * 1000);
 }
 
@@ -4201,7 +4206,7 @@ function answerQ(corner) {
   const correct = btn.dataset.correct === '1';
   const fill = document.getElementById('cb-timer');
   const tl = Math.max(3, combat.timeLimit - combat.slowPenalty - (hasStatus('slow') ? 2 : 0));
-  const remaining = parseFloat(fill.style.width) / 100 * tl;
+  const remaining = Math.max(0, tl - (performance.now() - combat.questionStartedAt) / 1000);
   fill.style.transition = 'none'; fill.style.width = '0%';
 
   btn.classList.add(correct ? 'correct' : 'wrong');
@@ -4296,9 +4301,13 @@ function resolvePlayerAttack(timeLeft, tl) {
     cbLog('cl-g', `🔱 反擊強化！傷害+40%`);
   }
 
+  // Select the actual victim before evaluating elemental matchups.
+  const m = combat.singleTarget || pickRandomAliveMonster();
+  combat.singleTarget = null;
+  if (!m) { setTimeout(() => endCombatVictory(), 300); return; }
   // Element multiplier
   const wpnElem = state.weapon?.element || 'none';
-  const monElem = combat.monster.element || 'none';
+  const monElem = m.element || 'none';
   let elemMult = 1.0;
   if (wpnElem !== 'none' && ELEMENT_COUNTER[wpnElem] === monElem) {
     elemMult = 1.3;
@@ -4319,10 +4328,6 @@ function resolvePlayerAttack(timeLeft, tl) {
   atk = Math.floor(atk * elemMult);
 
   // Monster defense：防禦減傷最多50%，避免低等玩家完全打不動
-  // 一般攻擊：隨機選一個存活怪物作為目標
-  const m = combat.singleTarget || pickRandomAliveMonster();
-  combat.singleTarget = null;
-  if (!m) { setTimeout(() => endCombatVictory(), 300); return; }
   const defReduction = Math.min(0.5, m.def / (m.def + 30));
   // High defense special: if def > atk*2, damage = 1
   if ((m.special === 'highdef') && atk <= m.def * 0.5) {
@@ -4512,7 +4517,7 @@ function nextTurnOrEnd() {
   }
 
   if (allMonstersDead()) { setTimeout(() => endCombatVictory(), 300); return; }
-  setTimeout(() => showQuestion(), 600);
+  setTimeout(() => startCombatTurn(false), 600);
 }
 
 function applyDmgToPlayer(dmg) {
@@ -4614,7 +4619,9 @@ function checkPlayerDead() {
 }
 
 function endCombatVictory() {
+  if (!combatActive || !allMonstersDead()) return;
   combatActive = false;
+  answerActive = false;
   clearTimeout(cbTimer);
   tickBuffBattles();
 
@@ -4641,7 +4648,7 @@ function endCombatVictory() {
     if (!state.seenMonsters.includes(m.name)) state.seenMonsters.push(m.name);
   }
   state.gold += totalGold;
-  state.kills++; state.totalKills++;
+  state.kills += combat.monsters.length; state.totalKills += combat.monsters.length;
   cbLog('cl-p', `✨ 獲得 ${wrapCol('cl-p', totalExp)} 經驗值 · 💰 ${wrapCol('cl-y', totalGold)} 金幣`);
   applyCurseEffects('combat_end');
 
@@ -4728,7 +4735,7 @@ function useJobSkill(skillId) {
       cbLog('cl-p', `❄️ 冰封王座！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結3回合！`);
       showFloatingDmg(dmg, true, false);
       updateCombatHPDisplay();
-      if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 400); return; }
+      if (allMonstersDead()) { answerActive = false; clearTimeout(cbTimer); setTimeout(() => endCombatVictory(), 400); return; }
       break;
     }
     case 'fl_15': { // 冰霜新星（全體AOE，冰霜巫妖）
@@ -4747,7 +4754,7 @@ function useJobSkill(skillId) {
       cbLog('cl-p', `🧊 永恆冰封！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結4回合！`);
       showFloatingDmg(dmg, true, false);
       updateCombatHPDisplay();
-      if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 400); return; }
+      if (allMonstersDead()) { answerActive = false; clearTimeout(cbTimer); setTimeout(() => endCombatVictory(), 400); return; }
       break;
     }
     case 'am_5': { // 烈焰新星（全體AOE，大魔導士）
@@ -4805,7 +4812,7 @@ function useJobSkill(skillId) {
         cbLog('cl-y', `🃏 豪賭大勝！造成 ${wrapCol('cl-y', bigDmg)} 傷害！`);
         showFloatingDmg(bigDmg, true, false);
         updateCombatHPDisplay();
-        if (m.hp <= 0) { setTimeout(() => endCombatVictory(), 400); return; }
+        if (allMonstersDead()) { answerActive = false; clearTimeout(cbTimer); setTimeout(() => endCombatVictory(), 400); return; }
       } else {
         const selfDmg = Math.floor(state.stats.maxHp * 0.3);
         applyDmgToPlayer(selfDmg);
@@ -5169,7 +5176,7 @@ function openBestiary(filterKey) {
       html += `<div onclick="${isSeen ? `showMonsterDetail('${monName}')` : ''}"
         style="display:flex;align-items:center;gap:.6rem;background:#12122a;border:.5px solid ${isSeen?'#2a2a4a':'#1a1a2a'};
         border-radius:10px;padding:.5rem .7rem;cursor:${isSeen?'pointer':'default'}">
-        <span style="font-size:20px;${isSeen?'':'filter:grayscale(1) brightness(.4)'}">${isSeen ? d.icon : '❓'}</span>
+        <span style="display:block;width:44px;flex-shrink:0;font-size:20px;${isSeen?'':'filter:grayscale(1) brightness(.4)'}">${isSeen ? DungeonArt.monsterSVG(monName,d.element,d.elite) : '❓'}</span>
         <div style="flex:1">
           <div style="font-size:12px;font-weight:700;color:${isSeen?'#e5e7eb':'#444'}">${isSeen ? monName : '？？？'}${isSeen?raidTag:''}</div>
           ${isSeen ? `<div style="font-size:9px;color:#666">${d.elite?'👑 菁英/首領':'一般怪物'}</div>` : `<div style="font-size:9px;color:#444">尚未發現${isRaidOnly?'（需挑戰每日副本）':''}</div>`}
@@ -5204,7 +5211,7 @@ function showMonsterDetail(monName) {
   modal.innerHTML = `
     <div style="background:#0d0d22;border:1px solid #7c3aed;border-radius:16px;padding:1.2rem;width:100%;max-width:320px;max-height:85vh;overflow-y:auto">
       <div style="text-align:center;margin-bottom:.8rem">
-        <div style="font-size:40px">${d.icon}</div>
+        <div style="width:130px;margin:auto">${DungeonArt.monsterSVG(monName,d.element,d.elite)}</div>
         <div style="font-size:17px;font-weight:800;color:#e5e7eb">${monName}</div>
         <div style="font-size:11px;color:#888">${d.elite ? '👑 菁英/首領怪物' : '一般怪物'}</div>
       </div>
@@ -6196,7 +6203,7 @@ function updatePlayerSVG() {
   const bodyEl = document.getElementById('svg-body');
   const larmEl = document.getElementById('svg-larm');
   const rarmEl = document.getElementById('svg-rarm');
-  const bodyColor = eq.armor ? rc(eq.armor.rarity) : '#6b7280';
+  const bodyColor = eq.armor ? rc(eq.armor.rarity) : '#c78d48';
   bodyEl.setAttribute('fill', bodyColor);
   larmEl.setAttribute('fill', bodyColor);
   rarmEl.setAttribute('fill', bodyColor);
@@ -7528,10 +7535,8 @@ function load() {
     if (!raw) return;
     const d = JSON.parse(raw);
     // 版本不符，捨棄舊存檔，使用新預設值
-    if (!d.saveVersion || d.saveVersion < SAVE_VERSION) {
-      localStorage.removeItem(LS_KEY);
-      return;
-    }
+    // Preserve legacy progress; defaults below migrate missing fields.
+    if (d.saveVersion > SAVE_VERSION) return;
     Object.assign(state, d);
     killedSet = new Set(state.killedMonsters || []);
     if (d.px !== undefined) px = d.px;
@@ -7615,6 +7620,7 @@ document.addEventListener('keydown', e => {
     'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right',
     'w':'up','s':'down','a':'left','d':'right',
   };
+  if (e.target.matches('input,textarea,select,[contenteditable]')) return;
   const dir = map[e.key];
   if (!dir) return;
   e.preventDefault();
@@ -7763,40 +7769,5 @@ window.addEventListener('resize', () => {
 });
 
 
-// ════════════════════════════════════════════════════════════
-// 🚀 INIT
-// ════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════
-load();
-
-// If no saved position, find start
-if (explored.size === 0) {
-  const sp = findStart();
-  px = sp.x; py = sp.y;
-  // Reveal 5×5 area on first load
-  for (let ey = -2; ey <= 2; ey++) {
-    for (let ex = -2; ex <= 2; ex++) {
-      explored.add(`${sp.x+ex},${sp.y+ey}`);
-    }
-  }
-  state.totalExplored = 25;
-}
-
-// Periodic auto-save
-setInterval(() => save(false), 30000);
-
-// 等 DOM 完整 layout 後再初始化 Canvas 尺寸
-requestAnimationFrame(() => {
-  initCanvas();
-  renderMap();
-  updateUI();
-});
-
-window.addEventListener('resize', () => {
-  initCanvas();
-  renderMap();
-  updateUI();
-});</script>
+</script>
 </body></html>
