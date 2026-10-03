@@ -36,3 +36,39 @@ body{background:radial-gradient(ellipse at top,#31433e,#0b151b 75%);font-family:
 #dungeon-overlay{background:radial-gradient(ellipse at top,#34433b,#111e25)!important}
 #dungeon-canvas{border:2px solid #ac9361;border-radius:8px;box-shadow:0 12px 40px #0006}
 .combat-center{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+/* Second pass: illustrated character, brass frames, more readable battle stage. */
+.art-item-icon{display:inline-flex;width:100%;height:100%;align-items:center;justify-content:center;min-width:0;line-height:0}
+.art-item-icon svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 2px #08191b55)}
+.ic-name{color:#e8d1a3}.ic-sub{color:#b3bfad}.ic-stat{padding-block:5px}
+.inv-slot{position:relative;min-height:84px;border-radius:7px;background:radial-gradient(ellipse at 50% 20%,#42534455,transparent 70%),linear-gradient(135deg,#263d35,#1b2d30)}
+.inv-slot:before{content:'';position:absolute;inset:3px;border:1px solid #b4a47a22;border-radius:4px;pointer-events:none}
+.inv-slot .s-icon{width:42px;height:42px}.inv-slot .s-name{font-size:10px;color:#bac5af}.inv-slot.gold:before{border-color:#d7bb8044}.inv-slot.red:before{border-color:#d7957d44}
+.eq-slot .es-icon,.eq-weapon-row .es-icon{width:43px;height:43px}.mi-icon{width:43px;height:43px}
+.cb-player-portrait{width:53px;height:64px;flex-shrink:0;filter:drop-shadow(0 3px 3px #0006)}
+.cb-player-portrait svg{height:100%;width:100%}.cb-footer-top{gap:5px}.cb-player-hp{flex:1;font-size:11px}
+.cb-mon-group{padding-bottom:8px;gap:8px}.cb-mon-unit{position:relative;border-radius:13px;padding:4px 3px 8px;background:linear-gradient(transparent,#0b202b55);border-bottom:1px solid #d9c08233}
+.cb-mon-sprite svg{animation:creatureBreathe 3.6s ease-in-out infinite;transform-origin:50% 88%}.cb-mon-unit:nth-child(2) svg{animation-delay:-1.2s}.cb-mon-unit:nth-child(3) svg{animation-delay:-2.4s}
+.cb-mon-unit-hptrack{background:#182c2b;border-color:#d8bd7a55;width:82%;max-width:91px}.cb-mon-unit-hpfill{background:linear-gradient(90deg,#a77758,#dcaf7e)}
+.combat-overlay[data-boss=true] .cb-mon-group{background:radial-gradient(ellipse at bottom,#e3c68933,transparent 75%)}
+.combat-overlay[data-boss=true] .cb-mon-unit-name{color:#edcb88}
+.cb-mon-sprite.shake svg{animation:creatureHit .3s ease-out}
+.cb-mon-unit.dead{filter:grayscale(1);transition:opacity .5s,transform .5s,filter .3s}
+.art-impact{position:fixed;width:80px;height:80px;pointer-events:none;z-index:219;transform:translate(-50%,-50%);animation:impactBloom .55s ease-out forwards}
+.art-impact svg{width:100%;height:100%}.art-damage-number{margin-left:-14px;-webkit-text-stroke:.6px #1c3438;text-shadow:0 3px 0 #173439,0 0 16px #e7c48166!important}
+@keyframes creatureBreathe{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-2px) scaleY(1.025)}}
+@keyframes creatureHit{0%,100%{filter:brightness(1)}20%{filter:brightness(1.8)}50%{filter:brightness(.8)}}
+@keyframes impactBloom{0%{opacity:.8;transform:translate(-50%,-50%) scale(.2) rotate(-15deg)}45%{opacity:.5;transform:translate(-50%,-50%) scale(.85) rotate(10deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.1) rotate(20deg)}}
+#death-overlay{background:radial-gradient(ellipse at 50% 35%,#45514a,#0c181e 70%)!important}
+#inherit-overlay .inherit-slot{background:linear-gradient(135deg,#304139,#172a2d);border-color:#867a5466}
+#inherit-overlay .inherit-slot.selected{border-color:#e2c184;box-shadow:0 0 15px #e2c18433}
+@media(max-width:350px){.cb-mon-group{gap:3px}.cb-mon-unit-name{font-size:10px}.cb-player-hp{font-size:10px}.act-btn{width:43px}.dpad-btn{width:42px;height:42px}.controls{padding-inline:8px}.cb-player-portrait{width:42px;height:54px}}
+@media(max-height:650px){.cb-mon-group{margin-top:78px;min-height:100px}.cb-mon-sprite{max-width:68px}.cb-mon-unit-hptxt{font-size:8px}.cb-log{max-height:10dvh}.cb-player-portrait{height:44px;width:38px}.cb-q-text{font-size:22px}.cb-row{min-height:30px}.cb-footer{padding-bottom:88px}}
+@media(prefers-reduced-motion:reduce){.cb-mon-sprite svg,.art-impact{animation:none!important}.art-impact{display:none}}
+.act-btn [data-art-icon]{width:25px;height:25px;line-height:0}.act-btn [data-art-icon] svg{width:100%;height:100%}
+.gen-badge{position:static;color:#d9c394;font-size:9px;white-space:nowrap;padding:2px 5px;border-color:#b39b6155;z-index:auto;background:#243630}
+#map-overlay-bar{z-index:3;background:linear-gradient(#162a2cf0,#15292b33)!important;border-top:1px solid #b39b6144}
+#map-overlay-bar button{pointer-events:auto}
+.death-portrait{width:140px;height:140px;opacity:.55;filter:grayscale(.6);transform:rotate(-12deg);margin-bottom:22px;pointer-events:none}
+.death-portrait svg{width:100%;height:100%}.death-overlay{flex-direction:column}
+.inherit-sheet{background:linear-gradient(145deg,#2c3d35,#16292e);border-color:#a78d6655}.inherit-title{color:#e3c78f}.inherit-slot .is-icon{width:48px;height:48px;margin:auto}.inherit-slot .is-name{font-size:11px}
+.inherit-confirm{background:linear-gradient(#ddc78f,#b79b64);color:#243833;border:1px solid #e8d4a1}
