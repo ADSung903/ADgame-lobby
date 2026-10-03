@@ -11,6 +11,34 @@ window.DungeonObjects = (()=>{
     case 'spear':return P('M50 5 L63 24 L57 41 L43 41 L37 24 Z',c)+R(46,39,8,54,'#9d7d59')+P('M50 6 L50 40')+R(40,42,20,4,'#d9bd81');
     default:return P('M50 7 L63 22 L58 63 L42 63 L37 22 Z',c)+P('M50 9 V59')+R(30,61,40,7,'#d9bc7e')+R(44,68,12,19,'#8a6b50')+E(50,91,9,5,'#d9bc7e');
   }}
+  // Large semantic pictograms remain distinct even without rarity colours.
+  function itemMark(k){
+    const marks={
+      identify:E(47,46,12,12,'none')+P('M56 55 L69 68'),
+      enhance_normal:P('M38 52 H64 M51 39 V65'),
+      enhance_lucky:P('M51 53 Q28 48 37 36 Q48 27 51 46 Q54 27 65 36 Q75 48 55 53 Q72 56 65 68 Q54 77 51 59 Q47 77 36 68 Q27 56 47 53 M51 56 V76'),
+      enhance_holy:P('M52 30 L56 45 L71 50 L56 55 L52 72 L47 55 L32 50 L47 45 Z','#fff1be'),
+      enhance_protect:P('M51 30 L69 38 L66 59 L51 72 L36 59 L33 38 Z','#a8c5bd')+P('M43 50 L49 57 L60 43'),
+      enhance_cursed:E(51,46,14,15,'#dfd0ba')+R(43,57,16,10,'#dfd0ba')+E(45,45,3,4,'#253839')+E(57,45,3,4,'#253839')+P('M48 66 V61 M54 66 V61'),
+      purify:P('M37 68 L66 35 M34 39 L40 31 L46 39 L40 46 Z M59 65 L65 57 L71 65 L65 72 Z'),
+      teleport_near:P('M30 49 L51 31 L72 49 M36 46 V69 H66 V46 M47 69 V55 H56 V69'),
+      teleport_any:E(51,51,18,22,'none')+P('M27 52 H60 M51 42 L61 52 L51 62'),
+      job_reset:P('M34 46 Q38 28 57 34 L67 43 M67 33 V44 H56 M68 57 Q62 75 44 68 L34 60 M34 70 V59 H45'),
+      job_reincarnate:P('M31 50 Q40 30 51 50 Q63 70 73 50 Q63 30 51 50 Q40 70 31 50 Z'),
+      raid_ticket:P('M30 36 H72 V46 Q61 51 72 56 V70 H30 V56 Q41 51 30 46 Z','#e9c78a')+P('M51 39 V44 M51 49 V54 M51 59 V64'),
+      job_exp_up:P('M31 38 Q41 32 51 40 Q61 32 72 38 V67 Q61 61 51 70 Q41 61 31 67 Z','#b5d3cd')+P('M51 40 V70 M44 52 H59 M52 45 V59'),
+      heal:P('M39 52 H63 M51 40 V64'),
+      antidote:P('M43 65 Q64 55 51 40 Q39 28 46 25 M37 47 H65 M39 57 H63'),
+      cure_all:P('M51 31 L56 45 L71 50 L56 55 L51 70 L46 55 L31 50 L46 45 Z'),
+      str_boost:P('M34 62 L39 43 L48 40 L52 50 L62 43 L68 50 L64 62 Z'),
+      agi_boost:P('M30 54 H43 L50 40 H59 L56 56 L71 62 L68 69 H45 L39 62 H29'),
+      int_boost:E(51,48,17,11,'none')+E(51,48,5,7,'#cfe5d7')+P('M51 31 V26 M35 35 L30 30 M67 35 L72 30'),
+      luk_boost:P('M51 31 L57 44 L72 46 L61 56 L64 71 L51 63 L38 71 L41 56 L30 46 L45 44 Z'),
+      berserk:P('M53 29 L35 54 H49 L44 74 L68 47 H54 Z'),
+      invincible:P('M51 30 L69 38 V57 L51 72 L33 57 V38 Z')
+    };
+    return marks[k]||marks[k.startsWith('heal')?'heal':'enhance_normal'];
+  }
   function itemSVG(it){let b='',c=rare[it.rarity]||rare.white,k=it.subtype||'';
     if(it.unidentified)b=P('M27 25 L51 13 L75 27 L72 75 L49 86 L26 73 Z','#889b97')+P('M41 39 Q42 25 57 29 Q72 40 55 50 L51 60')+E(51,69,2,2,'#ded3b7');
     else if(it.type==='weapon')b=weapon(k,c);
@@ -23,8 +51,15 @@ window.DungeonObjects = (()=>{
       else if(k.startsWith('ring'))b=E(50,59,25,27,'none')+E(50,59,17,19,'none')+P('M36 29 L50 16 L65 29 L60 42 L41 42 Z',c)+P('M50 17 V40 M37 29 H63');
       else if(k.startsWith('earring'))b=E(50,52,23,25,'none')+P('M50 65 L64 80 L50 94 L36 80 Z',c)+E(50,25,5,5,'#d9bc7e');
       else b=P('M18 18 Q12 71 50 82 Q88 71 82 18')+P('M50 51 L68 68 L50 88 L32 68 Z',c)+P('M50 53 V85 M33 68 H67');
-    }else if(it.type==='potion'){const liquid=k.includes('heal')?'#c98071':k.includes('int')?'#91b6c9':k.includes('agi')?'#9bb780':k.includes('cure')||k.includes('antidote')?'#bda0c6':'#d6ba78';b=R(39,10,22,12,'#ac8d63')+R(34,21,32,10,'#c4d2b8')+P('M38 31 Q38 43 24 53 Q10 76 28 86 Q50 97 72 86 Q90 76 76 53 Q62 43 62 31 Z','#c4d2b8')+P('M24 62 Q50 56 77 62 Q81 87 50 89 Q18 88 24 62 Z',liquid)+P('M35 42 L27 59 M28 70 V76')+P('M45 70 H55 M50 65 V76','#f0ddbf');}
-    else if(it.type==='scroll')b=P('M23 20 H70 Q87 18 86 33 L80 42 H69 V81 Q52 93 28 82 L21 71 V32 Q12 30 14 22 Z','#e7d8b8')+P('M22 21 Q35 18 33 32 H14 M70 21 Q60 31 70 38 H83 M22 73 Q43 69 35 86')+P('M41 43 H61 M41 51 H57 M41 59 H61')+E(56,72,9,9,c);
+    }else if(it.type==='potion'){
+      const heal=k.startsWith('heal'), liquid=heal?'#c98071':k==='int_boost'?'#91b6c9':k==='agi_boost'?'#9bb780':'#d6ba78';
+      const bottle=heal?'M38 29 V39 Q18 44 18 65 Q17 88 50 90 Q83 88 82 65 Q82 44 62 39 V29 Z':k==='antidote'||k==='cure_all'?'M40 29 V43 L22 79 Q19 89 50 89 Q81 89 78 79 L60 43 V29 Z':'M37 29 L25 48 V82 L38 90 H63 L75 82 V48 L63 29 Z';
+      b=R(39,9,22,13,'#ac8d63')+R(34,21,32,9,'#c4d2b8')+P(bottle,liquid)+R(29,35,44,42,'#eddfbf',9)+itemMark(k);
+      if(heal){const n=['heal_s','heal_m','heal_l','heal_xl','heal_full'].indexOf(k)+1;for(let i=0;i<n;i++)b+=R(30+i*9,80,6,5,'#f4e6ce');}
+    }
+    else if(it.type==='scroll'){
+      b=P('M23 20 H70 Q87 18 86 33 L80 42 H69 V81 Q52 93 28 82 L21 71 V32 Q12 30 14 22 Z','#e7d8b8')+P('M22 21 Q35 18 33 32 H14 M70 21 Q60 31 70 38 H83 M22 73 Q43 69 35 86')+itemMark(k)+R(43,78,19,6,c);
+    }
     else b=E(50,51,29,30,'#d6bb7e')+E(50,51,21,23,'#c09f62')+P('M50 35 L61 51 L50 67 L39 51 Z','#ead7a5');
     return wrap(b);
   }

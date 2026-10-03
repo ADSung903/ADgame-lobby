@@ -72,3 +72,14 @@ body{background:radial-gradient(ellipse at top,#31433e,#0b151b 75%);font-family:
 .death-portrait svg{width:100%;height:100%}.death-overlay{flex-direction:column}
 .inherit-sheet{background:linear-gradient(145deg,#2c3d35,#16292e);border-color:#a78d6655}.inherit-title{color:#e3c78f}.inherit-slot .is-icon{width:48px;height:48px;margin:auto}.inherit-slot .is-name{font-size:11px}
 .inherit-confirm{background:linear-gradient(#ddc78f,#b79b64);color:#243833;border:1px solid #e8d4a1}
+
+/* Keep the first and last consumables reachable on every viewport. */
+#quick-bar{max-width:calc(100% - 12px);overflow-x:auto;overflow-y:hidden;justify-content:flex-start;padding:5px 2px 8px;background:#102126df;border:1px solid #9d8c6355;border-radius:10px;scrollbar-width:thin;scrollbar-color:#d7bb80 #203136;touch-action:pan-x;overscroll-behavior-x:contain}
+#quick-bar::-webkit-scrollbar,.cb-row::-webkit-scrollbar{display:block;height:4px}
+#quick-bar::-webkit-scrollbar-thumb,.cb-row::-webkit-scrollbar-thumb{background:#d7bb80;border-radius:4px}
+.quick-item{position:relative;flex:0 0 64px;min-height:68px;padding:4px 3px;border:1px solid #667b70;border-radius:8px;background:#203630;color:#f0e8d6;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font:inherit}
+.quick-icon{width:34px;height:34px;display:block}.quick-name{font-size:11px;line-height:1.25;overflow-wrap:anywhere}.quick-count{position:absolute;right:2px;top:2px;font-size:10px;background:#122623;border-radius:3px;padding:1px 3px;color:#edc979}
+.quick-item:focus-visible,.inv-slot:focus-visible{outline:2px solid #edc979;outline-offset:2px}
+.cb-row{min-width:0;max-width:100%;justify-content:flex-start;scrollbar-width:thin;padding-bottom:5px;flex-shrink:0}
+.modal-body{min-height:0;min-width:0}.inv-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.inv-slot{min-width:0;padding:8px 4px;min-height:108px}.inv-slot .s-icon{width:48px;height:48px}.inv-slot .s-name{font-size:12px;line-height:1.4}.s-purpose{font-size:10px;color:#b7c5b9;line-height:1.4;overflow-wrap:anywhere}.item-card{min-height:0;overflow-wrap:anywhere}
+@media(max-width:350px){.inv-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
