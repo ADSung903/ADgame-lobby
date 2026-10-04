@@ -399,7 +399,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   right:.5rem;background:rgba(7,7,15,.85);border:.5px solid var(--accent);
   border-radius:8px;padding:3px 8px;font-size:10px;color:#c4b5fd;z-index:10;pointer-events:none}
 </style>
-<link rel="stylesheet" href="assets/dungeon/art.css">
+<link rel="stylesheet" href="assets/dungeon/art.css?v=20261004-items">
 </head><body>
 <div class="app" id="app">
   <div class="topbar">
@@ -575,8 +575,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
         <div class="cb-player-hp" id="cb-player-hp">❤️ 100</div><span id="cb-status-bar"></span>
         <button class="cb-escape" id="cb-escape" onclick="tryEscape()">🏃 逃跑</button>
       </div>
-      <div class="cb-row" id="cb-heal-bar"></div>
-      <div class="cb-row" id="cb-buff-bar"></div>
+      <div class="cb-row" id="cb-heal-bar" role="group" aria-label="回復與解藥"></div>
+      <div class="cb-row" id="cb-buff-bar" role="group" aria-label="增益藥水"></div>
       <div class="cb-row" id="cb-skill-btns"></div>
     </div>
   </div>
@@ -688,9 +688,9 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="toast" id="toast"></div>
 
-<script src="assets/dungeon/creatures.js"></script>
-<script src="assets/dungeon/objects.js"></script>
-<script src="assets/dungeon/art.js"></script>
+<script src="assets/dungeon/creatures.js?v=20261004-items"></script>
+<script src="assets/dungeon/objects.js?v=20261004-items"></script>
+<script src="assets/dungeon/art.js?v=20261004-items"></script>
 <script>
 'use strict';
 // ═══════════════════════════════════════════════
@@ -6182,16 +6182,23 @@ function updateQuickBar() {
   const heals = buildGroup(HEAL_SUBTYPES);
   const buffs = buildGroup(BUFF_SUBTYPES);
 
-  function slotHtml(p) {
-    return `<button class="quick-item" onclick="quickUsePotion(${p.invIdx})" aria-label="使用${p.item.name}，剩餘${p.count}個" title="${p.item.name}">
-      <span class="quick-icon">${renderItemIcon(p.item)}</span>
-      <span class="quick-name">${p.item.name.replace('藥水','')}</span>
+  function slotHtml(p, compact=false) {
+    const labels={heal_s:'小回復',heal_m:'回復',heal_l:'大回復',heal_xl:'超級回復',heal_full:'不死藥',antidote:'解毒',cure_all:'萬能解藥',str_boost:'力量',agi_boost:'敏捷',luk_boost:'幸運',int_boost:'智慧',berserk:'狂暴',invincible:'無敵'};
+    const effect=p.item.effect||{};
+    const effects={antidote:'解除中毒',cure_all:'解除異常',berserk:'攻×2／防0',invincible:'免疫傷害'};
+    const buffName={str:'攻',agi:'敏',luk:'幸',int:'智'};
+    const hint=effect.heal==='full' ? 'HP 全滿' : effect.heal ? `HP +${effect.heal}` : effect.healPct ? `HP +${Math.round(effect.healPct*100)}%` : effects[p.item.subtype] || (effect.buff&&effect.amt?`${buffName[effect.buff]||'增益'} +${Math.round(effect.amt*100)}%`:'點擊使用');
+    const label=labels[p.item.subtype]||p.item.name.replace('藥水','');
+    return `<button class="quick-item${compact?' quick-item-combat':''}" onclick="quickUsePotion(${p.invIdx})" aria-label="使用${p.item.name}，${hint}，剩餘${p.count}個" title="${p.item.name}：${p.item.desc||hint}">
+      <span class="quick-icon" aria-hidden="true">${renderItemIcon(p.item)}</span>
+      <span class="quick-name">${label}</span>
+      ${compact?`<span class="quick-effect">${hint}</span>`:''}
       <span class="quick-count">×${p.count}</span>
     </button>`;
   }
 
-  const healHtml = heals.map(slotHtml).join('');
-  const buffHtml = buffs.map(slotHtml).join('');
+  const healHtml = heals.map(p=>slotHtml(p)).join('');
+  const buffHtml = buffs.map(p=>slotHtml(p)).join('');
 
   // 地圖底部快捷欄：維持原本合併顯示
   let mapHtml = healHtml;
@@ -6203,9 +6210,9 @@ function updateQuickBar() {
 
   // 戰鬥畫面：藥水／增益藥水／技能 三層分開顯示，避免技能被擠出畫面
   const healBar = document.getElementById('cb-heal-bar');
-  if (healBar) healBar.innerHTML = healHtml;
+  if (healBar) healBar.innerHTML = heals.map(p=>slotHtml(p,true)).join('');
   const buffBar = document.getElementById('cb-buff-bar');
-  if (buffBar) buffBar.innerHTML = buffHtml;
+  if (buffBar) buffBar.innerHTML = buffs.map(p=>slotHtml(p,true)).join('');
 }
 
 

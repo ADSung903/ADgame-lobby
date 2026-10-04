@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),sharp=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/sharp':'sharp');
+const c={};c.window=c;vm.createContext(c);vm.runInContext(fs.readFileSync('games/assets/dungeon/objects.js','utf8'),c);
+const stamp=(svg,x,y)=>`<g transform="translate(${x} ${y})">${svg.replace('<svg ', '<svg width="96" height="96" ')}</g>`;
+const txt=(s,x,y,size=13,color='#e5d7bb')=>`<text x="${x}" y="${y}" font-family="Noto Sans CJK TC" font-size="${size}" fill="${color}">${s}</text>`;
+let body='',y=76;
+function section(title,items){body+=txt(title,28,y,19,'#e4c58c');y+=17;items.forEach((it,i)=>{const x=28+i%8*127,yy=y+Math.floor(i/8)*139;body+=`<rect x="${x}" y="${yy}" width="116" height="127" rx="8" fill="#213733" stroke="#70807455"/>`+stamp(c.DungeonObjects.itemSVG(it),x+10,yy+2)+txt(it.name,x+8,yy+117,12);});y+=Math.ceil(items.length/8)*139+24;}
+const elements=Object.keys(c.DungeonObjects.elementArt);section('元素武器 · 外輪廓與紋章',elements.map(element=>({name:c.DungeonObjects.elementArt[element].name+'元素長劍',type:'weapon',subtype:'sword',element,rarity:'gold'})));
+section('套裝護甲 · 甲片、護肩與元素結構',elements.map(element=>({name:c.DungeonObjects.elementArt[element].name+'元素護甲',type:'armor',subtype:'armor',element,rarity:'gold'})));
+section('工藝與材質 · 由木製工具走向符文裝備',[['sword','木製長劍','white'],['axe','符文戰斧','gold'],['bow','精鋼長弓','gold'],['wand','古代符文杖','gold'],['dagger','月影匕首','red'],['spear','精鋼長槍','gold'],['boots','精鋼戰靴','gold'],['helmet','蒼穹鋼盔','gold']].map(([subtype,name,rarity],i)=>({subtype,name,rarity,type:i<6?'weapon':'armor'})));
+section('藥水 · 瓶型、功能符號與容量',[['heal_s','小回復'],['heal_m','回復'],['heal_l','大回復'],['heal_xl','超級回復'],['heal_full','不死藥'],['antidote','解毒'],['cure_all','萬能解藥'],['str_boost','力量'],['agi_boost','敏捷'],['luk_boost','幸運'],['int_boost','智慧'],['berserk','狂暴'],['invincible','無敵']].map(([subtype,name])=>({type:'potion',subtype,name})));
+section('卷軸與票券 · 功能符號與媒介',[['identify','鑑定'],['enhance_normal','普通強化'],['enhance_lucky','幸運強化'],['enhance_holy','神聖強化'],['enhance_protect','保護'],['enhance_cursed','詛咒強化'],['purify','解咒'],['teleport_near','回家'],['teleport_any','定點傳送'],['job_reset','轉職'],['job_reincarnate','輪迴'],['raid_ticket','副本券'],['job_exp_up','職業經驗']].map(([subtype,name])=>({type:'scroll',subtype,name})));
+const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${y+20}"><rect width="1080" height="100%" fill="#15292c"/>${txt('礦洞冒險 · 元素裝備與戰鬥道具造型',28,36,25,'#e7ce98')}${body}</svg>`;
+sharp(Buffer.from(svg)).png({palette:true,colours:128,dither:0}).toFile('docs/dungeon-items-preview.png').then(()=>console.log('Rendered item design preview'));

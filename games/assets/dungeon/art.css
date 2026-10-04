@@ -83,3 +83,12 @@ body{background:radial-gradient(ellipse at top,#31433e,#0b151b 75%);font-family:
 .cb-row{min-width:0;max-width:100%;justify-content:flex-start;scrollbar-width:thin;padding-bottom:5px;flex-shrink:0}
 .modal-body{min-height:0;min-width:0}.inv-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.inv-slot{min-width:0;padding:8px 4px;min-height:108px}.inv-slot .s-icon{width:48px;height:48px}.inv-slot .s-name{font-size:12px;line-height:1.4}.s-purpose{font-size:10px;color:#b7c5b9;line-height:1.4;overflow-wrap:anywhere}.item-card{min-height:0;overflow-wrap:anywhere}
 @media(max-width:350px){.inv-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Battle consumables have independent, compact text-bearing controls. */
+.cb-row .quick-item-combat{flex:0 0 60px;width:60px;height:62px;min-height:62px;padding:3px 2px;gap:1px;justify-content:flex-start;overflow:visible;border-radius:6px;font-family:'Segoe UI',sans-serif}
+.cb-row .quick-item-combat .quick-icon{display:block;flex:0 0 24px;width:24px;height:24px;min-height:24px}
+.cb-row .quick-item-combat .quick-name{display:block;flex:none;width:100%;height:15px;min-height:15px;font-size:11px;font-weight:700;line-height:15px;color:#fff0cf;white-space:nowrap;overflow:visible;-webkit-text-fill-color:#fff0cf}
+.cb-row .quick-item-combat .quick-effect{display:block;flex:none;width:100%;height:14px;min-height:14px;font-size:9px;line-height:14px;color:#bfe0c5;white-space:nowrap;-webkit-text-fill-color:#bfe0c5}
+.cb-row .quick-item-combat .quick-count{font-size:9px;line-height:12px;top:1px;right:1px;padding:0 2px;pointer-events:none}
+#cb-heal-bar,#cb-buff-bar{min-height:0;align-items:flex-start;overflow-y:hidden;padding-top:2px;padding-bottom:7px;touch-action:pan-x;overscroll-behavior-x:contain}
+.quick-icon{flex-shrink:0}.quick-name{flex-shrink:0}

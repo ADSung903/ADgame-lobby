@@ -7,5 +7,14 @@ vm.runInContext('initCanvas();renderMap();updateUI();openInventory();openEquipme
 assert(el('player-svg-wrap').innerHTML.includes('Adventurer'));assert(el('cb-mon-group').innerHTML.includes('data-creature="mushroom"'));
 vm.runInContext('updatePlayerSVG();updatePlayerSVG();',c);assert(el('player-svg-wrap').innerHTML.includes('Adventurer'),'hero survives repeated UI updates');
 assert(vm.runInContext('Object.keys(MDEFS).every(n=>DungeonCreatures.recipes[n])',c));
+// The battle renderer must retain a name, effect and usable inventory index for every potion.
+vm.runInContext(`state.inventory=SHOP_ITEMS.filter(i=>i.type==='potion').map((i,n)=>({...i,id:n}));state.inventory.push({name:'不死藥',type:'potion',subtype:'heal_full',effect:{heal:'full'},id:99});updateQuickBar();`,c);
+const healMarkup=el('cb-heal-bar').innerHTML,buffMarkup=el('cb-buff-bar').innerHTML;
+for(const label of ['小回復','回復','大回復','解毒','萬能解藥','不死藥'])assert(healMarkup.includes(`class="quick-name">${label}</span>`),`missing battle label ${label}`);
+for(const label of ['力量','敏捷','幸運','智慧','狂暴'])assert(buffMarkup.includes(`class="quick-name">${label}</span>`),`missing battle label ${label}`);
+assert(healMarkup.includes('HP +30'));assert(healMarkup.includes('HP 全滿'));assert(!healMarkup.includes('HP +full'));
+assert(buffMarkup.includes('攻 +30%'));assert(buffMarkup.includes('解除異常')===false);
+assert(healMarkup.includes('quick-item-combat'));assert(!el('quick-bar').innerHTML.includes('quick-item-combat'),'compact controls are battle-only');
+assert.equal((healMarkup+buffMarkup).match(/onclick="quickUsePotion\(\d+\)"/g).length,11,'every distinct potion keeps its use action');
 vm.runInContext('enterDungeon(px,py);renderDungeon();',c);
 setImmediate(()=>{vm.runInContext('renderMap();renderDungeon();',c);assert(map.toBuffer('image/png').length>1000);console.log('PASS full-script smoke: initialization, map, inventory, equipment, bestiary, combat SVG, hero refresh and dungeon render; all 75 recipes present. DOM/layout is mocked.');});
