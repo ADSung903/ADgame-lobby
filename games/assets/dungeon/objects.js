@@ -1,7 +1,7 @@
 /* Original hero, equipment and architectural drawings in a shared 100-unit space. */
 window.DungeonObjects = (()=>{
   const rare={white:'#b8c7b9',green:'#92b48a',blue:'#91bdcb',gold:'#dcc080',red:'#d89279',rainbow:'#b8a4d0'};
-  const P=(d,f)=>`<path d="${d}" fill="${f||'none'}"/>`,R=(x,y,w,h,f,rx=2)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${f}"/>`,E=(x,y,rx,ry,f)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}"/>`;
+  const P=(d,f,stroke)=>`<path d="${d}" fill="${f||'none'}" ${stroke?'stroke="'+stroke+'"':''}/>`,R=(x,y,w,h,f,rx=2)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${f}"/>`,E=(x,y,rx,ry,f)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}"/>`;
   const shade=(hex,f)=>'#'+hex.slice(1).match(/../g).map(v=>Math.max(0,Math.min(255,Math.round(parseInt(v,16)*f))).toString(16).padStart(2,'0')).join('');
   const wrap=(body,label='Adventure item',view='0 0 100 100')=>{
     // Local gradient IDs keep simultaneously displayed inventory SVGs independent.
@@ -134,11 +134,15 @@ window.DungeonObjects = (()=>{
     const w=state.weapon?`<g transform="translate(65 33) scale(.32)">${weapon(state.weapon.subtype,rare[state.weapon.rarity]||rare.white,state.weapon)}</g>`:'';
     return wrap(`<g ${facing<0?'transform="translate(100 0) scale(-1 1)"':''}>${body}${w}</g>`,'Adventurer');
   }
-  function npcSVG(role){const coats={miner:'#b99967',scholar:'#789fa8',keeper:'#a897b4',captain:'#608d95',smith:'#ab7963',engineer:'#8caa86'},c=coats[role]||coats.miner;
+  function npcSVG(role,region){const coats={miner:'#b99967',scholar:'#789fa8',keeper:'#a897b4',captain:'#608d95',smith:'#ab7963',engineer:'#8caa86'},c=coats[role]||coats.miner;
     const base=E(50,93,31,5,'#193033')+P('M31 53 L18 91 H82 L69 53 L58 47 H42 Z',c)+P('M37 50 L50 66 L63 50 L59 80 H41 Z','#d8c698')+E(50,33,20,23,'#e1bb8e')+P('M29 31 Q23 11 45 9 Q73 4 73 33 L65 23 L57 19 L36 26 L33 38 Z','#6b6054')+E(43,34,2,3,'#253839')+E(58,34,2,3,'#253839')+P('M45 43 Q51 47 57 42');
     const hats={miner:P('M27 22 Q30 7 50 7 Q72 6 75 22 Z','#c2a66d')+E(50,15,6,5,'#f0d797'),scholar:R(31,6,38,7,'#c9b890')+P('M28 10 H72 L65 19 H35 Z','#66858c')+E(43,34,7,7,'none')+E(58,34,7,7,'none'),keeper:P('M23 32 Q22 4 50 4 Q78 4 77 32 L67 19 Q51 13 33 28 Z',c),captain:P('M22 19 L34 6 L51 14 L68 6 L79 19 L69 27 H33 Z','#496c74')+gem(51,18,5,'#e5ce94'),smith:P('M29 25 Q31 8 50 11 Q70 7 73 25 Z','#756150')+R(32,22,35,7,'#6c7d76'),engineer:R(30,23,40,10,'#9ca58b')+E(41,29,6,5,'#e5ca84')+E(59,29,6,5,'#e5ca84')};
     const props={miner:weapon('axe','#c9c9a7'),scholar:itemMark('job_exp_up'),keeper:itemMark('enhance_holy'),captain:itemMark('teleport_any'),smith:weapon('sword','#bfc6ac'),engineer:itemMark('enhance_normal')};
-    return wrap(base+(hats[role]||hats.miner)+`<g transform="translate(17 59) scale(.36)">${props[role]||props.miner}</g>`,'旅人 '+role);
+    const areas={forest:['#395d43','#eccf85','M12 80 L24 48 L34 80 M65 80 L80 45 L92 80'],desert:['#876347','#e8bd7c','M0 84 Q25 63 54 82 Q75 68 100 80'],ice:['#3e657b','#b5e4eb','M4 80 L19 40 L35 80 M65 80 L82 30 L100 80'],sea:['#326478','#98dfcf','M0 77 Q16 68 32 77 T64 77 T100 77'],lava:['#754343','#ffd29b','M3 81 L17 47 L28 78 L39 53 L47 84 M73 83 L90 35 L100 80'],sky:['#5c6d98','#f5e5bb','M0 78 Q13 56 31 72 M72 73 Q91 54 100 77'],shadow:['#594669','#d9b3e9','M5 82 L13 42 L23 83 M75 80 L85 38 L97 80'],mech:['#4c6867','#cddd9b','M0 76 H17 V43 H25 V76 M77 76 V34 H86 V76 H100'],hidden:['#6b527c','#f6dda2','M0 80 L25 47 L49 78 L75 42 L100 80']},area=areas[region]||areas.forest;
+    const backdrop=E(50,48,46,46,area[0])+E(50,48,42,42,'none')+P(area[2],'none',area[1])+`<path d="M50 3 V10 M50 87 V95 M3 48 H10 M90 48 H97" stroke="${area[1]}" stroke-width="1.5"/>`;
+    const tailoring=P('M30 60 L24 86 M70 60 L76 86 M42 69 L40 85 M58 69 L60 85','none','#ecddb1')+R(25,75,10,7,'#5f6858',2)+R(64,75,10,7,'#5f6858',2)+R(42,79,17,6,'#70614b',2)+gem(51,82,3,area[1])+E(33,61,2,2,area[1])+E(68,61,2,2,area[1]);
+    const identity={forest:gem(65,57,5,'#a9d199'),desert:P('M71 52 V67 L81 73 V58 Z','#cfb77e')+P('M73 57 L79 60 M73 61 L79 64','none','#725e42'),ice:P('M16 57 H26 V78 H16 Z','#748fa3')+gem(21,67,4,'#e4edb6'),sea:E(68,60,7,7,'#b9a779')+P('M68 54 L71 62 L64 61 Z','#e7dac0'),lava:R(63,57,9,21,'#6b594d')+P('M65 62 H71 M65 69 H71','none','#efc297'),sky:P('M67 49 L69 55 L76 56 L70 60 L71 67 L66 62 L60 65 L62 58 L58 53 L64 54 Z','#f1dfad'),shadow:P('M69 52 Q57 61 69 70 Q53 69 55 59 Q57 50 69 52 Z','#dbc7e5'),mech:E(69,60,8,8,'#93ac94')+E(69,60,4,4,'#d6c286')+P('M69 49 V53 M69 67 V71 M58 60 H62 M76 60 H80','none','#d6c286'),hidden:gem(69,60,7,'#e8cc99')+P('M69 53 V67 M62 60 H76','none','#fff1d6')};
+    return wrap(backdrop+base+(hats[role]||hats.miner)+tailoring+(identity[region]||identity.forest)+`<g transform="translate(10 58) scale(.34)">${props[role]||props.miner}</g>`,'旅人 '+(region||role));
   }
   function building(kind){switch(kind){
     case 'inn':return P('M14 41 L49 13 L87 41 Z','#698e97')+P('M19 43 H81 V83 H19 Z','#c1a17c')+P('M11 43 H90 V50 H11 Z','#516d70')+R(39,57,22,28,'#705a49')+R(24,56,10,13,'#edd7a0')+R(66,56,10,13,'#edd7a0')+E(51,30,5,5,'#e1c48c')+P('M22 74 H35 M67 74 H80');

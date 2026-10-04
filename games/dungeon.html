@@ -399,7 +399,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   right:.5rem;background:rgba(7,7,15,.85);border:.5px solid var(--accent);
   border-radius:8px;padding:3px 8px;font-size:10px;color:#c4b5fd;z-index:10;pointer-events:none}
 </style>
-<link rel="stylesheet" href="assets/dungeon/art.css?v=20261004-journey">
+<link rel="stylesheet" href="assets/dungeon/art.css?v=20261005-depth">
 </head><body>
 <div class="app" id="app">
   <div class="topbar">
@@ -583,6 +583,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 </div>
 
 <div class="modal-back" id="modal-journal" onclick="if(event.target===this)closeModal('modal-journal')"><div class="modal-sheet"><div class="modal-head"><div class="modal-title">礦脈紀行 · 旅人日誌</div><button class="modal-x" onclick="closeModal('modal-journal')">✕</button></div><div class="modal-body" id="journal-body"></div></div></div>
+<div class="modal-back" id="modal-guide"><div class="modal-sheet"><div class="modal-head"><div class="modal-title">旅人的知識指南</div><button class="modal-x" onclick="closeRegionGuide()">✕</button></div><div class="modal-body" id="guide-body"></div></div></div>
 <div class="modal-back" id="modal-sale" onclick="if(event.target===this)closeModal('modal-sale')"><div class="modal-sheet"><div class="modal-head"><div class="modal-title">商人 · 出售物品</div><button class="modal-x" onclick="closeModal('modal-sale')">✕</button></div><div class="modal-body" id="sale-body"></div></div></div>
 <!-- SKILL PAGE -->
 <div class="modal-back" id="modal-skills" onclick="if(event.target===this)closeModal('modal-skills')">
@@ -690,11 +691,12 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="toast" id="toast"></div>
 
-<script src="assets/dungeon/creatures.js?v=20261004-journey"></script>
-<script src="assets/dungeon/objects.js?v=20261004-journey"></script>
-<script src="assets/dungeon/art.js?v=20261004-journey"></script>
-<script src="assets/dungeon/adventure.js?v=20261004-journey"></script>
-<script src="assets/dungeon/commerce.js?v=20261004-journey"></script>
+<script src="assets/dungeon/creatures.js?v=20261005-depth"></script>
+<script src="assets/dungeon/objects.js?v=20261005-depth"></script>
+<script src="assets/dungeon/art.js?v=20261005-depth"></script>
+<script src="assets/dungeon/adventure.js?v=20261005-depth"></script>
+<script src="assets/dungeon/commerce.js?v=20261005-depth"></script>
+<script src="assets/dungeon/journey.js?v=20261005-depth"></script>
 <script>
 'use strict';
 // ═══════════════════════════════════════════════
@@ -2960,6 +2962,8 @@ function renderMap() {
       // Draw terrain with canvas detail
       drawTerrain(ctx, tile.terrain, cx, cy, TILE, worldX, worldY);
 
+      if(tile.terrain===T.VILLAGE&&typeof DungeonJourney!=='undefined')DungeonJourney.drawLandmark(ctx,getContinent(worldX,worldY),cx,cy,TILE);
+
       // Monster indicator
       if (col !== 7 || row !== 7) {
         if (Math.abs(col - 7) <= 3 && Math.abs(row - 7) <= 3) {
@@ -3051,6 +3055,9 @@ function move(dx, dy) {
 
   const ter = getTerrain(nx, ny);
   if (!isPassable(ter)) { toast('⛔ 無法通行'); return; }
+
+  const nextRegion=getContinent(nx,ny);
+  if(typeof openRegionGuide==='function'&&!DungeonAdventure.progress(state).guided.includes(nextRegion)){openRegionGuide(nextRegion,()=>move(dx,dy));return;}
 
   moveCooldown = true;
   setTimeout(() => moveCooldown = false, 180);
@@ -4141,7 +4148,8 @@ function showQuestion() {
 
   // 石化：答案延遲3秒才出現（時間照跑，等於少3秒可用時間）
   const petrified = hasStatus('petrify');
-  const tl = Math.max(3, (combat.question?.options?Math.max(12,combat.timeLimit):combat.timeLimit) - combat.slowPenalty - (hasStatus('slow') ? 2 : 0));
+  const baseTime=DungeonAdventure.progress(state).pace==='relaxed'?Math.max(20,combat.timeLimit):(combat.question?.options?Math.max(12,combat.timeLimit):combat.timeLimit);
+  const tl = Math.max(3, baseTime - combat.slowPenalty - (hasStatus('slow') ? 2 : 0));
   const cbQ = document.getElementById('cb-q');
 
   if (petrified) {
@@ -4184,7 +4192,7 @@ function answerQ(corner) {
 
   if (typeof DungeonAdventure!=='undefined') {
     if(correct)DungeonAdventure.recordCorrect(state,combat.region||getContinent(px,py));
-    if(combat.question?.explanation)cbLog(correct?'cl-g':'cl-s',`${correct?'✓':'正解：'+combat.question.answer+'。'} ${combat.question.explanation}`);
+    if(combat.question?.explanation)DungeonAdventure.recordReview(state,combat.question,correct);
   }
   if (correct) {
     playSFX('correct');
@@ -4201,7 +4209,7 @@ function onTimeout() {
   answerActive = false;
   document.getElementById('cb-q').style.display = 'none';
   cbLog('cl-p', '腦中一片空白……怪物看準機會猛攻！');
-  if(combat.question?.explanation)cbLog('cl-s',`正解：${combat.question.answer}。${combat.question.explanation}`);
+  if(combat.question?.explanation)DungeonAdventure.recordReview(state,combat.question,false);
   setTimeout(() => {
     const dmg = Math.floor(combat.monster.atk * 1.5);
     applyDmgToPlayer(dmg);
@@ -4332,7 +4340,7 @@ function resolvePlayerAttack(timeLeft, tl) {
     const reduction = combat.armorBreakStacks * 0.05;
     m.def = Math.max(0, Math.floor(m.def * (1 - reduction)));
   }
-  playSFX(isCrit ? 'crit' : 'hit');
+  DungeonArt.weaponSound(state.weapon?.subtype||'sword',state.weapon?.element||'none',isCrit);
   showFloatingDmg(atk, isCrit, false);
   updateMonsterHP(m.uid);
 
@@ -4881,7 +4889,8 @@ function updateCombatHPDisplay() {
 // ═══════════════════════════════════════════════
 
 function genQuestion(lv) {
-  return DungeonAdventure.question(combat?.region||getContinent(px,py),lv,state)||genMathQuestion(lv);
+  const settings=DungeonAdventure.progress(state),mathLevel={easy:1,standard:25,hard:45}[settings.mathDifficulty];
+  return DungeonAdventure.question(combat?.region||getContinent(px,py),lv,state)||genMathQuestion(mathLevel);
 }
 function shuffleChoiceOptions(options){const arr=[...options];for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
 function genMathQuestion(lv) {
@@ -5643,7 +5652,7 @@ function applyCurseEffects(triggerType) {
 // ════════════════════════════════════════════════════════════
 
 function addToInventory(item) {
-  if (state.inventory.length >= state.inventoryMax) return false;
+  if (!inventoryCanAdd(item)) return false;
   state.inventory.push(item);
   return true;
 }
@@ -6203,7 +6212,7 @@ function openInventory(filter) {
   const grid = document.getElementById('inv-grid');
   const countEl = document.getElementById('inv-count');
   grid.innerHTML = '';
-  countEl.textContent = `${state.inventory.length}/${state.inventoryMax}`;
+  countEl.textContent = `${inventoryUsedSlots()}/${state.inventoryMax} 格 · ${state.inventory.length} 件`;
 
   // 篩選 tab
   const tabs = [
@@ -6236,23 +6245,7 @@ function openInventory(filter) {
     return 0;
   });
 
-  // 藥水疊加：同 subtype 合併顯示
-  const stackedInv = [];
-  const potionMap = {};
-  sortedInv.forEach((item) => {
-    const origIdx = state.inventory.indexOf(item);
-    if (item.type === 'potion' || item.type === 'scroll') {
-      const key = item.subtype+'|'+Boolean(item.locked);
-      if (potionMap[key]) {
-        potionMap[key].count++;
-      } else {
-        potionMap[key] = {item, count:1, firstIdx:origIdx};
-        stackedInv.push(potionMap[key]);
-      }
-    } else {
-      stackedInv.push({item, count:1, firstIdx:origIdx});
-    }
-  });
+  const stackedInv = inventoryGroups(sortedInv).map(g=>({item:g.item,count:g.items.length,firstIdx:state.inventory.indexOf(g.item)}));
 
   // 過濾
   const filtered = stackedInv.filter(({item}) => {
@@ -6285,18 +6278,7 @@ function openInventory(filter) {
     grid.appendChild(el);
   });
 
-  // Empty slots（顯示剩餘空格）
-  const usedSlots = filter === 'all' ? stackedInv.length : filtered.length;
-  const totalDisplay = filter === 'all' ? state.inventoryMax : 0;
-  if (filter === 'all') {
-    for (let i = stackedInv.length; i < state.inventoryMax; i++) {
-      const el = document.createElement('div');
-      el.className = 'inv-slot empty';
-      el.innerHTML = '<div class="s-icon" style="font-size:14px;color:#333">·</div>';
-      grid.appendChild(el);
-    }
-  }
-
+  if (!filtered.length) grid.innerHTML = '<p class="inventory-empty">此分類沒有物品。</p>';
   openModal('modal-inv');
 }
 
@@ -6793,10 +6775,10 @@ function renderMerchant() {
     </div>`;
   }
 
-  html+=`<div class="merchant-service"><strong>交易櫃台</strong><p>逐件勾選、先看總價再出售。收藏與強化裝備不會被快捷選取。</p><button class="mi-buy" onclick="openSaleDesk()">出售物品 →</button></div>`;
+  html+=`<div class="merchant-service"><strong>交易櫃台</strong><p>同類道具合併，可選出售數量；裝備分類與排序後再核對總價。收藏與強化裝備不會被快捷選取。</p><button class="mi-buy" onclick="openSaleDesk()">出售物品 →</button></div>`;
   merchantStock.forEach((stock, i) => {
     const it = stock.item;
-    const canBuy = state.gold >= stock.price && state.inventory.length < state.inventoryMax;
+    const canBuy = state.gold >= stock.price && inventoryCanAdd(stock.item);
     html += `<div class="merchant-item">
       <div class="mi-icon">${renderItemIcon(it)}</div>
       <div class="mi-info">
@@ -6805,7 +6787,7 @@ function renderMerchant() {
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <div class="mi-price">💰${stock.price}</div>
-        <button class="mi-buy" ${canBuy?'':'disabled'} onclick="merchantBuy(${i})">${state.inventory.length>=state.inventoryMax?'背包已滿':state.gold<stock.price?'金幣不足':'購買'}</button>
+        <button class="mi-buy" ${canBuy?'':'disabled'} onclick="merchantBuy(${i})">${!inventoryCanAdd(stock.item)?'背包已滿':state.gold<stock.price?'金幣不足':'購買'}</button>
       </div>
     </div>`;
   });
@@ -6817,7 +6799,7 @@ function bulkSell(rarity){openSaleDesk(rarity);}
 function merchantBuy(idx) {
   const stock = merchantStock[idx];
   if (!stock || state.gold < stock.price) return;
-  if (state.inventory.length >= state.inventoryMax) { toast('背包已滿！'); return; }
+  if (!inventoryCanAdd(stock.item)) { toast('背包已滿！'); return; }
   playSFX('coin');
   state.gold -= stock.price;
   const item = {...stock.item, id: Date.now()+Math.random()};

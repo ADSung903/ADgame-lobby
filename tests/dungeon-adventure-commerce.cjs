@@ -2,14 +2,14 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),napi=req
 const elements=new Map(),canvas=napi.createCanvas(390,390);
 function el(id){if(elements.has(id))return elements.get(id);const e={id,innerHTML:'',textContent:'',style:{setProperty(){}},dataset:{},classList:{add(){},remove(){},contains(){return false}},getBoundingClientRect:()=>({left:0,top:0,width:100,height:100}),querySelector:()=>null,querySelectorAll:()=>[],appendChild(){},addEventListener(){},remove(){},clientWidth:390};if(id.includes('canvas')){e.getContext=()=>canvas.getContext('2d');e.width=390;e.height=390;}elements.set(id,e);return e;}
 const c={console,Math:Object.create(Math),Date,performance:{now:()=>1000},Audio:class{play(){return Promise.resolve()}pause(){}addEventListener(){}cloneNode(){return this}},Image:napi.Image,document:{getElementById:el,querySelector:()=>null,querySelectorAll:()=>[],createElement:()=>el('new'),body:el('body'),addEventListener(){}},localStorage:{getItem:()=>null,setItem(){}},setTimeout:()=>1,clearTimeout(){},setInterval(){},requestAnimationFrame(){},addEventListener(){},innerWidth:390,innerHeight:844,matchMedia:()=>({matches:true})};c.window=c;vm.createContext(c);
-for(const f of ['creatures','objects','art','adventure','commerce'])vm.runInContext(fs.readFileSync(`games/assets/dungeon/${f}.js`,'utf8'),c);const html=fs.readFileSync('games/dungeon.html','utf8');vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],c);
+for(const f of ['creatures','objects','art','adventure','commerce','journey'])vm.runInContext(fs.readFileSync(`games/assets/dungeon/${f}.js`,'utf8'),c);const html=fs.readFileSync('games/dungeon.html','utf8');vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],c);
 const run=s=>vm.runInContext(s,c);
 for(const [region,bank]of Object.entries(c.DungeonAdventure.banks))for(const q of bank){assert.equal(q.options.length,4,region);assert.equal(new Set(q.options).size,4);assert(q.options.includes(q.answer));assert(q.explanation);}
 run(`Math.random=()=>.9;startCombat('憤怒蘑菇',px,py,1);combat.region='desert';showQuestion();`);
 assert.equal(run('combat.questionDuration'),12);assert.equal(el('combat-overlay').dataset.topic,'英文單字');assert.equal(['tl','tr','bl','br'].filter(x=>el('ans-'+x).dataset.correct==='1').length,1);
 run(`DungeonAdventure.progress(state).mode='math';showQuestion();`);assert.equal(el('combat-overlay').dataset.topic,'數學');assert.equal(run('typeof combat.question.answer'),'number');
 run(`state=initState();state.gold=10;const p=DungeonAdventure.progress(state);p.accepted.push('forest');for(let i=0;i<3;i++)DungeonAdventure.recordCorrect(state,'forest');DungeonAdventure.recordBoss(state,'森林詛咒者');`);
-assert.equal(run("DungeonAdventure.claim(state,'forest')"),true);assert.equal(run('state.gold'),310);assert.equal(run("DungeonAdventure.claim(state,'forest')"),false);assert.equal(run('state.gold'),310);
+assert.equal(run("DungeonAdventure.claim(state,'forest')"),false,'story event is required before first claim');run("DungeonAdventure.progress(state).eventDone.push('forest')");assert.equal(run("DungeonAdventure.claim(state,'forest')"),true);assert.equal(run('state.gold'),310);assert.equal(run("DungeonAdventure.claim(state,'forest')"),false);assert.equal(run('state.gold'),310);
 run(`const inherited=JSON.parse(JSON.stringify(state.adventure));state=initState();state.adventure=inherited;`);assert.equal(run("DungeonAdventure.progress(state).claimed.includes('forest')"),true);
 run(`checkNearMerchant=()=>nearMerchant=true;state.gold=0;state.inventory=[{id:'plain',name:'木劍',type:'weapon',rarity:'white'},{id:'locked',name:'收藏甲',type:'armor',rarity:'white',locked:true},{id:'enhanced',name:'強化劍',type:'weapon',rarity:'white',enhance:3},{id:'unknown',name:'未知劍',type:'weapon',rarity:'white',unidentified:true},{id:'legacy',name:'遺物',type:'weapon',rarity:'white',fromGeneration:1},{id:'p1',name:'小回復',type:'potion',subtype:'heal_s'},{id:'p2',name:'小回復',type:'potion',subtype:'heal_s'}];openSaleDesk();selectSafeSales();`);
 assert.equal(run('saleSelection.size'),1);assert.equal(run("saleSelection.has('plain')"),true);
@@ -17,4 +17,31 @@ run(`reviewSale();state.inventory[0].locked=true;completeSale();`);assert.equal(
 run(`state.inventory[0].locked=false;openSaleDesk(null,'p1');reviewSale();completeSale();`);assert.equal(run('state.gold'),20);assert.equal(run("state.inventory.some(i=>i.id==='p1')"),false);assert.equal(run("state.inventory.some(i=>i.id==='p2')"),true,'selling one potion leaves its stack peer');
 run('completeSale()');assert.equal(run('state.gold'),20,'a repeated submit cannot pay twice');
 assert(html.includes('state.adventure = inheritedJournal'));assert(html.includes('const SAVE_VERSION = 3'));assert(html.includes('combat.questionDuration ||'));
+run(`state=initState();state.inventoryMax=2;state.inventory=[{id:'a',type:'weapon',name:'劍'},{id:'p',type:'potion',subtype:'heal_s',name:'回復',rarity:'white'}];`);
+assert.equal(run('inventoryUsedSlots()'),2);
+assert.equal(run("addToInventory({id:'p3',type:'potion',subtype:'heal_s',name:'回復',rarity:'white'})"),true,'matching stack fits a full bag');
+assert.equal(run("addToInventory({id:'p4',type:'potion',subtype:'heal_m',name:'中回復',rarity:'white'})"),false,'new stack needs a free slot');
+assert.equal(run('inventoryUsedSlots()'),2);assert.equal(run('state.inventory.length'),3);
+run(`openSaleDesk();saleFilter='potion';setSaleQuantity(0,99);`);assert.equal(run('saleItems().length'),2,'quantity clamps at stack size');
+run('changeSaleQuantity(0,-1)');assert.equal(run('saleItems().length'),1);
+run('reviewSale();completeSale()');assert.equal(run("state.inventory.filter(i=>i.type==='potion').length"),1);
+run(`state.inventory=[{type:'weapon'},{type:'weapon'}]`);assert.equal(run('inventoryUsedSlots()'),2,'legacy gear without IDs still occupies separate slots');
+run(`state=initState();Math.random=()=>.9;`);let seen=new Set();for(let i=0;i<12;i++){const q=run("DungeonAdventure.question('desert',1,state)");assert(!seen.has(q.text),'avoid the previous twelve knowledge questions');seen.add(q.text);}
+assert.equal(Object.values(c.DungeonAdventure.banks).reduce((n,b)=>n+b.length,0),144);
+run(`state=initState();combatActive=false;DungeonAdventure.progress(state).accepted.push('forest');openRegionEvent('forest');`);
+const eventAnswer=()=>run(`eventOptions('forest',DungeonAdventure.progress(state).eventStep.forest||0,eventQuestion('forest',DungeonAdventure.progress(state).eventStep.forest||0)).indexOf(eventQuestion('forest',DungeonAdventure.progress(state).eventStep.forest||0)[1])`);
+run(`answerRegionEvent('forest',0,${eventAnswer()})`);assert.equal(run('DungeonAdventure.progress(state).eventStep.forest'),1);
+run(`answerRegionEvent('forest',0,0)`);assert.equal(run('DungeonAdventure.progress(state).eventStep.forest'),1,'stale event click cannot advance twice');
+run(`answerRegionEvent('forest',1,${eventAnswer()})`);assert.equal(run("DungeonJourney.eventComplete('forest')"),true);
+assert.equal(run("DungeonAdventure.progress(state).eventDone.filter(x=>x==='forest').length"),1);
+run(`DungeonAdventure.progress(state).mode='math'`);assert.equal(run("eventQuestion('desert',0)[0].includes('+')"),true,'pure math also applies to story puzzles');
+run(`openRegionGuide('forest');answerPractice(0)`);assert.equal(run('DungeonAdventure.progress(state).correct.forest||0'),0,'practice does not farm quest progress');
+run(`for(let i=0;i<35;i++)DungeonAdventure.recordReview(state,{text:'q'+i,answer:'a',explanation:'e',topic:'t'},false)`);assert.equal(run('DungeonAdventure.progress(state).reviews.length'),30);
+run(`Math.random=()=>.9;DungeonAdventure.progress(state).mode='world';DungeonAdventure.progress(state).pace='relaxed';startCombat('憤怒蘑菇',px,py,1);combat.region='desert';showQuestion();`);assert.equal(run('combat.questionDuration'),20);
+run(`combatActive=false;moveCooldown=false;deathActive=false;dungeonState=null;state=initState();getTerrain=()=>2;getMonsterAt=()=>null;getVillageAt=()=>null;const beforeMoveX=px;move(1,0);`);
+assert.equal(run('px'),run('beforeMoveX'),'first-region guide pauses movement before any encounter');
+run('continueRegionGuide()');assert.equal(run('px'),run('beforeMoveX+1'),'guide resumes exactly the requested step');assert.equal(run("DungeonAdventure.progress(state).guided.includes('forest')"),true);
+run(`state=initState();Math.random=()=>.9;const missed=DungeonAdventure.question('desert',1,state);DungeonAdventure.recordReview(state,missed,false);`);
+for(let i=0;i<12;i++)assert.notEqual(run("DungeonAdventure.question('desert',1,state).text"),run('missed.text'));
+assert.equal(run("DungeonAdventure.question('desert',1,state).text"),run('missed.text'),'missed question returns only after a spaced interval');
 console.log('PASS: curated answers, text question timing and math fallback, one-time story reward, inherited journal, sale locks, exact potion quantity, repeated-submit guard.');
