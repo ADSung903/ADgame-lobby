@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  ⛏️ 礦洞冒險 — Version History
+  ⛏️ 礦脈紀行 — Version History
   ════════════════════════════════
   v0.1  Phase 1 初版：地圖生成、基礎戰鬥、裝備系統、死亡傳承
   v0.2  Phase 1 修正：Canvas 自適應、怪物等級距離修正、初始武器+藥水
@@ -37,7 +37,7 @@
 <html lang="zh-Hant"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>⛏️ 礦洞冒險</title>
+<title>⛏️ 礦脈紀行</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation}
 :root{
@@ -399,12 +399,12 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   right:.5rem;background:rgba(7,7,15,.85);border:.5px solid var(--accent);
   border-radius:8px;padding:3px 8px;font-size:10px;color:#c4b5fd;z-index:10;pointer-events:none}
 </style>
-<link rel="stylesheet" href="assets/dungeon/art.css?v=20261004-items">
+<link rel="stylesheet" href="assets/dungeon/art.css?v=20261004-journey">
 </head><body>
 <div class="app" id="app">
   <div class="topbar">
     <button class="back-btn" onclick="goBack()">← 大廳</button>
-    <div class="game-title">⛏️ 礦洞冒險</div>
+    <div class="game-title">⛏️ 礦脈紀行</div>
     <span class="gen-badge" id="gen-badge">第1代</span>
     <span class="lv-badge" id="lv-badge">Lv.1</span>
   </div>
@@ -478,7 +478,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button onclick="openChangelog()" style="background:none;border:none;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 6px">v1.33 📋</button>
+      <button class="journal-menu" onclick="openJournal()">📖<br>紀行</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -566,7 +566,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
     <div class="cb-mon-group" id="cb-mon-group"></div>
     <div class="cb-log" id="cb-log"></div>
     <div class="cb-q" id="cb-q" style="display:none">
-      <div class="cb-q-text" id="cb-q-text">5 × 3 = ?</div>
+      <div class="cb-q-topic" id="cb-q-topic">數學</div><div class="cb-q-text" id="cb-q-text">5 × 3 = ?</div>
       <div class="cb-timer-track"><div class="cb-timer-fill" id="cb-timer"></div></div>
     </div>
     <div class="cb-footer">
@@ -582,6 +582,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   </div>
 </div>
 
+<div class="modal-back" id="modal-journal" onclick="if(event.target===this)closeModal('modal-journal')"><div class="modal-sheet"><div class="modal-head"><div class="modal-title">礦脈紀行 · 旅人日誌</div><button class="modal-x" onclick="closeModal('modal-journal')">✕</button></div><div class="modal-body" id="journal-body"></div></div></div>
+<div class="modal-back" id="modal-sale" onclick="if(event.target===this)closeModal('modal-sale')"><div class="modal-sheet"><div class="modal-head"><div class="modal-title">商人 · 出售物品</div><button class="modal-x" onclick="closeModal('modal-sale')">✕</button></div><div class="modal-body" id="sale-body"></div></div></div>
 <!-- SKILL PAGE -->
 <div class="modal-back" id="modal-skills" onclick="if(event.target===this)closeModal('modal-skills')">
   <div class="modal-sheet" style="max-height:92dvh">
@@ -688,9 +690,11 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="toast" id="toast"></div>
 
-<script src="assets/dungeon/creatures.js?v=20261004-items"></script>
-<script src="assets/dungeon/objects.js?v=20261004-items"></script>
-<script src="assets/dungeon/art.js?v=20261004-items"></script>
+<script src="assets/dungeon/creatures.js?v=20261004-journey"></script>
+<script src="assets/dungeon/objects.js?v=20261004-journey"></script>
+<script src="assets/dungeon/art.js?v=20261004-journey"></script>
+<script src="assets/dungeon/adventure.js?v=20261004-journey"></script>
+<script src="assets/dungeon/commerce.js?v=20261004-journey"></script>
 <script>
 'use strict';
 // ═══════════════════════════════════════════════
@@ -4083,7 +4087,9 @@ function showQuestion() {
   let q, choices;
   try {
     q = genQuestion(state.level);
-    choices = shuffleAnswers(q.answer);
+    choices = q.options ? shuffleChoiceOptions(q.options) : shuffleAnswers(q.answer);
+    combat.question = q;
+    document.getElementById('combat-overlay').dataset.topic=q.topic||'數學';
   } catch(e) {
     console.error('genQuestion error:', e);
     toast('⚠️ 出題錯誤：' + e.message);
@@ -4129,12 +4135,13 @@ function showQuestion() {
 
   const qTextEl = document.getElementById('cb-q-text');
   qTextEl.textContent = `${q.text}`;
+  document.getElementById('cb-q-topic').textContent=q.topic||'數學';
   document.getElementById('cb-q').style.display = '';
   document.getElementById('cb-escape').disabled = false;
 
   // 石化：答案延遲3秒才出現（時間照跑，等於少3秒可用時間）
   const petrified = hasStatus('petrify');
-  const tl = Math.max(3, combat.timeLimit - combat.slowPenalty - (hasStatus('slow') ? 2 : 0));
+  const tl = Math.max(3, (combat.question?.options?Math.max(12,combat.timeLimit):combat.timeLimit) - combat.slowPenalty - (hasStatus('slow') ? 2 : 0));
   const cbQ = document.getElementById('cb-q');
 
   if (petrified) {
@@ -4168,13 +4175,17 @@ function answerQ(corner) {
   const btn = document.getElementById(`ans-${corner}`);
   const correct = btn.dataset.correct === '1';
   const fill = document.getElementById('cb-timer');
-  const tl = Math.max(3, combat.timeLimit - combat.slowPenalty - (hasStatus('slow') ? 2 : 0));
+  const tl = combat.questionDuration || Math.max(3, combat.timeLimit - combat.slowPenalty - (hasStatus('slow') ? 2 : 0));
   const remaining = Math.max(0, tl - (performance.now() - combat.questionStartedAt) / 1000);
   fill.style.transition = 'none'; fill.style.width = '0%';
 
   btn.classList.add(correct ? 'correct' : 'wrong');
   setTimeout(() => btn.classList.remove('correct','wrong'), 600);
 
+  if (typeof DungeonAdventure!=='undefined') {
+    if(correct)DungeonAdventure.recordCorrect(state,combat.region||getContinent(px,py));
+    if(combat.question?.explanation)cbLog(correct?'cl-g':'cl-s',`${correct?'✓':'正解：'+combat.question.answer+'。'} ${combat.question.explanation}`);
+  }
   if (correct) {
     playSFX('correct');
     resolvePlayerAttack(remaining, tl);
@@ -4190,6 +4201,7 @@ function onTimeout() {
   answerActive = false;
   document.getElementById('cb-q').style.display = 'none';
   cbLog('cl-p', '腦中一片空白……怪物看準機會猛攻！');
+  if(combat.question?.explanation)cbLog('cl-s',`正解：${combat.question.answer}。${combat.question.explanation}`);
   setTimeout(() => {
     const dmg = Math.floor(combat.monster.atk * 1.5);
     applyDmgToPlayer(dmg);
@@ -4574,6 +4586,7 @@ function showFloatingText(text, color, target) {
 function showFloatingDmg(atk, isCrit, isMonster) {
   const color = isCrit ? '#f59e0b' : isMonster ? '#f87171' : '#4ade80';
   const text = isCrit ? `💥${atk}` : `${atk}`;
+  if(!isMonster)DungeonArt.weaponStrike(state.weapon?.subtype||'sword',state.weapon?.element||'none',isCrit);
   showFloatingText(text, color, isMonster ? 'player' : 'monster');
 }
 
@@ -4623,6 +4636,7 @@ function endCombatVictory() {
   cbLog('cl-p', `✨ 獲得 ${wrapCol('cl-p', totalExp)} 經驗值 · 💰 ${wrapCol('cl-y', totalGold)} 金幣`);
   applyCurseEffects('combat_end');
 
+  for(const m of combat.monsters)DungeonAdventure.recordBoss(state,m.name);
   // 多樣掉落：每隻怪物各自掉落一次
   for (const m of combat.monsters) {
     const loots = generateLoot(m.name, m.lv);
@@ -4867,6 +4881,10 @@ function updateCombatHPDisplay() {
 // ═══════════════════════════════════════════════
 
 function genQuestion(lv) {
+  return DungeonAdventure.question(combat?.region||getContinent(px,py),lv,state)||genMathQuestion(lv);
+}
+function shuffleChoiceOptions(options){const arr=[...options];for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+function genMathQuestion(lv) {
   const diff = Math.min(5, Math.ceil(lv / 10));
   const r = () => Math.floor(Math.random() * 1e9);
   let a, b, text, answer;
@@ -5711,6 +5729,7 @@ function equipItemById(id) {
 }
 
 function dropItem(item, fromInv, invIdx) {
+  if(item?.locked){toast('請先解除收藏鎖');return;}
   if (!confirm(`確定丟棄「${item.name}」？`)) return;
   if (fromInv) {
     const realIdx = state.inventory.findIndex(i => i.id === item.id);
@@ -5726,52 +5745,9 @@ function dropItem(item, fromInv, invIdx) {
 }
 
 function sellItem(fromInv, invIdx, slot) {
-  const item = fromInv ? state.inventory[invIdx]
-    : (slot === 'weapon' ? state.weapon : state.equipment[slot]);
-  if (!item) return;
-
-  // 藥水/卷軸：偵測同 subtype 疊加數量，一次性全部賣出
-  if (fromInv && (item.type === 'potion' || item.type === 'scroll')) {
-    const sameStack = state.inventory.filter(i => i.type === item.type && i.subtype === item.subtype);
-    const count = sameStack.length;
-    const unitPrice = computeSellPrice(item);
-    const totalPrice = unitPrice * count;
-    const msg = count > 1
-      ? `賣出「${item.name}」× ${count} 個，共獲得 $${totalPrice}？`
-      : `賣出「${item.name}」獲得 $${unitPrice}？`;
-    if (!confirm(msg)) return;
-    playSFX('coin');
-    state.gold += totalPrice;
-    // 全部移除同 subtype 的堆疊
-    state.inventory = state.inventory.filter(i => !(i.type === item.type && i.subtype === item.subtype));
-    closeModal('modal-item');
-    refreshInventoryIfOpen();
-    updateUI(); save(true);
-    toast(`💰 賣出 ${item.name} × ${count}，獲得 $${totalPrice}`);
-    return;
-  }
-
-  // 裝備：強化過要二次警告
-  const price = computeSellPrice(item);
-  let msg = `賣出「${item.name}」獲得 $${price}？`;
-  if ((item.enhance||0) > 0) {
-    msg = `⚠️ 此裝備已強化 +${item.enhance}，賣出後強化值將永久消失！\n\n賣出「${item.name}」獲得 $${price}？`;
-  }
-  if (!confirm(msg)) return;
-  playSFX('coin');
-  state.gold += price;
-  if (fromInv) {
-    // 用 id 找，避免 index 跑掉
-    const realIdx = state.inventory.findIndex(i => i.id === item.id);
-    if (realIdx >= 0) state.inventory.splice(realIdx, 1);
-  } else {
-    if (slot === 'weapon') state.weapon = null;
-    else state.equipment[slot] = null;
-  }
-  closeModal('modal-item');
-  refreshInventoryIfOpen();
-  updateUI(); save(true);
-  toast(`💰 賣出 ${item.name}，獲得 $${price}`);
+  if(!fromInv){toast('請先卸下裝備，再到出售清單選取');return;}
+  const item=state.inventory[invIdx];if(!item)return;if(item.locked){toast('請先解除收藏鎖');return;}
+  openSaleDesk(null,item.id);
 }
 
 function usePotion(item, invIdx) {
@@ -6266,7 +6242,7 @@ function openInventory(filter) {
   sortedInv.forEach((item) => {
     const origIdx = state.inventory.indexOf(item);
     if (item.type === 'potion' || item.type === 'scroll') {
-      const key = item.subtype;
+      const key = item.subtype+'|'+Boolean(item.locked);
       if (potionMap[key]) {
         potionMap[key].count++;
       } else {
@@ -6304,7 +6280,7 @@ function openInventory(filter) {
       <div class="s-name rarity-${item.rarity}">${nameDisplay}</div>
       ${item.type==='scroll'?`<div class="s-purpose">${item.desc||'點選查看用途'}</div>`:''}
       ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}
-      ${uidBadge}${stackBadge}`;
+      ${item.locked?'<span class="item-lock-badge">🔒</span>':''}${uidBadge}${stackBadge}`;
     el.onclick = () => openItemCard(item, true, firstIdx, false);
     grid.appendChild(el);
   });
@@ -6709,6 +6685,7 @@ function openItemCard(item, fromInv, invIdx, atMerchant, buyFn) {
       </div>`;
     })() : ''}
     ${setHtml}${enhHtml}
+    ${!atMerchant?`<button class="item-lock" onclick="toggleItemLock('${item.id}')">${item.locked?'🔒 已收藏 · 點擊解除':'收藏這件物品'}</button>`:''}
     <div class="ic-btns">${btns}</div>`;
   openModal('modal-item');
 }
@@ -6773,7 +6750,7 @@ const POTION_BASE_PRICE = {
   antidote: 80, cure_all: 300,
   str_boost: 200, agi_boost: 250, luk_boost: 250, int_boost: 250,
   berserk: 600, invincible: 2000,
-  fog_clear: 150,
+  fog_clear: 150, raid_ticket:10000, job_exp_up:250000, enhance_cursed:80,
   enhance_normal: 300, enhance_lucky: 600, enhance_holy: 1500,
   enhance_protect: 800, enhance_curse: 100,
   identify: 200, purify: 800,
@@ -6784,7 +6761,8 @@ const POTION_BASE_PRICE = {
 
 function computeSellPrice(item) {
   if (item.type === 'potion' || item.type === 'scroll') {
-    const base = POTION_BASE_PRICE[item.subtype] ?? (item.price || 30);
+    const shopPrice=SHOP_ITEMS.find(i=>i.subtype===item.subtype)?.price;
+    const base=(shopPrice>0?shopPrice:null)??POTION_BASE_PRICE[item.subtype]??(item.price||30);
     return Math.max(1, Math.floor(base * 0.4));
   }
   const basePrice = {white:30, green:80, blue:200, gold:500, red:1200, rainbow:5000}[item.rarity] || 30;
@@ -6815,26 +6793,10 @@ function renderMerchant() {
     </div>`;
   }
 
-  // 一鍵批量銷售
-  const whiteCount = state.inventory.filter(i=>i.rarity==='white' && (i.type==='weapon'||i.type==='armor')).length;
-  const greenCount = state.inventory.filter(i=>i.rarity==='green' && (i.type==='weapon'||i.type==='armor')).length;
-  const blueCount  = state.inventory.filter(i=>i.rarity==='blue'  && (i.type==='weapon'||i.type==='armor')).length;
-  const goldCount  = state.inventory.filter(i=>i.rarity==='gold'  && (i.type==='weapon'||i.type==='armor')).length;
-  if (whiteCount + greenCount + blueCount + goldCount > 0) {
-    html += `<div style="background:#213531;border:.5px solid #333;border-radius:10px;padding:.6rem;margin-bottom:.5rem">
-      <div style="font-size:12px;color:#f59e0b;margin-bottom:.4rem">📦 批量銷售</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${whiteCount>0?`<button onclick="bulkSell('white')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #888;background:#213531;color:#ccc;font-size:11px;cursor:pointer">⬜ 白裝 ×${whiteCount}</button>`:''}
-        ${greenCount>0?`<button onclick="bulkSell('green')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #4ade80;background:#213531;color:#4ade80;font-size:11px;cursor:pointer">🟩 綠裝 ×${greenCount}</button>`:''}
-        ${blueCount>0?`<button onclick="bulkSell('blue')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #60a5fa;background:#213531;color:#60a5fa;font-size:11px;cursor:pointer">🟦 藍裝 ×${blueCount}</button>`:''}
-        ${goldCount>0?`<button onclick="bulkSell('gold')" style="flex:1;padding:6px;border-radius:8px;border:.5px solid #f59e0b;background:#213531;color:#f59e0b;font-size:11px;cursor:pointer">🟨 金裝 ×${goldCount}</button>`:''}
-      </div>
-    </div>`;
-  }
-
+  html+=`<div class="merchant-service"><strong>交易櫃台</strong><p>逐件勾選、先看總價再出售。收藏與強化裝備不會被快捷選取。</p><button class="mi-buy" onclick="openSaleDesk()">出售物品 →</button></div>`;
   merchantStock.forEach((stock, i) => {
     const it = stock.item;
-    const canBuy = state.gold >= stock.price;
+    const canBuy = state.gold >= stock.price && state.inventory.length < state.inventoryMax;
     html += `<div class="merchant-item">
       <div class="mi-icon">${renderItemIcon(it)}</div>
       <div class="mi-info">
@@ -6843,40 +6805,14 @@ function renderMerchant() {
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <div class="mi-price">💰${stock.price}</div>
-        <button class="mi-buy" ${canBuy?'':'disabled'} onclick="merchantBuy(${i})">購買</button>
+        <button class="mi-buy" ${canBuy?'':'disabled'} onclick="merchantBuy(${i})">${state.inventory.length>=state.inventoryMax?'背包已滿':state.gold<stock.price?'金幣不足':'購買'}</button>
       </div>
     </div>`;
   });
   body.innerHTML = html;
 }
 
-function bulkSell(rarity) {
-  const rarityNames = {white:'白裝', green:'綠裝', blue:'藍裝', gold:'金裝'};
-  const items = state.inventory.filter(i => i.rarity === rarity && (i.type==='weapon'||i.type==='armor'));
-  if (items.length === 0) { toast('沒有可賣的物品'); return; }
-  const totalGold = items.reduce((sum, it) => sum + computeSellPrice(it), 0);
-  const enhancedCount = items.filter(it => (it.enhance||0) > 0).length;
-
-  const lines = items.map(it => {
-    const p = computeSellPrice(it);
-    const enhTag = (it.enhance||0) > 0 ? ' +' + it.enhance : '';
-    return '  ' + it.name + enhTag + ' — $' + p;
-  }).join('\n');
-
-  let msg = '確定賣出所有 ' + rarityNames[rarity] + '（' + items.length + '件）？\n\n' + lines + '\n\n共可獲得 ' + totalGold + ' 金幣';
-  if (enhancedCount > 0) {
-    msg = '⚠️ 其中 ' + enhancedCount + ' 件已強化，賣出後強化值將永久消失！\n\n' + msg;
-  }
-  if (!confirm(msg)) return;
-
-  playSFX('coin');
-  state.gold += totalGold;
-  state.inventory = state.inventory.filter(i => !(i.rarity === rarity && (i.type==='weapon'||i.type==='armor')));
-  toast('💰 賣出 ' + items.length + ' 件 ' + rarityNames[rarity] + '，獲得 ' + totalGold + ' 金幣');
-  renderMerchant();
-  refreshInventoryIfOpen();
-  updateUI(); save(true);
-}
+function bulkSell(rarity){openSaleDesk(rarity);}
 
 function merchantBuy(idx) {
   const stock = merchantStock[idx];
@@ -7143,6 +7079,8 @@ function showVillageMenu(v) {
         <div style="font-size:11px;color:#666">${CONTINENT_INFO[v.continent]?.name||''}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:.5rem">
+        <button class="journal-action" onclick="openJournal('${v.continent}');this.closest('[style*=fixed]').remove()">與 ${DungeonAdventure.chapters[v.continent]?.npc||'旅人'} 交談</button>
+        <button class="journal-action" onclick="openMerchant();this.closest('[style*=fixed]').remove()">商人 · 購買與出售</button>
         <button onclick="showInn(${JSON.stringify(v).replace(/"/g,'&quot;')});this.closest('[style*=fixed]').remove()"
           style="padding:10px;border-radius:10px;border:.5px solid #333;background:#213531;color:#60a5fa;font-size:13px;cursor:pointer">
           🏨 旅館　<span style="color:#f59e0b;font-size:11px">500 金</span>
@@ -7399,12 +7337,14 @@ function confirmInherit() {
   const totalKills = state.totalKills;
   const totalExplored = state.totalExplored;
   const totalGenerations = state.totalGenerations + 1;
+  const inheritedJournal = JSON.parse(JSON.stringify(DungeonAdventure.progress(state)));
 
   document.getElementById('inherit-overlay').classList.remove('open');
 
   // Start new generation
   setTimeout(() => {
     state = initState();
+    state.adventure = inheritedJournal;
     state.generation = newGen;
     state.totalKills = totalKills;
     state.totalExplored = totalExplored;

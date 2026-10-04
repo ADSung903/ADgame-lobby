@@ -54,6 +54,26 @@ window.DungeonArt = (()=>{
   function setScene(cont){const p=palettes[cont]||palettes.forest,el=document.getElementById('combat-overlay');el.style.setProperty('--scene-dark',p[0]);el.style.setProperty('--scene-light',p[1]);el.style.setProperty('--scene-art',`url("data:image/svg+xml,${encodeURIComponent(sceneSVG(cont))}")`);el.dataset.continent=cont;el.dataset.boss=typeof combat!=='undefined'&&combat?.monsters?.some(m=>m.elite)?'true':'false';}
   function effectPosition(target){const anchor=target==='player'?document.getElementById('cb-hero'):document.getElementById(`cb-mon-sprite-${typeof combat!=='undefined'?combat?.lastTargetUid??combat?.monster?.uid??0:0}`);if(anchor){const r=anchor.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height*.45};}return {x:window.innerWidth*.5,y:window.innerHeight*.3};}
   function hitBurst(target,color){if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;const overlay=document.getElementById('combat-overlay');if(!overlay||overlay.querySelectorAll('.art-impact').length>=8)return;const pos=effectPosition(target),el=document.createElement('div');el.className='art-impact';el.style.cssText=`left:${pos.x}px;top:${pos.y}px;color:${color}`;el.innerHTML='<svg viewBox="0 0 100 100"><path d="M50 4 L58 33 L85 15 L67 43 L96 50 L66 59 L84 86 L57 68 L50 96 L41 68 L14 85 L32 57 L4 50 L33 42 L16 15 L43 32 Z" fill="currentColor"/><circle cx="50" cy="50" r="20" fill="#fff2cf"/></svg>';overlay.appendChild(el);setTimeout(()=>el.remove(),650);}
+  function weaponStrikeSVG(kind,element='none',crit=false){
+    const trails={
+      sword:'<path class="strike-main" d="M23 160 Q127 98 177 24 Q134 132 23 160 Z" fill="currentColor"/><path d="M32 153 Q124 102 172 32" fill="none" stroke="#fff6d5" stroke-width="5"/>',
+      axe:'<path class="strike-main" d="M41 20 Q160 23 165 125 L132 118 Q114 59 41 20 Z" fill="currentColor"/><path d="M30 148 L67 140 L89 153 L102 139 L132 150 L173 140 M100 128 V175 M100 144 L78 176 M103 145 L133 177" stroke="currentColor" stroke-width="7" fill="none"/>',
+      bow:'<g class="strike-main" stroke="currentColor" stroke-width="5"><path d="M34 158 L149 43 M130 43 H149 V62 M27 130 L124 33 M105 33 H124 V52 M64 168 L166 66 M147 66 H166 V85" fill="none"/><path d="M43 141 L30 142 L31 155 M54 154 L55 167 L68 166" fill="none" stroke="#fff4ce"/></g>',
+      wand:'<g class="strike-main" fill="none" stroke="currentColor" stroke-width="4"><circle cx="100" cy="100" r="65"/><circle cx="100" cy="100" r="46"/><path d="M100 31 L160 137 H40 Z M100 170 L40 63 H160 Z"/></g><circle cx="100" cy="100" r="19" fill="#fff6dd"/><path d="M100 6 V22 M100 178 V194 M6 100 H22 M178 100 H194" stroke="currentColor" stroke-width="5"/>',
+      dagger:'<path class="strike-main" d="M27 28 Q120 85 174 168 Q79 111 27 28 Z" fill="currentColor"/><path class="strike-secondary" d="M28 175 Q81 84 172 25 Q116 127 28 175 Z" fill="#fff4da"/>',
+      spear:'<path class="strike-main" d="M18 163 L139 43 L126 39 L183 16 L160 73 L157 59 L35 178 Z" fill="currentColor"/><path d="M38 151 L155 33" stroke="#fff5d2" stroke-width="4"/><ellipse cx="151" cy="55" rx="17" ry="35" transform="rotate(45 151 55)" fill="none" stroke="currentColor" stroke-width="4"/>'
+    };
+    const e=DungeonObjects.elementArt[element==='holy'?'light':element]||DungeonObjects.elementArt.none;
+    const mark=element!=='none'?`<g transform="translate(65 65) scale(.7)" stroke="#fff6df" stroke-width="2" fill="none"><path d="${e.motif}"/></g>`:'';
+    const sparks='<g fill="#fff3cb"><path d="M32 79 L37 90 L48 95 L37 100 L32 111 L27 100 L16 95 L27 90 Z"/><path d="M162 114 L166 125 L178 130 L166 134 L162 146 L158 134 L146 130 L158 125 Z"/></g>';
+    return `<svg viewBox="0 0 200 200" aria-hidden="true">${trails[kind]||trails.sword}${mark}${sparks}${crit?'<circle cx="100" cy="100" r="84" fill="none" stroke="#ffe2a0" stroke-width="5"/>':''}</svg>`;
+  }
+  function weaponStrike(kind,element,crit){
+    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+    const overlay=document.getElementById('combat-overlay');if(!overlay||overlay.querySelectorAll('.weapon-strike').length>=6)return;
+    const pos=effectPosition('monster'),source=effectPosition('player'),el=document.createElement('div'),e=DungeonObjects.elementArt[element==='holy'?'light':element]||DungeonObjects.elementArt.none;
+    el.className='weapon-strike strike-'+kind+(crit?' strike-critical':'');el.style.cssText=`left:${pos.x}px;top:${pos.y}px;color:${e.gem};--shot-x:${source.x-pos.x}px;--shot-y:${source.y-pos.y}px`;el.innerHTML=weaponStrikeSVG(kind,element,crit);overlay.appendChild(el);setTimeout(()=>el.remove(),850);
+  }
   function decorateUI(){for(const el of document.querySelectorAll('[data-art-icon]')){if(!el.dataset.artReady){el.innerHTML=DungeonObjects.uiIcon(el.dataset.artIcon);el.dataset.artReady='true';}}}
-  return {decorateUI,monsterSVG,drawMonster,drawTerrain,setScene,sceneSVG,drawHero,prop,effectPosition,hitBurst,heroSVG:DungeonObjects.heroSVG,itemSVG:DungeonObjects.itemSVG};
+  return {weaponStrikeSVG,weaponStrike,decorateUI,monsterSVG,drawMonster,drawTerrain,setScene,sceneSVG,drawHero,prop,effectPosition,hitBurst,heroSVG:DungeonObjects.heroSVG,itemSVG:DungeonObjects.itemSVG};
 })();

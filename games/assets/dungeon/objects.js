@@ -134,6 +134,12 @@ window.DungeonObjects = (()=>{
     const w=state.weapon?`<g transform="translate(65 33) scale(.32)">${weapon(state.weapon.subtype,rare[state.weapon.rarity]||rare.white,state.weapon)}</g>`:'';
     return wrap(`<g ${facing<0?'transform="translate(100 0) scale(-1 1)"':''}>${body}${w}</g>`,'Adventurer');
   }
+  function npcSVG(role){const coats={miner:'#b99967',scholar:'#789fa8',keeper:'#a897b4',captain:'#608d95',smith:'#ab7963',engineer:'#8caa86'},c=coats[role]||coats.miner;
+    const base=E(50,93,31,5,'#193033')+P('M31 53 L18 91 H82 L69 53 L58 47 H42 Z',c)+P('M37 50 L50 66 L63 50 L59 80 H41 Z','#d8c698')+E(50,33,20,23,'#e1bb8e')+P('M29 31 Q23 11 45 9 Q73 4 73 33 L65 23 L57 19 L36 26 L33 38 Z','#6b6054')+E(43,34,2,3,'#253839')+E(58,34,2,3,'#253839')+P('M45 43 Q51 47 57 42');
+    const hats={miner:P('M27 22 Q30 7 50 7 Q72 6 75 22 Z','#c2a66d')+E(50,15,6,5,'#f0d797'),scholar:R(31,6,38,7,'#c9b890')+P('M28 10 H72 L65 19 H35 Z','#66858c')+E(43,34,7,7,'none')+E(58,34,7,7,'none'),keeper:P('M23 32 Q22 4 50 4 Q78 4 77 32 L67 19 Q51 13 33 28 Z',c),captain:P('M22 19 L34 6 L51 14 L68 6 L79 19 L69 27 H33 Z','#496c74')+gem(51,18,5,'#e5ce94'),smith:P('M29 25 Q31 8 50 11 Q70 7 73 25 Z','#756150')+R(32,22,35,7,'#6c7d76'),engineer:R(30,23,40,10,'#9ca58b')+E(41,29,6,5,'#e5ca84')+E(59,29,6,5,'#e5ca84')};
+    const props={miner:weapon('axe','#c9c9a7'),scholar:itemMark('job_exp_up'),keeper:itemMark('enhance_holy'),captain:itemMark('teleport_any'),smith:weapon('sword','#bfc6ac'),engineer:itemMark('enhance_normal')};
+    return wrap(base+(hats[role]||hats.miner)+`<g transform="translate(17 59) scale(.36)">${props[role]||props.miner}</g>`,'旅人 '+role);
+  }
   function building(kind){switch(kind){
     case 'inn':return P('M14 41 L49 13 L87 41 Z','#698e97')+P('M19 43 H81 V83 H19 Z','#c1a17c')+P('M11 43 H90 V50 H11 Z','#516d70')+R(39,57,22,28,'#705a49')+R(24,56,10,13,'#edd7a0')+R(66,56,10,13,'#edd7a0')+E(51,30,5,5,'#e1c48c')+P('M22 74 H35 M67 74 H80');
     case 'merchant':return P('M12 46 L29 20 H74 L90 46 Z','#cdb57d')+P('M15 47 H87 V56 H15 Z','#b38168')+R(21,56,62,26,'#9c8060')+R(19,69,66,9,'#d6bd87')+R(31,53,6,10,'#e2c990')+R(64,53,6,10,'#e2c990');
@@ -151,5 +157,5 @@ window.DungeonObjects = (()=>{
     else b=E(50,50,35,35,'#c8b78d')+P('M50 20 L61 49 L50 79 L39 49 Z','#7e9a93')+P('M50 20 V79 M20 50 H80');
     return wrap(b,'Menu '+k);
   }
-  return {heroSVG,itemSVG,propSVG,uiIcon,elementArt};
+  return {heroSVG,itemSVG,propSVG,uiIcon,elementArt,npcSVG};
 })();

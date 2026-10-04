@@ -1,0 +1,49 @@
+/* Minebound journal: curated questions and persistent, optional story chapters. */
+window.DungeonAdventure=(()=>{
+  const chapters={
+    forest:{title:'第一頁：會發光的礦石',npc:'採礦師・露米',role:'miner',boss:'森林詛咒者',topic:'數學',intro:'你在木劍的裂縫裡找到一粒發光礦石。它沒有記錄寶藏的位置，卻記錄了上一代旅人的聲音。露米請你追查森林裡失去光澤的礦脈。',dialogue:'礦脈會回應你的判斷。先在森林答對三題，再找出讓樹根腐化的詛咒者。',ending:'樹根重新發亮。礦石浮出一句話：知識是通往下一片土地的鑰匙。',reward:300},
+    desert:{title:'第二頁：砂中的雙語石碑',npc:'譯碑者・賽恩',role:'scholar',boss:'沙漠巨蠍王',topic:'英文單字＋數學',intro:'砂海吞沒了道路，留下同時刻著兩種語言的石碑。賽恩相信那些詞語能指向失落的水源。',dialogue:'water 是水，sun 是太陽。學會讀懂石碑，才知道哪些符號是警告。',ending:'蠍王倒下，石碑露出一條潮汐線：古代的海，曾流過這片砂。',reward:1200},
+    ice:{title:'第三頁：霜龍保存的次序',npc:'守燈人・芙洛',role:'keeper',boss:'冰原霸主',topic:'數列與規律＋數學',intro:'冰層裡的礦光按固定順序閃爍。芙洛的燈只剩下一點火，等待有人讀懂霜龍留下的規律。',dialogue:'別急著打碎冰晶。觀察順序，找到缺少的那一項。',ending:'冰原恢復平靜，燈芯裡出現了海港的倒影。',reward:1500},
+    sea:{title:'第四頁：潮汐的來信',npc:'領航員・柯菈',role:'captain',boss:'深淵之眼',topic:'自然常識＋數學',intro:'珊瑚港收到一封沒有寄件人的信。信紙會在海水裡發光，指向注視整片海域的深淵之眼。',dialogue:'先理解水、生命與潮汐，再去回答那隻眼睛的問題。',ending:'海水不再低語。信的背面寫著：礦脈連接的不只是土地，還有記憶。',reward:1800},
+    lava:{title:'第五頁：鍛造者的動詞',npc:'鍛造師・赫珀',role:'smith',boss:'火山惡魔',topic:'英文動作詞＋數學',intro:'煉獄鎮的熔爐只能依照古老指令操作。赫珀需要懂得 read、make、open 的旅人，替熔爐解開錯誤的命令。',dialogue:'動詞告訴你要做什麼。read 是閱讀；make 是製作。答題和鍛造一樣，都要看清楚。',ending:'熔爐吐出一片金色書頁，天空浮島的航路終於現形。',reward:2200},
+    sky:{title:'第六頁：雲上的短句',npc:'星圖師・艾拉',role:'scholar',boss:'天空之王',topic:'英文短句＋數學',intro:'浮島之間的橋由句子編成，缺少一個詞就會消失。艾拉守著一張被風撕裂的星圖。',dialogue:'She is、They are。看清楚誰在說話，讓短句重新連起航路。',ending:'雲橋重新相連，星圖卻指出了一片沒有星光的土地。',reward:2600},
+    shadow:{title:'第七頁：真假之間',npc:'記憶師・諾克',role:'keeper',boss:'虛空魔神',topic:'英文語意＋數學',intro:'虛空鎮的人忘記了自己的名字。諾克把能確定的詞寫在牆上，避免記憶被影子替換。',dialogue:'before 與 after，true 與 false。辨識差異，是留下自己名字的方法。',ending:'失去的名字重新出現。影子承認，礦脈曾是一座巨大記憶庫。',reward:3000},
+    mech:{title:'第八頁：齒輪裡的訊號',npc:'機械師・堤克',role:'engineer',boss:'機械神',topic:'邏輯與二進位＋數學',intro:'齒輪城的守衛把所有人視為錯誤。堤克發現控制訊號只使用 0 和 1，卻少了一段允許人類通行的指令。',dialogue:'1、10、11 是二進位的一、二、三。讀懂訊號，才能把守衛從錯誤命令中解放。',ending:'機械神停止追捕。最後一份訊號指向東方：記憶庫的核心仍在等待旅人。',reward:3500},
+    hidden:{title:'終頁：留下下一代的光',npc:'舊日旅人・伊安',role:'miner',boss:'虛空領主',topic:'各地知識混合',intro:'你在記憶庫見到一個熟悉的背影。伊安不是最後一位勇者，而是第一位選擇把知識留給後人的旅人。',dialogue:'你不必一個人記住全部。把沿途學到的事帶來，也把你走過的路留下。',ending:'礦脈的光沒有被帶走，而是分給了九片土地。你的故事成為下一代日誌的第一頁。',reward:8000}
+  };
+  const words=(topic,rows)=>rows.map(([en,zh,others])=>({topic,text:`「${en}」的意思是？`,answer:zh,options:[zh,...others],explanation:`${en}：${zh}`}));
+  const banks={
+    desert:words('英文單字', [['water','水',['火','風','土']],['sun','太陽',['月亮','星星','雲']],['sand','沙',['雪','海','樹']],['map','地圖',['書包','武器','食物']],['north','北方',['南方','西方','東方']],['stone','石頭',['植物','河流','天空']],['river','河流',['山脈','沙漠','道路']],['light','光',['雨','霧','冰']]]),
+    lava:words('英文動作詞',[['read','閱讀',['奔跑','跳躍','睡覺']],['make','製作',['打開','關閉','等待']],['open','打開',['關閉','飲用','看見']],['close','關閉',['打開','清洗','跳躍']],['help','幫助',['躲藏','奔跑','等待']],['build','建造',['聆聽','飲用','睡覺']],['carry','攜帶',['呼吸','發光','看見']],['find','找到',['失去','轉身','休息']]]),
+    shadow:words('英文語意',[['before','在……之前',['在……之後','在……下面','在……裡面']],['after','在……之後',['在……之前','在……上面','在……外面']],['true','真實的',['錯誤的','安靜的','明亮的']],['false','錯誤的',['真實的','堅硬的','緩慢的']],['remember','記得',['忘記','返回','關閉']],['forget','忘記',['記得','前進','開始']],['same','相同的',['不同的','危險的','安全的']],['different','不同的',['相同的','古老的','明亮的']]]),
+    sky:[['She ___ a map.','has',['have','are','am'],'第三人稱單數使用 has。'],['They ___ ready.','are',['is','am','has'],'They 搭配 are。'],['I ___ a traveler.','am',['is','are','has'],'I 搭配 am。'],['He ___ here.','is',['are','am','have'],'He 搭配 is。'],['We ___ friends.','are',['is','am','has'],'We 搭配 are。'],['You ___ a book.','have',['has','is','am'],'You 搭配 have。'],['One bird; two ___.','birds',['bird','birdes','birding'],'bird 的複數是 birds。'],['She can ___.','run',['runs','ran','running'],'can 後接原形動詞。']].map(([text,answer,wrong,explanation])=>({topic:'英文短句',text,answer,options:[answer,...wrong],explanation})),
+    sea:[['植物進行光合作用需要哪種能量？','陽光',['聲音','電池','磁力'],'植物利用光能進行光合作用。'],['一般人在水中需要什麼設備才能長時間呼吸？','供氣設備',['耳機','望遠鏡','雨傘'],'人類不能直接從水中取得足夠氧氣。'],['水降到冰點以下通常會變成？','冰',['岩石','沙','金屬'],'標準大氣壓下純水的冰點約為 0°C。'],['魚主要用什麼呼吸？','鰓',['羽毛','葉片','魚鱗'],'魚的鰓能從水中取得氧氣。'],['地球上的海水主要是？','鹹水',['淡水','糖水','油'],'海水含有溶解的鹽類。'],['哪一種動物是哺乳類？','海豚',['鯊魚','螃蟹','水母'],'海豚使用肺呼吸，也是哺乳類。'],['水蒸氣冷卻凝結後形成？','液態水',['沙粒','木材','鐵粉'],'凝結是氣態水變成液態水。'],['哪一項有助於保護海洋？','減少塑膠垃圾',['亂丟垃圾','破壞珊瑚','排放污水'],'減少垃圾能降低海洋污染。']].map(([text,answer,wrong,explanation])=>({topic:'自然常識',text,answer,options:[answer,...wrong],explanation})),
+    mech:[['二進位 10 等於十進位多少？','2',['1','10','0'],'二進位 10 = 1×2 + 0。'],['二進位 11 等於十進位多少？','3',['2','11','1'],'二進位 11 = 2 + 1。'],['二進位使用哪兩種數字？','0 與 1',['1 與 2','2 與 3','0 與 9'],'二進位每一位只有 0 或 1。'],['兩個開關都開啟才通電，是哪種邏輯？','AND',['OR','NOT','NONE'],'AND 要求兩個條件都成立。'],['任一開關開啟就通電，是哪種邏輯？','OR',['AND','NOT','NONE'],'OR 只需要至少一個條件成立。'],['NOT true 的結果是？','false',['true','1 與 0','不變'],'NOT 會將真假反轉。'],['二進位 100 等於十進位多少？','4',['2','3','100'],'二進位 100 = 1×4。'],['每次加倍：1、2、4、8、？','16',['10','12','14'],'8×2 = 16。']].map(([text,answer,wrong,explanation])=>({topic:'邏輯與訊號',text,answer,options:[answer,...wrong],explanation}))
+  };
+  function progress(s){if(!s.adventure)s.adventure={accepted:[],claimed:[],correct:{},bosses:[],mode:'world'};const p=s.adventure;for(const k of ['accepted','claimed','bosses'])if(!Array.isArray(p[k]))p[k]=[];if(!p.correct||typeof p.correct!=='object')p.correct={};p.mode=p.mode==='math'?'math':'world';return p;}
+  function choose(a){return a[Math.floor(Math.random()*a.length)];}
+  function question(region,lv,s){const p=progress(s);if(region==='forest'||p.mode==='math'||Math.random()<.35)return null;
+    if(region==='ice'){const step=choose([2,3,4,5]),first=choose([1,2,3]),answer=first+step*3;return {topic:'數列與規律',text:`${first}、${first+step}、${first+step*2}、？`,answer:String(answer),options:[answer,answer+1,answer-1,answer+step].map(String),explanation:`每次增加 ${step}，下一項是 ${answer}。`};}
+    const bank=region==='hidden'?choose(Object.values(banks)):banks[region];return bank?{...choose(bank)}:null;
+  }
+  function recordCorrect(s,region){const p=progress(s);p.correct[region]=(p.correct[region]||0)+1;}
+  function recordBoss(s,name){const p=progress(s);if(!p.bosses.includes(name))p.bosses.push(name);}
+  function canClaim(s,region,legacyKills=[]){const p=progress(s),c=chapters[region];return !!c&&p.accepted.includes(region)&&!p.claimed.includes(region)&&(p.correct[region]||0)>=3&&(p.bosses.includes(c.boss)||legacyKills.includes(c.boss));}
+  function claim(s,region,legacyKills=[]){if(!canClaim(s,region,legacyKills))return false;progress(s).claimed.push(region);s.gold+=chapters[region].reward;return true;}
+  return {chapters,banks,progress,question,recordCorrect,recordBoss,canClaim,claim};
+})();
+function openJournal(region){
+  if(combatActive){toast('戰鬥結束後再翻閱紀行');return;}
+  region=region||getContinent(px,py);const c=DungeonAdventure.chapters[region]||DungeonAdventure.chapters.forest,p=DungeonAdventure.progress(state);
+  const ready=DungeonAdventure.canClaim(state,region,[...killedSet]),done=p.claimed.includes(region),accepted=p.accepted.includes(region);
+  const body=document.getElementById('journal-body');
+  body.innerHTML=`<div class="journal-nav">${Object.entries(DungeonAdventure.chapters).map(([id,x])=>`<button class="journal-tab ${id===region?'selected':''}" onclick="openJournal('${id}')">${x.title.split('：')[0]}${p.claimed.includes(id)?' ✓':''}</button>`).join('')}</div>
+    <div class="npc-dialogue"><div class="npc-portrait">${DungeonObjects.npcSVG(c.role)}</div><div><small>礦脈記憶庫 · 第${state.generation}代旅人</small><h3>${c.npc}</h3><p>${c.dialogue}</p></div></div>
+    <h3>${c.title}</h3><p class="journal-prose">${c.intro}</p><p class="journal-prose">${done?c.ending:'委託：在這片大陸答對 3 題，並擊敗 '+c.boss+'。'}</p>
+    <div class="quest-progress">答對 ${Math.min(3,p.correct[region]||0)}/3 · 首領 ${(p.bosses.includes(c.boss)||killedSet.has(c.boss))?'已擊敗':'未擊敗'} · 獎勵 ${c.reward} 金</div>
+    <button class="journal-action" ${done||accepted&&!ready?'disabled':''} onclick="journalAction('${region}')">${done?'書頁已收藏':ready?'回報委託，收藏書頁':accepted?'委託進行中':'與 '+c.npc.split('・')[1]+' 接下委託'}</button>
+    <div class="quiz-setting"><strong>這片土地的題型：${c.topic}</strong><p>世界題型會混合數學與當地知識。英文與文字題至少給 12 秒基礎時間；戰鬥的緩速等狀態仍會影響時間。</p><label for="quiz-mode">答題模式</label><select id="quiz-mode" onchange="setQuizMode(this.value)"><option value="world" ${p.mode==='world'?'selected':''}>跟隨世界：數學＋當地知識</option><option value="math" ${p.mode==='math'?'selected':''}>只玩數學</option></select></div>`;
+  openModal('modal-journal');
+}
+function journalAction(region){const p=DungeonAdventure.progress(state);if(!p.accepted.includes(region)){p.accepted.push(region);toast('已接下 '+DungeonAdventure.chapters[region].title);}else if(DungeonAdventure.claim(state,region,[...killedSet])){playSFX('coin');toast('書頁已收藏，獲得 '+DungeonAdventure.chapters[region].reward+' 金');updateUI();}save(true);openJournal(region);}
+function setQuizMode(mode){DungeonAdventure.progress(state).mode=mode==='math'?'math':'world';save(true);toast(mode==='math'?'已切換為數學題':'已切換為世界題型');}

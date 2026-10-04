@@ -12,5 +12,7 @@ for(const subtype of ['heal_s','heal_m','heal_l','heal_xl','heal_full','antidote
 for(const subtype of ['identify','enhance_normal','enhance_lucky','enhance_holy','enhance_protect','enhance_cursed','purify','teleport_near','teleport_any','job_reset','job_reincarnate','raid_ticket','job_exp_up'])samples.push(c.DungeonArt.itemSVG({type:'scroll',subtype}));
 const hidden=c.DungeonArt.itemSVG({unidentified:true,type:'weapon',subtype:'sword',element:'fire',rarity:'gold'});assert.equal(hidden,c.DungeonArt.itemSVG({unidentified:true,type:'weapon',subtype:'sword',element:'ice',rarity:'blue'}),'unidentified art must not reveal affinity');
 assert.equal(new Set(['fire','water','ice','thunder','earth','dark','light'].map(element=>c.DungeonArt.itemSVG({type:'weapon',subtype:'sword',element}))).size,7);
+for(const role of ['miner','scholar','keeper','captain','smith','engineer'])samples.push(c.DungeonObjects.npcSVG(role));
+for(const subtype of ['sword','axe','bow','wand','dagger','spear'])for(const element of ['none','fire','water','ice','thunder','earth','dark','light'])samples.push(c.DungeonArt.weaponStrikeSVG(subtype,element,true));
 for(const svg of samples){const pixels=await sharp(Buffer.from(svg)).resize(100,100).ensureAlpha().raw().toBuffer();let alpha=0;for(let i=3;i<pixels.length;i+=4)alpha+=pixels[i];assert(alpha>10000,'asset must produce visible pixels');}
 console.log(`PASS ${samples.length} rasterized SVG assets: 75 creatures, nine scenes, landmarks, equipment, mirrored heroes and fallback items.`);})().catch(e=>{console.error(e);process.exit(1);});
