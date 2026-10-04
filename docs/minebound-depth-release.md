@@ -43,4 +43,4 @@
 
 ![堆疊交易](minebound-sales-20261005.jpg)
 ![森林事件](minebound-event-20261005.jpg)
-![九位旅人](minebound-npcs-20261005.jpg)
+![九位旅人](minebound-npcs-final-20261005.jpg)

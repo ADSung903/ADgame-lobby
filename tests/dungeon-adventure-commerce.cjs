@@ -44,4 +44,8 @@ run('continueRegionGuide()');assert.equal(run('px'),run('beforeMoveX+1'),'guide 
 run(`state=initState();Math.random=()=>.9;const missed=DungeonAdventure.question('desert',1,state);DungeonAdventure.recordReview(state,missed,false);`);
 for(let i=0;i<12;i++)assert.notEqual(run("DungeonAdventure.question('desert',1,state).text"),run('missed.text'));
 assert.equal(run("DungeonAdventure.question('desert',1,state).text"),run('missed.text'),'missed question returns only after a spaced interval');
+run(`let oscillatorCount=0;window.AudioContext=class{constructor(){this.currentTime=0;this.state='running';this.destination={};}createOscillator(){oscillatorCount++;return {frequency:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){},start(){},stop(){}};}createGain(){return {gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){}};}};audioState.unlocked=true;audioState.sfxEnabled=true;audioState.sfxVolume=.5;DungeonArt.weaponSound('bow','water',false);`);
+assert.equal(run('oscillatorCount'),3,'bow sound can play its three short voices');
+run(`audioState.sfxEnabled=false;DungeonArt.weaponSound('axe','fire',true)`);assert.equal(run('oscillatorCount'),3,'SFX toggle mutes generated sounds');
+run(`audioState.sfxEnabled=true;audioState.sfxVolume=0;DungeonArt.weaponSound('sword','ice',false)`);assert.equal(run('oscillatorCount'),3,'zero volume stays silent');
 console.log('PASS: curated answers, text question timing and math fallback, one-time story reward, inherited journal, sale locks, exact potion quantity, repeated-submit guard.');
