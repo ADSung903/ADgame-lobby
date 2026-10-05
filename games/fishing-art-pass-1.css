@@ -1,0 +1,6 @@
+/* Fishing art pass 1: additive, mobile-safe UI refinements. */
+#screen-game .hud{padding-left:4.9rem;background:linear-gradient(180deg,rgba(0,7,18,.84) 0%,rgba(0,8,22,.42) 62%,transparent 100%)}
+#screen-game::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:12;background:radial-gradient(ellipse at 50% 34%,transparent 45%,rgba(0,5,18,.10) 76%,rgba(0,3,12,.24) 100%)}
+.game-exit{position:absolute;left:.55rem;top:max(.45rem,env(safe-area-inset-top,0px));z-index:40;border:1px solid rgba(110,190,220,.32);border-radius:999px;padding:6px 10px;background:rgba(2,18,31,.68);color:#b9dce8;font-size:12px;font-weight:600;line-height:1;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
+.game-exit:active{transform:scale(.96);background:rgba(7,42,60,.88)}
+@media (max-width:360px){#screen-game .hud{padding-left:4.45rem}.game-exit{font-size:11px;padding:6px 8px}}
