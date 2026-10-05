@@ -329,7 +329,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .cb-row{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .cb-row:empty{display:none}
 .cb-row::-webkit-scrollbar{display:none}
-#cb-skill-btns{margin-top:8px;padding-top:6px;border-top:.5px solid #2a2a3e}
+#cb-skill-btns{flex-wrap:wrap;margin-top:8px;padding-top:6px;border-top:.5px solid #2a2a3e}
 .cb-player-hp{font-size:12px;color:var(--green);font-weight:700}
 #cb-status-bar{display:inline-flex;align-items:center;margin-left:6px;vertical-align:middle}
 @keyframes statusFxFloat{
@@ -398,6 +398,8 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 .gen-badge{position:fixed;top:calc(env(safe-area-inset-top,0px) + 46px + 48px);
   right:.5rem;background:rgba(7,7,15,.85);border:.5px solid var(--accent);
   border-radius:8px;padding:3px 8px;font-size:10px;color:#c4b5fd;z-index:10;pointer-events:none}
+.skill-meter{width:100%;font-size:12px;color:#e8cf9a}.job-skill-btn{min-height:44px;padding:6px 10px;border:1px solid #776447;border-radius:9px;background:#24213a;color:#eae2d0;text-align:left;cursor:pointer}.job-skill-btn b,.job-skill-btn small{display:block}.job-skill-btn small{font-size:10px;margin-top:3px;color:#c2b4d9}.job-skill-btn.selected{border-color:#ffd47c;background:#4b3457}.job-skill-btn:disabled{opacity:.45;cursor:default}.job-skill-fx{position:absolute;inset:20% 10% 25%;z-index:20;pointer-events:none;text-align:center;animation:skill-reveal 1.1s ease-out both}.job-skill-fx svg{height:100%;width:100%;filter:drop-shadow(0 0 10px currentColor)}.job-skill-fx strong{position:absolute;bottom:10%;left:0;right:0;color:#fff1ce;font-size:24px;text-shadow:0 2px 8px #000}.fx-arrow svg{animation:skill-flight .8s ease-out}.fx-blade svg,.fx-shadow svg{animation:skill-spin .9s ease-out}.fx-song svg,.fx-holy svg{animation:skill-pulse .9s ease-out}.fx-dice svg{animation:skill-spin 1s ease-out}@keyframes skill-reveal{0%{opacity:0;transform:scale(.45)}25%{opacity:1;transform:scale(1.05)}75%{opacity:1}100%{opacity:0;transform:scale(1.2)}}@keyframes skill-flight{from{transform:translate(-70px,40px)}to{transform:translate(40px,-20px)}}@keyframes skill-spin{from{transform:rotate(-100deg)}to{transform:rotate(20deg)}}@keyframes skill-pulse{50%{transform:scale(1.15)}}
+#skill-guide{position:fixed;width:min(90vw,560px);max-height:80vh;overflow:auto;background:#191c29;color:#efe5cf;border:1px solid #ab8c58;border-radius:14px;padding:18px}#skill-guide::backdrop{background:#000b}.skill-guide-row{display:grid;gap:5px;margin:12px 0;padding:10px;border:1px solid #494257;border-radius:8px}.skill-guide-row span,.skill-guide-row small{font-size:12px}.skill-guide-row button,#skill-guide>button{min-height:44px;background:#43364c;color:#ffe6b0;border:1px solid #92774b;border-radius:8px}#skill-guide .job-skill-fx{position:fixed;inset:20% 10% 25%}
 </style>
 <link rel="stylesheet" href="assets/dungeon/art.css?v=20261005-depth">
 </head><body>
@@ -478,7 +480,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
       <button class="dpad-btn" ontouchstart="move(0,1)" onclick="move(0,1)">▼</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
-      <button class="journal-menu" onclick="openJournal()">📖<br>紀行</button>
+      <button class="journal-menu" onclick="openSkillGuide()">⚔️<br>招式</button><button class="journal-menu" onclick="openJournal()">📖<br>紀行</button>
     </div>
     <div class="act-btns" style="flex-direction:column;gap:4px">
       <div style="display:flex;gap:3px">
@@ -1857,7 +1859,7 @@ const JOB_DEFS = {
       {id:'gambler_10', name:'千面梟雄', desc:'暴擊傷害×4（原本×3）',                       lv:10, type:'passive', effect:{critMult:4.0}},
       {id:'gambler_15', name:'賭神附體', desc:'豪賭勝率提升至70%',                           lv:15, type:'passive', effect:{gambleWinRate:0.70}},
       {id:'gambler_aoe', name:'死亡輪盤', desc:'每場1次，50%機率對全體×4傷害，否則×1.5',     lv:18, type:'once',    effect:{aoe:true}},
-      {id:'gambler_20', name:'奇蹟',     desc:'每場1次，100%觸發×10暴擊（無視一切限制）',  lv:20, type:'once',    effect:{miracleCrit:10.0}},
+      {id:'gambler_20', name:'奇蹟',     desc:'每場1次，×10決勝傷害（仍受王級抗性與傷害上限限制）',  lv:20, type:'once',    effect:{miracleCrit:10.0}},
     ],
     canChangeTo:['fortune_god'], reqLevel:30, reqJob:'miner',
   },
@@ -2013,7 +2015,7 @@ const JOB_DEFS = {
       {id:'fg_8',  name:'幸運女神', desc:'命運之輪效果翻倍',                               lv:8,  type:'passive', effect:{randomBuffDouble:true}},
       {id:'fg_10', name:'絕對暴擊', desc:'暴擊傷害×6（原本×4）',                          lv:10, type:'passive', effect:{critMult:6.0}},
       {id:'fg_15', name:'逆轉命運', desc:'每場1次，瀕死時自動觸發奇蹟（免疫死亡並回滿血）',lv:15, type:'trigger', effect:{miracleSave:true}, cd:99},
-      {id:'fg_20', name:'神之骰子', desc:'每場1次，100%觸發×15暴擊',                      lv:20, type:'once',    effect:{miracleCrit:15.0}},
+      {id:'fg_20', name:'神之骰子', desc:'每場1次，×15決勝傷害（仍受王級抗性與傷害上限限制）',                      lv:20, type:'once',    effect:{miracleCrit:15.0}},
     ],
     canChangeTo:[], reqLevel:60, reqJob:'gambler',
   },
@@ -4168,6 +4170,7 @@ function showQuestion() {
     });
   });
   answerActive = true;
+  renderCombatSkillBtns();
   combat.questionStartedAt = performance.now();
   combat.questionDuration = tl;
   cbTimer = setTimeout(() => onTimeout(), tl * 1000);
@@ -4196,8 +4199,14 @@ function answerQ(corner) {
   }
   if (correct) {
     playSFX('correct');
-    resolvePlayerAttack(remaining, tl);
+    const flow=skillBattleState();flow.charge=Math.min(6,flow.charge+1);flow.streak++;
+    const chosen=getUnlockedSkills().find(s=>s.id===flow.pending);
+    if(chosen){flow.pending=null;flow.charge-=skillCondition(chosen).cost;castJobSkill(chosen);
+      if(combatActive){if(allMonstersDead())setTimeout(()=>endCombatVictory(),600);else setTimeout(()=>doMonsterAttack(nextTurnOrEnd),800);}
+    }else resolvePlayerAttack(remaining, tl);
+    renderCombatSkillBtns();
   } else {
+    const flow=skillBattleState();flow.pending=null;flow.streak=0;renderCombatSkillBtns();
     playSFX('wrong');
     cbLog('cl-s', WRONG_MSGS[Math.floor(Math.random()*WRONG_MSGS.length)]);
     setTimeout(() => doMonsterAttack(nextTurnOrEnd), 800);
@@ -4208,12 +4217,11 @@ function onTimeout() {
   if (!answerActive || !combatActive) return;
   answerActive = false;
   document.getElementById('cb-q').style.display = 'none';
+  const flow=skillBattleState();flow.pending=null;flow.streak=0;renderCombatSkillBtns();
   cbLog('cl-p', '腦中一片空白……怪物看準機會猛攻！');
   if(combat.question?.explanation)DungeonAdventure.recordReview(state,combat.question,false);
   setTimeout(() => {
-    const dmg = Math.floor(combat.monster.atk * 1.5);
-    applyDmgToPlayer(dmg);
-    checkPlayerDead() || nextTurnOrEnd();
+    combat.timeoutRush=true;doMonsterAttack(()=>{combat.timeoutRush=false;nextTurnOrEnd();});
   }, 800);
 }
 
@@ -4377,9 +4385,13 @@ function attackSequence(list, idx, cb) {
     return;
   }
   const m = list[idx];
+  if(m.hp<=0){attackSequence(list,idx+1,cb);return;}
+  if(m.skillFreeze>0){m.skillFreeze--;cbLog('cl-p',`${m.name}被冰封，無法行動。`);attackSequence(list,idx+1,cb);return;}
+  if(combat.skillImmune>0){cbLog('cl-g','神聖守護格擋攻擊。');attackSequence(list,idx+1,cb);return;}
+  if(combat.skillGuard>0){combat.skillGuard--;showFloatingText('閃避／守護','#ffe89b','player');attackSequence(list,idx+1,cb);return;}
   if (m.hp <= 0) { attackSequence(list, idx+1, cb); return; }
 
-  let dmg = Math.max(1, m.atk - Math.floor(totalStat('def') * 0.4));
+  let dmg = Math.max(1, Math.floor(m.atk*(combat.timeoutRush?1.5:1)) - Math.floor(totalStat('def') * 0.4));
 
   // Special abilities
   let specialText = '';
@@ -4463,6 +4475,7 @@ function attackSequence(list, idx, cb) {
   if (state.weapon?.subtype === 'spear' && Math.random() < 0.20) combat.spearCounterReady = true;
 
   if (checkPlayerDead()) return; // 死亡時中斷序列
+  if(combat.skillCounter){const damage=calcSkillDamage(calcAtk()*combat.skillCounter,m,null);combat.skillCounter=0;m.hp=Math.max(0,m.hp-damage);skillVisual({name:'王者反擊'},'blade');updateCombatHPDisplay();cbLog('cl-y',`王者反擊！${damage}傷害`);}
 
   setTimeout(() => attackSequence(list, idx+1, cb), list.length > 1 ? 450 : 0);
 }
@@ -4470,6 +4483,9 @@ function attackSequence(list, idx, cb) {
 function nextTurnOrEnd() {
   if (!combatActive) return;
   const m = combat.monster;
+  if(combat.skillImmune>0)combat.skillImmune--;
+  if(combat.gazeTurns>0&&--combat.gazeTurns===0)combat.deathGaze=false;
+  combat.monsters.forEach(enemy=>{if(enemy.hp>0&&enemy.skillBurn?.turns>0){const burn=enemy.skillBurn;enemy.hp=Math.max(0,enemy.hp-burn.damage);burn.turns--;updateMonsterHP(enemy.uid);cbLog('cl-r',`${enemy.name}灼傷 ${burn.damage}`);}});
 
   // 破甲（戰士 Lv.1，每回合疊加）
   if (hasSkill('warrior_1')) {
@@ -4703,122 +4719,107 @@ function endCombatVictory() {
   }, 1200);
 }
 
-// 死亡凝視、豪賭、陷阱、絕對零度 等「每場1次」主動技能
+// 主動技能：選擇攻擊招式後由下一題正確答案發動；支援技能消耗累積答對。
+function skillCondition(s) {
+  const e=s.effect||{};
+  if ((!e.burstMult&&!e.aoe&&!e.trueHpDmg&&e.healPct)||e.immuneNext||e.immuneTurns||e.dodgeNext||e.trapNextAtk||e.monAtkReduce||s.id==='ice_5') return {cost:1,label:'累積答對 1 題',support:true};
+  if(s.lv===20)return {cost:3,label:'累積答對 3 題，再答對施放'};
+  if(e.aoeMult||e.iceNova||e.fireNova||s.id.includes('aoe'))return {cost:2,label:'累積答對 2 題，再答對施放'};
+  return {cost:0,label:'下一題答對施放'};
+}
+function skillBattleState(){return combat.skillFlow||(combat.skillFlow={charge:0,streak:0,pending:null});}
 function useJobSkill(skillId) {
-  if (!combatActive) return;
-  if (skillUsedThisCombat(skillId)) { toast('此技能本場已使用'); return; }
-  const m = combat.monster;
-  switch(skillId) {
-    case 'dk_5': // 死亡凝視
-      combat.deathGaze = true;
-      markSkillUsed('dk_5');
-      cbLog('cl-p', `💀 死亡凝視！${m.name}攻擊-30%，持續3回合`);
-      break;
-    case 'ice_5': // 絕對零度
-      combat.frozenTurns = 2;
-      markSkillUsed('ice_5');
-      cbLog('cl-p', `❄️ 絕對零度！${m.name}被凍結2回合！`);
-      break;
-    case 'ice_20': { // 冰封王座
-      markSkillUsed('ice_20');
-      const rawDmg = Math.floor(calcAtk() * 5.0);
-      const dmg = calcSkillDamage(rawDmg, m, 'ice');
-      m.hp = Math.max(0, m.hp - dmg);
-      combat.frozenTurns = 3;
-      cbLog('cl-p', `❄️ 冰封王座！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結3回合！`);
-      showFloatingDmg(dmg, true, false);
-      updateCombatHPDisplay();
-      if (allMonstersDead()) { answerActive = false; clearTimeout(cbTimer); setTimeout(() => endCombatVictory(), 400); return; }
-      break;
+  if(!combatActive||!answerActive)return;
+  const skill=getUnlockedSkills().find(s=>s.id===skillId&&s.type==='once');
+  if(!skill||skillUsedThisCombat(skillId))return;
+  const flow=skillBattleState(),rule=skillCondition(skill);
+  if(flow.pending===skillId){flow.pending=null;renderCombatSkillBtns();return;}
+  if(flow.charge<rule.cost){toast(rule.label);return;}
+  if(rule.support){flow.charge-=rule.cost;castJobSkill(skill);}
+  else {flow.pending=skillId;cbLog('cl-p',`準備「${skill.name}」：下一題答對施放，答錯不消耗次數。`);}
+  renderCombatSkillBtns();
+}
+function castJobSkill(skill){
+  const e=skill.effect||{},flow=skillBattleState();
+  markSkillUsed(skill.id);
+  const family=skillFamily(skill),targets=combat.monsters.filter(m=>m.hp>0),primary=combat.monster;
+  skillVisual(skill,family);
+  let dealt=0;
+  const area=skill.id.includes('aoe')||e.iceNova||e.fireNova;
+  const elem=e.iceBurst||e.iceNova||e.freeze?'ice':e.fireBurst||e.fireNova||e.burnStacks?'fire':null;
+  let mult=e.burstMult||e.iceBurst||e.fireBurst||e.piercingShot||e.iceNova||e.fireNova||e.aoeMult||0;
+  if(area&&!mult)mult={warrior_aoe:2.2,hunter_aoe:2,bard_aoe:2,dk2_aoe:2.3,sw_aoe:2.5}[skill.id]||2;
+  if(e.gambleWinMult){if(Math.random()<.5)mult=e.gambleWinMult;else{applyDmgToPlayer(Math.floor(state.stats.maxHp*e.gambleLosePct));cbLog('cl-r','豪賭失敗，承受生命代價。');}}
+  if(skill.id==='gambler_aoe')mult=Math.random()<.5?4:1.5;
+  if(e.miracleCrit)mult=e.miracleCrit;
+  if(e.multiHit)mult=1;
+  if(e.counterBurst){combat.skillCounter=e.counterBurst;cbLog('cl-y','反擊架勢：承受下一次攻擊後反擊。');}
+  if(mult||e.trueHpDmg){
+    for(const m of area?targets:[primary]){
+      if(!m||m.hp<=0)continue;
+      let raw=calcAtk()*mult*(e.guaranteedCrit?1.5:1);
+      let dmg=e.trueHpDmg?Math.floor((skill.id==='rogue_20'?m.hp:m.maxHp)*e.trueHpDmg):calcSkillDamage(raw,e.ignoreDef||e.piercingShot?{...m,def:0}:m,elem);
+      if(e.trueHpDmg&&(m.elite||m.special==='boss'))dmg=Math.min(dmg,Math.ceil(m.maxHp*.25));
+      let total=0;for(let hit=0;hit<(e.multiHit||1)&&m.hp>0;hit++){const part=hit===0?dmg:calcSkillDamage(raw,m,elem);const actual=Math.max(1,Math.min(m.hp,part));m.hp-=actual;total+=actual;}dealt+=total;updateMonsterHP(m.uid);shakeMonster(m.uid);
     }
-    case 'fl_15': { // 冰霜新星（全體AOE，冰霜巫妖）
-      markSkillUsed('fl_15');
-      const dmg = Math.floor(calcAtk() * 4.0);
-      attackAllMonsters(dmg, '❄️ 冰霜新星', 'ice');
-      combat.frozenTurns = 2;
-      break;
-    }
-    case 'fl_20': { // 永恆冰封
-      markSkillUsed('fl_20');
-      const rawDmg = Math.floor(calcAtk() * 7.0);
-      const dmg = calcSkillDamage(rawDmg, m, 'ice');
-      m.hp = Math.max(0, m.hp - dmg);
-      combat.frozenTurns = 4;
-      cbLog('cl-p', `🧊 永恆冰封！造成 ${wrapCol('cl-p', dmg)} 冰屬性傷害，${m.name}被凍結4回合！`);
-      showFloatingDmg(dmg, true, false);
-      updateCombatHPDisplay();
-      if (allMonstersDead()) { answerActive = false; clearTimeout(cbTimer); setTimeout(() => endCombatVictory(), 400); return; }
-      break;
-    }
-    case 'am_5': { // 烈焰新星（全體AOE，大魔導士）
-      markSkillUsed('am_5');
-      const dmg = Math.floor(calcAtk() * 3.5);
-      attackAllMonsters(dmg, '🔥 烈焰新星', 'fire');
-      combat.monsters.forEach(mm => { if (mm.hp > 0) mm.burning = true; });
-      break;
-    }
-    case 'sw_aoe': { // 劍域風暴（劍士系）
-      markSkillUsed('sw_aoe');
-      const dmg = Math.floor(calcAtk() * 2.5);
-      attackAllMonsters(dmg, '⚔️ 劍域風暴');
-      break;
-    }
-    case 'warrior_aoe': { // 橫掃千軍（戰士系）
-      markSkillUsed('warrior_aoe');
-      const dmg = Math.floor(calcAtk() * 2.2);
-      attackAllMonsters(dmg, '🪓 橫掃千軍');
-      break;
-    }
-    case 'hunter_aoe': { // 箭雨（獵人系）
-      markSkillUsed('hunter_aoe');
-      const dmg = Math.floor(calcAtk() * 2.0);
-      attackAllMonsters(dmg, '🏹 箭雨');
-      break;
-    }
-    case 'gambler_aoe': { // 死亡輪盤（賭徒系）
-      markSkillUsed('gambler_aoe');
-      const isCrit = Math.random() < 0.5;
-      const dmg = Math.floor(calcAtk() * (isCrit ? 4.0 : 1.5));
-      attackAllMonsters(dmg, isCrit ? '🎰 死亡輪盤・大獎！' : '🎰 死亡輪盤');
-      break;
-    }
-    case 'bard_aoe': { // 戰歌震盪（吟遊詩人系）
-      markSkillUsed('bard_aoe');
-      const dmg = Math.floor(calcAtk() * 2.0);
-      attackAllMonsters(dmg, '🎵 戰歌震盪');
-      const healAmt = Math.floor(state.stats.maxHp * 0.15);
-      state.stats.hp = Math.min(state.stats.maxHp, state.stats.hp + healAmt);
-      cbLog('cl-g', `🎵 戰歌共鳴，回復 ${healAmt} HP`);
-      break;
-    }
-    case 'dk2_aoe': { // 龍嘯（龍騎士系）
-      markSkillUsed('dk2_aoe');
-      const dmg = Math.floor(calcAtk() * 2.3);
-      attackAllMonsters(dmg, '🐉 龍嘯震天');
-      break;
-    }
-    case 'gambler_5': // 豪賭
-      markSkillUsed('gambler_5');
-      if (Math.random() < 0.5) {
-        const bigDmg = Math.floor(calcAtk() * 4);
-        m.hp = Math.max(0, m.hp - bigDmg);
-        cbLog('cl-y', `🃏 豪賭大勝！造成 ${wrapCol('cl-y', bigDmg)} 傷害！`);
-        showFloatingDmg(bigDmg, true, false);
-        updateCombatHPDisplay();
-        if (allMonstersDead()) { answerActive = false; clearTimeout(cbTimer); setTimeout(() => endCombatVictory(), 400); return; }
-      } else {
-        const selfDmg = Math.floor(state.stats.maxHp * 0.3);
-        applyDmgToPlayer(selfDmg);
-        cbLog('cl-r', `🃏 豪賭失敗！自傷 ${wrapCol('cl-r', selfDmg)}！`);
-        if (checkPlayerDead()) return;
-      }
-      break;
-    case 'hunter_5': // 陷阱（預置，下次攻擊時觸發）
-      markSkillUsed('hunter_5');
-      cbLog('cl-g', `🏹 陷阱設置！${m.name}下次攻擊將被格擋`);
-      break;
+    showFloatingText(`${dealt}${e.multiHit?' · '+e.multiHit+'連擊':''}`, '#fbd38d','monster');
   }
-  updateUI(); save(true);
+  if(e.freezeAll)targets.forEach(m=>m.skillFreeze=e.freezeAll);
+  else if(e.freeze)primary.skillFreeze=e.freeze;
+  if(e.monAtkReduce){combat.deathGaze=true;combat.gazeTurns=e.turns||3;}
+  if(e.dodgeNext)combat.skillGuard=(combat.skillGuard||0)+1;
+  if(e.immuneNext)combat.skillImmune=1;
+  if(e.immuneTurns)combat.skillImmune=e.immuneTurns;
+  if(e.burnStacks||e.burnOnHit)for(const m of area?targets:[primary]){m.skillBurn={turns:3,damage:e.burnOnHit||Math.max(1,Math.floor(calcAtk()*.12*(e.burnStacks||1)))};}
+  if(e.healPct||e.fullHeal||skill.id==='bard_aoe'){const heal=Math.floor(state.stats.maxHp*(e.fullHeal?1:e.healPct||.15));state.stats.hp=Math.min(state.stats.maxHp,state.stats.hp+heal);showFloatingText(`+${heal}`,'#86efac','player');}
+  if(e.cleanse)clearAllStatus();
+  combat.lastPlayerDmg=dealt;
+  cbLog('cl-y',`${skill.name}${dealt?' · 傷害 '+dealt:''}！`);
+  updateCombatHPDisplay();updateUI();save(true);
+  if(checkPlayerDead())return;
+  renderCombatSkillBtns();
+}
+function openSkillGuide(){
+  if(combatActive){toast('戰鬥結束後可查看招式圖鑑');return;}
+  let sheet=document.getElementById('skill-guide');
+  if(!sheet){sheet=document.createElement('dialog');sheet.id='skill-guide';document.body.appendChild(sheet);}
+  sheet.innerHTML=`<button onclick="document.getElementById('skill-guide').close()">關閉</button><h2>職業與招式</h2><p>王級與菁英會抵抗招式傷害；百分比真傷最多造成其最大生命的25%。多段招式逐擊計算。</p><p>攻擊招式先選擇，再答對施放；答錯保留蓄力與使用次數。支援招式使用累積答對。每場限用一次。</p>`+Object.entries(JOB_DEFS).filter(([k,j])=>j.skills?.some(s=>s.type==='once')).map(([key,j])=>`<section><h3>${j.name}</h3><p>${jobCombatIdentity(key)}</p>`+j.skills.filter(s=>s.type==='once').map(s=>`<div class="skill-guide-row"><b>${s.name} · Lv.${s.lv}</b><span>${s.desc}</span><small>${skillCondition(s).label}</small><button onclick="previewJobSkill('${s.id}')">預覽特效</button></div>`).join('')+'</section>').join('');sheet.showModal();
+}
+function previewJobSkill(id){const s=Object.values(JOB_DEFS).flatMap(j=>j.skills||[]).find(s=>s.id===id);if(s)skillVisual(s,skillFamily(s),document.getElementById('skill-guide'));}
+function jobCombatIdentity(key){
+  const j=JOB_DEFS[key],active=j?.skills?.filter(s=>s.type==='once')||[],families=active.map(skillFamily);
+  if(key==='mage')return '法術蓄能：準備無視防禦的決勝法術，選擇施放時機。';
+  if(families.includes('ice'))return '冰封控制：凍結單體或全體，爭取安全答題回合。';
+  if(families.includes('fire'))return '火焰壓制：爆發後留下灼傷，每回合持續造成傷害。';
+  if(families.includes('song'))return '樂章支援：用累積答對恢復生命，戰歌兼顧群攻。';
+  if(families.includes('holy'))return '聖光守護：治療、淨化與免疫，保留蓄力應付危機。';
+  if(families.includes('dice'))return '風險押注：豪賭與輪盤收益不穩定，終極招式提供確定爆發。';
+  if(families.includes('arrow'))return '精準射擊：陷阱保護、箭雨清群、穿透箭克服防禦。';
+  if(families.includes('shadow'))return '暗影決勝：閃避或削弱敵人，百分比傷害對付高生命目標。';
+  if(active.some(s=>s.effect.counterBurst))return '反擊架勢：答對準備反擊，承受下一次攻擊後回擊。';
+  if(active.some(s=>s.effect.multiHit))return '連擊進攻：多次獨立傷害，配合群體劍域處理敵群。';
+  return '蓄勢重擊：在普通攻擊與強力決勝招式之間選擇時機。';
+}
+function skillFamily(s){
+  const id=s.id;
+  if(/^(ice|fl)_/.test(id))return 'ice';if(/^(fire|am|dg|dk2)_/.test(id))return 'fire';
+  if(/^(paladin|hk|sage)_/.test(id))return 'holy';if(/^(bard)_/.test(id))return 'song';
+  if(/^(gambler|fg)_/.test(id))return 'dice';if(/^(hunter|ranger|sk)_/.test(id))return 'arrow';
+  if(/^(rogue|dk|dl)_/.test(id))return 'shadow';return 'blade';
+}
+function skillVisual(s,family,previewHost){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){showFloatingText(s.name,'#fbd38d','monster');return;}
+  const host=previewHost||document.getElementById('combat-overlay'),fx=document.createElement('div');
+  fx.className='job-skill-fx fx-'+family;
+  const colors={ice:'#94e8ff',fire:'#ff9547',holy:'#ffe89b',song:'#8bffdf',dice:'#e5a2ff',arrow:'#c1f693',shadow:'#d5a4ff',blade:'#f5ddba'},c=colors[family];
+  const motifs={ice:'<path d="M60 155 75 48 90 155M115 170 130 25 145 170M170 155 185 48 200 155"/>',fire:'<path d="M60 165Q30 100 90 80Q65 145 120 30Q170 95 155 145Q220 90 200 165Z"/>',holy:'<path d="M130 20V180M65 80H195"/><circle cx="130" cy="110" r="60"/>',song:'<path d="M60 145V55L110 40V130M155 145V55L205 40V130"/><circle cx="48" cy="145" r="12"/><circle cx="98" cy="130" r="12"/><circle cx="143" cy="145" r="12"/>',dice:'<rect x="85" y="55" width="90" height="90" rx="15"/><circle cx="108" cy="78" r="5"/><circle cx="130" cy="100" r="5"/><circle cx="152" cy="122" r="5"/>',arrow:'<path d="M25 165 220 45M170 40 220 45 210 90M40 105 195 10M70 200 225 105"/>',shadow:'<path d="M30 150Q130 20 230 100Q110 60 55 175ZM45 50Q130 180 220 60"/>',blade:'<path d="M20 170Q100 15 235 35L70 150ZM30 35Q150 70 220 175L150 125Z"/>'};
+  const eff=s.effect||{};
+  const special=eff.trapNextAtk?'<path d="M55 160 80 130 105 160 130 130 155 160 180 130 205 160M55 160Q130 215 205 160"/>':eff.counterBurst||eff.immuneNext||eff.immuneTurns?'<path d="M130 30 200 60 185 130 130 185 75 130 60 60Z"/>':motifs[family];
+  const shards=Array.from({length:12},(_,i)=>{const a=i*Math.PI/6,x=130+103*Math.cos(a),y=110+103*Math.sin(a);return `<path d="M${x} ${y-4}l4 4-4 4-4-4Z" opacity="${i%2?.4:.8}"/>`;}).join('');
+  const echoes=eff.multiHit?Array.from({length:eff.multiHit-1},(_,i)=>`<g transform="rotate(${(i+1)*35} 130 110)" opacity="${.55-i*.1}">${special}</g>`).join(''):'';
+  fx.innerHTML=`<svg viewBox="0 0 260 220" aria-hidden="true" style="color:${c}"><g fill="none" stroke="currentColor" stroke-width="4"><circle cx="130" cy="110" r="88" stroke-dasharray="8 12"/>${special}${echoes}${shards}<circle cx="130" cy="110" r="76" stroke-width="1"/><path d="M130 5V25M130 195V215M5 110H25M235 110H255"/></g></svg><strong>${s.name}</strong>`;
+  host.appendChild(fx);setTimeout(()=>fx.remove(),1100);
+  DungeonArt.weaponSound(family==='arrow'?'bow':family==='blade'?'sword':'wand',family==='ice'?'ice':family==='fire'?'fire':family==='shadow'?'dark':'light',true);
 }
 
 function tryEscape() {
@@ -4850,17 +4851,12 @@ function tryEscape() {
 }
 
 function renderCombatSkillBtns() {
-  const area = document.getElementById('cb-skill-btns');
-  if (!area) return;
-  const onceSkills = getUnlockedSkills().filter(s => s.type === 'once');
-  if (onceSkills.length === 0) { area.innerHTML = ''; return; }
-  area.innerHTML = onceSkills.map(s => {
-    const used = skillUsedThisCombat(s.id);
-    return `<button onclick="useJobSkill('${s.id}')"
-      style="padding:4px 8px;border-radius:6px;border:.5px solid ${used?'#333':'#af9866'};
-      background:${used?'#213531':'#2d1b69'};color:${used?'#555':'#c4b5fd'};flex-shrink:0;
-      font-size:10px;cursor:${used?'default':'pointer'};white-space:nowrap"
-      ${used?'disabled':''}>${s.name}${used?' ✓':''}</button>`;
+  const area=document.getElementById('cb-skill-btns');if(!area||!combat)return;
+  const skills=getUnlockedSkills().filter(s=>s.type==='once');if(!skills.length){area.innerHTML='';return;}
+  const f=skillBattleState();
+  area.innerHTML=`<div class="skill-meter">${jobCombatIdentity(state.job)}<br>蓄力 ${f.charge}/6 · 連答 ${f.streak}${f.pending?' · 準備中：下一題答對施放':''}</div>`+skills.map(s=>{
+    const r=skillCondition(s),used=skillUsedThisCombat(s.id),pending=f.pending===s.id;
+    return `<button class="job-skill-btn ${pending?'selected':''}" onclick="useJobSkill('${s.id}')" ${used||!answerActive?'disabled':''} title="${s.desc}"><b>${s.name}${used?' ✓':''}</b><small>${used?'本場已施放':pending?'已選擇 · 點擊取消':r.label}</small></button>`;
   }).join('');
 }
 
@@ -5041,6 +5037,7 @@ function tickSkillCDs() {
 function resetCombatSkills() {
   // 重置每場戰鬥限用一次的技能
   state.skillUsed = {};
+  if(combat)combat.skillFlow={charge:0,streak:0,pending:null};
 }
 
 function skillUsedThisCombat(skillId) {
@@ -5372,6 +5369,7 @@ function doJobReset(newJob, invIdx) {
   state.job = newJob;
   state.skillCDs = {};
   state.skillUsed = {};
+  if(combat)combat.skillFlow={charge:0,streak:0,pending:null};
   removeFromInventory(invIdx);
   toast(`🔄 轉職卷軸生效！轉換為 ${jd.name}（職業等級與經驗保留）`);
   refreshInventoryIfOpen();
@@ -5440,6 +5438,7 @@ function doJobReincarnate(newJob, invIdx) {
   state.job = newJob;
   state.skillCDs = {};
   state.skillUsed = {};
+  if(combat)combat.skillFlow={charge:0,streak:0,pending:null};
   removeFromInventory(invIdx);
   toast(`♻️ 輪迴卷軸生效！轉換為 ${jd.name}（職業等級與經驗保留）`);
   refreshInventoryIfOpen();
@@ -5482,6 +5481,7 @@ function changeJob(jobKey) {
   state.jobExp = newStartExp;
   state.skillCDs = {};
   state.skillUsed = {};
+  if(combat)combat.skillFlow={charge:0,streak:0,pending:null};
 
   closeModal('modal-stats');
   toast(`🎉 轉職為 ${jd.name}！職業 Lv.${newStartLv} 開始`);
