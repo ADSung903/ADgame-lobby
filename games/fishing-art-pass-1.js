@@ -1,81 +1,67 @@
 (()=>{
-  const w=window;
-  const c=w.document.getElementById('gc');
-  if(!c) return;
-  const ctx=c.getContext('2d');
+  const w=window,c=document.getElementById('gc'); if(!c)return; const ctx=c.getContext('2d');
+  const originalDraw=w.draw, originalFish=w.drawCustomFish;
+  const seed=(n)=>{const x=Math.sin(n*91.731)*43758.5453;return x-Math.floor(x)};
 
-  // Keep the original game logic intact and layer the art pass around it.
-  const originalDraw=w.draw;
-  if(typeof originalDraw==='function'){
-    w.draw=function(){
-      originalDraw();
-      const W=w.W||c.clientWidth,H=w.H||c.clientHeight,sea=w.seaY||Math.round(H*.18);
-      const t=performance.now()/1000;
-      ctx.save();
-
-      // Subtle underwater haze: brighter near the surface, colder and darker with depth.
-      const haze=ctx.createLinearGradient(0,sea,0,H);
-      haze.addColorStop(0,'rgba(75,190,220,.055)');
-      haze.addColorStop(.42,'rgba(16,88,122,.035)');
-      haze.addColorStop(1,'rgba(0,9,24,.16)');
-      ctx.fillStyle=haze;ctx.fillRect(0,sea,W,H-sea);
-
-      // Stable light shafts; no Math.random(), so the scene does not flicker.
-      ctx.globalCompositeOperation='screen';
-      for(let i=0;i<4;i++){
-        const x=(W*(.12+i*.25)+Math.sin(t*.18+i)*12);
-        const g=ctx.createLinearGradient(x,sea,x+55,H*.62);
-        g.addColorStop(0,'rgba(110,220,240,.09)');g.addColorStop(1,'rgba(80,180,210,0)');
-        ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x-13,sea);ctx.lineTo(x+15,sea);ctx.lineTo(x+92,H*.66);ctx.lineTo(x+35,H*.66);ctx.closePath();ctx.fill();
-      }
-      ctx.globalCompositeOperation='source-over';
-
-      // Suspended particles and occasional bubbles, deterministic by index.
-      for(let i=0;i<34;i++){
-        const px=(i*83+t*(2+(i%4)))%Math.max(1,W);
-        const span=Math.max(40,H-sea-28);
-        const py=sea+20+((i*67-t*(3+(i%3)))%span+span)%span;
-        const r=i%9===0?1.8:.65;
-        ctx.globalAlpha=i%9===0?.18:.10;
-        ctx.fillStyle=i%9===0?'#bdefff':'#a9d6df';
-        ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
-      }
-
-      // Distant silhouettes give the water depth without competing with catchable fish.
-      ctx.globalAlpha=.08;ctx.fillStyle='#061c2c';
-      for(let i=0;i<5;i++){
-        const y=sea+(H-sea)*(.34+i*.11);
-        const x=((i*137+t*(4+i))%(W+90))-45;
-        const s=7+i*1.7;
-        ctx.beginPath();ctx.ellipse(x,y,s*1.8,s*.55,0,0,Math.PI*2);ctx.fill();
-        ctx.beginPath();ctx.moveTo(x-s*1.6,y);ctx.lineTo(x-s*2.5,y-s*.7);ctx.lineTo(x-s*2.5,y+s*.7);ctx.closePath();ctx.fill();
-      }
-
-      // Foreground seabed silhouette: rocks + sea grass, kept low so it never hides targets.
-      const floor=H-8;ctx.globalAlpha=.28;ctx.fillStyle='#020c14';ctx.fillRect(0,H-13,W,13);
-      for(let i=0;i<10;i++){
-        const x=(i*53+19)%W, h=7+(i*11)%16;
-        ctx.beginPath();ctx.moveTo(x,floor);ctx.quadraticCurveTo(x-5,floor-h*.55,x+2,floor-h);ctx.quadraticCurveTo(x+8,floor-h*.55,x+6,floor);ctx.fill();
-      }
-      ctx.restore();
-    };
+  function environment(){
+    const W=w.W||c.clientWidth,H=w.H||c.clientHeight,sea=w.seaY||Math.round(H*.18),t=performance.now()/1000;
+    ctx.save();
+    // Cinematic depth grading: turquoise surface to blue-black abyss.
+    const depth=ctx.createLinearGradient(0,sea,0,H);
+    depth.addColorStop(0,'rgba(19,142,174,.14)');depth.addColorStop(.24,'rgba(5,78,118,.16)');depth.addColorStop(.62,'rgba(2,27,58,.24)');depth.addColorStop(1,'rgba(0,5,20,.48)');
+    ctx.fillStyle=depth;ctx.fillRect(0,sea,W,H-sea);
+    // Broad caustic shafts.
+    ctx.globalCompositeOperation='screen';
+    for(let i=0;i<5;i++){
+      const x=W*(.05+i*.23)+Math.sin(t*.12+i*1.8)*18, wid=36+i*9;
+      const g=ctx.createLinearGradient(x,sea,x+wid,H*.72);g.addColorStop(0,'rgba(132,235,244,.16)');g.addColorStop(.55,'rgba(42,145,183,.045)');g.addColorStop(1,'rgba(10,70,120,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x-wid*.25,sea);ctx.lineTo(x+wid*.25,sea);ctx.lineTo(x+wid*2,H*.72);ctx.lineTo(x+wid*.5,H*.72);ctx.closePath();ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+    // Distant reef silhouettes at multiple depths.
+    ctx.fillStyle='rgba(1,17,31,.28)';
+    for(let layer=0;layer<2;layer++){
+      const base=H-(layer?42:76);ctx.beginPath();ctx.moveTo(0,H);
+      for(let x=0;x<=W+35;x+=35){const y=base-seed(x+layer*101)*28;ctx.lineTo(x,y);}ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+    }
+    // Rocks, coral and swaying sea grass foreground.
+    ctx.fillStyle='rgba(1,10,18,.72)';ctx.fillRect(0,H-12,W,12);
+    for(let i=0;i<15;i++){
+      const x=(i*71+23)%W,r=7+seed(i+4)*15;ctx.beginPath();ctx.ellipse(x,H-8,r,r*.42,0,Math.PI,Math.PI*2);ctx.fill();
+      if(i%2===0){const h=18+seed(i+33)*42;ctx.lineWidth=2+seed(i)*2;ctx.strokeStyle='rgba(4,34,42,.8)';ctx.beginPath();ctx.moveTo(x,H-8);ctx.quadraticCurveTo(x+Math.sin(t*.65+i)*8,H-h*.55,x+Math.sin(t*.55+i)*11,H-h);ctx.stroke();}
+      if(i%5===0){ctx.strokeStyle='rgba(9,50,58,.65)';ctx.lineWidth=2;for(let b=-1;b<=1;b++){ctx.beginPath();ctx.moveTo(x,H-10);ctx.quadraticCurveTo(x+b*9,H-30,x+b*12,H-48-seed(i+b)*18);ctx.stroke();}}
+    }
+    // Marine snow and bubbles.
+    for(let i=0;i<58;i++){
+      const span=Math.max(40,H-sea-20),px=(seed(i)*W+t*(1.5+i%4))%W,py=sea+((seed(i+88)*span-t*(2+i%3))%span+span)%span;
+      ctx.globalAlpha=.08+seed(i+9)*.18;ctx.fillStyle='#c5f4f4';ctx.beginPath();ctx.arc(px,py,i%13===0?1.8:.65,0,Math.PI*2);ctx.fill();
+    }
+    // Large, very faint distant animals for scale.
+    ctx.globalAlpha=.055;ctx.fillStyle='#00121e';
+    for(let i=0;i<4;i++){
+      const y=sea+(H-sea)*(.35+i*.13),x=((t*(3+i)+i*151)%(W+150))-75,s=18+i*7;
+      ctx.beginPath();ctx.ellipse(x,y,s*1.8,s*.42,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x-s*1.65,y);ctx.lineTo(x-s*2.5,y-s*.7);ctx.lineTo(x-s*2.5,y+s*.7);ctx.closePath();ctx.fill();
+    }
+    // Edge vignette.
+    ctx.globalAlpha=1;const vg=ctx.createRadialGradient(W*.5,H*.42,Math.min(W,H)*.18,W*.5,H*.48,Math.max(W,H)*.72);vg.addColorStop(.45,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,3,13,.48)');ctx.fillStyle=vg;ctx.fillRect(0,sea,W,H-sea);
+    ctx.restore();
   }
 
-  // Add restrained species accents on top of the original species-specific drawings.
-  const originalFish=w.drawCustomFish;
-  if(typeof originalFish==='function'){
-    w.drawCustomFish=function(c2,id,x,y,dir,sz,glowColor,opacity){
-      originalFish(c2,id,x,y,dir,sz,glowColor,opacity);
-      c2.save();c2.translate(x,y);if(dir<0)c2.scale(-1,1);c2.globalAlpha=Math.min(.7,opacity||.7);
-      // Eye/highlight placement follows the drawing's right-facing convention.
-      if(!['jellyfish','crab','octopus','manta'].includes(id)){
-        c2.fillStyle='#d9f4ef';c2.beginPath();c2.arc(sz*.27,-sz*.08,Math.max(1,sz*.035),0,Math.PI*2);c2.fill();
-        c2.fillStyle='#07131b';c2.beginPath();c2.arc(sz*.285,-sz*.08,Math.max(.7,sz*.018),0,Math.PI*2);c2.fill();
-      }
-      if(['angler','viperfish','oarfish','lionfish'].includes(id)){
-        c2.strokeStyle=glowColor||'#8de8ff';c2.globalAlpha=.22;c2.lineWidth=1;c2.beginPath();c2.arc(0,0,sz*.7,0,Math.PI*2);c2.stroke();
-      }
-      c2.restore();
-    };
+  if(typeof originalDraw==='function') w.draw=function(){originalDraw();environment();};
+
+  function accent(c2,id,sz,glow){
+    // Clearer species identity layered over original species drawings.
+    c2.lineCap='round';c2.lineJoin='round';
+    const eye=!['jellyfish','crab','octopus','manta'].includes(id);
+    if(eye){c2.fillStyle='#e8fff8';c2.beginPath();c2.arc(sz*.28,-sz*.08,Math.max(1.15,sz*.045),0,Math.PI*2);c2.fill();c2.fillStyle='#031018';c2.beginPath();c2.arc(sz*.295,-sz*.08,Math.max(.7,sz*.022),0,Math.PI*2);c2.fill();}
+    if(['sardine','mackerel','flyingfish','swordfish'].includes(id)){c2.strokeStyle='rgba(190,240,245,.42)';c2.lineWidth=1;c2.beginPath();c2.moveTo(-sz*.34,-sz*.14);c2.quadraticCurveTo(0,-sz*.29,sz*.35,-sz*.12);c2.stroke();}
+    if(id==='shark'){c2.fillStyle='rgba(3,18,28,.38)';c2.beginPath();c2.moveTo(-sz*.2,-sz*.28);c2.lineTo(0,-sz*.68);c2.lineTo(sz*.16,-sz*.24);c2.closePath();c2.fill();}
+    if(id==='turtle'){c2.strokeStyle='rgba(212,235,148,.35)';c2.lineWidth=1;c2.beginPath();c2.ellipse(-sz*.05,0,sz*.42,sz*.28,0,0,Math.PI*2);c2.stroke();}
+    if(id==='blowfish'){c2.strokeStyle='rgba(244,230,164,.55)';for(let a=0;a<Math.PI*2;a+=Math.PI/5){c2.beginPath();c2.moveTo(Math.cos(a)*sz*.38,Math.sin(a)*sz*.38);c2.lineTo(Math.cos(a)*sz*.58,Math.sin(a)*sz*.58);c2.stroke();}}
+    if(['angler','viperfish','oarfish','lionfish'].includes(id)){c2.shadowColor=glow||'#71e7ff';c2.shadowBlur=13;c2.strokeStyle=glow||'#71e7ff';c2.globalAlpha=.38;c2.lineWidth=1.2;c2.beginPath();c2.arc(0,0,sz*.68,0,Math.PI*2);c2.stroke();c2.shadowBlur=0;}
   }
+  if(typeof originalFish==='function') w.drawCustomFish=function(c2,id,x,y,dir,sz,glow,opacity){
+    originalFish(c2,id,x,y,dir,sz,glow,opacity);
+    c2.save();c2.translate(x,y);if(dir<0)c2.scale(-1,1);c2.globalAlpha=Math.min(.9,opacity||.9);accent(c2,id,sz,glow);c2.restore();
+  };
 })();
