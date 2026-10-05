@@ -1,300 +1,53 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🤔 20 個問題</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#fff9eb"><title>猜猜小偵探 · 20 Questions</title>
 <style>
-  *{touch-action:manipulation}
-  body { background:#05050f; font-family:'Segoe UI',system-ui,sans-serif; }
-  @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes popIn   { 0%{opacity:0;transform:scale(.7)} 70%{transform:scale(1.05)} 100%{opacity:1;transform:scale(1)} }
-  .fade-up { animation:fadeUp .32s ease-out; }
-  .pop-in  { animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
-  .btn-yes { background:linear-gradient(135deg,#065f46,#059669); }
-  .btn-no  { background:linear-gradient(135deg,#7f1d1d,#dc2626); }
-  .btn-yes:hover{ background:linear-gradient(135deg,#047857,#10b981); }
-  .btn-no:hover { background:linear-gradient(135deg,#991b1b,#ef4444); }
-  ::-webkit-scrollbar{width:3px}
-  ::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
+:root{--ink:#283d38;--green:#246c58;--paper:#fff9eb;--line:#dddccb;--gold:#ffd778}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 system-ui,-apple-system,"Microsoft JhengHei",sans-serif}button,a,select{-webkit-tap-highlight-color:transparent;touch-action:manipulation}button,select{font:inherit;color:inherit}button{cursor:pointer;border:1px solid var(--line);background:#fffef9;border-radius:18px;padding:12px 18px;min-height:48px;font-weight:700;transition:transform .15s,background .2s}button:hover{background:#f1f5e9}button:active{transform:scale(.97)}button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #287cbe;outline-offset:4px}button:disabled{cursor:default;opacity:.48}a{color:var(--green)}.wrap{max-width:1000px;margin:auto;padding:22px 24px 50px}header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px}.brand{font-size:17px;font-weight:850;letter-spacing:.05em}.brand small{display:block;font-size:10px;letter-spacing:.14em;font-weight:600;opacity:.6}.header-actions{display:flex;gap:8px}.header-actions button{font-size:14px;padding:8px 12px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.17em;color:#697a65}.hero{display:grid;grid-template-columns:1.15fr 1fr;align-items:center;gap:35px;padding:28px 0 34px}h1{font-size:clamp(34px,5vw,56px);line-height:1.2;letter-spacing:-.04em;margin:13px 0 18px}h1 em{font-style:normal;color:var(--green)}p{margin:10px 0}.muted{color:#647368;font-size:15px}.scene{height:280px;position:relative;border-radius:48% 48% 28% 28%;background:#e5eddb;display:flex;justify-content:center;align-items:center}.scene:before{content:"?";position:absolute;font-size:160px;font-weight:900;color:#cbdcb9;transform:rotate(12deg)}.scene-card{position:absolute;background:white;border:2px solid #fff;border-radius:22px;box-shadow:0 8px 0 #253f3210;font-size:70px;padding:5px 20px}.scene-card:nth-child(1){transform:rotate(-12deg);left:6%;top:30%}.scene-card:nth-child(2){transform:rotate(12deg);right:4%;top:12%}.scene-card:nth-child(3){font-size:55px;bottom:4%;left:41%;transform:rotate(7deg)}.pill{display:inline-block;background:#e9eedc;border-radius:30px;padding:5px 12px;font-size:13px;font-weight:700}.section-label{font-size:14px;font-weight:800;margin:10px 0}.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.mode{text-align:left;padding:22px;border-radius:24px;border:2px solid transparent;box-shadow:0 3px 0 #233e3010}.mode[aria-pressed=true]{border-color:var(--green);background:#edf4e5}.mode-icon{font-size:34px;display:block;margin-bottom:12px}.mode strong{display:block;font-size:21px}.mode small{display:block;font-weight:400;font-size:14px;margin-top:6px}.settings{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin:26px 0}.field{flex:1;min-width:170px}label{font-size:13px;font-weight:800;display:block;margin-bottom:7px}select{width:100%;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fffef9;min-height:48px}.primary{background:var(--green);color:white;border-color:var(--green)}.primary:hover{background:#185640}.start{min-width:190px;font-size:19px;padding:13px 24px}.collection{margin-top:30px;border-top:1px solid var(--line);padding-top:18px}.collection-grid{display:flex;gap:8px;flex-wrap:wrap}.stamp{background:white;border-radius:12px;padding:8px 10px;font-size:25px}.gamebar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}.gamebar h1{font-size:26px;margin:0}.board-title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px 0 12px;font-size:14px}.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}.tile{padding:12px 5px;border-radius:22px;position:relative;min-height:125px;background:#fffefa;box-shadow:0 3px 0 #283d3809}.tile .art{display:block;font-size:54px;line-height:1.3;filter:drop-shadow(0 3px 1px #22332210)}.tile .name{font-size:14px;display:block;margin-top:5px}.tile.out{opacity:.33;filter:grayscale(1);box-shadow:none}.tile.out:after{content:"已排除";position:absolute;inset:0;display:grid;place-content:center;background:#fff9ebd9;border-radius:20px;font-size:14px}.tile.picked{background:#e4f0d8;border:2px solid var(--green)}.tile.picked:after{content:"✓";position:absolute;right:7px;top:2px;color:var(--green);font-size:19px}.panel{background:#fffefa;border:1px solid var(--line);border-radius:26px;padding:22px;margin-top:22px}.prompt{display:flex;gap:16px;align-items:center}.mascot{font-size:42px;background:#fff0ca;border-radius:18px;padding:5px 12px;flex-shrink:0}.prompt h2{font-size:22px;margin:0;line-height:1.5}.prompt p{font-size:14px;color:#647368;margin:5px 0}.question-options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}.question{padding:13px 8px;font-size:16px}.question span{font-size:29px;display:block;margin-bottom:4px}.response{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.response button{flex:1}.response .yes{background:#e1efda}.response .no{background:#f8e7d8}.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.tools button{font-size:14px;padding:8px 12px}.log{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.clue{font-size:13px;background:#eff2e8;border-radius:12px;padding:6px 10px}.feedback{min-height:29px;font-size:15px;color:#20634e;font-weight:750;margin:12px 0 0}.finish{text-align:center;max-width:650px;margin:35px auto}.finish .big{font-size:90px;display:block}.finish h1{font-size:34px}.finish .response{justify-content:center}.finish .response button{flex:initial}.fact{background:#eaf0df;border-radius:22px;padding:18px;margin:20px 0}.progress{height:7px;background:#e4e6d8;border-radius:7px;overflow:hidden;margin-top:12px}.progress>div{height:100%;background:#7caa66;transition:width .3s}footer{font-size:12px;color:#788475;text-align:center;margin-top:26px}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}[hidden]{display:none!important}@media(max-width:700px){.wrap{padding:15px 16px 30px}header{margin-bottom:10px}.hero{gap:12px;padding:20px 0}.hero p{font-size:14px}.scene{height:205px}.scene-card{font-size:47px;padding:4px 10px;border-radius:16px}.scene-card:nth-child(3){font-size:38px}.scene:before{font-size:100px}.modes{gap:8px}.mode{padding:13px 10px;border-radius:18px}.mode strong{font-size:18px}.mode small{font-size:12px}.mode-icon{font-size:28px;margin-bottom:7px}.settings{gap:12px}.start{width:100%}.board{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.tile{min-height:103px;border-radius:18px;padding:8px 4px}.tile .art{font-size:45px}.panel{padding:16px}.question{font-size:14px}.prompt h2{font-size:19px}.mascot{font-size:31px;padding:4px 8px}.header-actions button{padding:7px 10px}.brand{font-size:14px}.hero h1{font-size:35px}}@media(max-width:380px){.hero{grid-template-columns:1fr .7fr}.scene{height:175px}.scene-card{font-size:38px}.mode small{font-size:11px}.question-options{gap:5px}.question{font-size:13px;padding:10px 4px}}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
-</head>
-<body class="min-h-screen flex flex-col items-center py-6 px-4">
-
-<!-- START -->
-<div id="s-start" class="w-full max-w-sm flex flex-col items-center text-center">
-  <div class="text-6xl mb-4 mt-4">🤔</div>
-  <h1 class="text-2xl font-black text-white mb-2">20 個問題</h1>
-  <p class="text-gray-500 text-sm leading-relaxed mb-5">
-    心裡默默想好一個
-    <span class="text-green-400 font-semibold">動物</span> 或
-    <span class="text-blue-400 font-semibold">日常用品</span><br>
-    電腦用「是 / 否」問題來猜猜看！
-  </p>
-  <div class="w-full bg-[#0a0a1a] border border-[#1e1e3a] rounded-2xl p-4 mb-5 text-left">
-    <p class="text-xs text-gray-600 uppercase tracking-widest mb-3">可以猜什麼？（40+ 種）</p>
-    <div class="grid grid-cols-2 gap-y-1 text-xs text-gray-400">
-      <span>🐱 貓　🐶 狗　🐘 大象</span><span>📱 手機　💻 電腦</span>
-      <span>🦈 鯊魚　🦋 蝴蝶</span><span>🛏️ 床　🪑 椅子</span>
-      <span>🐧 企鵝　🦁 獅子</span><span>✏️ 鉛筆　📚 書</span>
-    </div>
-  </div>
-  <div id="start-record" class="text-xs text-yellow-500 mb-4 min-h-[18px]"></div>
-  <button onclick="startGame()"
-    class="w-full py-4 rounded-2xl font-black text-lg bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white">
-    想好了，開始！
-  </button>
-</div>
-
-<!-- GAME -->
-<div id="s-game" class="hidden w-full max-w-sm flex flex-col" style="min-height:calc(100dvh - 3rem)">
-  <div class="flex items-center gap-3 mb-5">
-    <div class="flex-1 bg-[#1e1e3a] rounded-full h-1.5 overflow-hidden">
-      <div id="prog" class="h-full bg-violet-500 rounded-full transition-all duration-300" style="width:0%"></div>
-    </div>
-    <span id="q-num" class="text-xs text-gray-500 shrink-0 w-12 text-right">第 1 題</span>
-  </div>
-  <div class="flex-1 flex flex-col justify-center">
-    <div id="q-card" class="bg-[#0a0a1a] border border-[#1e1e3a] rounded-2xl p-6 text-center">
-      <p id="q-branch" class="text-xs text-gray-600 mb-3 h-4"></p>
-      <p id="q-text" class="text-lg font-semibold text-white leading-relaxed"></p>
-    </div>
-  </div>
-  <div class="mt-6 flex gap-3">
-    <button onclick="ans('no')"  class="btn-no  flex-1 py-5 rounded-2xl font-black text-2xl text-white active:scale-95 transition-all">✗ 否</button>
-    <button onclick="ans('yes')" class="btn-yes flex-1 py-5 rounded-2xl font-black text-2xl text-white active:scale-95 transition-all">✓ 是</button>
-  </div>
-  <p class="text-center text-xs text-gray-700 mt-3 mb-2">請誠實回答，電腦才能正確猜出答案</p>
-</div>
-
-<!-- GUESS -->
-<div id="s-guess" class="hidden w-full max-w-sm flex flex-col items-center text-center mt-6">
-  <div class="text-5xl mb-3">🎯</div>
-  <p class="text-gray-400 text-sm mb-1">問了 <span id="g-cnt" class="text-violet-400 font-black text-xl">0</span> 個問題後…</p>
-  <p class="text-gray-500 text-xs mb-4">我猜你心裡想的是</p>
-  <div class="pop-in w-full bg-[#0a0a1a] border border-violet-600 rounded-2xl p-6 mb-6">
-    <p id="g-text" class="text-3xl font-black text-white"></p>
-  </div>
-  <p class="text-gray-300 text-sm mb-4 font-semibold">電腦猜對了嗎？</p>
-  <div class="flex gap-3 w-full">
-    <button onclick="onResult(false)" class="btn-no  flex-1 py-4 rounded-2xl font-bold text-white active:scale-95 transition-all">✗ 猜錯了</button>
-    <button onclick="onResult(true)"  class="btn-yes flex-1 py-4 rounded-2xl font-bold text-white active:scale-95 transition-all">✓ 猜對了！</button>
-  </div>
-</div>
-
-<!-- COMPUTER WINS -->
-<div id="s-win" class="hidden w-full max-w-sm flex flex-col items-center text-center mt-6">
-  <div class="text-5xl mb-3">🤖</div>
-  <h2 class="text-xl font-black text-white mb-2">電腦猜對了！</h2>
-  <p id="w-msg" class="text-gray-400 text-sm mb-6 leading-relaxed"></p>
-  <button onclick="startGame()" class="w-full py-4 rounded-2xl font-black bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all text-white mb-3">🔄 再玩一次</button>
-  <button onclick="goBack()"   class="w-full py-3 rounded-xl text-gray-600 text-sm hover:text-gray-300 transition-colors">← 回大廳</button>
-</div>
-
-<!-- PLAYER WINS -->
-<div id="s-stump" class="hidden w-full max-w-sm flex flex-col items-center text-center mt-6">
-  <div class="text-5xl mb-3">🏆</div>
-  <h2 class="text-xl font-black text-white mb-2">你難倒電腦了！</h2>
-  <p class="text-gray-400 text-sm mb-4">恭喜！電腦這次猜不到你想的東西</p>
-  <div class="w-full bg-[#0a0a1a] border border-yellow-700 rounded-2xl p-4 mb-5">
-    <p class="text-xs text-gray-500 mb-1">累計難倒電腦</p>
-    <p id="stump-total" class="text-3xl font-black text-yellow-400"></p>
-    <p class="text-xs text-gray-600 mt-1">次</p>
-  </div>
-  <button onclick="startGame()" class="w-full py-4 rounded-2xl font-black bg-yellow-600 hover:bg-yellow-500 active:scale-95 transition-all text-white mb-3">🔄 再挑戰</button>
-  <button onclick="goBack()"   class="w-full py-3 rounded-xl text-gray-600 text-sm hover:text-gray-300 transition-colors">← 回大廳</button>
-</div>
-
+</head><body><main class="wrap">
+<header><div class="brand">🔎 猜猜小偵探<small>THE LITTLE WONDER CLUB</small></div><div class="header-actions"><button id="sound" aria-pressed="false" aria-label="開啟自動朗讀">🔇 朗讀</button><button id="home">小屋</button><button id="lobby">大廳 ↗</button></div></header>
+<div id="app"></div><div id="announce" class="sr" role="status" aria-live="polite"></div>
+<footer>20 Questions · 每個問題，都是一個新發現。<br>不用計時，慢慢想也很棒。</footer>
+</main>
 <script>
-// ── 決策樹 ────────────────────────────────────────────────
-const T = {
-  q_root:       {type:"question",text:"你心裡想的是一種動物嗎？（包含昆蟲、魚類等所有動物）",                     yes:"q_vert",      no:"q_elec"},
-  q_vert:       {type:"question",text:"它是脊椎動物嗎？（有脊椎骨，例如魚、鳥、貓、狗）",                        yes:"q_mammal",    no:"q_insect"},
-  q_mammal:     {type:"question",text:"它是哺乳動物嗎？（恆溫、用乳汁哺育幼兒）",                                yes:"q_pet",       no:"q_bird"},
-  q_pet:        {type:"question",text:"它是常見的家庭寵物嗎？",                                                   yes:"q_cat",       no:"q_big"},
-  q_cat:        {type:"question",text:"它個性獨立、愛乾淨，而且會喵喵叫嗎？",                                    yes:"a_cat",       no:"q_small_pet"},
-  q_small_pet:  {type:"question",text:"它體型非常小，大約可以放在手掌上嗎？",                                     yes:"a_hamster",   no:"a_dog"},
-  q_big:        {type:"question",text:"它的體重超過 500 公斤嗎？（比一輛小轎車還重）",                           yes:"q_ocean",     no:"q_carn"},
-  q_ocean:      {type:"question",text:"它主要生活在海洋裡嗎？",                                                   yes:"a_whale",     no:"q_trunk"},
-  q_trunk:      {type:"question",text:"它有一條長長的、可自由伸縮的鼻子嗎？",                                    yes:"a_elephant",  no:"a_hippo"},
-  q_carn:       {type:"question",text:"它是肉食動物嗎？（主要靠獵捕其他動物維生）",                              yes:"q_stripe",    no:"q_farm"},
-  q_stripe:     {type:"question",text:"它身上有明顯的黑色條紋嗎？",                                               yes:"a_tiger",     no:"q_mane"},
-  q_mane:       {type:"question",text:"雄性的它有威武的濃密鬃毛嗎？",                                             yes:"a_lion",      no:"a_bear"},
-  q_farm:       {type:"question",text:"它是農場或牧場裡常見的家畜嗎？",                                           yes:"q_milk",      no:"a_rabbit"},
-  q_milk:       {type:"question",text:"它主要用來提供牛奶或乳製品嗎？",                                           yes:"a_cow",       no:"a_horse"},
-  q_bird:       {type:"question",text:"它是鳥類嗎？（身上有羽毛）",                                               yes:"q_fly",       no:"q_water"},
-  q_fly:        {type:"question",text:"它有翅膀，而且能夠飛行嗎？",                                               yes:"q_prey",      no:"q_polar"},
-  q_prey:       {type:"question",text:"它是猛禽嗎？（靠獵捕其他動物為食的大型鳥類）",                            yes:"a_eagle",     no:"q_talk"},
-  q_talk:       {type:"question",text:"它能模仿人類說話，常被當作寵物飼養嗎？",                                   yes:"a_parrot",    no:"a_pigeon"},
-  q_polar:      {type:"question",text:"它生活在南極，站起來像小人，但完全不會飛嗎？",                            yes:"a_penguin",   no:"a_chicken"},
-  q_water:      {type:"question",text:"它大部分時間生活在水裡嗎？",                                               yes:"q_fin",       no:"q_legs"},
-  q_fin:        {type:"question",text:"它有鰭嗎？（是魚類嗎？）",                                                 yes:"q_danger",    no:"a_frog"},
-  q_danger:     {type:"question",text:"它是令人聞風喪膽的海洋頂端掠食者，體型超過 2 公尺嗎？",                  yes:"a_shark",     no:"a_goldfish"},
-  q_legs:       {type:"question",text:"它有四條腿嗎？",                                                           yes:"a_lizard",    no:"a_snake"},
-  q_insect:     {type:"question",text:"它是昆蟲嗎？（有六條腿的節肢動物）",                                       yes:"q_ins_fly",   no:"q_web"},
-  q_ins_fly:    {type:"question",text:"它有翅膀，可以在空中飛行嗎？",                                             yes:"q_sting",     no:"a_ant"},
-  q_sting:      {type:"question",text:"它有螫針，被牠叮到會很痛嗎？",                                             yes:"a_bee",       no:"q_pattern"},
-  q_pattern:    {type:"question",text:"它的翅膀上有美麗、色彩繽紛的花紋嗎？",                                    yes:"a_butterfly", no:"a_mosquito"},
-  q_web:        {type:"question",text:"它會吐絲結網，靜靜等待獵物上門嗎？",                                      yes:"a_spider",    no:"a_crab"},
-
-  q_elec:       {type:"question",text:"它是電子產品嗎？（需要插電或充電才能使用）",                              yes:"q_comm",      no:"q_furniture"},
-  q_comm:       {type:"question",text:"它的主要功能是讓人與人之間溝通、通話或傳訊嗎？",                          yes:"q_portable",  no:"q_screen"},
-  q_portable:   {type:"question",text:"它小巧輕薄，可以放入口袋隨身攜帶嗎？",                                    yes:"a_phone",     no:"a_computer"},
-  q_screen:     {type:"question",text:"它有大螢幕，通常擺在客廳或房間裡看影片嗎？",                              yes:"a_tv",        no:"a_microwave"},
-  q_furniture:  {type:"question",text:"它是家中常見的傢俱嗎？（體積較大的室內擺設）",                            yes:"q_sleep",     no:"q_write"},
-  q_sleep:      {type:"question",text:"它主要是用來躺上去睡覺或休息的嗎？",                                      yes:"a_bed",       no:"q_sit"},
-  q_sit:        {type:"question",text:"你可以坐在它上面嗎？",                                                     yes:"a_chair",     no:"a_table"},
-  q_write:      {type:"question",text:"它是用來書寫的文具嗎？",                                                   yes:"q_ink",       no:"q_kitchen"},
-  q_ink:        {type:"question",text:"它裡面裝有墨水嗎？",                                                       yes:"a_pen",       no:"a_pencil"},
-  q_kitchen:    {type:"question",text:"它是廚房或餐桌上的常見用品嗎？",                                           yes:"q_container", no:"q_wear"},
-  q_container:  {type:"question",text:"它主要用來盛裝飲料或液體嗎？",                                             yes:"a_cup",       no:"a_chopsticks"},
-  q_wear:       {type:"question",text:"它是穿戴在腳上的嗎？",                                                     yes:"a_shoes",     no:"a_book"},
-
-  a_cat:        {type:"answer", text:"🐱 貓咪"},
-  a_hamster:    {type:"answer", text:"🐹 倉鼠"},
-  a_dog:        {type:"answer", text:"🐶 狗狗"},
-  a_whale:      {type:"answer", text:"🐋 鯨魚"},
-  a_elephant:   {type:"answer", text:"🐘 大象"},
-  a_hippo:      {type:"answer", text:"🦛 河馬"},
-  a_tiger:      {type:"answer", text:"🐯 老虎"},
-  a_lion:       {type:"answer", text:"🦁 獅子"},
-  a_bear:       {type:"answer", text:"🐻 熊"},
-  a_cow:        {type:"answer", text:"🐄 牛"},
-  a_horse:      {type:"answer", text:"🐴 馬"},
-  a_rabbit:     {type:"answer", text:"🐰 兔子"},
-  a_eagle:      {type:"answer", text:"🦅 老鷹"},
-  a_parrot:     {type:"answer", text:"🦜 鸚鵡"},
-  a_pigeon:     {type:"answer", text:"🕊️ 鴿子"},
-  a_penguin:    {type:"answer", text:"🐧 企鵝"},
-  a_chicken:    {type:"answer", text:"🐔 雞"},
-  a_shark:      {type:"answer", text:"🦈 鯊魚"},
-  a_goldfish:   {type:"answer", text:"🐟 金魚"},
-  a_frog:       {type:"answer", text:"🐸 青蛙"},
-  a_lizard:     {type:"answer", text:"🦎 蜥蜴"},
-  a_snake:      {type:"answer", text:"🐍 蛇"},
-  a_bee:        {type:"answer", text:"🐝 蜜蜂"},
-  a_butterfly:  {type:"answer", text:"🦋 蝴蝶"},
-  a_mosquito:   {type:"answer", text:"🦟 蚊子"},
-  a_ant:        {type:"answer", text:"🐜 螞蟻"},
-  a_spider:     {type:"answer", text:"🕷️ 蜘蛛"},
-  a_crab:       {type:"answer", text:"🦀 螃蟹"},
-  a_phone:      {type:"answer", text:"📱 手機"},
-  a_computer:   {type:"answer", text:"💻 電腦"},
-  a_tv:         {type:"answer", text:"📺 電視"},
-  a_microwave:  {type:"answer", text:"♨️ 微波爐"},
-  a_bed:        {type:"answer", text:"🛏️ 床"},
-  a_chair:      {type:"answer", text:"🪑 椅子"},
-  a_table:      {type:"answer", text:"🍽️ 桌子"},
-  a_pen:        {type:"answer", text:"🖊️ 原子筆"},
-  a_pencil:     {type:"answer", text:"✏️ 鉛筆"},
-  a_cup:        {type:"answer", text:"☕ 杯子"},
-  a_chopsticks: {type:"answer", text:"🥢 筷子"},
-  a_shoes:      {type:"answer", text:"👟 鞋子"},
-  a_book:       {type:"answer", text:"📚 書"}
-};
-
-// ── 狀態 ──────────────────────────────────────────────────
-let node, qCount, branch, stumpCount;
-const LS = 'q20_save';
-
-function load() {
-  try { stumpCount = JSON.parse(localStorage.getItem(LS) || '0'); } catch(e) { stumpCount = 0; }
-}
-
-function saveStump() {
-  localStorage.setItem(LS, JSON.stringify(stumpCount));
-}
-
-// ── 畫面切換 ──────────────────────────────────────────────
-const SCREENS = ['s-start','s-game','s-guess','s-win','s-stump'];
-function show(id) {
-  SCREENS.forEach(s => document.getElementById(s).classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-
-// ── 遊戲流程 ──────────────────────────────────────────────
-function startGame() {
-  node = T['q_root'];
-  qCount = 0;
-  branch = null;
-  renderQ();
-  show('s-game');
-}
-
-function renderQ() {
-  const card = document.getElementById('q-card');
-  card.style.animation = 'none';
-  card.offsetHeight;
-  card.classList.add('fade-up');
-
-  document.getElementById('q-text').textContent = node.text;
-  document.getElementById('q-num').textContent = `第 ${qCount + 1} 題`;
-  document.getElementById('prog').style.width = `${Math.min(100, (qCount / 20) * 100)}%`;
-
-  const b = document.getElementById('q-branch');
-  if (!branch)           b.textContent = '🎯 開始縮小範圍';
-  else if (branch === 'a') b.textContent = '🐾 範圍：動物';
-  else                   b.textContent = '🏠 範圍：日常用品';
-}
-
-function ans(choice) {
-  qCount++;
-  if (node.id === 'q_root' || !branch) {
-    branch = choice === 'yes' ? 'a' : 'o';
-  }
-  const next = node[choice];
-  node = T[next];
-
-  if (!node) { show('s-start'); return; }
-
-  if (node.type === 'answer') {
-    document.getElementById('g-text').textContent = node.text;
-    document.getElementById('g-cnt').textContent = qCount;
-    show('s-guess');
-  } else {
-    renderQ();
-  }
-}
-
-function onResult(correct) {
-  if (correct) {
-    const msgs = [
-      `只花了 ${qCount} 個問題就猜到了！`,
-      `哈哈，難不倒我 😎 換個更難的吧！`,
-      `邏輯樹大法無敵，${qCount} 題搞定！`
-    ];
-    document.getElementById('w-msg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
-    show('s-win');
-    submitScore(false);
-  } else {
-    stumpCount++;
-    saveStump();
-    document.getElementById('stump-total').textContent = stumpCount;
-    show('s-stump');
-    submitScore(true);
-  }
-}
-
-function submitScore(stumped) {
-  try {
-    const lobby = JSON.parse(localStorage.getItem('game_lobby_v2') || '{}');
-    if (!lobby.name) return;
-    localStorage.setItem('game_pending_score', JSON.stringify({
-      game: 'q20',
-      score: stumpCount,
-      detail: stumped ? `難倒電腦！(${qCount}題)` : `電腦猜中 (${qCount}題)`
-    }));
-  } catch(e) {}
-}
-
-function goBack() { window.location.href = '../'; }
-
-// ── 初始化 ────────────────────────────────────────────────
-load();
-const rec = document.getElementById('start-record');
-if (stumpCount > 0) rec.textContent = `🏆 你已累計難倒電腦 ${stumpCount} 次！`;
-show('s-start');
-</script>
-</body>
-</html>
+'use strict';
+// One source of truth: every answer and visual filter uses these curated traits.
+const TRAITS={
+ animal:['🐾','是動物嗎？','是動物'],food:['🍽️','是食物嗎？','是食物'],vehicle:['🛞','是交通工具嗎？','是交通工具'],thing:['🏠','是生活用品嗎？','是生活用品'],
+ fur:['🧶','身上有明顯的毛皮嗎？','身上有明顯的毛皮'],wings:['🪽','有翅膀嗎？','有翅膀'],fly:['☁️','能在空中飛嗎？','能在空中飛'],water:['💧','經常在水裡生活嗎？','經常在水裡生活'],four:['🐾','有四隻腳嗎？','有四隻腳'],six:['🐜','有六隻腳嗎？','有六隻腳'],shell:['🐚','身上有硬殼嗎？','身上有硬殼'],longEars:['👂','有長長的耳朵嗎？','有長長的耳朵'],trunk:['🐘','有長長的鼻子嗎？','有長長的鼻子'],stripes:['〰️','身上有條紋嗎？','身上有條紋'],meow:['💬','會喵喵叫嗎？','會喵喵叫'],bark:['💬','會汪汪叫嗎？','會汪汪叫'],feathers:['🪶','身上有羽毛嗎？','身上有羽毛'],
+ grains:['🌾','表面有一排排小顆粒嗎？','表面有一排排小顆粒'],fruit:['🍓','是水果嗎？','是水果'],peel:['🤲','吃之前要剝皮嗎？','吃之前要剝皮'],seeds:['🌱','切開後能看到明顯的籽嗎？','切開後能看到明顯的籽'],surfaceSeeds:['🔍','表面有一顆顆小籽嗎？','表面有一顆顆小籽'],cold:['❄️','通常冰冰地吃嗎？','通常冰冰地吃'],baked:['🔥','是烤出來的食物嗎？','是烤出來的食物'],drink:['🥤','可以用吸管喝嗎？','可以用吸管喝'],long:['📏','外形長長的嗎？','外形長長的'],round:['⭕','是外形圓圓的食物嗎？','是外形圓圓的食物'],red:['🔴','圖裡有紅色嗎？','圖裡有紅色'],yellow:['🟡','圖裡有黃色嗎？','圖裡有黃色'],green:['🟢','圖裡有綠色嗎？','圖裡有綠色'],
+ wheels:['🛞','有輪子嗎？','有輪子'],two:['🚲','只有兩個輪子嗎？','只有兩個輪子'],road:['🛣️','可以在馬路上行駛嗎？','可以在馬路上行駛'],tracks:['🛤️','沿著鐵軌走嗎？','沿著鐵軌走'],sea:['🌊','能在水面航行嗎？','能在水面航行'],pedal:['🦵','需要用腳踩踏板嗎？','需要用腳踩踏板'],rescue:['🚨','會出動救援嗎？','會出動救援'],many:['👨‍👩‍👧‍👦','能載很多乘客嗎？','能載很多乘客'],space:['🌟','能到太空嗎？','能到太空'],sail:['⛵','有帆嗎？','有帆'],rotor:['🌀','頂上有旋轉的大葉片嗎？','頂上有旋轉的大葉片'],
+ wear:['🧍','可以穿戴在身上嗎？','可以穿戴在身上'],feet:['🦶','穿在腳上嗎？','穿在腳上'],head:['🙂','戴在頭上嗎？','戴在頭上'],rain:['🌧️','用來遮雨嗎？','用來遮雨'],write:['✍️','可以用它寫字嗎？','可以用它寫字'],read:['📖','可以一頁頁翻著讀嗎？','可以一頁頁翻著讀'],sit:['🪑','是用來坐的嗎？','是用來坐的'],sleep:['💤','是用來睡覺的嗎？','是用來睡覺的'],screen:['🖥️','有螢幕嗎？','有螢幕'],call:['📞','能用來打電話嗎？','能用來打電話'],eat:['🥄','是吃飯喝水用的嗎？','是吃飯喝水用的'],hold:['🥛','能裝水嗎？','能裝水'],time:['⏰','能告訴你時間嗎？','能告訴你時間']};
+const RAW=[
+['cat','🐱','貓咪','animal','fur four meow','貓咪會用鬍鬚感覺周圍的空間。'],['dog','🐶','狗狗','animal','fur four bark','狗狗會用靈敏的鼻子認識世界。'],['rabbit','🐰','兔子','animal','fur four longEars','兔子的大耳朵能幫助牠聽見聲音。'],['elephant','🐘','大象','animal','four trunk','大象會用鼻子拿東西、喝水。'],['tiger','🐯','老虎','animal','fur four stripes','老虎身上的條紋可以幫助牠藏身。'],['turtle','🐢','烏龜','animal','four shell water','烏龜的殼是牠身體的一部分。'],['duck','🦆','綠頭鴨','animal','wings feathers water fly','許多鴨子能飛，也能用有蹼的腳游泳。'],['penguin','🐧','企鵝','animal','wings feathers water','企鵝有翅膀，卻用翅膀在水裡游。'],['butterfly','🦋','蝴蝶','animal','wings fly six','蝴蝶有六隻腳，牠是昆蟲。'],['bee','🐝','蜜蜂','animal','wings fly six stripes','蜜蜂會到花朵上採集花蜜。'],['fish','🐟','魚','animal','water','魚用鰓在水裡呼吸。'],['snail','🐌','蝸牛','animal','shell','蝸牛會留下黏液，幫助自己移動。'],
+['apple','🍎','紅蘋果','food','fruit seeds round red','切開蘋果，可以在中間找到籽。'],['banana','🍌','香蕉','food','fruit peel long yellow','香蕉的果皮要先剝開再吃。'],['watermelon','🍉','西瓜','food','fruit seeds red green','西瓜裡面有很多水分。'],['strawberry','🍓','草莓','food','fruit surfaceSeeds red green','草莓表面可以看到小小的籽。'],['grapes','🍇','葡萄','food','fruit round','葡萄一顆顆聚在一起，形成一串。'],['orange','🍊','橘子','food','fruit peel seeds round','橘子剝開後，裡面是一瓣一瓣的。'],['carrot','🥕','紅蘿蔔','food','long green','我們吃的是紅蘿蔔的根。'],['corn','🌽','玉米','food','grains long yellow green','玉米粒整齊地排在玉米棒上。'],['bread','🍞','吐司','food','baked','吐司是在烤箱裡烤出來的。'],['cookie','🍪','餅乾','food','baked round','餅乾烤好後，通常會變得香香脆脆。'],['icecream','🍦','冰淇淋','food','cold','冰淇淋遇到熱會慢慢融化。'],['milk','🥛','牛奶','food','drink','牛奶可以裝在杯子裡喝。'],
+['car','🚗','汽車','vehicle','wheels road','搭車時要坐好，繫上安全帶。'],['bus','🚌','公車','vehicle','wheels road many','公車沿著路線，在站牌接送乘客。'],['bike','🚲','腳踏車','vehicle','wheels two road pedal','腳踩踏板，鏈條就會帶動輪子。'],['motorcycle','🛵','機車','vehicle','wheels two road','騎乘機車要戴好安全帽。'],['train','🚆','火車','vehicle','wheels tracks many','火車沿著鐵軌前進。'],['plane','✈️','飛機','vehicle','wheels wings fly many','飛機有機翼，也有起降用的輪子。'],['helicopter','🚁','直升機','vehicle','fly rotor','直升機能向上起飛，也能在空中停留。'],['rocket','🚀','火箭','vehicle','fly space','火箭可以把太空船送上太空。'],['sailboat','⛵','帆船','vehicle','sea sail','風吹在帆上，能推動帆船前進。'],['ship','🚢','大船','vehicle','sea many','大船能載著人或貨物在水上航行。'],['ambulance','🚑','救護車','vehicle','wheels road rescue','聽到救護車的警笛，要讓出救援通道。'],['firetruck','🚒','消防車','vehicle','wheels road rescue long','消防車會帶著救火和救援的工具。'],
+['umbrella','☂️','雨傘','thing','rain','雨傘張開後，可以幫你擋雨。'],['hat','🧢','帽子','thing','wear head','帽子可以遮陽，也可以保暖。'],['shoe','👟','鞋子','thing','wear feet','合腳的鞋子能保護你的腳。'],['pencil','✏️','鉛筆','thing','write long','鉛筆留下的筆跡，可以用橡皮擦擦掉。'],['book','📖','書','thing','read','書裡可以裝著故事，也可以裝著知識。'],['chair','🪑','椅子','thing','sit','椅子可以讓你坐下來休息。'],['bed','🛏️','床','thing','sleep','睡覺能讓身體休息，恢復精神。'],['phone','📱','手機','thing','screen call','手機可以用來聯絡家人。'],['tv','📺','電視','thing','screen','電視的螢幕可以顯示影像。'],['cup','☕','杯子','thing','eat hold','杯子能裝水，拿熱飲時要小心。'],['spoon','🥄','湯匙','thing','eat long','湯匙可以舀湯，也可以舀食物。'],['clock','⏰','時鐘','thing','time','時鐘的指針會告訴你現在幾點。']];
+const ITEMS=RAW.map(([id,art,name,group,tags,fact])=>({id,art,name,group,tags:new Set([group,...tags.split(' ')]),fact}));
+const MODES={detective:['🔎','我來猜','選一個問題，找出神祕朋友'],robot:['🤖','電腦猜','偷偷選一張，讓電腦問問題'],match:['🧺','找朋友','看線索，把符合的朋友找出來']};
+const STORE='q20_explore_v2';let progress={found:[],rounds:0},mode='detective',theme='animal',size=6,sound=false,G=null,lastTarget=null;
+try{const p=JSON.parse(localStorage.getItem(STORE));if(p&&Array.isArray(p.found))progress={found:p.found.filter(id=>ITEMS.some(x=>x.id===id)),rounds:Number.isSafeInteger(p.rounds)&&p.rounds>=0?p.rounds:0};}catch{}
+const $=id=>document.getElementById(id);const app=$('app');const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+function say(text,force=false){$('announce').textContent=text;if((force||sound)&&'speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='zh-TW';u.rate=.85;speechSynthesis.speak(u);}}
+function stopVoice(){if('speechSynthesis'in window)speechSynthesis.cancel();}
+function headingFocus(){requestAnimationFrame(()=>{const h=app.querySelector('h1');if(h){h.tabIndex=-1;h.focus({preventScroll:true});}});}
+function home(){stopVoice();G=null;app.innerHTML=`<section class="hero"><div><span class="eyebrow">看一看 · 問一問 · 想一想</span><h1>咦，藏起來的<br><em>朋友是誰？</em></h1><p class="muted">一張圖卡，一個小線索。<br>和小狐狸一起，發現答案！</p><span class="pill">48 位朋友，3 種玩法</span></div><div class="scene" aria-hidden="true"><span class="scene-card">🐰</span><span class="scene-card">🍓</span><span class="scene-card">🔎</span></div></section><div class="section-label">今天，想怎麼玩？</div><div class="modes">${Object.entries(MODES).map(([id,m])=>`<button class="mode" data-mode="${id}" aria-pressed="${mode===id}"><span class="mode-icon">${m[0]}</span><strong>${m[1]}</strong><small>${m[2]}</small></button>`).join('')}</div><div class="settings"><div class="field"><label for="theme">去哪裡找朋友？</label><select id="theme"><option value="animal">🐾 動物森林</option><option value="food">🍓 美味野餐</option><option value="vehicle">🚗 出發旅行</option><option value="thing">🏠 生活小屋</option><option value="all">🌈 全部混合</option></select></div><div class="field"><label for="size">這次找幾張？</label><select id="size"><option value="6">🌱 6 張 · 初次探險</option><option value="9">🌿 9 張 · 多看一看</option><option value="12">🌳 12 張 · 小小挑戰</option></select></div><button class="primary start" id="start">一起出發 →</button></div><div class="collection"><b>我的發現冊</b><p class="muted">認識了 ${progress.found.length} / 48 位朋友 · 完成 ${progress.rounds} 次探索</p><div class="collection-grid">${progress.found.length?progress.found.map(id=>{const x=ITEMS.find(i=>i.id===id);return `<span class="stamp" title="${x.name}" aria-label="${x.name}">${x.art}</span>`;}).join(''):'<span class="muted">找到的朋友會在這裡留下小印章。</span>'}</div></div>`;$('theme').value=theme;$('size').value=String(size);app.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;app.querySelectorAll('[data-mode]').forEach(el=>el.setAttribute('aria-pressed',el.dataset.mode===mode));});$('theme').onchange=e=>theme=e.target.value;$('size').onchange=e=>size=+e.target.value;$('start').onclick=start;headingFocus();}
+function splitQuestions(cards,used=[]){return Object.keys(TRAITS).filter(k=>!used.includes(k)&&!['red','yellow','green'].includes(k)).map(k=>({k,n:cards.filter(x=>x.tags.has(k)).length})).filter(q=>q.n>0&&q.n<cards.length);}
+function rankedQuestions(cards,used=[]){return shuffle(splitQuestions(cards,used)).sort((a,b)=>Math.abs(a.n-cards.length/2)-Math.abs(b.n-cards.length/2)).map(q=>q.k);}
+function candidates(){return G.cards.filter(x=>G.alive.includes(x.id));}
+function start(){stopVoice();let pool=ITEMS.filter(x=>theme==='all'||x.group===theme);const cards=shuffle(pool).slice(0,size);let target=shuffle(cards.filter(x=>x.id!==lastTarget))[0]||cards[0];lastTarget=target.id;G={cards,alive:cards.map(x=>x.id),target,used:[],history:[],clues:[],count:0,feedback:'',selected:[],phase:mode==='robot'?'choose':'play',query:null,questionOptions:[]};if(mode==='match'){const first=rankedQuestions(cards)[0];G.rules=[{key:first,yes:true}];if(size>=9){const subset=cards.filter(x=>x.tags.has(first));const second=rankedQuestions(subset,[first])[0];if(second)G.rules.push({key:second,yes:Math.random()>.5});}G.matches=cards.filter(x=>G.rules.every(r=>x.tags.has(r.key)===r.yes)).map(x=>x.id);}refresh();render();headingFocus();say(instruction());}
+function refresh(){if(mode==='detective')G.questionOptions=G.count>=20?[]:rankedQuestions(candidates(),G.used).slice(0,3);if(mode==='robot'&&G.phase==='play')G.query=rankedQuestions(candidates(),G.used)[0]||null;}
+function instruction(){if(mode==='robot'){if(G.phase==='choose')return '在心裡選好一張圖卡，不要告訴電腦。想好了，再按開始提問。';if(G.phase==='guess')return '電腦提出了猜測。看看它猜對了嗎？';return G.query?TRAITS[G.query][1]:'現在的線索還分不出來，你想的是哪一張？';}if(mode==='match')return '找出所有'+G.rules.map(r=>(r.yes?'':'不')+TRAITS[r.key][2]).join('，而且')+'的朋友。';return '我藏好了一位朋友。選問題找線索，或點圖卡猜猜看！';}
+function snapshot(){return {alive:[...G.alive],used:[...G.used],clues:[...G.clues],count:G.count,phase:G.phase,query:G.query,feedback:G.feedback};}
+function undo(){if(!G.history.length)return;Object.assign(G,G.history.pop());G.phase='play';G.feedback='回到上一步了，可以重新想一想。';refresh();render();say(G.feedback);}
+function applyAnswer(key,answer){if(!G||G.phase!=='play')return;const next=answer===null?G.alive:G.cards.filter(x=>G.alive.includes(x.id)&&x.tags.has(key)===answer).map(x=>x.id);if(!next.length){G.feedback='這個答案和前面的線索不太一樣。可以按「上一步」重新想想。';render();say(G.feedback);return;}G.history.push(snapshot());const before=G.alive.length;G.alive=next;G.used.push(key);G.count++;G.clues.push({key,answer});G.feedback=answer===null?'沒關係，換一個問題！':`${answer?'✓ 是的':'✕ 不是'}！排除了 ${before-next.length} 張，還有 ${next.length} 位朋友。`;if(mode==='robot'&&(next.length===1||G.count>=20))G.phase=next.length===1?'guess':'shortlist';refresh();render();say(G.feedback+(mode==='robot'&&G.phase==='play'?' '+instruction():''));}
+function ask(key){if(mode==='detective'&&G.questionOptions.includes(key))applyAnswer(key,G.target.tags.has(key));}
+function cardClick(id){if(!G||!['play','shortlist'].includes(G.phase))return;const x=G.cards.find(i=>i.id===id);if(mode==='match'){G.selected=G.selected.includes(id)?G.selected.filter(i=>i!==id):[...G.selected,id];G.feedback='';render();return;}if(mode==='robot'){finish(x,false,'謝謝你告訴我！有些朋友很像，我們再一起認識牠。');return;}if(!G.alive.includes(id))return;if(id===G.target.id)finish(x,true,'你找到神祕朋友了！');else{G.feedback=`${x.name}不是這次藏起來的朋友，再問一個問題看看。`;render();say(G.feedback);}}
+function checkMatch(){const ok=G.matches.length===G.selected.length&&G.matches.every(id=>G.selected.includes(id));if(ok)finish(G.cards.find(x=>G.matches.includes(x.id)),true,'全部找到了！你發現了朋友們的共同點。',G.matches);else{G.feedback='還差一點點。再看看每張圖卡，要同時符合上面的線索喔！';render();say(G.feedback);}}
+function render(){const choosing=G.phase==='choose',guessing=G.phase==='guess';const shortlist=G.phase==='shortlist'||(mode==='robot'&&G.phase==='play'&&!G.query);if(shortlist)G.phase='shortlist';let message=instruction();if(guessing){const x=candidates()[0];message=`我猜是 ${x.art} ${x.name}！`;}app.innerHTML=`<section><div class="gamebar"><h1>${MODES[mode][0]} ${MODES[mode][1]}</h1><span class="pill">${mode==='match'?'觀察小任務':choosing?'準備好了嗎？':`已問 ${G.count} 題`}</span></div><div class="panel" style="margin-top:0"><div class="prompt"><span class="mascot" aria-hidden="true">🦊</span><div><h2>${message}</h2><p>${mode==='detective'?'點下面的問題找線索，再點圖卡猜答案。':mode==='match'?'點一下選取，再點一下取消。選好後按「找好了」。':choosing?'只要記在心裡，不用點圖卡。電腦只會根據你的回答猜。':guessing?'猜錯也沒關係，我們可以重新整理線索。':shortlist?'剩下的圖卡都符合你的回答，請點選你想的那張。':'不確定就選「不知道」。答錯可以回上一步。'}</p></div></div>${mode==='detective'&&G.phase==='play'?`<div class="question-options">${G.questionOptions.map(k=>`<button class="question" data-question="${k}"><span aria-hidden="true">${TRAITS[k][0]}</span>${TRAITS[k][1]}</button>`).join('')}</div>${!G.questionOptions.length?'<p class="muted">線索已經收集好了，點一張圖卡猜猜看。</p>':''}`:''}${mode==='robot'&&choosing?'<div class="response"><button class="primary" id="ready">想好了，開始提問 →</button></div>':mode==='robot'&&guessing?'<div class="response"><button class="yes" id="correct">✓ 猜對了</button><button class="no" id="incorrect">再想一想</button></div>':mode==='robot'&&!shortlist?'<div class="response"><button class="yes" id="yes">✓ 是的</button><button class="no" id="no">✕ 不是</button><button id="unknown">🤔 不知道</button></div>':''}<div class="feedback" role="status">${G.feedback}</div><div class="tools"><button id="read">🔊 再聽一次</button>${mode!=='match'&&!choosing?`<button id="undo" ${G.history.length?'':'disabled'}>↶ 上一步</button>`:''}<button id="restart">換一組朋友</button></div></div><div class="board-title"><strong>${mode==='match'?`已選 ${G.selected.length} 位朋友`:choosing?'偷偷選好一張，記在心裡':`還有 ${G.alive.length} / ${G.cards.length} 位朋友`}</strong><span class="muted">${mode==='match'?'看清楚，再選喔':mode==='robot'&&!shortlist?'先回答上面的問題':'點圖卡猜答案'}</span></div><div class="board">${G.cards.map(x=>{const out=!G.alive.includes(x.id);const selected=G.selected.includes(x.id);const disabled=out||choosing||guessing||(mode==='robot'&&!shortlist);return `<button class="tile ${out?'out':''} ${selected?'picked':''}" data-card="${x.id}" ${disabled?'disabled':''} ${mode==='match'?`aria-pressed="${selected}"`:''} aria-label="${x.name}${out?'，已排除':''}"><span class="art" aria-hidden="true">${x.art}</span><span class="name">${x.name}</span></button>`;}).join('')}</div>${mode==='match'?'<div class="response"><button class="primary" id="check">找好了 ✓</button></div>':`<div class="log" aria-label="已收集的線索">${G.clues.map(c=>`<span class="clue">${c.answer===null?'?':c.answer?'✓':'✕'} ${TRAITS[c.key][2]}${c.answer===null?'（不知道）':''}</span>`).join('')}</div>`}</section>`;
+app.querySelectorAll('[data-question]').forEach(b=>b.onclick=()=>ask(b.dataset.question));app.querySelectorAll('[data-card]').forEach(b=>b.onclick=()=>cardClick(b.dataset.card));$('read').onclick=()=>{if(!('speechSynthesis'in window)){G.feedback='這個瀏覽器沒有語音朗讀，可以請大人一起讀線索。';render();return;}say(instruction(),true);};$('restart').onclick=start;if($('undo'))$('undo').onclick=undo;if($('ready'))$('ready').onclick=()=>{G.phase='play';refresh();render();say(instruction());};if($('yes')){$('yes').onclick=()=>applyAnswer(G.query,true);$('no').onclick=()=>applyAnswer(G.query,false);$('unknown').onclick=()=>applyAnswer(G.query,null);}if($('correct')){$('correct').onclick=()=>finish(candidates()[0],true,'一起找到答案了！');$('incorrect').onclick=()=>{G.feedback='可以按「上一步」改回答，或換一組朋友重新玩。';render();say(G.feedback);};}if($('check'))$('check').onclick=checkMatch;}
+function finish(x,success,message,ids=[x.id]){if(!G||G.phase==='done')return;G.phase='done';stopVoice();let saved=true;if(success){progress.rounds++;progress.found=[...new Set([...progress.found,...ids])];try{localStorage.setItem(STORE,JSON.stringify(progress));}catch{saved=false;}}app.innerHTML=`<section class="finish"><span class="eyebrow">${success?'又多了一個新發現':'每次探索，都會學到新東西'}</span><span class="big" aria-hidden="true">${x.art}</span><h1>${message}</h1><p>${mode==='match'?ids.map(id=>ITEMS.find(i=>i.id===id).name).join('、'):x.name}</p><div class="fact">💡 ${x.fact}</div><p class="muted">${success?`發現冊：${progress.found.length} / 48 位朋友`:'下次也可以試試「我來猜」，一起看圖找線索。'}${!saved?' · 目前無法儲存，關閉頁面後這次紀錄可能消失。':''}</p><div class="progress"><div style="width:${progress.found.length/48*100}%"></div></div><div class="response"><button class="primary" id="again">再探險一次 →</button><button id="backhome">換個玩法</button></div></section>`;$('again').onclick=start;$('backhome').onclick=home;headingFocus();say(message+' '+x.name+'。'+x.fact);}
+$('sound').onclick=()=>{if(!('speechSynthesis'in window)){say('這個瀏覽器沒有語音朗讀功能。');$('sound').textContent='無語音支援';return;}sound=!sound;$('sound').setAttribute('aria-pressed',sound);$('sound').setAttribute('aria-label',sound?'關閉自動朗讀':'開啟自動朗讀');$('sound').textContent=sound?'🔊 朗讀':'🔇 朗讀';if(sound)say(G?instruction():'你好！一起來當小偵探。');else stopVoice();};$('home').onclick=home;$('lobby').onclick=()=>{stopVoice();location.href='../';};window.addEventListener('pagehide',stopVoice);home();
+</script></body></html>
