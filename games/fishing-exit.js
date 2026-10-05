@@ -7,6 +7,10 @@
   btn.addEventListener('click',()=>{
     let progressed=false;
     try{progressed=(typeof castCount!=='undefined'&&castCount>0)||(typeof casting!=='undefined'&&casting)||(typeof score!=='undefined'&&score>0);}catch(e){}
-    if(!progressed||window.confirm('這局尚未完成，確定要離開並返回大廳嗎？')) window.location.href='/';
+    if(progressed&&!window.confirm('這局尚未完成，確定要離開並返回大廳嗎？')) return;
+    try{
+      if(window.parent&&window.parent!==window){ window.parent.location.href='/'; return; }
+    }catch(e){}
+    window.location.href='/';
   });
 })();
