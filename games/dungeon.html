@@ -2622,10 +2622,30 @@ function getDodgeRate(){
   if(hasBuff('agi'))bonus+=.05;
   return Math.max(0,Math.min(.5,.35*agi/(agi+100)+bonus));
 }
-function combatSnapshot(){return {atk:calcAtk(),crit:getCritRate()*100,dodge:getDodgeRate()*100,time:timeLimit()};}
-function previewAllocation(k){const prev=state.stats[k];try{state.stats[k]=(prev||0)+1;return combatSnapshot();}finally{state.stats[k]=prev;}}
+function calcPlayerReduction(){const pDef=hasBuff('berserk')?0:totalStat('def');
+  // defDouble（礦工鐵壁）：防禦翻倍計算
+  const defVal = hasSkill('miner_30') ? pDef * 2 : pDef;
+  let reduction = Math.min(0.75, defVal / (defVal + 20));
+  const setBonuses = getSetBonuses();
+  for (const b of setBonuses) {
+    if (b.defMult) reduction = Math.min(0.80, reduction * b.defMult);
+  }
+  // dmgReduce 技能（石皮/鐵甲術等）
+  const dmgReduceSkills = getUnlockedSkills().filter(s => s.effect?.dmgReduce);
+  for (const s of dmgReduceSkills) reduction = Math.min(0.80, reduction + s.effect.dmgReduce);
+  // 前職業殘留 dmgReduce
+  for (const prev of (state.prevJobs||[])) {
+    const pjd = JOB_DEFS[prev.job];
+    for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
+      if (sk.effect?.dmgReduce) reduction = Math.min(0.80, reduction + sk.effect.dmgReduce * 0.3);
+    }
+  }
+  return reduction;
+}
+function combatSnapshot(){return {atk:calcAtk(),crit:getCritRate()*100,dodge:getDodgeRate()*100,time:timeLimit(),reduction:calcPlayerReduction()*100,hp:state.stats.maxHp};}
+function previewAllocation(k){const prev=state.stats;try{state.stats={...prev,[k]:(prev[k]||0)+1};if(k==='str'){state.stats.maxHp++;state.stats.hp=Math.min(state.stats.hp+1,state.stats.maxHp);}return combatSnapshot();}finally{state.stats=prev;}}
 function previewEquipment(item){const weapon=state.weapon,equipment=state.equipment;try{if(item.type==='weapon')state.weapon=item;else state.equipment={...equipment,[item.subtype]:item};return combatSnapshot();}finally{state.weapon=weapon;state.equipment=equipment;}}
-function combatDifference(before,after){return [['atk','攻擊',0],['crit','暴擊',2],['dodge','閃避',2],['time','答題秒數',1]].map(([k,label,d])=>{const delta=after[k]-before[k];return `${label} ${after[k].toFixed(d)}（${delta>=0?'+':''}${delta.toFixed(d)}${k==='crit'||k==='dodge'?'百分點':''}）`;}).join(' · ');}
+function combatDifference(before,after){return [['atk','攻擊',0],['crit','暴擊',2],['dodge','閃避',2],['reduction','減傷',2],['hp','生命',0],['time','基礎答題秒數',1]].filter(([k])=>Math.abs(after[k]-before[k])>.00001).map(([k,label,d])=>{const delta=after[k]-before[k];return `${label} ${after[k].toFixed(d)}（${delta>=0?'+':''}${delta.toFixed(d)}${k==='crit'||k==='dodge'||k==='reduction'?'百分點':''}）`;}).join(' · ')||'目前戰鬥數值不變';}
 function weaponStatHint(sub){return {sword:'力量主導：每點×3.4',axe:'力量主導：每點×4.2',bow:'敏捷×2.4＋力量×0.6',wand:'智力主導：每點×4.4',dagger:'敏捷×1.8＋幸運×0.6',spear:'力量×2.6＋防禦×1.0'}[sub]||'徒手：力量主導';}
 const ALLOC_KEYS=['str','agi','luk','int','def'];
 const BASE_ALLOC={str:10,agi:8,luk:5,int:5,def:5};
@@ -4580,23 +4600,7 @@ function applyDmgToPlayer(dmg) {
     return;
   }
 
-  // defDouble（礦工鐵壁）：防禦翻倍計算
-  const defVal = hasSkill('miner_30') ? pDef * 2 : pDef;
-  let reduction = Math.min(0.75, defVal / (defVal + 20));
-  const setBonuses = getSetBonuses();
-  for (const b of setBonuses) {
-    if (b.defMult) reduction = Math.min(0.80, reduction * b.defMult);
-  }
-  // dmgReduce 技能（石皮/鐵甲術等）
-  const dmgReduceSkills = getUnlockedSkills().filter(s => s.effect?.dmgReduce);
-  for (const s of dmgReduceSkills) reduction = Math.min(0.80, reduction + s.effect.dmgReduce);
-  // 前職業殘留 dmgReduce
-  for (const prev of (state.prevJobs||[])) {
-    const pjd = JOB_DEFS[prev.job];
-    for (const sk of (pjd?.skills||[]).filter(sk2 => prev.level >= sk2.lv)) {
-      if (sk.effect?.dmgReduce) reduction = Math.min(0.80, reduction + sk.effect.dmgReduce * 0.3);
-    }
-  }
+  const reduction=calcPlayerReduction();
   dmg = Math.max(1, Math.floor(dmg * (1 - reduction)));
   state.stats.hp = Math.max(0, state.stats.hp - dmg);
   document.getElementById('cb-player-hp').textContent = `❤️ ${state.stats.hp}/${state.stats.maxHp}`;
@@ -5116,13 +5120,13 @@ function calcTotalJobExp(jobLv) {
 }
 
 // 用場數反算職業等級
-function calcJobLvFromExp(totalExp) {
+function calcJobLvFromExp(totalExp, maxLevel=20) {
   let lv = 1, remaining = totalExp;
-  while (remaining >= jobExpForLevel(lv) && lv < jobMaxLevel()) {
+  while (remaining >= jobExpForLevel(lv) && lv < maxLevel) {
     remaining -= jobExpForLevel(lv);
     lv++;
   }
-  return {lv, exp: remaining};
+  return {lv, exp:lv>=maxLevel?0:remaining};
 }
 
 // ════════════════════════════════════════════════════════════
@@ -6366,8 +6370,8 @@ function openStats() {
   html += `<div class="stat-section"><h3>戰鬥數值</h3>
     <div class="stat-row"><span class="sn">攻擊力</span><span class="sv">${atk}</span></div>
     <div class="stat-row"><span class="sn">最大血量</span><span class="sv">${state.stats.maxHp}</span></div>
-    <div class="stat-row"><span class="sn">答題時間</span><span class="sv">${tl}秒</span></div>
-    <div class="stat-row"><span class="sn">暴擊率</span><span class="sv">${(getCritRate()*100).toFixed(1)}%</span></div><div class="stat-row"><span class="sn">閃避率</span><span class="sv">${(getDodgeRate()*100).toFixed(1)}%</span></div>
+    <div class="stat-row"><span class="sn">基礎答題時間</span><span class="sv">${tl}秒</span></div>
+    <div class="stat-row"><span class="sn">暴擊率</span><span class="sv">${(getCritRate()*100).toFixed(1)}%</span></div><div class="stat-row"><span class="sn">閃避率</span><span class="sv">${(getDodgeRate()*100).toFixed(1)}%</span></div><div class="stat-row"><span class="sn">防禦減傷</span><span class="sv">${(calcPlayerReduction()*100).toFixed(1)}%</span></div><p style="font-size:11px;color:var(--sub)">文字題至少12秒；舒緩模式至少20秒，負面狀態另計。</p>
   </div>`;
 
   html += `<div class="stat-section"><h3>冒險紀錄</h3>
@@ -7346,15 +7350,35 @@ function drawSettlementTile(c,wx,wy,x,y,size){
  const lot=SETTLEMENT_LOTS.find(l=>Math.abs(dx-l.x)<=1&&dy>=l.y-1&&dy<=l.y&&l.kind!=='house')||SETTLEMENT_LOTS.find(l=>l.kind==='house'&&dx===l.x&&dy===l.y);
  if(lot?.kind==='house'){c.fillStyle='#c0b18d';c.fillRect(x+size*.15,y+size*.4,size*.7,size*.5);c.fillStyle=lot.color;c.beginPath();c.moveTo(x+size*.05,y+size*.45);c.lineTo(x+size*.5,y+size*.12);c.lineTo(x+size*.95,y+size*.45);c.closePath();c.fill();c.fillStyle='#edc675';c.fillRect(x+size*.25,y+size*.55,size*.15,size*.2);c.fillStyle='#333936';c.fillRect(x+size*.6,y+size*.6,size*.14,size*.3);}
  else if(lot){const left=v.cx+lot.x-1,top=v.cy+lot.y-1;c.save();c.beginPath();c.rect(x,y,size,size);c.clip();const bx=x+(left-wx)*size,by=y+(top-wy)*size;
- c.fillStyle='#252c2e';c.fillRect(bx+size*.15,by+size*.5,size*2.7,size*1.5);c.fillStyle=lot.color;c.beginPath();c.moveTo(bx,by+size*.65);c.lineTo(bx+size*1.5,by);c.lineTo(bx+size*3,by+size*.65);c.closePath();c.fill();
- c.strokeStyle='#e0c994';c.lineWidth=1;c.strokeRect(bx+size*.2,by+size*.75,size*2.6,size*1.15);c.fillStyle='#e3bb70';for(let i=0;i<3;i++)c.fillRect(bx+size*(.4+i*.9),by+size,size*.25,size*.35);
- c.fillStyle='#172124';c.fillRect(bx+size*1.35,by+size*1.45,size*.3,size*.55);c.fillStyle='#eee0b3';c.font=`bold ${Math.max(7,size*.24)}px sans-serif`;c.textAlign='center';c.fillText(lot.name,bx+size*1.5,by+size*.91);c.restore();
+ drawSettlementBuilding(c,lot,bx,by,size);c.restore();
  }
  if(dx===0&&dy===0){c.fillStyle='#ad8ad9';c.beginPath();c.arc(x+size/2,y+size/2,size*.24,0,Math.PI*2);c.fill();c.fillStyle='#efe5fa';c.fillRect(x+size*.45,y+size*.2,size*.1,size*.4);}
  if([[1,-2],[-2,1],[2,4]].some(([a,b])=>a===dx&&b===dy)){c.fillStyle='#c99569';c.beginPath();c.arc(x+size*.5,y+size*.36,size*.1,0,Math.PI*2);c.fill();c.fillStyle=dx<0?'#d2a35b':'#77a7ad';c.fillRect(x+size*.37,y+size*.48,size*.26,size*.29);c.fillStyle='#282e2c';c.fillRect(x+size*.37,y+size*.77,size*.09,size*.13);c.fillRect(x+size*.54,y+size*.77,size*.09,size*.13);}
  if(Math.abs(dx)===1&&Math.abs(dy)===5){c.fillStyle='#303835';c.fillRect(x+size*.47,y+size*.35,size*.06,size*.5);c.fillStyle='#e0bb72';c.fillRect(x+size*.35,y+size*.25,size*.3,size*.2);}
  if(dx===-1&&dy===1){c.fillStyle='#6eacb1';c.beginPath();c.arc(x+size/2,y+size/2,size*.3,0,Math.PI*2);c.fill();}
  return true;
+}
+function drawSettlementBuilding(c,lot,x,y,size){
+ c.save();c.translate(x,y);c.scale(size/32,size/32);
+ const rect=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);},line=(pts,col='#dabd82',w=1)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();},poly=(pts,col)=>{c.fillStyle=col;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();},disc=(x,y,r,col)=>{c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();};
+ rect(5,24,86,38,'#243237');rect(9,28,78,32,'#556866');rect(5,58,86,5,'#8f856f');
+ if(lot.kind==='market'){
+ rect(5,23,86,8,'#b6a16b');for(let i=0;i<9;i++){rect(5+i*9.5,23,9.5,15,i%2?'#d8c59b':'#ab6448');poly([[5+i*9.5,38],[14.5+i*9.5,38],[10+i*9.5,42]],i%2?'#d8c59b':'#ab6448');}
+ rect(9,40,78,12,'#3c3430');rect(11,49,74,5,'#8e6a46');for(let i=0;i<5;i++){disc(19+i*12,46,3,['#bd744c','#c6ab57','#6f9966'][i%3]);}rect(12,54,16,9,'#a17a51');line([[12,54],[28,63],[12,63],[28,54]],'#d0b27d');rect(72,48,11,15,'#ad8d62');
+ }else if(lot.kind==='appraiser'){
+ disc(48,25,22,'#72a3b7');rect(25,25,46,10,'#72a3b7');line([[48,4],[48,30]],'#b8dfe8',2);line([[31,11],[37,30]],'#b8dfe8');line([[65,11],[59,30]],'#b8dfe8');disc(48,15,6,'#dce7af');disc(48,15,3,'#3a687c');rect(13,35,8,26,'#a9c1b5');rect(75,35,8,26,'#a9c1b5');disc(29,44,8,'#2c3e48');disc(67,44,8,'#2c3e48');line([[23,44],[35,44],[29,38],[29,50]],'#94dce6');line([[61,44],[73,44],[67,38],[67,50]],'#94dce6');
+ }else if(lot.kind==='raid'){
+ for(const tx of [4,71]){rect(tx,10,21,50,'#657176');for(let i=0;i<3;i++)rect(tx+i*8,4,5,9,'#8c9794');rect(tx+8,27,4,11,'#263137');}rect(24,20,48,9,'#92928a');rect(29,32,38,28,'#1c252b');c.strokeStyle='#bfb69b';c.lineWidth=4;c.beginPath();c.arc(48,49,17,Math.PI,0);c.stroke();line([[34,35],[60,58],[60,35],[34,58]],'#bd8b75',2);rect(13,9,2,18,'#d8c7a6');poly([[15,9],[32,12],[15,19]],'#ad6b7d');
+ }else if(lot.kind==='casino'){
+ poly([[4,27],[18,12],[78,12],[92,27]],'#795c97');line([[13,29],[83,29]],'#d3b983',2);rect(16,30,64,3,'#d5c298');for(let i=0;i<6;i++)disc(15+i*13,36,1.5,'#f5d693');rect(12,42,17,13,'#ab6c8f');rect(67,42,17,13,'#ab6c8f');disc(48,17,9,'#c5ad8d');rect(42,11,12,12,'#272937');for(const [a,b]of [[45,14],[51,14],[48,17],[45,20],[51,20]])disc(a,b,1,'#dcc79e');
+ }else if(lot.kind==='inn'){
+ poly([[3,24],[48,4],[93,24]],'#617ea5');for(let i=0;i<4;i++)line([[15+i*15,19],[29+i*15,25]],'#9dacc2');rect(72,7,8,16,'#77736b');rect(14,31,16,16,'#223d52');rect(66,31,16,16,'#223d52');for(const wx of [16,68]){rect(wx,33,12,12,'#e6be7d');line([[wx+6,33],[wx+6,45]],'#6e6051');}rect(33,29,30,6,'#c8b591');disc(48,16,6,'#ead397');disc(51,14,5,'#617ea5');rect(15,48,12,4,'#7b9e77');rect(68,48,12,4,'#7b9e77');
+ }else{
+ poly([[3,25],[48,7],[93,25]],'#6c926c');line([[8,27],[88,27]],'#c9c19b',2);rect(13,32,10,28,'#a0ab89');rect(73,32,10,28,'#a0ab89');rect(29,32,38,12,'#364338');poly([[40,11],[48,14],[56,11],[56,22],[48,25],[40,22]],'#d2c8a1');line([[48,14],[48,25]],'#6b7051');rect(27,48,9,12,'#a38760');rect(60,48,9,12,'#a38760');
+ }
+ if(lot.kind!=='raid'&&lot.kind!=='market'){rect(39,42,18,20,'#253235');rect(41,45,14,17,'#735b49');line([[48,45],[48,62]],'#c0a578');disc(51,55,1,'#e2c787');}
+ rect(16,26,64,7,'#273536');c.fillStyle='#f4e4bd';c.font='9px sans-serif';c.textAlign='center';c.fillText(lot.name,48,32,64);
+ c.restore();
 }
 function settlementDialog(title,html){let d=document.getElementById('settlement-service');if(!d){d=document.createElement('dialog');d.id='settlement-service';document.body.appendChild(d);}d.innerHTML=`<button class="job-skill-btn" onclick="document.getElementById('settlement-service').close()">關閉</button><h2>${title}</h2>${html}`;if(!d.open)d.showModal();return d;}
 function openSettlementDirectory(v){const here=v||getVillageAt(px,py);if(!here){toast('請先進入聚落');return;}settlementDialog(here.name,`<p>13 × 13 格聚落・中央傳送廣場</p><p>沿石板道路前往各建築；踩到門口即可使用服務。</p>`+SETTLEMENT_LOTS.filter(l=>l.kind!=='house').map(l=>`<p><b>${l.name}</b>：${l.x<0?'西':'東'} ${Math.abs(l.x)} 格、${l.y<0?'北':'南'} ${Math.abs(l.y)} 格</p>`).join(''));}
