@@ -955,6 +955,7 @@ function getTerrain(wx, wy) {
     const lot=settlementLotAt(wx,wy);
     if(lot&&lot.kind==='market')return T.MERCHANT;
     if(lot&&lot.kind!=='house')return T.VILLAGE;
+    if(SETTLEMENT_LOTS.some(l=>l.kind!=='house'&&Math.abs(vdx-l.x)<=1&&vdy>=l.y-2&&vdy<=l.y-1))return T.HIGH;
     return T.PLAINS;
   }
 
@@ -7347,11 +7348,12 @@ function drawSettlementTile(c,wx,wy,x,y,size){
  c.fillStyle=road?'#777768':'#485f50';c.fillRect(x,y,size,size);
  c.strokeStyle=road?'#96917b':'#60735b';c.lineWidth=.6;c.strokeRect(x+1,y+1,size-2,size-2);
  if(Math.abs(dx)===6||Math.abs(dy)===6){c.fillStyle='#b4a77f';c.fillRect(x,y+size*.15,size,size*.12);if(dx===0||dy===0){c.fillStyle='#c2b082';c.fillRect(x+size*.1,y+size*.15,size*.18,size*.7);}}
- const lot=SETTLEMENT_LOTS.find(l=>Math.abs(dx-l.x)<=1&&dy>=l.y-1&&dy<=l.y&&l.kind!=='house')||SETTLEMENT_LOTS.find(l=>l.kind==='house'&&dx===l.x&&dy===l.y);
+ const lot=SETTLEMENT_LOTS.find(l=>Math.abs(dx-l.x)<=1&&dy>=l.y-2&&dy<=l.y-1&&l.kind!=='house')||SETTLEMENT_LOTS.find(l=>l.kind==='house'&&dx===l.x&&dy===l.y);
  if(lot?.kind==='house'){c.fillStyle='#c0b18d';c.fillRect(x+size*.15,y+size*.4,size*.7,size*.5);c.fillStyle=lot.color;c.beginPath();c.moveTo(x+size*.05,y+size*.45);c.lineTo(x+size*.5,y+size*.12);c.lineTo(x+size*.95,y+size*.45);c.closePath();c.fill();c.fillStyle='#edc675';c.fillRect(x+size*.25,y+size*.55,size*.15,size*.2);c.fillStyle='#333936';c.fillRect(x+size*.6,y+size*.6,size*.14,size*.3);}
- else if(lot){const left=v.cx+lot.x-1,top=v.cy+lot.y-1;c.save();c.beginPath();c.rect(x,y,size,size);c.clip();const bx=x+(left-wx)*size,by=y+(top-wy)*size;
+ else if(lot){const left=v.cx+lot.x-1,top=v.cy+lot.y-2;c.save();c.beginPath();c.rect(x,y,size,size);c.clip();const bx=x+(left-wx)*size,by=y+(top-wy)*size;
  drawSettlementBuilding(c,lot,bx,by,size);c.restore();
  }
+ const doorway=SETTLEMENT_LOTS.find(l=>l.kind!=='house'&&dx===l.x&&dy===l.y);if(doorway){c.fillStyle=doorway.color;c.fillRect(x+size*.25,y+size*.05,size*.5,size*.12);c.fillStyle='#ece2c4';c.font=`${Math.max(8,size*.3)}px sans-serif`;c.textAlign='center';c.fillText('入口',x+size*.5,y+size*.68);}
  if(dx===0&&dy===0){c.fillStyle='#ad8ad9';c.beginPath();c.arc(x+size/2,y+size/2,size*.24,0,Math.PI*2);c.fill();c.fillStyle='#efe5fa';c.fillRect(x+size*.45,y+size*.2,size*.1,size*.4);}
  if([[1,-2],[-2,1],[2,4]].some(([a,b])=>a===dx&&b===dy)){c.fillStyle='#c99569';c.beginPath();c.arc(x+size*.5,y+size*.36,size*.1,0,Math.PI*2);c.fill();c.fillStyle=dx<0?'#d2a35b':'#77a7ad';c.fillRect(x+size*.37,y+size*.48,size*.26,size*.29);c.fillStyle='#282e2c';c.fillRect(x+size*.37,y+size*.77,size*.09,size*.13);c.fillRect(x+size*.54,y+size*.77,size*.09,size*.13);}
  if(Math.abs(dx)===1&&Math.abs(dy)===5){c.fillStyle='#303835';c.fillRect(x+size*.47,y+size*.35,size*.06,size*.5);c.fillStyle='#e0bb72';c.fillRect(x+size*.35,y+size*.25,size*.3,size*.2);}
