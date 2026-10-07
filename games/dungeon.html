@@ -955,7 +955,7 @@ function getTerrain(wx, wy) {
     const lot=settlementLotAt(wx,wy);
     if(lot&&lot.kind==='market')return T.MERCHANT;
     if(lot&&lot.kind!=='house')return T.VILLAGE;
-    if(SETTLEMENT_LOTS.some(l=>l.kind!=='house'&&Math.abs(vdx-l.x)<=1&&vdy>=l.y-2&&vdy<=l.y-1))return T.HIGH;
+    if(SETTLEMENT_LOTS.some(l=>l.kind==='house'?(vdx===l.x&&vdy===l.y):(Math.abs(vdx-l.x)<=1&&vdy>=l.y-2&&vdy<=l.y-1)))return T.HIGH;
     return T.PLAINS;
   }
 
@@ -3024,7 +3024,7 @@ function renderMap() {
       // Draw terrain with canvas detail
       drawTerrain(ctx, tile.terrain, cx, cy, TILE, worldX, worldY);
 
-      if(settlementLotAt(worldX,worldY)?.kind==='hall'&&typeof DungeonJourney!=='undefined')DungeonJourney.drawLandmark(ctx,getContinent(worldX,worldY),cx,cy,TILE);
+      // Settlement architecture already carries the hall landmark; avoid stacking another icon.
 
       // Monster indicator
       if (col !== 7 || row !== 7) {
@@ -3040,6 +3040,16 @@ function renderMap() {
     }
   }
 
+  // Names appear near the player and render above all terrain, without tile clipping.
+  const settlement=getVillageAt(px,py);
+  if(settlement)for(const lot of SETTLEMENT_LOTS.filter(l=>l.kind!=='house')){
+    const wx=settlement.cx+lot.x,wy=settlement.cy+lot.y;
+    if(Math.abs(px-wx)+Math.abs(py-wy)>2)continue;
+    const lx=(wx-camX+.5)*TILE,ly=(wy-camY+.8)*TILE,w=TILE*2.5;
+    ctx.fillStyle='#182a27';ctx.fillRect(lx-w/2,ly-TILE*.38,w,TILE*.48);
+    ctx.strokeStyle='#af9870';ctx.strokeRect(lx-w/2,ly-TILE*.38,w,TILE*.48);
+    ctx.fillStyle='#f0ddae';ctx.font=`${Math.max(9,TILE*.32)}px sans-serif`;ctx.textAlign='center';ctx.fillText(lot.name,lx,ly);
+  }
   // Player fixed at center (col=7, row=7)
   ctx.fillStyle = 'rgba(235,192,108,.18)';
   ctx.fillRect(7 * TILE, 7 * TILE, TILE, TILE);
@@ -7332,58 +7342,82 @@ function confirmInherit() {
 
 // 聚落設施有固定門口；目錄提供方位，服務需親自走到該建築。
 const SETTLEMENT_LOTS=[
- {kind:'inn',name:'月燈旅舍',x:-3,y:-3,color:'#7097cf'},
- {kind:'market',name:'旅人市場',x:3,y:-3,color:'#c4a364'},
+ {kind:'inn',name:'月燈旅舍',x:-3,y:-2,color:'#9c8870'},
+ {kind:'market',name:'旅人市場',x:1,y:-3,color:'#bda77f'},
  {kind:'appraiser',name:'星紋鑑定所',x:-3,y:3,color:'#96c9db'},
- {kind:'raid',name:'遠征公會',x:3,y:3,color:'#ba758c'},
- {kind:'hall',name:'紀行會館',x:-5,y:0,color:'#8ab87d'},
- {kind:'casino',name:'幸運會館',x:5,y:0,color:'#b69ada'},
- ...[[-3,-6],[3,-6],[-6,-3],[6,-3],[-6,3],[6,3],[-3,6],[3,6]].map(([x,y])=>({kind:'house',name:'民居',x,y,color:'#8c8980'}))
+ {kind:'raid',name:'遠征公會',x:4,y:5,color:'#a89c86'},
+ {kind:'hall',name:'紀行會館',x:-4,y:0,color:'#96a384'},
+ {kind:'casino',name:'幸運會館',x:4,y:0,color:'#a694a3'},
+ ...[[-5,-5],[4,-5],[-6,2],[6,2],[-4,5],[-2,6],[1,5]].map(([x,y])=>({kind:'house',name:'民居',x,y,color:'#8c8980'}))
 ];
 function revealSettlement(v){for(let yy=-6;yy<=6;yy++)for(let xx=-6;xx<=6;xx++){const key=`${v.cx+xx},${v.cy+yy}`;if(!explored.has(key)){explored.add(key);state.totalExplored=(state.totalExplored||0)+1;}}}
 function settlementLotAt(wx,wy){const v=getVillageAt(wx,wy);if(!v)return null;return SETTLEMENT_LOTS.find(l=>wx===v.cx+l.x&&wy===v.cy+l.y)||null;}
+function settlementRoad(dx,dy){
+ const plaza=Math.abs(dx)<=1&&Math.abs(dy)<=1;
+ return plaza||dx===0||dy===0||SETTLEMENT_LOTS.some(l=>l.kind!=='house'&&dy===l.y&&dx>=Math.min(0,l.x)&&dx<=Math.max(0,l.x));
+}
 function drawSettlementTile(c,wx,wy,x,y,size){
  const v=getVillageAt(wx,wy);if(!v)return false;
- const dx=wx-v.cx,dy=wy-v.cy,road=dx===0||dy===0||Math.abs(dx)===3||Math.abs(dy)===3;
- c.fillStyle=road?'#777768':'#485f50';c.fillRect(x,y,size,size);
- c.strokeStyle=road?'#96917b':'#60735b';c.lineWidth=.6;c.strokeRect(x+1,y+1,size-2,size-2);
- if(Math.abs(dx)===6||Math.abs(dy)===6){c.fillStyle='#b4a77f';c.fillRect(x,y+size*.15,size,size*.12);if(dx===0||dy===0){c.fillStyle='#c2b082';c.fillRect(x+size*.1,y+size*.15,size*.18,size*.7);}}
- const lot=SETTLEMENT_LOTS.find(l=>Math.abs(dx-l.x)<=1&&dy>=l.y-2&&dy<=l.y-1&&l.kind!=='house')||SETTLEMENT_LOTS.find(l=>l.kind==='house'&&dx===l.x&&dy===l.y);
- if(lot?.kind==='house'){c.fillStyle='#c0b18d';c.fillRect(x+size*.15,y+size*.4,size*.7,size*.5);c.fillStyle=lot.color;c.beginPath();c.moveTo(x+size*.05,y+size*.45);c.lineTo(x+size*.5,y+size*.12);c.lineTo(x+size*.95,y+size*.45);c.closePath();c.fill();c.fillStyle='#edc675';c.fillRect(x+size*.25,y+size*.55,size*.15,size*.2);c.fillStyle='#333936';c.fillRect(x+size*.6,y+size*.6,size*.14,size*.3);}
- else if(lot){const left=v.cx+lot.x-1,top=v.cy+lot.y-2;c.save();c.beginPath();c.rect(x,y,size,size);c.clip();const bx=x+(left-wx)*size,by=y+(top-wy)*size;
- drawSettlementBuilding(c,lot,bx,by,size);c.restore();
+ const dx=wx-v.cx,dy=wy-v.cy,road=settlementRoad(dx,dy),plaza=Math.abs(dx)<=1&&Math.abs(dy)<=1;
+ c.save();c.translate(x,y);c.scale(size/32,size/32);
+ const r=(a,b,w,h,col)=>{c.fillStyle=col;c.fillRect(a,b,w,h);},disc=(a,b,z,col)=>{c.fillStyle=col;c.beginPath();c.arc(a,b,z,0,Math.PI*2);c.fill();};
+ const noise=(n)=>{const z=Math.sin((dx+13)*127.1+(dy+17)*311.7+n*43.3)*43758.5453;return z-Math.floor(z);};
+ r(0,0,32,32,'#354c3c');
+ for(let i=0;i<14;i++){const a=noise(i)*31,b=noise(i+21)*31;r(a,b,1+noise(i+42)*3,1,['#3d5540','#425a42','#304636'][i%3]);}
+ if(road){
+ // Small joints within the street, never a square grid across the whole settlement.
+ r(plaza?0:5,0,plaza?32:22,32,'#887d63');
+ if(dy!==0&&dx!==0&&!plaza){r(0,6,32,21,'#887d63');r(0,0,5,6,'#354c3c');r(27,27,5,5,'#354c3c');}
+ if(dy===0&&!plaza){r(0,0,32,5,'#354c3c');r(0,27,32,5,'#354c3c');r(0,5,32,22,'#887d63');}
+ for(let i=0;i<6;i++){const xx=(i%3)*10+noise(i)*2,yy=Math.floor(i/3)*15+noise(i+8)*3; if(plaza||(dx===0&&xx>4&&xx<25)||(dy===0&&yy>5&&yy<26)||(dy!==0&&dx!==0&&yy>5&&yy<26))r(xx,yy,8,1,'#aa9775');}
  }
- const doorway=SETTLEMENT_LOTS.find(l=>l.kind!=='house'&&dx===l.x&&dy===l.y);if(doorway){c.fillStyle=doorway.color;c.fillRect(x+size*.25,y+size*.05,size*.5,size*.12);c.fillStyle='#ece2c4';c.font=`${Math.max(8,size*.3)}px sans-serif`;c.textAlign='center';c.fillText('入口',x+size*.5,y+size*.68);}
- if(dx===0&&dy===0){c.fillStyle='#ad8ad9';c.beginPath();c.arc(x+size/2,y+size/2,size*.24,0,Math.PI*2);c.fill();c.fillStyle='#efe5fa';c.fillRect(x+size*.45,y+size*.2,size*.1,size*.4);}
- if([[1,-2],[-2,1],[2,4]].some(([a,b])=>a===dx&&b===dy)){c.fillStyle='#c99569';c.beginPath();c.arc(x+size*.5,y+size*.36,size*.1,0,Math.PI*2);c.fill();c.fillStyle=dx<0?'#d2a35b':'#77a7ad';c.fillRect(x+size*.37,y+size*.48,size*.26,size*.29);c.fillStyle='#282e2c';c.fillRect(x+size*.37,y+size*.77,size*.09,size*.13);c.fillRect(x+size*.54,y+size*.77,size*.09,size*.13);}
- if(Math.abs(dx)===1&&Math.abs(dy)===5){c.fillStyle='#303835';c.fillRect(x+size*.47,y+size*.35,size*.06,size*.5);c.fillStyle='#e0bb72';c.fillRect(x+size*.35,y+size*.25,size*.3,size*.2);}
- if(dx===-1&&dy===1){c.fillStyle='#6eacb1';c.beginPath();c.arc(x+size/2,y+size/2,size*.3,0,Math.PI*2);c.fill();}
- return true;
+ if((Math.abs(dx)===6||Math.abs(dy)===6)&&dx!==0&&dy!==0){r(0,14,32,3,'#5e5946');for(let i=0;i<4;i++)r(i*9,11,7,3,'#84795e');disc(8,25,8,'#304a35');disc(24,24,7,'#3e5739');}
+ c.restore();
+ const lot=SETTLEMENT_LOTS.find(l=>Math.abs(dx-l.x)<=1&&dy>=l.y-2&&dy<=l.y-1&&l.kind!=='house')||SETTLEMENT_LOTS.find(l=>l.kind==='house'&&dx===l.x&&dy===l.y);
+ if(lot?.kind==='house')drawSettlementHouse(c,x,y,size,dx,dy);
+ else if(lot){c.save();c.beginPath();c.rect(x,y,size,size);c.clip();drawSettlementBuilding(c,lot,x+(v.cx+lot.x-1-wx)*size,y+(v.cy+lot.y-2-wy)*size,size);c.restore();}
+ c.save();c.translate(x,y);c.scale(size/32,size/32);
+ const door=SETTLEMENT_LOTS.find(l=>l.kind!=='house'&&dx===l.x&&dy===l.y);
+ if(door){r(8,0,16,3,'#b3a081');r(10,3,12,2,'#6f6756');
 }
+ if(dx===0&&dy===0){disc(16,16,10,'#625c51');disc(16,16,7,'#8a8474');disc(16,16,4,'#788c9e');r(15,9,2,8,'#c2d3d4');}
+ if(dx===-1&&dy===1){disc(16,21,10,'#292f26');disc(16,19,9,'#a09579');disc(16,18,6,'#456974');disc(14,17,3,'#80a6a5');r(5,25,22,3,'#b2a382');}
+ if(dx===1&&dy===1){r(14,17,4,13,'#79664b');disc(17,14,12,'#263e2d');disc(11,10,9,'#4e6843');disc(23,10,8,'#5d754b');disc(16,4,8,'#6e8052');r(3,28,10,2,'#ad9162');}
+ if([[-1,-2],[2,1],[-2,4]].some(([a,b])=>a===dx&&b===dy)){disc(16,11,3,'#d0a077');r(12,16,8,9,dx<0?'#b49a65':'#75928b');r(12,25,3,5,'#30332b');r(17,25,3,5,'#30332b');}
+ if([[-1,-4],[2,-2],[-2,2],[2,4]].some(([a,b])=>a===dx&&b===dy)){r(15,13,2,16,'#655744');r(11,8,10,9,'#9a835d');r(13,9,6,6,'#ebcc86');}
+ if([[-5,3],[-3,4],[5,-3],[3,2],[2,5]].some(([a,b])=>a===dx&&b===dy)){r(5,21,8,8,'#806347');r(15,23,11,6,'#9e815a');r(5,21,8,1,'#c2a574');disc(25,15,4,'#657b48');r(22,19,6,6,'#a07351');}
+ if(dx===-5&&dy===4){r(2,10,1,15,'#9d8b66');r(29,10,1,15,'#9d8b66');r(3,10,26,1,'#b4a98e');r(7,11,6,9,'#b7b7a2');r(17,11,7,7,'#8eacaa');}
+ c.restore();return true;
+}
+function drawSettlementHouse(c,x,y,size,dx,dy){c.save();c.translate(x,y);c.scale(size/32,size/32);c.fillStyle='#273a2d';c.fillRect(4,24,26,6);c.fillStyle='#b7a27b';c.fillRect(5,13,22,15);c.fillStyle=(dx+dy)%2?'#796954':'#697365';c.beginPath();c.moveTo(2,15);c.lineTo(16,3);c.lineTo(30,15);c.closePath();c.fill();c.fillStyle='#bba889';c.fillRect(23,5,3,8);c.fillStyle='#e8c57d';c.fillRect(8,17,5,5);c.fillStyle='#5c4937';c.fillRect(18,18,6,10);c.fillStyle='#799359';c.fillRect(6,25,7,3);c.restore();}
 function drawSettlementBuilding(c,lot,x,y,size){
  c.save();c.translate(x,y);c.scale(size/32,size/32);
  const rect=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);},line=(pts,col='#dabd82',w=1)=>{c.strokeStyle=col;c.lineWidth=w;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();},poly=(pts,col)=>{c.fillStyle=col;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();},disc=(x,y,r,col)=>{c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();};
- rect(5,24,86,38,'#243237');rect(9,28,78,32,'#556866');rect(5,58,86,5,'#8f856f');
+ rect(5,24,86,38,'#293830');rect(9,28,78,32,'#b4a17d');rect(5,58,86,5,'#8b795c');
  if(lot.kind==='market'){
  rect(5,23,86,8,'#b6a16b');for(let i=0;i<9;i++){rect(5+i*9.5,23,9.5,15,i%2?'#d8c59b':'#ab6448');poly([[5+i*9.5,38],[14.5+i*9.5,38],[10+i*9.5,42]],i%2?'#d8c59b':'#ab6448');}
  rect(9,40,78,12,'#3c3430');rect(11,49,74,5,'#8e6a46');for(let i=0;i<5;i++){disc(19+i*12,46,3,['#bd744c','#c6ab57','#6f9966'][i%3]);}rect(12,54,16,9,'#a17a51');line([[12,54],[28,63],[12,63],[28,54]],'#d0b27d');rect(72,48,11,15,'#ad8d62');
  }else if(lot.kind==='appraiser'){
- disc(48,25,22,'#72a3b7');rect(25,25,46,10,'#72a3b7');line([[48,4],[48,30]],'#b8dfe8',2);line([[31,11],[37,30]],'#b8dfe8');line([[65,11],[59,30]],'#b8dfe8');disc(48,15,6,'#dce7af');disc(48,15,3,'#3a687c');rect(13,35,8,26,'#a9c1b5');rect(75,35,8,26,'#a9c1b5');disc(29,44,8,'#2c3e48');disc(67,44,8,'#2c3e48');line([[23,44],[35,44],[29,38],[29,50]],'#94dce6');line([[61,44],[73,44],[67,38],[67,50]],'#94dce6');
+ disc(48,25,22,'#788e87');rect(25,25,46,10,'#788e87');line([[48,4],[48,30]],'#b7c5ae',2);line([[31,11],[37,30]],'#b7c5ae');line([[65,11],[59,30]],'#b7c5ae');disc(48,15,6,'#dce7af');disc(48,15,3,'#3a687c');rect(13,35,8,26,'#a9c1b5');rect(75,35,8,26,'#a9c1b5');disc(29,44,8,'#2c3e48');disc(67,44,8,'#2c3e48');line([[23,44],[35,44],[29,38],[29,50]],'#94dce6');line([[61,44],[73,44],[67,38],[67,50]],'#94dce6');
  }else if(lot.kind==='raid'){
  for(const tx of [4,71]){rect(tx,10,21,50,'#657176');for(let i=0;i<3;i++)rect(tx+i*8,4,5,9,'#8c9794');rect(tx+8,27,4,11,'#263137');}rect(24,20,48,9,'#92928a');rect(29,32,38,28,'#1c252b');c.strokeStyle='#bfb69b';c.lineWidth=4;c.beginPath();c.arc(48,49,17,Math.PI,0);c.stroke();line([[34,35],[60,58],[60,35],[34,58]],'#bd8b75',2);rect(13,9,2,18,'#d8c7a6');poly([[15,9],[32,12],[15,19]],'#ad6b7d');
  }else if(lot.kind==='casino'){
- poly([[4,27],[18,12],[78,12],[92,27]],'#795c97');line([[13,29],[83,29]],'#d3b983',2);rect(16,30,64,3,'#d5c298');for(let i=0;i<6;i++)disc(15+i*13,36,1.5,'#f5d693');rect(12,42,17,13,'#ab6c8f');rect(67,42,17,13,'#ab6c8f');disc(48,17,9,'#c5ad8d');rect(42,11,12,12,'#272937');for(const [a,b]of [[45,14],[51,14],[48,17],[45,20],[51,20]])disc(a,b,1,'#dcc79e');
+ poly([[4,27],[18,12],[78,12],[92,27]],'#776b75');line([[13,29],[83,29]],'#d3b983',2);rect(16,30,64,3,'#d5c298');for(let i=0;i<6;i++)disc(15+i*13,36,1.5,'#f5d693');rect(12,42,17,13,'#8d7c71');rect(67,42,17,13,'#8d7c71');disc(48,17,9,'#c5ad8d');rect(42,11,12,12,'#272937');for(const [a,b]of [[45,14],[51,14],[48,17],[45,20],[51,20]])disc(a,b,1,'#dcc79e');
  }else if(lot.kind==='inn'){
- poly([[3,24],[48,4],[93,24]],'#617ea5');for(let i=0;i<4;i++)line([[15+i*15,19],[29+i*15,25]],'#9dacc2');rect(72,7,8,16,'#77736b');rect(14,31,16,16,'#223d52');rect(66,31,16,16,'#223d52');for(const wx of [16,68]){rect(wx,33,12,12,'#e6be7d');line([[wx+6,33],[wx+6,45]],'#6e6051');}rect(33,29,30,6,'#c8b591');disc(48,16,6,'#ead397');disc(51,14,5,'#617ea5');rect(15,48,12,4,'#7b9e77');rect(68,48,12,4,'#7b9e77');
+ poly([[3,24],[48,4],[93,24]],'#6b7a79');for(let i=0;i<4;i++)line([[15+i*15,19],[29+i*15,25]],'#9aa49a');rect(72,7,8,16,'#77736b');rect(14,31,16,16,'#223d52');rect(66,31,16,16,'#223d52');for(const wx of [16,68]){rect(wx,33,12,12,'#e6be7d');line([[wx+6,33],[wx+6,45]],'#6e6051');}rect(33,29,30,6,'#c8b591');disc(48,16,6,'#ead397');disc(51,14,5,'#6b7a79');rect(15,48,12,4,'#7b9e77');rect(68,48,12,4,'#7b9e77');
  }else{
- poly([[3,25],[48,7],[93,25]],'#6c926c');line([[8,27],[88,27]],'#c9c19b',2);rect(13,32,10,28,'#a0ab89');rect(73,32,10,28,'#a0ab89');rect(29,32,38,12,'#364338');poly([[40,11],[48,14],[56,11],[56,22],[48,25],[40,22]],'#d2c8a1');line([[48,14],[48,25]],'#6b7051');rect(27,48,9,12,'#a38760');rect(60,48,9,12,'#a38760');
+ poly([[3,25],[48,7],[93,25]],'#75806b');line([[8,27],[88,27]],'#c9c19b',2);rect(13,32,10,28,'#a0ab89');rect(73,32,10,28,'#a0ab89');rect(29,32,38,12,'#364338');poly([[40,11],[48,14],[56,11],[56,22],[48,25],[40,22]],'#d2c8a1');line([[48,14],[48,25]],'#6b7051');rect(27,48,9,12,'#a38760');rect(60,48,9,12,'#a38760');
  }
  if(lot.kind!=='raid'&&lot.kind!=='market'){rect(39,42,18,20,'#253235');rect(41,45,14,17,'#735b49');line([[48,45],[48,62]],'#c0a578');disc(51,55,1,'#e2c787');}
- rect(16,26,64,7,'#273536');c.fillStyle='#f4e4bd';c.font='9px sans-serif';c.textAlign='center';c.fillText(lot.name,48,32,64);
+ // Eaves, tile courses and timber connect every facade to the same craft tradition.
+ line([[6,27],[90,27]],'#d1bd92',2);for(let i=0;i<5;i++)line([[18+i*13,18],[25+i*13,24]],'#a9a28a',.7);
+ for(const a of [10,33,62,85])rect(a,32,2,27,'#75664d');rect(6,59,84,3,'#c5b38e');
+ rect(25,34,9,10,'#594b38');rect(26,35,7,8,'#c4ab79');
+ c.fillStyle='#564733';c.font='7px serif';c.textAlign='center';c.fillText({inn:'☾',market:'◇',appraiser:'✧',raid:'⚔',casino:'♠',hall:'▤'}[lot.kind],29.5,42);
  c.restore();
 }
 function settlementDialog(title,html){let d=document.getElementById('settlement-service');if(!d){d=document.createElement('dialog');d.id='settlement-service';document.body.appendChild(d);}d.innerHTML=`<button class="job-skill-btn" onclick="document.getElementById('settlement-service').close()">關閉</button><h2>${title}</h2>${html}`;if(!d.open)d.showModal();return d;}
-function openSettlementDirectory(v){const here=v||getVillageAt(px,py);if(!here){toast('請先進入聚落');return;}settlementDialog(here.name,`<p>13 × 13 格聚落・中央傳送廣場</p><p>沿石板道路前往各建築；踩到門口即可使用服務。</p>`+SETTLEMENT_LOTS.filter(l=>l.kind!=='house').map(l=>`<p><b>${l.name}</b>：${l.x<0?'西':'東'} ${Math.abs(l.x)} 格、${l.y<0?'北':'南'} ${Math.abs(l.y)} 格</p>`).join(''));}
+function openSettlementDirectory(v){const here=v||getVillageAt(px,py);if(!here){toast('請先進入聚落');return;}settlementDialog(here.name,`<p>月井廣場・旅人街・工匠巷</p><p>沿石板小路前往建築，靠近時會顯示名稱；走到門前即可使用服務。</p>`+SETTLEMENT_LOTS.filter(l=>l.kind!=='house').map(l=>`<p><b>${l.name}</b>：${l.x<0?'西':'東'} ${Math.abs(l.x)} 格、${l.y<0?'北':'南'} ${Math.abs(l.y)} 格</p>`).join(''));}
 function openSettlementService(lot,v){if(!lot)return;switch(lot.kind){
  case 'inn':settlementDialog(lot.name,`<p>住宿回復全部生命：500 金</p><p>目前 ${state.stats.hp}/${state.stats.maxHp} HP · 持有 ${state.gold} 金</p><button class="job-skill-btn" onclick="stayAtSettlementInn()">確認住宿</button>`);break;
  case 'appraiser':openAppraisal();break;
