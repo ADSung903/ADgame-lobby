@@ -25,5 +25,5 @@ export const FISH_SPECIES = [
 {id:'oarfish',name:'皇帶魚',depth:'abyss',rarity:5,points:500},
 {id:'angler',name:'鮟鱇魚',depth:'abyss',rarity:5,points:400},
 {id:'viperfish',name:'蝰魚',depth:'abyss',rarity:5,points:350}
-];
+].map(f=>({...f,sprite:`./assets/fish/${f.id}/swim.svg`}));
 export const DEPTHS={shallow:{label:'淺層',range:'0–50m'},mid:{label:'中層',range:'50–200m'},deep:{label:'深層',range:'200–500m'},abyss:{label:'深淵',range:'500m+'}};
