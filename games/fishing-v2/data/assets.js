@@ -1,0 +1,30 @@
+export const SCENE_ASSETS={far:'./assets/scene/scene_far.svg',mid:'./assets/scene/scene_mid.svg',front:'./assets/scene/scene_front.svg'};
+export const BOAT_ASSET='./assets/boat/boat.svg';
+export const FISH_ASSETS={
+  sardine:'./assets/fish/sardine/swim.svg',
+  carp:'./assets/fish/carp/swim.svg',
+  clownfish:'./assets/fish/clownfish/swim.svg',
+  mackerel:'./assets/fish/mackerel/swim.svg',
+  flyingfish:'./assets/fish/flyingfish/swim.svg',
+  dolphin:'./assets/fish/dolphin/swim.svg',
+  seal:'./assets/fish/seal/swim.svg',
+  bass:'./assets/fish/bass/swim.svg',
+  squid:'./assets/fish/squid/swim.svg',
+  shrimp:'./assets/fish/shrimp/swim.svg',
+  jellyfish:'./assets/fish/jellyfish/swim.svg',
+  seahorse:'./assets/fish/seahorse/swim.svg',
+  lionfish:'./assets/fish/lionfish/swim.svg',
+  shark:'./assets/fish/shark/swim.svg',
+  turtle:'./assets/fish/turtle/swim.svg',
+  blowfish:'./assets/fish/blowfish/swim.svg',
+  swordfish:'./assets/fish/swordfish/swim.svg',
+  octopus:'./assets/fish/octopus/swim.svg',
+  crab:'./assets/fish/crab/swim.svg',
+  lobster:'./assets/fish/lobster/swim.svg',
+  sunfish:'./assets/fish/sunfish/swim.svg',
+  whale:'./assets/fish/whale/swim.svg',
+  manta:'./assets/fish/manta/swim.svg',
+  oarfish:'./assets/fish/oarfish/swim.svg',
+  angler:'./assets/fish/angler/swim.svg',
+  viperfish:'./assets/fish/viperfish/swim.svg'
+};
