@@ -1,16 +1,3 @@
-// Runs the actual game scripts and raster assets; DOM/layout are mocked.
-const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert/strict');
-const napi=require('@napi-rs/canvas');const root=path.resolve(__dirname,'..'),elements=new Map(),timers=[],storage=new Map();
-function el(id='node'){if(elements.has(id))return elements.get(id);const children=[],handlers={};const classes=new Set();const e={id,style:{},offsetWidth:390,offsetHeight:844,textContent:'',children,handlers,appendChild(x){children.push(x)},replaceChildren(){children.length=0},setAttribute(){},removeEventListener(n){delete handlers[n]},addEventListener(n,f){handlers[n]=f},classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},getBoundingClientRect:()=>({left:0,top:0,width:390,height:844}),querySelector:s=>el(id+s),querySelectorAll:s=>children.filter(e=>s==='button'),remove(){},showModal(){this.open=true},close(){this.open=false}};
-if(id==='gc'||id.startsWith('canvas')){const c=napi.createCanvas(390,844);e.getContext=()=>c.getContext('2d');e.toBuffer=()=>c.toBuffer('image/png');for(const k of ['width','height'])Object.defineProperty(e,k,{get:()=>c[k],set:v=>c[k]=v});}elements.set(id,e);return e;}
-let next=0,clock=1000;class AssetImage extends napi.Image{set src(url){super.src=fs.readFileSync(path.join(root,'games',url));}get src(){return super.src;}}
-const context={console,Math,Date,performance:{now:()=>clock+=16.67},Image:AssetImage,setTimeout:f=>(timers.push(f),1),requestAnimationFrame:()=>1,cancelAnimationFrame(){},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},document:{getElementById:el,querySelector:el,querySelectorAll:()=>[el('screen-title'),el('screen-game'),el('screen-result')],createElement:t=>el(t+(next++)),addEventListener(){}},innerWidth:390,innerHeight:844,devicePixelRatio:2,getComputedStyle:()=>({getPropertyValue:()=>0}),addEventListener(){},location:{},confirm:()=>true};context.window=context;vm.createContext(context);
-const html=fs.readFileSync(path.join(root,'games/fishing_rod_core.html'),'utf8');vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);vm.runInContext(fs.readFileSync(path.join(root,'games/fishing-art-pass-1.js'),'utf8'),context);
-// NAPI image decoding completes asynchronously.
-setTimeout(()=>{vm.runInContext('initGame();draw()',context);assert.equal(vm.runInContext('castCount',context),0);assert.equal(vm.runInContext('SEA_TOP',context),844*.23);el('cast-btn').handlers.click();assert.equal(vm.runInContext('castCount',context),1);
-vm.runInContext('for(let i=0;i<60;i++)update()',context);assert.equal(vm.runInContext('casting',context),false);
-vm.runInContext('hookX=fish[0].x;hookY=fish[0].y;const hit=checkHit();if(hit)doCatch(hit)',context);assert(vm.runInContext('score>0&&catches.length>0',context));assert(JSON.parse(storage.get('fishing_ocean_collection')).length>0);
-vm.runInContext('castCount=19;startCast(W/2,H*.8);for(let i=0;i<60;i++)update()',context);timers.splice(0).forEach(f=>f());assert(el('screen-result').classList.contains('active'));vm.runInContext('initGame()',context);assert.equal(vm.runInContext('score',context),0);assert.equal(vm.runInContext('castCount',context),0);
-vm.runInContext("fish=FISH_TYPES.map((data,i)=>({...spawnOne([data]),x:W*(.2+(i%3)*.3),y:SEA_TOP+(H-SEA_TOP)*(.07+Math.floor(i/3)*.1),opacity:1}));draw()",context);
-fs.writeFileSync(path.join(root,'docs/fishing-ocean-canvas.png'),el('gc').toBuffer());
-console.log('PASS: real assets, start, button cast, collision, collection persistence, twentieth cast, result, restart, canvas render (DOM mocked).');},100);
+// Compatibility entry point: the ocean game is now Fishing Tales.
+// See docs/fishing-story.md for the real-browser test environment.
+require('./fishing-story.cjs');

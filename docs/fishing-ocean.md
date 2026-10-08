@@ -1,3 +1,5 @@
+> Historical art-pass notes. The current game and test instructions are in [fishing-story.md](fishing-story.md).
+
 # 深海釣魚：海洋插畫版
 
 釣魚入口仍為 `games/fishing_rod.html`；`fishing.html` 是不同的配對遊戲，保持原有玩法。
