@@ -1,6 +1,19 @@
-/* Fishing art pass 1: additive, mobile-safe UI refinements. */
-#screen-game .hud{padding-left:4.9rem;background:linear-gradient(180deg,rgba(0,7,18,.84) 0%,rgba(0,8,22,.42) 62%,transparent 100%)}
-#screen-game::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:12;background:radial-gradient(ellipse at 50% 34%,transparent 45%,rgba(0,5,18,.10) 76%,rgba(0,3,12,.24) 100%)}
-.game-exit{position:absolute;left:.55rem;top:max(.45rem,env(safe-area-inset-top,0px));z-index:40;border:1px solid rgba(110,190,220,.32);border-radius:999px;padding:6px 10px;background:rgba(2,18,31,.68);color:#b9dce8;font-size:12px;font-weight:600;line-height:1;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
-.game-exit:active{transform:scale(.96);background:rgba(7,42,60,.88)}
-@media (max-width:360px){#screen-game .hud{padding-left:4.45rem}.game-exit{font-size:11px;padding:6px 8px}}
+/* Illustrated ocean edition */
+.app{max-width:1100px;font-family:system-ui,-apple-system,'Noto Sans TC',sans-serif}
+#screen-title,#screen-result{background:linear-gradient(180deg,rgba(1,16,34,.1),rgba(1,16,34,.65)),url('./assets/fishing/ocean.webp') center/cover}
+.title-card,.result-card{background:rgba(2,22,39,.82);border:1px solid #73d7ef66;box-shadow:0 20px 70px #00152288;backdrop-filter:blur(16px)}
+.title-card h1{font-size:30px;letter-spacing:5px;color:#e5fcff}.title-card p{color:#b7dde8}.best-lbl{color:#b7dae8}
+#screen-game .hud{top:calc(env(safe-area-inset-top,0px) + 12px);left:88px;right:94px;padding:7px 10px;align-items:center;border:1px solid #7ad8f355;border-radius:20px;background:#04243bbd;backdrop-filter:blur(10px)}
+.cast-info{font-size:12px;color:#e0faff}.weather-tag{padding:0;border:0;background:none;font-size:11px;color:#b6edf5}.score-info{font-size:15px;text-shadow:none}
+.cast-area{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);right:16px;padding:0}
+#cast-btn{height:48px;min-width:140px;border-radius:16px;background:linear-gradient(135deg,#00b9dd,#08669f);border:1px solid #8ef5ff88;box-shadow:0 6px 24px #001b4288;font-size:14px}
+#cast-btn:disabled{color:#9ad2df;background:#113d57d9}
+.game-exit{position:absolute;left:10px;top:calc(env(safe-area-inset-top,0px) + 17px);z-index:40;border:1px solid #7ad8f355;border-radius:20px;padding:9px 12px;background:#04243bbd;color:#d8f8ff;font-size:12px;backdrop-filter:blur(10px);cursor:pointer}
+.cast-hint{bottom:calc(env(safe-area-inset-bottom,0px) + 80px);font-size:12px;color:#d7f9ff;background:#04243bab;padding:8px 14px;border:1px solid #7ad8f333;border-radius:20px}
+.w-alert{top:calc(env(safe-area-inset-top,0px) + 76px);color:#d6f5ff}
+.ocean-tools{position:absolute;right:10px;top:calc(env(safe-area-inset-top,0px) + 16px);z-index:40}.ocean-tools button{background:#04243bbd;color:#d8f8ff;border:1px solid #7ad8f355;border-radius:18px;padding:10px;cursor:pointer}
+.depth-nav{position:absolute;left:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);display:flex;gap:5px;z-index:21}.depth-nav button{border:1px solid #7ad8f344;border-radius:12px;padding:10px 8px;color:#c4e5ec;background:#05273dce;font-size:11px;cursor:pointer}.depth-nav button.active{background:#087e9d;border-color:#8df5ff;color:white}
+.ocean-log{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 122px);z-index:20;pointer-events:none;color:#f0de98;font-size:12px;text-shadow:0 2px 5px #00172e}
+.ocean-dialog{color:#dff9ff;background:#032135f5;border:1px solid #6dcced77;border-radius:20px;margin:auto;padding:20px;width:min(92vw,700px);max-height:82dvh;box-shadow:0 20px 80px #0009}.ocean-dialog::backdrop{background:#001020aa;backdrop-filter:blur(5px)}.ocean-dialog header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.ocean-dialog button{border:1px solid #70bddf55;border-radius:10px;background:#0a4564;color:white;padding:8px 12px;cursor:pointer}.ocean-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px}.ocean-entry{background:#082e44;border-radius:12px;padding:8px;text-align:center;font-size:12px}.ocean-entry canvas{width:100%;height:70px}.ocean-entry small{display:block;color:#81b7ca;margin-top:4px}.ocean-entry.unseen{opacity:.55}.ocean-entry.seen{border:1px solid #e6c47566}
+@media(max-width:380px){.hud{left:75px!important;right:80px!important}.depth-nav{gap:3px;left:8px}.depth-nav button{padding:10px 5px}#cast-btn{min-width:122px;font-size:12px}.cast-area{right:8px}.score-info{font-size:13px}}
+@media(min-width:700px){.depth-nav button{padding:12px 22px;font-size:13px}.cast-area{right:24px}.hud{left:100px!important;right:110px!important}.cast-hint{bottom:28px}.ocean-log{bottom:90px}}

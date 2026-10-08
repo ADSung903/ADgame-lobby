@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>🎣 深海釣魚</title>
 <style>
@@ -62,7 +62,7 @@ canvas{display:block;width:100%;height:100%}
   /* iOS safe-area：避免被工具列遮住 */
   :root { --sat: env(safe-area-inset-top,0px); --sab: env(safe-area-inset-bottom,0px); }
   @supports (height: 100dvh){ body,.app{ height:100dvh; } }
-</style></head><body>
+</style><link rel="stylesheet" href="./fishing-art-pass-1.css?v=ocean-20261007"></head><body>
 <div class="app">
 
 <!-- TITLE -->
@@ -140,8 +140,8 @@ const FISH_TYPES=[
 ];
 
 const WEATHERS=[
-  {id:'sunny', label:'☀️ 晴朗',  skyTop:'#001020',skyBot:'#002848',seaTop:'#003a6a',seaBot:'#001a3a',speedMult:1.0,visibility:1.0,  rainAmt:0,  fog:false,alert:'🌙 夜空晴朗，海面平靜，魚群正常活動！'},
-  {id:'cloudy',label:'🌥️ 多雲',  skyTop:'#080e18',skyBot:'#121c28',seaTop:'#002858',seaBot:'#001230',speedMult:0.82,visibility:0.75,rainAmt:0,  fog:false,alert:'☁️ 雲層遮月，魚兒游速變慢，更容易瞄準！'},
+  {id:'sunny', label:'☀️ 晴朗',  skyTop:'#001020',skyBot:'#002848',seaTop:'#003a6a',seaBot:'#001a3a',speedMult:1.0,visibility:1.0,  rainAmt:0,  fog:false,alert:'☀️ 陽光穿透海面，魚群正常活動！'},
+  {id:'cloudy',label:'🌥️ 多雲',  skyTop:'#080e18',skyBot:'#121c28',seaTop:'#002858',seaBot:'#001230',speedMult:0.82,visibility:0.75,rainAmt:0,  fog:false,alert:'☁️ 雲層遮住陽光，魚兒游速變慢，更容易瞄準！'},
   {id:'rainy', label:'🌧️ 下雨',  skyTop:'#040810',skyBot:'#080e18',seaTop:'#001e3a',seaBot:'#000c1e',speedMult:0.68,visibility:0.52,rainAmt:50, fog:false,alert:'🌧️ 雨點打在海面！魚兒潛入深處！'},
   {id:'storm', label:'⛈️ 雷雨',  skyTop:'#020408',skyBot:'#040810',seaTop:'#000e1e',seaBot:'#000508',speedMult:1.85,visibility:0.28,rainAmt:90, fog:false,alert:'⛈️ 雷雨來襲！\n皇帶魚和燈籠魚可能出沒！'},
   {id:'foggy', label:'🌫️ 大霧',  skyTop:'#101820',skyBot:'#182030',seaTop:'#001e3a',seaBot:'#000e20',speedMult:0.9, visibility:0.30,rainAmt:0,  fog:true, alert:'🌫️ 大霧瀰漫！\n燈籠魚最愛霧天，注意深層！'},
@@ -150,13 +150,15 @@ const WEATHERS=[
 
 // ── 狀態 ─────────────────────────────────────────────────────
 let W=0,H=0,SEA_TOP=0;
-const BOAT_Y_RATIO=0.34;
-const SEA_RATIO=0.38;
+const BOAT_Y_RATIO=0.21;
+const SEA_RATIO=0.23;
 const BOUNDARY_PAD=20;
 const WEATHER_INTERVAL=45000;
 const MAX_CASTS=20;
 
 let fish=[],castCount=0,score=0,catches=[];
+let casting=false,lineActive=false;
+let frameStep=1;
 let curWeather=WEATHERS[0];
 let lastWeatherTime=0,sinceLastWeather=0,nextCheck=3;
 let linePhase='idle'; // 'cast'=去程, 'reel'=收竿回程, 'idle'=停止
@@ -167,7 +169,7 @@ let clickHandler=null,lastCaughtCheck=0;
 
 const LS='fishing_rod_best2';
 function loadBest(){try{return parseInt(localStorage.getItem(LS))||0;}catch{return 0;}}
-function saveBest(s){localStorage.setItem(LS,String(s));}
+function saveBest(s){try{localStorage.setItem(LS,String(s));}catch(e){}}
 maxScore=loadBest();
 
 // ── DOM ──────────────────────────────────────────────────────
@@ -185,19 +187,23 @@ function resize(){
   const app=document.querySelector('.app');
   W=app.offsetWidth||window.innerWidth;
   // visualViewport.height = 真實可視高度（扣掉瀏覽器工具列和鍵盤）
+  const oldSeaH=H-SEA_TOP;
+  const relativeDepths=fish.map(f=>oldSeaH>0?(f.y-SEA_TOP)/oldSeaH:0);
   const vvh = window.visualViewport ? window.visualViewport.height : 0;
   // safe-area-inset-bottom（iPhone Home 條）
   const sab = parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)')||'0') || 0;
   H = vvh || (app.offsetHeight||window.innerHeight);
   // 設定 canvas 實際高度
-  cv.width=W; cv.height=H;
+  const pixelRatio=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(W*pixelRatio); cv.height=Math.round(H*pixelRatio);ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
   // 也讓 app 高度同步
   app.style.height = H+'px';
   SEA_TOP=H*SEA_RATIO;
+  fish.forEach((f,i)=>{f.y=SEA_TOP+relativeDepths[i]*(H-SEA_TOP);});
 }
-window.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+window.addEventListener('resize',()=>{resize();});
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',()=>{resize();if(fish.length)repositionFish();});
+  window.visualViewport.addEventListener('resize',()=>{resize();});
 }
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -375,13 +381,13 @@ function update(){
     setWeather(opts[Math.floor(Math.random()*opts.length)]);
     lastWeatherTime=Date.now();sinceLastWeather=0;nextCheck=3;
   }
-  waveOffset+=0.4;
+  waveOffset+=0.4*frameStep;
   // fish move
   const pool=getPool();
   fish.forEach(f=>{
     if(f.caught)return;
     f.x+=f.spd*f.dir;
-    f.y+=Math.sin(Date.now()/1800+f.driftPhase)*0.25;
+    f.y+=Math.sin(Date.now()/1800+f.driftPhase)*0.25*frameStep;
     if(f.x>W+60){f.x=-f.data.sz;f.dir=1;}
     if(f.x<-60){f.x=W+f.data.sz;f.dir=-1;}
     const seaH=H-SEA_TOP;
@@ -393,7 +399,7 @@ function update(){
   if(lineActive&&casting){
     if(linePhase==='cast'){
       // 去程：往目標點
-      lineProgress=Math.min(1,lineProgress+0.045);
+      lineProgress=Math.min(1,lineProgress+0.045*frameStep);
       hookX=lineX+(lineTargetX-lineX)*lineProgress;
       hookY=lineY+(lineTargetY-lineY)*lineProgress;
       // 偵測碰魚
@@ -415,7 +421,7 @@ function update(){
       }
     } else if(linePhase==='reel'){
       // 收竿回程：往船桿縮回（比去程快一點）
-      lineProgress=Math.min(1,lineProgress+0.065);
+      lineProgress=Math.min(1,lineProgress+0.065*frameStep);
       hookX=lineX+(lineTargetX-lineX)*lineProgress;
       hookY=lineY+(lineTargetY-lineY)*lineProgress;
       // 回程也偵測碰魚
@@ -432,7 +438,7 @@ function update(){
     }
   }
   // rain
-  rainDrops.forEach(d=>{d.y+=d.spd;if(d.y>H){d.y=-20;d.x=Math.random()*W;}});
+  rainDrops.forEach(d=>{d.y+=d.spd*frameStep;if(d.y>H){d.y=-20;d.x=Math.random()*W;}});
 }
 
 function checkHit(){
@@ -1167,4 +1173,4 @@ function showResult(){
 <script>
   document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
-</body></html>
+<script src="./fishing-art-pass-1.js"></script><script src="./fishing-exit.js"></script></body></html>
