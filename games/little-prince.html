@@ -288,6 +288,12 @@ body{font-family:Georgia,'Noto Serif TC',serif}button{font:inherit}button:focus-
 @media(max-width:540px){.explore-head{padding:16px 18px;align-items:flex-start}.explore-brand{font-size:14px}.explore-brand small{font-size:8px;letter-spacing:2px}.explore-head nav{gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:170px}.quiet-btn{font-size:11px;padding:9px 11px}.explore-copy{width:calc(100% - 36px);margin-top:8px}.explore-copy p{font-size:12px}.world-stage svg{height:300px;width:180%;max-width:none;margin-left:-40%}.world-hotspots{gap:8px}.world-hotspot{font-size:12px;padding:11px 13px}.explore-foot{width:calc(100% - 36px);gap:12px}.explore-start{width:100%}.world-quest{font-size:12px}.world-caption{width:calc(100% - 36px)}}
 @media(prefers-reduced-motion:reduce){.world-prince,.world-sky,.scarf-tail{transition:none!important;animation:none!important}}
 
+
+/* The puzzle entrance remains reachable without completing optional exploration. */
+#screenExplore{padding-bottom:150px}
+#screenExplore .explore-foot{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:5;margin:0;width:min(calc(100% - 24px),1080px);padding:14px 18px calc(14px + env(safe-area-inset-bottom));background:#122338f5;border-top:1px solid #e8d4a533;border-radius:22px 22px 0 0;box-shadow:0 -12px 30px #08132566}
+#screenExplore .world-quest{flex:1;min-width:200px}
+@media(max-width:540px){#screenExplore .explore-foot{gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}#screenExplore .world-quest{font-size:11px;line-height:1.5}#screenExplore .world-quest strong{font-size:13px}#screenExplore .explore-start{padding:13px 20px}}
 </style>
 </head>
 <body>
@@ -1625,8 +1631,8 @@ function renderWorld(){
  document.getElementById('worldObserve').innerHTML=(rec.observed?'✓ ':'')+t.object+'<small>走向左邊的線索</small>';
  document.getElementById('worldMeet').innerHTML=(rec.complete?'✓ ':'')+t.action+'<small>走向右邊的相遇</small>';
  document.getElementById('worldObserve').classList.toggle('done',rec.observed);document.getElementById('worldMeet').classList.toggle('done',rec.complete);
- document.getElementById('worldQuest').innerHTML='<strong>'+ (rec.complete?'相遇完成 · 星路已經亮起':'這一站的小事')+'</strong>'+(!rec.observed?'先探索線索，再選擇如何回應。':!rec.complete?'已找到線索 · '+t.action+'。':'你留下了自己的選擇，現在可以收集啟程的星光。');
- const btn=document.getElementById('worldChallenge');btn.disabled=!rec.complete&&journey.mode==='journey';btn.textContent=journey.mode==='classic'?'開始經典限時挑戰':rec.complete?'點亮星路 →':'完成相遇後，點亮星路';
+ document.getElementById('worldQuest').innerHTML='<strong>'+ (rec.complete?'相遇完成 · 星路已經亮起':'這一站的小事')+'</strong>'+(!rec.observed?'可以先探索線索，也可以直接進入消除關卡。':!rec.complete?'已找到線索 · '+t.action+'，或直接進入消除關卡。':'你留下了自己的選擇，現在可以收集啟程的星光。');
+ const btn=document.getElementById('worldChallenge');btn.disabled=false;btn.textContent=journey.mode==='classic'?'進入經典消除關卡 →':'進入消除關卡 →';
  document.getElementById('worldMode').textContent=journey.mode==='classic'?'經典模式':'旅程模式';
  document.getElementById('worldSvg').onclick=e=>{if(world.dialog)return;const rect=e.currentTarget.getBoundingClientRect();moveWorld(Math.max(230,Math.min(770,(e.clientX-rect.left)/rect.width*1000)));};
  saveJourney();
@@ -1680,9 +1686,9 @@ function showDesertPuzzle(){
  else{rec.route=0;saveJourney();showDesertPuzzle();worldFeedback('方向又繞回了起點。先沙丘，再星辰，最後風聲。');}
  }})));
 }
-function completeWorld(note){const rec=worldRecord();rec.complete=true;rec.note=note;saveJourney();AudioM.play('rainbow');showWorldText('相遇，留下了一點改變',note,[{text:'回到星球，點亮星路',action:()=>{closeWorldDialog();renderWorld();}}]);}
+function completeWorld(note){const rec=worldRecord();rec.complete=true;rec.note=note;saveJourney();AudioM.play('rainbow');showWorldText('相遇，留下了一點改變',note,[{text:'進入消除關卡 →',action:worldChallenge},{text:'繼續探索星球',action:()=>{closeWorldDialog();renderWorld();}}]);}
 function closeWorldDialog(){world.dialog=false;const dialog=document.getElementById('worldDialog');if(dialog)dialog.classList.remove('show');}
-function worldChallenge(){const rec=worldRecord();if(journey.mode==='journey'&&!rec.complete)return;world.walkToken++;world.walking=false;closeWorldDialog();AudioM.play('button');worldBase.showScreen('screenGame');startLevel(world.level);}
+function worldChallenge(){world.walkToken++;world.walking=false;closeWorldDialog();AudioM.play('button');worldBase.showScreen('screenGame');startLevel(world.level);}
 function showAtlas(){closeWorldDialog();worldBase.renderMap();worldBase.showScreen('screenMap');}
 function toggleWorldMode(){journey.mode=journey.mode==='journey'?'classic':'journey';saveJourney();renderWorld();}
 launchJourney=function(lvl){enterWorld(lvl);};
