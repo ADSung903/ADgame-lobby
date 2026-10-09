@@ -30,9 +30,9 @@ run('document.hidden=true');for(const f of intervals.values())f();assert.equal(r
 run("localStorage.setItem(SAVE_KEY,JSON.stringify({best:9999,coins:88,tools:{hammer:4,shuffle:3,time:2},unlocked:19,starsMap:{1:3},badgeMap:{1:'rose'}}));loadSave();");
 assert.equal(run('state.best'),9999);assert.equal(run('state.unlocked'),19);assert.equal(run('state.badgeMap[1]'),'rose');assert.equal(run('state.tools.hammer'),4);
 run("toggleWorldMode();enterWorld(1);worldRecord().complete=true;worldChallenge();exitToMap()");assert.equal(run('journeyDone'),null);assert.equal(run('storyOverlayActive'),false);assert.equal(intervals.size,0);
-// Exploration starts as the default screen and enforces an observe -> respond -> puzzle flow.
+// Exploration is optional: the puzzle entrance must work before meeting the fox or finding clues.
 run('state.unlocked=70;enterWorld(4)');assert.equal(get('screenExplore').classList.contains('show'),true);assert.equal(run('biomeFor(world.level)'),'home');
-run('worldChallenge()');assert.equal(get('screenGame').classList.contains('show'),false);
+run('worldChallenge()');assert.equal(get('screenGame').classList.contains('show'),true);run('journeyDone();exitToMap();enterWorld(4)');
 run("worldInteract('meet')");flush();assert.match(get('worldDialogProse').textContent,/線索/);
 run("closeWorldDialog();worldInteract('observe')");flush();get('worldDialogOptions').children.at(-1).click();assert.equal(run('worldRecord().observed'),true);
 run("worldInteract('meet')");flush();get('worldDialogOptions').children.at(-2).click();assert.equal(run('worldRecord().complete'),false);get('worldDialogOptions').children.at(-1).click();assert.equal(run('worldRecord().complete'),true);
@@ -41,12 +41,13 @@ run('worldRecord().lamps=[true,true,true];showLampPuzzle()');get('worldDialogOpt
 run('worldRecord().lamps=[true,false,true];showLampPuzzle()');get('worldDialogOptions').children.at(-1).click();assert.equal(run('worldRecord().complete'),true);
 run('closeWorldDialog();enterWorld(46);worldRecord().observed=true;showFoxPuzzle()');
 get('worldDialogOptions').children.at(-2).click();assert.equal(run('worldRecord().trust'),1);get('worldDialogOptions').children.at(-1).click();assert.equal(run('worldRecord().trust'),0);
-for(let i=0;i<3;i++)get('worldDialogOptions').children.at(-2).click();assert.equal(run('worldRecord().complete'),true);
+for(let i=0;i<3;i++)get('worldDialogOptions').children.at(-2).click();assert.equal(run('worldRecord().complete'),true);get('worldDialogOptions').children.at(-2).click();assert.equal(get('screenGame').classList.contains('show'),true);run('journeyDone();exitToMap()');
 run('closeWorldDialog();enterWorld(61);worldRecord().observed=true;showDesertPuzzle()');get('worldDialogOptions').children.at(-2).click();assert.equal(run('worldRecord().route'),0);
 for(let i=0;i<3;i++){run('showDesertPuzzle()');get('worldDialogOptions').children.at(-3+i).click();}assert.equal(run('worldRecord().complete'),true);
 run('closeWorldDialog();worldChallenge()');assert.equal(run('storyOverlayActive'),true);run('journeyDone();state.score=state.target;journeyRun.collected=6;checkEndConditions();nextLevel()');assert.equal(run('world.level'),62);assert.equal(get('screenExplore').classList.contains('show'),true);
 run('enterWorld(4);moveWorld(700,()=>{world.dialog=true});enterWorld(46)');flush();assert.equal(run('world.dialog'),false);
 assert.equal(JSON.parse(storage.get('littleprince_journey_v2')).exploration['61'].complete,true);
+run('enterWorld(47);worldRecord().trust=2;worldRecord().complete=false;renderWorld()');assert.equal(get('worldChallenge').disabled,false);run('worldChallenge()');assert.equal(get('screenGame').classList.contains('show'),true);run('if(journeyDone)journeyDone();exitToMap()');
 // Every retained story/audio path used by this page is validated separately against the remote tree.
 assert.ok(html.includes('littleprince_save_v1'));assert.ok(html.includes("game:'little-prince'"));assert.ok(html.includes('prefers-reduced-motion'));
-console.log('PASS: story advance, rituals, move/tool accounting, collection, success/failure, duplicate completion, classic timer, background pause, v1 save compatibility story cancellation, four exploration puzzles, choice penalties, gating, saved outcomes and scene transitions.');
+console.log('PASS: story advance, rituals, move/tool accounting, collection, success/failure, duplicate completion, classic timer, background pause, v1 save compatibility story cancellation, four exploration puzzles, choice penalties, ungated puzzle access, direct fox completion entry, saved outcomes and scene transitions.');
