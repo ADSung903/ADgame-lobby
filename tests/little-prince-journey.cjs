@@ -19,7 +19,7 @@ run("useTool('time')");assert.equal(run('journeyRun.moves'),29);assert.equal(run
 run('onTileClick(0,ROWS-1)');flush();assert.equal(run('journeyRun.moves'),28);assert.ok(run('journeyRun.collected')>=6);
 run('state.score=state.target;checkEndConditions()');assert.equal(get('modalWin').classList.contains('show'),true);assert.equal(run('state.unlocked'),2);assert.equal(run('journey.memories.includes(1)'),true);
 const coins=run('state.coins');run('checkEndConditions()');assert.equal(run('state.coins'),coins);
-run('winToMap();worldRecord().observed=true;worldRecord().complete=true;worldChallenge()');assert.equal(run('state.tools.time'),1);
+run('winToMap();enterWorld(2);worldRecord().observed=true;worldRecord().complete=true;worldChallenge()');assert.equal(run('state.tools.time'),1);
 run("state.cols=Array.from({length:9},(_,c)=>Array.from({length:9},(_,r)=>({type:'normal',animal:ANIMALS[(c+r)%6]})));state.tileEls=null;renderBoard();");
 const moves=run('journeyRun.moves');run('onTileClick(0,0)');assert.equal(run('journeyRun.moves'),moves);
 run("state.score=state.target;journeyRun.collected=5;state.cols=[Array(9).fill(null)];state.cols[0][8]={type:'normal',animal:journeyRun.animal};state.activeTool='hammer';state.tileEls=null;renderBoard();onTileClick(0,8);");
@@ -48,6 +48,10 @@ run('closeWorldDialog();worldChallenge()');assert.equal(run('storyOverlayActive'
 run('enterWorld(4);moveWorld(700,()=>{world.dialog=true});enterWorld(46)');flush();assert.equal(run('world.dialog'),false);
 assert.equal(JSON.parse(storage.get('littleprince_journey_v2')).exploration['61'].complete,true);
 run('enterWorld(47);worldRecord().trust=2;worldRecord().complete=false;renderWorld()');assert.equal(get('worldChallenge').disabled,false);run('worldChallenge()');assert.equal(get('screenGame').classList.contains('show'),true);run('if(journeyDone)journeyDone();exitToMap()');
+// Replaying an earlier station preserves its location on puzzle exit and atlas return.
+run('state.unlocked=70;enterWorld(4);worldChallenge();journeyDone();exitToMap()');assert.equal(run('world.level'),4);assert.match(get('exploreLocation').textContent,/第 4 站.*星球探索/);assert.match(get('gameLocation').textContent,/第 4 站.*消除關卡/);
+run('showAtlas()');assert.match(get('atlasLocation').textContent,/第 4 站/);run('returnToCurrentWorld()');assert.equal(run('world.level'),4);
+run('moveWorld(275)');flush();assert.match(get('worldTravel').textContent,/左側線索/);run('moveWorld(275,()=>openWorldInteraction("observe"))');assert.equal(run('world.dialog'),true);assert.match(get('dialogLocation').textContent,/第 4 站.*觀察線索/);run('closeWorldDialog()');
 // Every retained story/audio path used by this page is validated separately against the remote tree.
 assert.ok(html.includes('littleprince_save_v1'));assert.ok(html.includes("game:'little-prince'"));assert.ok(html.includes('prefers-reduced-motion'));
 console.log('PASS: story advance, rituals, move/tool accounting, collection, success/failure, duplicate completion, classic timer, background pause, v1 save compatibility story cancellation, four exploration puzzles, choice penalties, ungated puzzle access, direct fox completion entry, saved outcomes and scene transitions.');
