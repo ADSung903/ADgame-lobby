@@ -294,20 +294,28 @@ body{font-family:Georgia,'Noto Serif TC',serif}button{font:inherit}button:focus-
 #screenExplore .explore-foot{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:5;margin:0;width:min(calc(100% - 24px),1080px);padding:14px 18px calc(14px + env(safe-area-inset-bottom));background:#122338f5;border-top:1px solid #e8d4a533;border-radius:22px 22px 0 0;box-shadow:0 -12px 30px #08132566}
 #screenExplore .world-quest{flex:1;min-width:200px}
 @media(max-width:540px){#screenExplore .explore-foot{gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}#screenExplore .world-quest{font-size:11px;line-height:1.5}#screenExplore .world-quest strong{font-size:13px}#screenExplore .explore-start{padding:13px 20px}}
+
+.location-trail{font:11px/1.7 sans-serif;color:#d8c392;padding:8px 14px;background:#192d4380;border:1px solid #d8c39222;border-radius:12px;letter-spacing:.3px}
+#exploreLocation{margin:4px 0 16px}.world-travel{font:12px/1.6 sans-serif;color:#c4d4d9;min-height:20px;text-align:center;margin:10px 18px}.world-stage{min-height:220px}.world-stage svg{height:clamp(220px,34vw,380px)}
+#worldShadow{transition:cx .3s ease}.explore-head small{color:#a9c4b9}.explore-copy h1{margin:8px 0}.explore-copy p{margin:6px 0}.explore-head{padding-bottom:8px}.world-hotspots{position:relative;z-index:2}
+#gameLocation{margin:4px 12px 0;flex-shrink:0}#gameBack{border:1px solid #a9bbc544;min-height:40px;cursor:pointer;background:#20364c;color:#f7eedc;border-radius:12px;font:12px sans-serif;padding:8px}
+#screenMap #journeyHero{display:none}#atlasLocation{max-width:850px;margin:14px auto}#atlasReturn{display:block;margin:12px auto 20px;max-width:850px;width:calc(100% - 48px);text-align:left}
+#dialogLocation{margin-bottom:14px;font-size:10px}#storyLocation{margin-bottom:14px;font-size:10px}
+@media(max-width:540px){.world-stage svg{height:240px}.explore-copy h1{font-size:28px}.location-trail{font-size:10px;padding:7px 10px}.world-travel{font-size:11px}.explore-head{padding-top:12px}.explore-copy{margin-top:4px}.explore-copy p{font-size:12px}.world-hotspots small{font-size:10px}}
 </style>
 </head>
 <body>
 <div class="screen" id="screenExplore">
-  <header class="explore-head"><div class="explore-brand">小王子・星光旅程<small>A JOURNEY OF SMALL THINGS</small></div><nav aria-label="旅途選單"><button class="quiet-btn" onclick="showAtlas()">星圖</button><button class="quiet-btn" onclick="showJourneyJournal()">手札</button><button class="quiet-btn" id="worldMode" onclick="toggleWorldMode()">旅程模式</button><button class="quiet-btn" onclick="AudioM.toggleMute()" aria-label="切換音樂">♫</button><button class="quiet-btn" onclick="goLobby()">大廳</button></nav></header>
-  <section class="explore-copy"><div class="chapter-tag" id="worldChapter"></div><h1 id="worldTitle"></h1><p id="worldIntro"></p></section>
+  <header class="explore-head"><div class="explore-brand">小王子・星光旅程<small>星球探索 · 相遇與旅途</small></div><nav aria-label="旅途選單"><button class="quiet-btn" onclick="showAtlas()">星圖</button><button class="quiet-btn" onclick="showJourneyJournal()">手札</button><button class="quiet-btn" id="worldMode" onclick="toggleWorldMode()">旅程模式</button><button class="quiet-btn" onclick="AudioM.toggleMute()" aria-label="切換音樂">♫</button><button class="quiet-btn" onclick="goLobby()">大廳</button></nav></header>
+  <section class="explore-copy"><div class="location-trail" id="exploreLocation"></div><div class="chapter-tag" id="worldChapter"></div><h1 id="worldTitle"></h1><p id="worldIntro"></p></section>
   <div class="world-stage" id="worldStage"></div>
-  <div class="world-hotspots"><button class="world-hotspot" id="worldObserve" onclick="worldInteract('observe')"></button><button class="world-hotspot" id="worldMeet" onclick="worldInteract('meet')"></button></div>
+  <p class="world-travel" id="worldTravel" aria-live="polite"></p><div class="world-hotspots"><button class="world-hotspot" id="worldObserve" onclick="worldInteract('observe')"></button><button class="world-hotspot" id="worldMeet" onclick="worldInteract('meet')"></button></div>
   <div class="walk-controls" aria-label="移動角色"><button onclick="worldStep(-1)" aria-label="向左走">←</button><button onclick="worldStep(1)" aria-label="向右走">→</button></div>
   <p class="world-caption">點選地面走動，或使用方向按鈕／鍵盤 ← →。靠近景物，發現這一站的小事。</p>
   <footer class="explore-foot"><div class="world-quest" id="worldQuest" aria-live="polite"></div><button class="explore-start" id="worldChallenge" onclick="worldChallenge()"></button></footer>
 </div>
 <div class="modal-bg" id="worldDialog" role="dialog" aria-modal="true" aria-labelledby="worldDialogTitle">
-  <div class="dialog-card"><div class="dialog-speaker" id="worldSpeaker"></div><h2 id="worldDialogTitle"></h2><div class="dialog-prose" id="worldDialogProse"></div><div class="dialog-options" id="worldDialogOptions"></div><div class="dialog-feedback" id="worldFeedback" aria-live="polite"></div><button class="dialog-close" onclick="closeWorldDialog()">回到星球</button></div>
+  <div class="dialog-card"><div class="location-trail" id="dialogLocation"></div><div class="dialog-speaker" id="worldSpeaker"></div><h2 id="worldDialogTitle"></h2><div class="dialog-prose" id="worldDialogProse"></div><div class="dialog-options" id="worldDialogOptions"></div><div class="dialog-feedback" id="worldFeedback" aria-live="polite"></div><button id="dialogReturn" class="dialog-close" onclick="closeWorldDialog()">回到星球</button></div>
 </div>
 
 
@@ -319,6 +327,7 @@ body{font-family:Georgia,'Noto Serif TC',serif}button{font:inherit}button:focus-
     <div class="pill gold-pill" id="mapCoin">🪙0</div>
     <div class="pill" id="muteBtnMap" onclick="AudioM.toggleMute()" style="cursor:pointer">🔊</div>
   </div>
+  <div class="location-trail" id="atlasLocation"></div><button class="quiet-btn" id="atlasReturn" onclick="returnToCurrentWorld()">返回正在探索的星球</button>
   <section class="journey-hero" id="journeyHero"></section>
   <div class="map-scroll"><div class="map-path" id="mapPath"></div></div>
   <div class="map-bottom">
@@ -342,13 +351,14 @@ body{font-family:Georgia,'Noto Serif TC',serif}button{font:inherit}button:focus-
 <div class="screen" id="screenGame">
   <div id="app">
     <div class="topbar">
-      <div class="back-btn" onclick="playBtn(); exitToMap()">← 地圖</div>
+      <button id="gameBack" onclick="playBtn(); exitToMap()">← 返回星球</button>
       <div class="stat-pill" id="muteBtnGame" onclick="AudioM.toggleMute()" style="cursor:pointer; justify-content:center;">🔊</div>
       <div class="stat-pill"><div class="lbl">關卡</div><div class="val" id="lvlVal">1</div></div>
       <div class="stat-pill"><div class="lbl">最高分</div><div class="val" id="bestVal">0</div></div>
       <div class="stat-pill coin-pill"><div class="lbl">金幣</div><div class="val" id="coinVal">🪙0</div></div>
     </div>
 
+    <div class="location-trail" id="gameLocation"></div>
     <div class="journey-mission" id="journeyMission" aria-live="polite"></div>
     <div class="progress-row">
       <div class="target-line">
@@ -385,7 +395,7 @@ body{font-family:Georgia,'Noto Serif TC',serif}button{font:inherit}button:focus-
     <div class="story-image-box" id="storyImageBox">
       <div class="story-icon" id="storyIcon">👦</div>
     </div>
-    <div class="story-text-box">
+    <div class="story-text-box"><div class="location-trail" id="storyLocation"></div>
       <div class="story-title" id="storyTitle"></div>
       <div class="story-text" id="storyText"></div>
       <button class="journey-primary story-continue" id="storyContinue" onclick="if(journeyDone)journeyDone()">帶著這段故事出發 →</button>
@@ -1699,6 +1709,36 @@ showJourneyJournal=function(){world.walkToken++;closeWorldDialog();worldBase.sho
  for(const [lvl,rec]of records){const entry=document.createElement('div');entry.className='journal-entry';const title=document.createElement('strong');title.textContent='第 '+lvl+' 站 · '+currentChapter(Number(lvl)).title;entry.appendChild(title);const text=document.createElement('div');text.textContent=rec.note;entry.appendChild(text);list.prepend(entry);}
 };
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&world.dialog){closeWorldDialog();return;}if(world.dialog&&e.key==='Tab'){const buttons=Array.from(document.getElementById('worldDialog').querySelectorAll('button'));const first=buttons[0],last=buttons[buttons.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}return;}if(!document.getElementById('screenExplore').classList.contains('show')||world.dialog||state.modalOpen)return;if(['ArrowLeft','a','A'].includes(e.key)){e.preventDefault();worldStep(-1);}if(['ArrowRight','d','D'].includes(e.key)){e.preventDefault();worldStep(1);}if(e.key==='Escape')closeWorldDialog();});
+
+/* Place and action remain explicit through exploration, overlays and puzzles. */
+const orientationBase={renderWorld,refreshHud,closeWorldDialog,showAtlas,openWorldInteraction};
+function placeName(lvl){return WORLD_THEMES[biomeFor(lvl)].name;}
+function locationText(lvl,phase){return '星際旅程 › '+placeName(lvl)+' › 第 '+lvl+' 站 · '+phase;}
+renderWorld=function(){orientationBase.renderWorld();document.getElementById('exploreLocation').textContent=locationText(world.level,'星球探索');document.getElementById('worldTravel').textContent='所在位置：星球中央 · 可前往左側線索或右側角色';document.getElementById('worldChallenge').textContent='進入第 '+world.level+' 關 · '+(journey.mode==='classic'?'限時消除':'星光消除')+' →';};
+refreshHud=function(){orientationBase.refreshHud();document.getElementById('gameLocation').textContent=locationText(state.level,'消除關卡');document.getElementById('gameBack').textContent='← 返回第 '+state.level+' 站';};
+moveWorld=function(x,after){
+ if(world.dialog||state.modalOpen)return;
+ const target=Math.max(230,Math.min(770,x)),previous=world.x,token=++world.walkToken;
+ const distance=Math.abs(target-previous),duration=distance<2?0:Math.min(600,Math.max(110,Math.round(distance*1.3)));
+ world.walking=true;world.x=target;
+ document.getElementById('worldTravel').textContent=target<400?'正在前往左側線索…':target>600?'正在前往右側角色…':'正在回到星球中央…';
+ const prince=document.getElementById('worldPrince');prince.style.transitionDuration=duration+'ms';
+ document.getElementById('worldFacing').setAttribute('transform',target<previous?'scale(-1 1)':'scale(1 1)');
+ const shadow=document.getElementById('worldShadow');shadow.style.transitionDuration=duration+'ms';shadow.setAttribute('cx',target);prince.setAttribute('transform',`translate(${target} 339)`);
+ const arrive=()=>{if(token!==world.walkToken||!document.getElementById('screenExplore').classList.contains('show'))return;world.walking=false;document.getElementById('worldTravel').textContent=target<400?'所在位置：左側線索 · 點選線索按鈕觀察':target>600?'所在位置：右側角色 · 點選互動按鈕對話':'所在位置：星球中央';if(typeof after==='function')after();};
+ const reduced=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(reduced||duration===0)arrive();else setTimeout(arrive,duration);
+};
+openWorldInteraction=function(kind){orientationBase.openWorldInteraction(kind);document.getElementById('dialogLocation').textContent=locationText(world.level,kind==='observe'?'觀察線索':'角色互動');document.getElementById('dialogReturn').textContent='← 返回第 '+world.level+' 站探索';};
+closeWorldDialog=function(){orientationBase.closeWorldDialog();if(document.getElementById('screenExplore').classList.contains('show'))document.getElementById('worldMeet').focus();};
+showAtlas=function(){world.walkToken++;world.walking=false;orientationBase.showAtlas();document.getElementById('atlasLocation').textContent='星際旅程 › 章節星圖 · 正在探索第 '+world.level+' 站';document.getElementById('atlasReturn').textContent='← 返回第 '+world.level+' 站 · '+currentChapter(world.level).title;};
+function returnToCurrentWorld(){enterWorld(world.level);}
+function returnFromPuzzle(){storyGeneration++;journeyDone=null;storyOverlayActive=false;document.getElementById('storyOverlay').classList.remove('show');pauseGame();state.modalOpen=false;enterWorld(state.level);}
+exitToMap=function(){if(state.busy){showCombo('星光正在落下，稍等一下');return;}returnFromPuzzle();};
+winToMap=function(){document.getElementById('modalWin').classList.remove('show');returnFromPuzzle();};
+overToMap=function(){document.getElementById('modalOver').classList.remove('show');returnFromPuzzle();};
+const orientationStory=showStoryCard;
+showStoryCard=function(lvl,onDone){document.getElementById('storyLocation').textContent=locationText(lvl,'章節故事');orientationStory(lvl,onDone);};
 
 /* ====================== INIT ====================== */
 AudioM.init();
