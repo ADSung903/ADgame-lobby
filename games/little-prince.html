@@ -283,9 +283,27 @@ body{font-family:Georgia,'Noto Serif TC',serif}button{font:inherit}button:focus-
 @media(max-width:480px){.journey-hero{padding:22px 20px 18px}.journey-scene{height:255px}.map-top h1{flex-basis:100%}.scene-action{padding:10px 12px}.scene-action.rose{right:4%}.journey-mission{font-size:11px}.stat-pill .val{font-size:16px}.map-bottom .btn{font-size:12px;padding:12px 8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 
+#screenExplore{background:#0e192b;overflow-y:auto;color:#f5ecd9;isolation:isolate}.explore-head{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1100px;width:100%;margin:0 auto;padding:18px 24px;z-index:2}.explore-brand{font:17px Georgia,serif;letter-spacing:3px}.explore-brand small{display:block;font:9px sans-serif;letter-spacing:3px;color:#cfb987;margin-top:6px}.explore-head nav{display:flex;gap:7px}.quiet-btn{border:1px solid #e0ccb42b;background:#122338a8;color:#e6ddcc;border-radius:30px;cursor:pointer;padding:10px 15px;font:12px sans-serif}.quiet-btn:hover{border-color:#dcc395}.explore-copy{width:min(100% - 48px,1052px);margin:16px auto 0;z-index:2}.explore-copy h1{font:400 clamp(28px,5vw,48px)/1.35 Georgia,serif;margin:12px 0}.explore-copy p{font:14px/1.9 sans-serif;color:#b4c2ce;max-width:560px;margin:10px 0}.world-stage{position:relative;width:100%;max-width:1400px;margin:0 auto;min-height:300px;flex-shrink:0;overflow:hidden}.world-stage svg{display:block;width:100%;height:clamp(300px,46vw,510px);object-fit:cover;cursor:crosshair}.world-prince{transition:transform .65s ease-in-out}.world-prince .scarf-tail{animation:scarfDrift 3s ease-in-out infinite alternate;transform-origin:0 0}.world-sky{animation:skyBreathe 8s ease-in-out infinite alternate}.world-stage[data-biome=home]{background:radial-gradient(ellipse at 65% 40%,#5f646538,transparent 65%)}.world-stage[data-biome=garden]{background:radial-gradient(ellipse at 60% 80%,#45605d66,transparent 80%)}.world-stage[data-biome=desert]{background:radial-gradient(ellipse at 65% 60%,#8b685c33,transparent 70%)}.world-hotspots{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;padding:0 18px}.world-hotspot{border:1px solid #d9caa14d;background:#20344ccc;color:#f8efda;padding:13px 19px;border-radius:24px;font:13px sans-serif;cursor:pointer;box-shadow:0 8px 22px #0002}.world-hotspot small{display:block;color:#abbdc7;font-size:10px;margin-top:5px}.world-hotspot.done{border-color:#a4c3a0;color:#c3dcc0}.explore-foot{width:min(100% - 48px,1052px);margin:20px auto 28px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.world-quest{font:13px/1.9 sans-serif;color:#bfccd2}.world-quest strong{font-weight:400;color:#ead1a2;display:block;font-size:15px}.explore-start{border:1px solid #e8d4a5;background:#e8d4a5;color:#152338;border-radius:30px;padding:14px 24px;cursor:pointer;font:600 14px sans-serif}.explore-start:disabled{color:#90a0aa;background:#243548;border-color:#48586a;cursor:default}.world-caption{width:min(100% - 48px,1052px);margin:12px auto 0;text-align:center;font:11px/1.8 sans-serif;color:#98acbc}.walk-controls{display:flex;gap:8px;justify-content:center;margin:10px 0}.walk-controls button{width:46px;height:38px;border:1px solid #d4c19d33;background:#1b3049;color:#e8d4a5;border-radius:20px;font:18px sans-serif;cursor:pointer}.dialog-card{text-align:left;width:min(92vw,560px);background:linear-gradient(160deg,#283c50,#15263e);padding:26px;border:1px solid #e8cb8d55;border-radius:24px;max-height:85dvh;overflow:auto}.dialog-speaker{font:10px sans-serif;letter-spacing:3px;color:#e1c38b;margin-bottom:12px}.dialog-card h2{font:400 24px/1.4 Georgia,serif;margin:0 0 16px}.dialog-prose{font:14px/1.95 sans-serif;color:#d0d9d8}.dialog-options{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 12px}.dialog-options button{border:1px solid #e8cb8d55;background:#304a59;color:#f1e3ca;padding:13px 16px;border-radius:16px;cursor:pointer;font:13px sans-serif;min-height:44px}.dialog-options button:hover{background:#466371}.dialog-feedback{font:13px/1.8 sans-serif;color:#e6c994;min-height:28px}.dialog-close{font:12px sans-serif;background:none;border:none;color:#aabdc7;cursor:pointer;padding:12px 0}.lamp-choice{font-size:22px!important;min-width:75px}.lamp-choice.on{background:#827154!important;border-color:#f2d996!important}.chapter-tag{font:11px sans-serif;letter-spacing:3px;color:#d4b981}.world-glow{filter:drop-shadow(0 0 7px #eac88a99)}
+@keyframes scarfDrift{to{transform:rotate(-7deg)}}@keyframes skyBreathe{to{opacity:.6}}
+@media(max-width:540px){.explore-head{padding:16px 18px;align-items:flex-start}.explore-brand{font-size:14px}.explore-brand small{font-size:8px;letter-spacing:2px}.explore-head nav{gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:170px}.quiet-btn{font-size:11px;padding:9px 11px}.explore-copy{width:calc(100% - 36px);margin-top:8px}.explore-copy p{font-size:12px}.world-stage svg{height:300px;width:180%;max-width:none;margin-left:-40%}.world-hotspots{gap:8px}.world-hotspot{font-size:12px;padding:11px 13px}.explore-foot{width:calc(100% - 36px);gap:12px}.explore-start{width:100%}.world-quest{font-size:12px}.world-caption{width:calc(100% - 36px)}}
+@media(prefers-reduced-motion:reduce){.world-prince,.world-sky,.scarf-tail{transition:none!important;animation:none!important}}
+
 </style>
 </head>
 <body>
+<div class="screen" id="screenExplore">
+  <header class="explore-head"><div class="explore-brand">小王子・星光旅程<small>A JOURNEY OF SMALL THINGS</small></div><nav aria-label="旅途選單"><button class="quiet-btn" onclick="showAtlas()">星圖</button><button class="quiet-btn" onclick="showJourneyJournal()">手札</button><button class="quiet-btn" id="worldMode" onclick="toggleWorldMode()">旅程模式</button><button class="quiet-btn" onclick="AudioM.toggleMute()" aria-label="切換音樂">♫</button><button class="quiet-btn" onclick="goLobby()">大廳</button></nav></header>
+  <section class="explore-copy"><div class="chapter-tag" id="worldChapter"></div><h1 id="worldTitle"></h1><p id="worldIntro"></p></section>
+  <div class="world-stage" id="worldStage"></div>
+  <div class="world-hotspots"><button class="world-hotspot" id="worldObserve" onclick="worldInteract('observe')"></button><button class="world-hotspot" id="worldMeet" onclick="worldInteract('meet')"></button></div>
+  <div class="walk-controls" aria-label="移動角色"><button onclick="worldStep(-1)" aria-label="向左走">←</button><button onclick="worldStep(1)" aria-label="向右走">→</button></div>
+  <p class="world-caption">點選地面走動，或使用方向按鈕／鍵盤 ← →。靠近景物，發現這一站的小事。</p>
+  <footer class="explore-foot"><div class="world-quest" id="worldQuest" aria-live="polite"></div><button class="explore-start" id="worldChallenge" onclick="worldChallenge()"></button></footer>
+</div>
+<div class="modal-bg" id="worldDialog" role="dialog" aria-modal="true" aria-labelledby="worldDialogTitle">
+  <div class="dialog-card"><div class="dialog-speaker" id="worldSpeaker"></div><h2 id="worldDialogTitle"></h2><div class="dialog-prose" id="worldDialogProse"></div><div class="dialog-options" id="worldDialogOptions"></div><div class="dialog-feedback" id="worldFeedback" aria-live="polite"></div><button class="dialog-close" onclick="closeWorldDialog()">回到星球</button></div>
+</div>
+
 
 <!-- ===================== LEVEL MAP SCREEN ===================== -->
 <div class="screen show" id="screenMap">
@@ -1572,6 +1590,109 @@ function showJourneyJournal(){
  note.innerHTML='<strong>我的星球日常</strong><br>'+(journey.rituals.length?journey.rituals.map(x=>names[x]).filter(Boolean).join(' · '):'回到小星球，給自己一點停留的時間。')+'<br>已留下 '+journey.memories.length+' 段章節記憶。';list.prepend(note);
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){AudioM.playBgm(null);}else if(document.getElementById('screenGame').classList.contains('show')&&!state.modalOpen){AudioM.playBgm('play');}else if(document.getElementById('screenMap').classList.contains('show'))AudioM.playBgm('map');});
+
+/* Playable exploration sits before each retained constellation puzzle. */
+if(!journey.exploration||typeof journey.exploration!=='object'||Array.isArray(journey.exploration))journey.exploration={};
+let world={level:1,x:500,walking:false,walkToken:0,dialog:false};
+const worldBase={showScreen,renderMap,nextLevel,endLevel,refreshHud,showJourneyJournal};
+const WORLD_THEMES={
+ home:{name:'B-612 · 風中的花園',speaker:'玫瑰',action:'替玫瑰擋風',object:'聽聽風向',sky:'#182c43',ground:'#5d7878',accent:'#e3b18e',intro:'一顆小小的星球，也容得下需要你照顧的世界。先聽一聽風，再決定如何保護她。'},
+ cosmos:{name:'孤獨星域 · 點燈的小屋',speaker:'點燈人',action:'修復星燈',object:'觀察星圖',sky:'#17213c',ground:'#535e81',accent:'#d9bd80',intro:'燈亮了，遠方的人才能找到路。但每一盞燈，都該有自己的節奏。'},
+ garden:{name:'麥田邊 · 相遇的午後',speaker:'狐狸',action:'靠近狐狸',object:'看看麥田',sky:'#293d48',ground:'#586f57',accent:'#d9b97d',intro:'麥穗在風裡搖動。一個朋友站在遠處，等待你學會如何靠近。'},
+ desert:{name:'沙海 · 夜行的方向',speaker:'飛行員',action:'尋找水井',object:'讀取路標',sky:'#24263d',ground:'#ac8774',accent:'#e6c598',intro:'腳印很快就被風吹散。慢一點，從路標裡找到值得相信的方向。'}
+};
+function biomeFor(lvl){const n=chapterFor(lvl);return n<4?'desert':n<=16?'home':n<=37?'cosmos':n<=58?'garden':n<70?'desert':'home';}
+function worldRecord(){const key=String(world.level);let rec=journey.exploration[key];if(!rec||typeof rec!=='object'){rec={observed:false,complete:false,trust:0,lamps:[false,false,false],route:0};journey.exploration[key]=rec;}if(!Array.isArray(rec.lamps)||rec.lamps.length!==3)rec.lamps=[false,false,false];return rec;}
+function princeDrawing(){return `<g id="worldFacing" class="prince-facing"><path d="M-13-61L-24-13Q0-4 25-14L13-61" fill="#7caa91" stroke="#344f53" stroke-width="1.5"/><path d="M-9-14L-13 0M10-14L16 0" stroke="#e9d7b2" stroke-width="8"/><path d="M-19 2H-5M11 2H24" stroke="#35434d" stroke-width="7" stroke-linecap="round"/><path class="scarf-tail" d="M-7-65Q-34-71-63-62Q-47-48-10-57" fill="#e8c980"/><path d="M-14-62L17-63" stroke="#e8c980" stroke-width="8"/><ellipse cy="-84" rx="22" ry="25" fill="#eed2aa"/><path d="M-23-83L-27-104L-15-99L-12-116L1-104L12-116L15-100L26-108L23-79L12-91L-3-90L-17-93Z" fill="#e7c677"/><circle cx="-7" cy="-81" r="1.8" fill="#38404a"/><circle cx="8" cy="-81" r="1.8" fill="#38404a"/><path d="M-2-71Q2-69 6-72" fill="none" stroke="#ab7c71" stroke-linecap="round"/><path d="M-18-57L-30-31M18-57L28-33" stroke="#7caa91" stroke-width="8" stroke-linecap="round"/></g>`;}
+function worldScene(biome){
+ const t=WORLD_THEMES[biome],rec=worldRecord();let scenery='';
+ if(biome==='home')scenery=`<ellipse cx="500" cy="550" rx="440" ry="245" fill="url(#worldGround)"/><path d="M124 363Q500 192 876 363" fill="none" stroke="#d4d8ad55"/><g transform="translate(680 295)"><path d="M-31 40V-16a31 31 0 0 1 62 0v56Z" fill="#bce0de12" stroke="#d4e5d788"/><path d="M0 34V-8" stroke="#80a986" stroke-width="3"/><path d="M0 15Q-25-3-19 13Q-11 24 0 15" fill="#80a986"/><path d="M0-23C-28-32-28-1-5 1C22 7 34-21 7-27Z" fill="#d4939e"/><path d="M-9-13Q0-28 11-12Q4-1-9-13" fill="#eac0b4"/><path d="M-40 41H40" stroke="#ddc9a2" stroke-width="4"/>${rec.complete?'<path d="M45-20L65 42" stroke="#e7d8bb" stroke-width="5"/><path d="M50-20Q110 0 66 39" fill="#a7bba655"/>':''}</g><g transform="translate(275 275)" stroke="#99b4a4" fill="none" stroke-linecap="round"><path d="M-36-15Q0-30 31-19M-50 0Q0-8 57 3M-21 21Q6 11 38 21"/><path d="M52-2L59 3L51 8"/></g><circle cx="780" cy="107" r="38" fill="url(#worldSun)" opacity=".65"/>`;
+ if(biome==='cosmos')scenery=`<ellipse cx="500" cy="535" rx="350" ry="237" fill="url(#worldGround)"/><ellipse cx="510" cy="334" rx="413" ry="47" fill="none" stroke="#c5b8d32b" transform="rotate(-9 510 334)"/><g transform="translate(675 290)"><path d="M-53 39V-50H53V39Z" fill="#384c68" stroke="#a9abc24a"/><path d="M-66-50L0-101L65-50Z" fill="#5b6b7b"/><path d="M-12 39V-1Q0-17 12-1V39" fill="#1a2c43"/>${[0,1,2].map((n)=>`<g transform="translate(${(n-1)*34} -39)"><rect x="-10" y="-15" width="20" height="26" rx="6" fill="${rec.lamps[n]?'#eacb8a':'#20354c'}"/><path d="M-13 13H13" stroke="#c7b796"/></g>`).join('')}</g><g transform="translate(270 205)" stroke="#ddc18c" stroke-width="1.5" fill="#f0d79f"><path d="M-48 5L0-34L48 5" fill="none" opacity=".45"/><circle cx="-48" cy="5" r="6"/><circle cy="-34" r="3" opacity=".3"/><circle cx="48" cy="5" r="6"/></g><path d="M195 83Q265 14 350 57" stroke="#a5b6cf33" fill="none"/>`;
+ if(biome==='garden')scenery=`<path d="M0 296Q200 223 425 275T1000 255V420H0Z" fill="#334f4e"/><path d="M0 350Q260 242 535 322T1000 318V420H0Z" fill="url(#worldGround)"/>${Array.from({length:38},(_,i)=>{const x=155+i*18,y=355+(i%5)*7;return `<g stroke="#c8b875" opacity="${.3+(i%3)*.15}"><path d="M${x} ${y}q-12-31 0-75" fill="none"/><path d="M${x} ${y-47}l-8-9m8-3l8-9m-8-3l-6-8"/></g>`;}).join('')}<g transform="translate(700 321)"><path d="M-17 10Q-83-10-58-50Q-29-40-14-2" fill="#c98a60"/><path d="M-58-50Q-72-36-65-20L-51-24" fill="#e8d7bb"/><ellipse cy="13" rx="29" ry="17" fill="#c1865d"/><path d="M-15-3L-19-39L-1-24L20-44L24-5L9 13Z" fill="#d79969"/><path d="M-14-5L9 13L23-5L11 5Z" fill="#ebdcc4"/><circle cx="-4" cy="-13" r="2.2"/><circle cx="15" cy="-13" r="2.2"/><circle cx="9" cy="8" r="2.2"/></g><circle cx="218" cy="126" r="45" fill="url(#worldSun)" opacity=".55"/>`;
+ if(biome==='desert')scenery=`<path d="M0 276Q190 224 380 276T790 258T1000 280V420H0Z" fill="#5d5966"/><path d="M0 352Q226 261 438 333Q716 228 1000 349V420H0Z" fill="url(#worldGround)"/><path d="M0 397Q450 288 1000 402" stroke="#e8c69b33" fill="none"/><g transform="translate(686 306)"><ellipse cy="20" rx="42" ry="18" fill="#4a4249" stroke="#d7b99a" stroke-width="5"/><path d="M-35 16V-44M35 16V-44M-44-44H44" stroke="#c8a589" stroke-width="5"/><path d="M0-44V5" stroke="#9b8a79" stroke-width="2"/><path d="M-13 5V18H13V5" fill="#927969"/></g><g transform="translate(275 316)"><path d="M0 30V-32M-36-30L27-40L40-27L-28-19Z" fill="#a78c7b" stroke="#cfb49a"/><path d="M-23-27L16-31" stroke="#51484c"/></g><g fill="#e8d4a5"><circle cx="257" cy="93" r="4"/><circle cx="454" cy="65" r="2"/><circle cx="696" cy="111" r="5"/></g><path d="M257 93L454 65L696 111" stroke="#e8d4a522" fill="none"/>`;
+ return `<svg id="worldSvg" viewBox="0 0 1000 420" role="img" aria-label="${t.name}，可使用下方方向按鈕走動"><defs><linearGradient id="worldGround" x2="0" y2="1"><stop stop-color="${t.ground}"/><stop offset="1" stop-color="#1b2e43"/></linearGradient><radialGradient id="worldSun"><stop stop-color="#ffe8b3"/><stop offset="1" stop-color="${t.accent}"/></radialGradient></defs><g class="world-sky" fill="#e5d4ab">${Array.from({length:40},(_,i)=>`<circle cx="${(i*137+21)%1000}" cy="${(i*61+17)%240}" r="${i%5===0?1.8:.8}" opacity="${.25+(i%4)*.15}"/>`).join('')}</g>${scenery}<ellipse id="worldShadow" cx="${world.x}" cy="345" rx="32" ry="7" fill="#11203055"/><g id="worldPrince" class="world-prince" transform="translate(${world.x} 339)">${princeDrawing()}</g></svg>`;
+}
+function enterWorld(lvl){
+ closeWorldDialog();pauseGame();world.level=Math.max(1,Math.min(state.unlocked,lvl));world.x=500;world.walkToken++;world.walking=false;
+ renderWorld();worldBase.showScreen('screenExplore');AudioM.playBgm('map');
+}
+function renderWorld(){
+ const biome=biomeFor(world.level),t=WORLD_THEMES[biome],rec=worldRecord(),ch=currentChapter(world.level);
+ document.getElementById('worldChapter').textContent='第 '+world.level+' 站 · '+t.name;
+ document.getElementById('worldTitle').textContent=ch.title;
+ document.getElementById('worldIntro').textContent=t.intro;
+ const stage=document.getElementById('worldStage');stage.dataset.biome=biome;stage.innerHTML=worldScene(biome);
+ document.getElementById('worldObserve').innerHTML=(rec.observed?'✓ ':'')+t.object+'<small>走向左邊的線索</small>';
+ document.getElementById('worldMeet').innerHTML=(rec.complete?'✓ ':'')+t.action+'<small>走向右邊的相遇</small>';
+ document.getElementById('worldObserve').classList.toggle('done',rec.observed);document.getElementById('worldMeet').classList.toggle('done',rec.complete);
+ document.getElementById('worldQuest').innerHTML='<strong>'+ (rec.complete?'相遇完成 · 星路已經亮起':'這一站的小事')+'</strong>'+(!rec.observed?'先探索線索，再選擇如何回應。':!rec.complete?'已找到線索 · '+t.action+'。':'你留下了自己的選擇，現在可以收集啟程的星光。');
+ const btn=document.getElementById('worldChallenge');btn.disabled=!rec.complete&&journey.mode==='journey';btn.textContent=journey.mode==='classic'?'開始經典限時挑戰':rec.complete?'點亮星路 →':'完成相遇後，點亮星路';
+ document.getElementById('worldMode').textContent=journey.mode==='classic'?'經典模式':'旅程模式';
+ document.getElementById('worldSvg').onclick=e=>{if(world.dialog)return;const rect=e.currentTarget.getBoundingClientRect();moveWorld(Math.max(230,Math.min(770,(e.clientX-rect.left)/rect.width*1000)));};
+ saveJourney();
+}
+function moveWorld(x,after){
+ const target=Math.max(230,Math.min(770,x));const token=++world.walkToken;world.walking=true;const previous=world.x;world.x=target;
+ document.getElementById('worldFacing').setAttribute('transform',target<previous?'scale(-1 1)':'scale(1 1)');document.getElementById('worldShadow').setAttribute('cx',target);
+ document.getElementById('worldPrince').setAttribute('transform',`translate(${target} 339)`);
+ const reduced=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const arrive=()=>{if(token!==world.walkToken||!document.getElementById('screenExplore').classList.contains('show'))return;world.walking=false;if(typeof after==='function')after();};
+ if(reduced)arrive();else setTimeout(arrive,650);
+}
+function worldStep(direction){if(world.dialog||state.modalOpen)return;moveWorld(world.x+direction*65);}
+function worldInteract(kind){if(world.dialog||state.modalOpen)return;AudioM.play('button');moveWorld(kind==='observe'?275:690,()=>openWorldInteraction(kind));}
+function openWorldInteraction(kind){
+ const rec=worldRecord(),biome=biomeFor(world.level),t=WORLD_THEMES[biome];
+ world.dialog=true;document.getElementById('worldDialog').classList.add('show');document.getElementById('worldSpeaker').textContent=kind==='observe'?'旅途的線索':t.speaker;
+ if(kind==='observe'){
+  const prose={home:'玫瑰的花瓣向左輕輕傾斜。風從右邊吹來，玻璃罩旁還缺少一道擋風的屏障。',cosmos:'小屋上方的星圖有三顆星：左與右是明亮的，中間是一顆暗星。燈的排列，也許能與它們呼應。',garden:'麥穗的金色與你的頭髮很像。狐狸看著你，退了一小步。牠需要的也許不是追逐，而是可以預期的陪伴。',desert:'木牌上畫著一條路：先經過低矮的沙丘，再走向三顆星，最後沿著風聲找到井。順序已經藏在線索裡。'};
+  showWorldText(t.object,prose[biome],[{text:'記下線索',action:()=>{rec.observed=true;saveJourney();closeWorldDialog();renderWorld();}}]);return;
+ }
+ if(rec.complete){showWorldText('你留下的改變',rec.note||'這一站的小事，已經成為旅途的一部分。',[{text:'帶著記憶繼續',action:closeWorldDialog}]);return;}
+ if(!rec.observed){showWorldText('先停下來看看','你還沒有讀取這一站的線索。先走向左邊的景物，找到答案，再回來試試。',[{text:'去找線索',action:closeWorldDialog}]);return;}
+ if(biome==='home')showWorldText('風該擋在哪一側？','玫瑰輕輕說：「我不是不怕冷，只是不太會說。」你拿起屏障，回想剛才看見的風向。',[{text:'放在左側',action:()=>worldFeedback('花瓣仍向左傾斜。回想一下：風是從哪邊吹來的？')},{text:'放在右側',action:()=>completeWorld('你把屏障放在右側。花瓣不再顫動，玫瑰安靜地留在你的身旁。')}]);
+ if(biome==='cosmos')showLampPuzzle();
+ if(biome==='garden')showFoxPuzzle();
+ if(biome==='desert')showDesertPuzzle();
+}
+function showWorldText(title,prose,options){
+ document.getElementById('worldDialogTitle').textContent=title;document.getElementById('worldDialogProse').textContent=prose;
+ const wrap=document.getElementById('worldDialogOptions');wrap.innerHTML='';document.getElementById('worldFeedback').textContent='';
+ for(const option of options){const b=document.createElement('button');b.textContent=option.text;b.onclick=option.action;if(option.className)b.className=option.className;wrap.appendChild(b);}
+ const first=wrap.children[0];if(first)first.focus();
+}
+function worldFeedback(text){document.getElementById('worldFeedback').textContent=text;}
+function showLampPuzzle(){
+ const rec=worldRecord();showWorldText('讓燈與星圖呼應','點選三盞燈切換明暗，再確認排列。星圖的提示是：亮、暗、亮。',[
+ ...rec.lamps.map((lit,i)=>({text:(lit?'✦':'○')+' '+['左燈','中燈','右燈'][i],className:'lamp-choice'+(lit?' on':''),action:()=>{rec.lamps[i]=!rec.lamps[i];saveJourney();showLampPuzzle();}})),
+ {text:'確認排列',action:()=>rec.lamps[0]&&!rec.lamps[1]&&rec.lamps[2]?completeWorld('你讓左右兩盞燈亮起，中間保留夜色。小屋終於有了與星圖相同的節奏。'):worldFeedback('還沒有與星圖呼應。看看哪兩顆星是亮的。')}
+ ]);
+}
+function showFoxPuzzle(){
+ const rec=worldRecord();showWorldText('慢慢靠近，讓彼此習慣',`狐狸的信任 ${rec.trust||0}/3。${rec.trust===0?'牠站在麥田邊，還不敢接近你。':rec.trust===1?'牠不再後退，但仍留著一點距離。':'牠坐下來，耳朵向你的方向輕輕轉動。'}`,[
+ {text:'安靜地坐下',action:()=>{rec.trust=Math.min(3,(rec.trust||0)+1);saveJourney();if(rec.trust===3)completeWorld('你沒有追趕狐狸，而是三次安靜地坐下。牠終於走到你身旁；麥田從此有了與你相關的顏色。');else showFoxPuzzle();}},
+ {text:'追過去抱牠',action:()=>{rec.trust=Math.max(0,(rec.trust||0)-1);saveJourney();showFoxPuzzle();worldFeedback('狐狸退開了一點。靠近，也需要尊重彼此的距離。');}}
+ ]);
+}
+function showDesertPuzzle(){
+ const rec=worldRecord();const route=['低矮的沙丘','三顆星','風聲'];showWorldText('把線索連成一條路',`已走過 ${rec.route||0}/3 段路。依木牌上的順序，選擇下一個方向。`,route.map((text,i)=>({text,action:()=>{
+ if(i===(rec.route||0)){rec.route++;saveJourney();if(rec.route===3)completeWorld('你依著沙丘、星辰與風聲，找到了一口井。旅程裡的答案，往往來自願意停下來觀察的時刻。');else showDesertPuzzle();}
+ else{rec.route=0;saveJourney();showDesertPuzzle();worldFeedback('方向又繞回了起點。先沙丘，再星辰，最後風聲。');}
+ }})));
+}
+function completeWorld(note){const rec=worldRecord();rec.complete=true;rec.note=note;saveJourney();AudioM.play('rainbow');showWorldText('相遇，留下了一點改變',note,[{text:'回到星球，點亮星路',action:()=>{closeWorldDialog();renderWorld();}}]);}
+function closeWorldDialog(){world.dialog=false;const dialog=document.getElementById('worldDialog');if(dialog)dialog.classList.remove('show');}
+function worldChallenge(){const rec=worldRecord();if(journey.mode==='journey'&&!rec.complete)return;world.walkToken++;world.walking=false;closeWorldDialog();AudioM.play('button');worldBase.showScreen('screenGame');startLevel(world.level);}
+function showAtlas(){closeWorldDialog();worldBase.renderMap();worldBase.showScreen('screenMap');}
+function toggleWorldMode(){journey.mode=journey.mode==='journey'?'classic':'journey';saveJourney();renderWorld();}
+launchJourney=function(lvl){enterWorld(lvl);};
+showScreen=function(id){if(id==='screenMap')enterWorld(state.unlocked);else worldBase.showScreen(id);};
+nextLevel=function(){document.getElementById('modalWin').classList.remove('show');state.modalOpen=false;enterWorld(state.level+1);};
+refreshHud=function(){worldBase.refreshHud();if(journeyRun){const ch=currentChapter(state.level);document.getElementById('journeyMission').innerHTML=`<strong>${ch.title} · 為旅途點亮星路</strong> 收集 ${BADGE_ICONS[journeyRun.animal]} ${Math.min(journeyRun.collected,journeyRun.goal)}/${journeyRun.goal}，並點亮 ${state.target} 星光`;}};
+showJourneyJournal=function(){world.walkToken++;closeWorldDialog();worldBase.showJourneyJournal();const list=document.getElementById('storyBookList');const records=Object.entries(journey.exploration).filter(([,r])=>r&&r.complete).sort((a,b)=>Number(a[0])-Number(b[0]));
+ for(const [lvl,rec]of records){const entry=document.createElement('div');entry.className='journal-entry';const title=document.createElement('strong');title.textContent='第 '+lvl+' 站 · '+currentChapter(Number(lvl)).title;entry.appendChild(title);const text=document.createElement('div');text.textContent=rec.note;entry.appendChild(text);list.prepend(entry);}
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&world.dialog){closeWorldDialog();return;}if(world.dialog&&e.key==='Tab'){const buttons=Array.from(document.getElementById('worldDialog').querySelectorAll('button'));const first=buttons[0],last=buttons[buttons.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}return;}if(!document.getElementById('screenExplore').classList.contains('show')||world.dialog||state.modalOpen)return;if(['ArrowLeft','a','A'].includes(e.key)){e.preventDefault();worldStep(-1);}if(['ArrowRight','d','D'].includes(e.key)){e.preventDefault();worldStep(1);}if(e.key==='Escape')closeWorldDialog();});
 
 /* ====================== INIT ====================== */
 AudioM.init();
