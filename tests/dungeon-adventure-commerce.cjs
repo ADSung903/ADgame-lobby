@@ -49,3 +49,14 @@ assert.equal(run('oscillatorCount'),3,'bow sound can play its three short voices
 run(`audioState.sfxEnabled=false;DungeonArt.weaponSound('axe','fire',true)`);assert.equal(run('oscillatorCount'),3,'SFX toggle mutes generated sounds');
 run(`audioState.sfxEnabled=true;audioState.sfxVolume=0;DungeonArt.weaponSound('sword','ice',false)`);assert.equal(run('oscillatorCount'),3,'zero volume stays silent');
 console.log('PASS: curated answers, text question timing and math fallback, one-time story reward, inherited journal, sale locks, exact potion quantity, repeated-submit guard.');
+run(`state=initState();state.weapon={type:'weapon',stats:{str:5}};state.inventory=[{id:'low',name:'低',type:'weapon',stats:{str:4}},{id:'high',name:'高',type:'weapon',enhance:2,stats:{str:10}},{id:'unknown',name:'未知',type:'weapon',unidentified:true,stats:{str:999},realStats:{str:1000}},{id:'armor',name:'甲',type:'armor',subtype:'armor',stats:{def:8}},{id:'negative',name:'負值',type:'weapon',stats:{str:-2}}];saleFilter='weapon';saleSort='str-desc';saleReview=false;saleSelection=new Set();`);
+assert.equal(run('saleGroups().map(g=>g.item.id).join()'),'high,low,negative,unknown');
+run("saleSort='str-asc'");assert.equal(run('saleGroups().map(g=>g.item.id).join()'),'negative,low,high,unknown');
+assert.equal(run('gearStatValue(state.inventory[1],"str")'),11);
+const inventoryBefore=run('JSON.stringify(state.inventory)');run('saleGroups()');assert.equal(run('JSON.stringify(state.inventory)'),inventoryBefore,'sorting preserves original inventory indices');
+assert(run('gearStatsMarkup(state.inventory[1],true)').includes('力量 +11'));
+assert(run('gearStatsMarkup(state.inventory[1],true)').includes('力量 +6'));
+assert(!run('gearStatsMarkup(state.inventory[2],true)').includes('999'));
+run(`saleSort='str-desc';setSaleQuantity(0,1);saleSort='str-asc';reviewSale();`);assert.equal(run("saleItems()[0].id"),'high','selected identity survives reordering');assert(el('sale-body').innerHTML.includes('力量 +11'),'review retains ability values');
+assert(html.includes('aria-label="背包排序"'));
+console.log('PASS ability ascending/descending, enhanced values, unidentified secrecy, stable inventory IDs and sale review stats');

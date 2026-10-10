@@ -400,7 +400,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
   border-radius:8px;padding:3px 8px;font-size:10px;color:#c4b5fd;z-index:10;pointer-events:none}
 .skill-meter{width:100%;font-size:12px;color:#e8cf9a}.job-skill-btn{min-height:44px;padding:6px 10px;border:1px solid #776447;border-radius:9px;background:#24213a;color:#eae2d0;text-align:left;cursor:pointer}.job-skill-btn b,.job-skill-btn small{display:block}.job-skill-btn small{font-size:10px;margin-top:3px;color:#c2b4d9}.job-skill-btn.selected{border-color:#ffd47c;background:#4b3457}.job-skill-btn:disabled{opacity:.45;cursor:default}#skill-guide{position:fixed;inset:0;margin:auto;width:min(90vw,560px);max-height:80vh;overflow:auto;background:#191c29;color:#efe5cf;border:1px solid #ab8c58;border-radius:14px;padding:18px}#skill-guide::backdrop{background:#000b}.skill-guide-row{display:grid;gap:5px;margin:12px 0;padding:10px;border:1px solid #494257;border-radius:8px}.skill-guide-row span,.skill-guide-row small{font-size:12px}.skill-guide-row button,#skill-guide>button{min-height:44px;background:#43364c;color:#ffe6b0;border:1px solid #92774b;border-radius:8px}#settlement-service{position:fixed;inset:0;margin:auto;width:min(92vw,520px);max-height:82vh;overflow:auto;border:1px solid #b49567;border-radius:16px;background:#17272c;color:#e9debf;padding:18px}#settlement-service::backdrop{background:#000b}#settlement-service p{font-size:13px;margin:10px 0}.appraisal-list{max-height:40vh;overflow:auto}.appraisal-row{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #415256;font-size:12px}.appraisal-row span{flex:1}.appraisal-row input{width:22px;height:22px}
 </style>
-<link rel="stylesheet" href="assets/dungeon/art.css?v=20261005-depth">
+<link rel="stylesheet" href="assets/dungeon/art.css?v=20261010-stats">
 <link rel="stylesheet" href="assets/dungeon/skill-effects.css?v=20261006"><script src="assets/dungeon/skill-effects.js?v=20261006"></script></head><body>
 <div class="app" id="app">
   <div class="topbar">
@@ -696,7 +696,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
 <script src="assets/dungeon/objects.js?v=20261005-depth"></script>
 <script src="assets/dungeon/art.js?v=20261005-depth"></script>
 <script src="assets/dungeon/adventure.js?v=20261005-depth"></script>
-<script src="assets/dungeon/commerce.js?v=20261005-depth"></script>
+<script src="assets/dungeon/commerce.js?v=20261010-stats"></script>
 <script src="assets/dungeon/journey.js?v=20261005-depth"></script>
 <script>
 'use strict';
@@ -6258,21 +6258,10 @@ function openInventory(filter) {
         style="padding:4px 8px;border-radius:6px;border:none;cursor:pointer;font-size:11px;
         background:${filter===t.id?'var(--accent)':'#213531'};
         color:${filter===t.id?'#172529':'#c8d4c9'}">${t.label}</button>
-    `).join('');
+    `).join('')+`<label class="inventory-sort">能力排序<select aria-label="背包排序" onchange="state._invSort=this.value;openInventory()">${gearSortOptions(state._invSort||'type')}</select></label>`;
   }
 
-  // 背包排序：武器 > 防具 > 藥水（固定順序） > 卷軸，同類保持原始順序
-  const INV_TYPE_ORDER = {weapon:0, armor:1, potion:2, scroll:3};
-  const POTION_SUBTYPE_ORDER = ['heal_s','heal_m','heal_l','heal_xl','heal_full',
-    'antidote','cure_all','str_boost','agi_boost','luk_boost','int_boost','berserk','invincible'];
-  const sortedInv = [...state.inventory].sort((a, b) => {
-    const ta = INV_TYPE_ORDER[a.type] ?? 9, tb = INV_TYPE_ORDER[b.type] ?? 9;
-    if (ta !== tb) return ta - tb;
-    if (a.type === 'potion') {
-      return POTION_SUBTYPE_ORDER.indexOf(a.subtype) - POTION_SUBTYPE_ORDER.indexOf(b.subtype);
-    }
-    return 0;
-  });
+  const sortedInv = [...state.inventory].sort((a,b)=>compareInventoryItems(a,b,state._invSort||'type'));
 
   const stackedInv = inventoryGroups(sortedInv).map(g=>({item:g.item,count:g.items.length,firstIdx:state.inventory.indexOf(g.item)}));
 
@@ -6301,6 +6290,7 @@ function openInventory(filter) {
     el.innerHTML = `<div class="s-icon">${renderItemIcon(item)}</div>
       <div class="s-name rarity-${item.rarity}">${nameDisplay}</div>
       ${item.type==='scroll'?`<div class="s-purpose">${item.desc||'點選查看用途'}</div>`:''}
+      ${gearStatsMarkup(item)}
       ${item.enhance>0?`<div class="s-enh">+${item.enhance}</div>`:''}
       ${item.locked?'<span class="item-lock-badge">🔒</span>':''}${uidBadge}${stackBadge}`;
     el.onclick = () => openItemCard(item, true, firstIdx, false);
