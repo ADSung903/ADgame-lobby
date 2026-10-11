@@ -1,0 +1,29 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const R=require('../games/little-prince-chapters.js');
+for(let s=1;s<=70;s+=3){for(let n=s;n<s+3;n++){assert.equal(R.chapterStart(n),s);assert.equal(R.boundary(n),n===s+2);}assert.equal(R.completed(s,s+2,{}),false);assert.equal(R.completed(s,s+3,{}),true);assert.equal(R.completed(s,1,{[s]:1,[s+1]:2,[s+2]:3}),true);}
+assert.equal(R.boundary(75),false);assert.equal(R.safeUnlocked(-1),1);
+function create(storage={}){
+ const elements=new Map(),timers=[];
+ class Element{constructor(){this.classList={set:new Set(),add(...n){n.forEach(x=>this.set.add(x))},remove(...n){n.forEach(x=>this.set.delete(x))},contains(n){return this.set.has(n)},toggle(n,v){v?this.set.add(n):this.set.delete(n)}};this.style={setProperty(){}};this.dataset={};this.children=[];this.parentElement=this;this.attributes={};this.textContent='';this.innerHTML='';}appendChild(n){this.children.push(n);return n}querySelector(){return new Element()}setAttribute(k,v){this.attributes[k]=v}removeAttribute(k){delete this.attributes[k]}focus(){}remove(){}getBoundingClientRect(){return {width:400,height:450,left:0,top:0}}click(){this.onclick?.()}}
+ const id=n=>{if(!elements.has(n))elements.set(n,new Element());return elements.get(n)};
+ const document={body:new Element(),getElementById:id,createElement:()=>new Element(),querySelector:()=>new Element(),querySelectorAll:()=>['screenMap','screenGame'].map(id),addEventListener(){},removeEventListener(){},hidden:false};
+ const context={document,localStorage:{getItem:k=>storage[k]??null,setItem:(k,v)=>storage[k]=v},Audio:class{play(){return Promise.resolve()}pause(){}addEventListener(){}},setTimeout:f=>{timers.push(f);return timers.length},setInterval:()=>1,clearInterval(){},console,Math,window:{addEventListener(){},innerHeight:800,innerWidth:400,location:{}},PrinceChapterRules:R};
+ vm.createContext(context);const html=fs.readFileSync('games/little-prince.html','utf8');const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];vm.runInContext(script,context);vm.runInContext(fs.readFileSync('games/little-prince-book.js','utf8'),context);
+ return {run:code=>vm.runInContext(code,context),id,storage,timers};
+}
+const t=create();
+for(let n=1;n<=3;n++){
+ t.run(`launchJourney(${n})`);assert.equal(t.id('screenGame').classList.contains('show'),true);assert.equal(t.run('storyOverlayActive'),false);assert.equal(t.run('state.level'),n);
+ t.run('state.score=state.target;journeyRun.collected=journeyRun.goal;endLevel(0,"journey")');
+ assert.equal(t.run('state.unlocked'),n+1);assert.equal(t.run('bookState.pending'),n===3?1:null);assert.equal(t.run('storyOverlayActive'),false);
+ t.run('nextLevel()');assert.equal(t.run('storyOverlayActive'),n===3);
+}
+assert.equal(t.id('storyTitle').textContent,'沙漠迫降');assert.equal(t.run('state.level'),3);
+t.run('journeyDone()');assert.equal(t.run('storyOverlayActive'),false);assert.equal(t.id('screenMap').classList.contains('show'),true);assert.equal(t.run('bookState.pending'),null);
+t.run('launchJourney(3)');assert.equal(t.run('storyOverlayActive'),false);t.run('state.score=state.target;journeyRun.collected=journeyRun.goal;endLevel(0,"journey");nextLevel()');assert.equal(t.run('storyOverlayActive'),false);
+const pending=create({'littleprince_save_v1':JSON.stringify({unlocked:4,starsMap:{1:1,2:1,3:1}}),'littleprince_book_v3':JSON.stringify({version:3,acknowledged:[],pending:1})});assert.ok(pending.id('journeyHero').innerHTML.includes('閱讀剛完成'));pending.run('readPendingStory()');assert.equal(pending.run('storyOverlayActive'),true);
+const legacy=create({'littleprince_save_v1':JSON.stringify({unlocked:50,best:999,coins:123,tools:{hammer:4,shuffle:3,time:2},starsMap:{}}),'littleprince_journey_v2':JSON.stringify({mode:'classic',welcome:true})});assert.equal(legacy.run('state.unlocked'),50);assert.equal(legacy.run('state.coins'),123);assert.equal(legacy.run('state.tools.hammer'),4);assert.equal(legacy.run('bookState.acknowledged.length'),16);assert.equal(legacy.run('bookState.pending'),null);legacy.run('launchJourney(48)');assert.equal(legacy.run('storyOverlayActive'),false);legacy.run('state.timeLeft=0;state.score=0;endLevel(0,"stuck")');assert.equal(legacy.id('modalOver').classList.contains('show'),true);assert.equal(legacy.run('bookState.pending'),null);
+const fail=create();fail.run('launchJourney(1);state.score=0;journeyRun.moves=0;endLevel(0,"stuck")');assert.equal(fail.run('state.unlocked'),1);assert.equal(fail.run('bookState.pending'),null);fail.run('retryLevel()');assert.equal(fail.run('journeyRun.moves'),24);assert.equal(fail.run('storyOverlayActive'),false);
+// Exercise the real tile handler and settling callback, including invalid taps.
+const play=create();play.run('launchJourney(1);state.target=9999;state.cols=Array.from({length:9},()=>Array(9).fill(null));state.cols[0][0]={type:"normal",animal:"fox"};state.cols[0][6]={type:"normal",animal:"prince"};state.cols[0][7]={type:"normal",animal:"prince"};state.cols[0][8]={type:"normal",animal:"prince"};state.tileEls=null;renderBoard();onTileClick(0,0)');assert.equal(play.run('journeyRun.moves'),24);play.run('onTileClick(0,6)');assert.equal(play.run('journeyRun.moves'),23);assert.equal(play.run('journeyRun.collected'),3);assert.equal(play.run('state.score>0'),true);play.timers.splice(0).forEach(f=>f());assert.equal(play.run('state.busy'),false);
+console.log('PASS: all 24 chapter boundaries; direct gameplay; stories only after third win; skip/replay; pending story reload; legacy progress/currency/tools; classic failure; retry; real clears and invalid taps');
