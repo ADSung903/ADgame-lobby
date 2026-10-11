@@ -2,15 +2,15 @@
 <html lang="zh-TW"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🎮 歡樂遊戲大廳</title>
+<title>遊隙 PLAY NOOK｜遊戲收藏館</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ADgame">
+<meta name="apple-mobile-web-app-title" content="遊隙">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#7c3aed">
+<meta name="theme-color" content="#172b38">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation}
 body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-height:100vh;padding:1rem;padding-top:max(1rem,calc(env(safe-area-inset-top,0px) + 0.75rem))}
@@ -141,32 +141,85 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
     -webkit-user-select: none;
     user-select: none;
   }
+
+/* PLAY NOOK — editorial game collection */
+:root{--ink:#172b38;--paper:#f4f0e7;--muted:#697879;--orange:#d86c3d}
+body{background:var(--paper);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;padding:24px 24px 80px;background-image:radial-gradient(#172b380b .7px,transparent .7px);background-size:6px 6px}
+.wrap{max-width:1180px}
+.lobby-header{text-align:left;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #172b3826;padding-bottom:20px;margin-bottom:28px}
+.lobby-header h1{font-size:28px;letter-spacing:3px}.brand-en{display:block;font-size:10px;letter-spacing:4px;margin-top:5px;color:var(--muted)}
+.lobby-header p{color:var(--muted);font-size:12px}.header-note{text-align:right}
+.free-badge{background:none;border:none;color:var(--muted);padding:0;font-size:11px}
+#safety-status{color:var(--muted)!important}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;min-height:380px;background:var(--ink);border-radius:8px;overflow:hidden;color:var(--paper);margin-bottom:26px;position:relative;box-shadow:0 18px 30px #172b3814}
+.hero-copy{padding:46px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.eyebrow{font-size:10px;letter-spacing:3px;color:#e9aa7a;margin-bottom:18px}
+.hero h2{font-size:clamp(28px,4vw,48px);font-weight:650;line-height:1.3;letter-spacing:2px;margin-bottom:16px}
+.hero p{font-size:14px;color:#b7c6ca;line-height:1.9;max-width:360px}
+.hero-link{display:inline-flex;gap:24px;align-items:center;margin-top:26px;background:#e99a68;color:#172b38;padding:13px 20px;text-decoration:none;border-radius:3px;font-size:13px;font-weight:700}
+.hero-art{display:flex;align-items:center;overflow:hidden;background:#203c49}.hero-art svg{width:100%;height:100%;min-height:300px;object-fit:cover}
+.player-bar{background:#fff9;border:1px solid #172b381a;border-radius:4px;margin:0 0 24px;padding:14px 18px}
+.player-bar label,.player-bar input{color:var(--ink)}.total-score{color:#a6532e}
+.collection-heading{display:flex;align-items:end;justify-content:space-between;margin:34px 0 18px}.collection-heading h2{font-size:25px;letter-spacing:1px}.collection-heading small{font-size:11px;color:var(--muted)}
+.collection-nav{display:flex;gap:8px;overflow:auto;padding-bottom:12px;margin-bottom:18px;scrollbar-width:thin}
+.collection-tab{white-space:nowrap;padding:9px 17px;border:1px solid #172b3826;background:transparent;border-radius:3px;color:var(--muted);cursor:pointer;font:inherit;font-size:12px}
+.collection-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.section-title{font-size:15px;font-weight:650;color:var(--ink);margin:24px 0 16px;gap:12px;padding:0}.section-title::after{background:#172b3824}
+.game-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;margin-bottom:34px}
+.game-card{border:0;border-radius:5px;background:#fff8;padding:0;overflow:hidden;transition:transform .2s,box-shadow .2s;box-shadow:0 1px 0 #172b3824}
+.game-card:hover,.game-card.played:hover{background:#fff;transform:translateY(-5px);box-shadow:0 12px 24px #172b3817}
+.game-card.played{border:0}
+.cover{height:150px;overflow:hidden;position:relative}.cover svg{width:100%;height:100%;display:block;transition:transform .4s}.game-card:hover .cover svg{transform:scale(1.04)}
+.card-copy{padding:16px}.gc-name{font-size:15px;margin-bottom:7px;color:var(--ink)}.gc-desc{font-size:12px;color:var(--muted);line-height:1.7;min-height:41px}
+.gc-badge{top:10px;right:10px;background:#f4f0e7ed;border:0;border-radius:2px;color:var(--ink);font-size:10px;padding:4px 8px}
+.gc-age{background:none;border:none;color:var(--muted);font-size:10px;padding:0;margin:8px 0}
+.gc-best{color:#a6532e}.gc-unplayed{color:#7e8786}.card-bottom{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #172b3814;padding-top:10px;margin-top:6px}.card-arrow{font-size:16px;color:#b06441}
+.lobby-footer{border-top:1px solid #172b3826;padding-top:24px;margin-top:24px;justify-content:flex-start;align-items:center}
+.btn{color:var(--ink);border:1px solid #172b3833;border-radius:4px;background:#fff5}.btn:hover{background:#e6e0d6}
+.utility-menu{position:relative}.utility-menu summary{cursor:pointer;list-style:none}.utility-content{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.site-signoff{margin-top:30px;color:var(--muted);font-size:10px;letter-spacing:2px}
+.lb-header h2,.section-box h3{color:var(--ink)}.tab,.lb-mode-btn,.slb-subtab{color:var(--muted);border-color:#172b3833}
+.tab.active,.lb-mode-btn.active,.slb-subtab.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.lb-box,.section-box,.wm-card,.cl-version{background:#fff;border-color:#172b3826;color:var(--ink);border-radius:6px}
+.lb-row.me,.ps-box{background:#eee9df}.lb-row{border-color:#172b3814}.lb-score,.gs-val{color:#a6532e}.lb-name,.gs-left,.wm-card h2{color:var(--ink)}
+.wm-card p,.wm-skip,.ps-lbl,.lb-empty,.lb-loading{color:var(--muted)}.wm-inp{background:var(--paper);color:var(--ink);border-color:#172b3833}.wm-start{background:var(--ink);color:var(--paper);border-radius:4px}
+.toast{background:var(--ink);color:var(--paper);border-color:var(--ink)}.cl-ver-title{color:var(--ink)}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--orange);outline-offset:4px}
+@media(max-width:900px){.game-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.hero-copy{padding:30px}}
+@media(max-width:600px){body{padding:18px 16px 50px}.lobby-header{margin-bottom:20px}.lobby-header h1{font-size:23px}.header-note p{display:none}.free-badge{font-size:10px}.hero{grid-template-columns:1fr;min-height:0}.hero-copy{padding:28px}.hero h2{font-size:32px}.hero-art{height:190px;grid-row:1}.hero-art svg{min-height:0}.hero p{font-size:12px}.hero-link{margin-top:18px}.game-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cover{height:122px}.game-card{padding:0}.card-copy{padding:12px}.gc-name{font-size:13px}.gc-desc{font-size:11px;min-height:55px}.collection-heading h2{font-size:21px}.lobby-footer{display:flex}.lobby-footer .btn:last-child{grid-column:auto}.player-bar{padding:12px}.collection-heading small{font-size:10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+
+body[data-time="morning"]{--paper:#f0f2e7}
+body[data-time="day"]{--paper:#f4f0e7}
+body[data-time="evening"]{--paper:#f3e9df}
+body[data-time="night"]{--paper:#e6e9eb}
+.hero-art{background:transparent}
 </style>
 </head><body>
 
 <!-- LOBBY -->
 <div class="screen active" id="screen-lobby">
   <div class="wrap">
-    <div class="lobby-header">
-      <h1>🎮 <span class="neon">歡樂遊戲大廳</span></h1>
-      <p>選一個遊戲開始玩吧！</p>
-      <span class="free-badge">✅ 完全免費 · 永久無廣告 · 無訂閱</span>
-      <div id="safety-status" style="font-size:11px;color:#86efac;margin-top:.55rem"></div>
-    </div>
-    <div class="player-bar">
-      <label>👤</label>
+    <header class="lobby-header">
+<div><h1>遊隙</h1><span class="brand-en">PLAY NOOK</span></div>
+<div class="header-note"><p>留一點時間，給好玩的事。</p><span class="free-badge">免費遊玩 · 無廣告 · 無訂閱</span><div id="safety-status"></div></div>
+</header>
+<section class="hero" id="featured-game" aria-label="主打遊戲"></section>
+<div class="player-bar">
+      <label for="name-inp">玩家</label>
       <input id="name-inp" placeholder="輸入你的名字" maxlength="14" autocomplete="off">
       <div class="total-score">🏆 <span id="total-pts">0</span> 分</div>
     </div>
-    <div id="game-sections"></div>
+    <div class="collection-heading"><h2>挑一個世界，進去逛逛。</h2><small id="collection-count"></small></div><nav class="collection-nav" id="collection-nav" aria-label="遊戲分類"></nav><div id="game-sections"></div>
     <div class="lobby-footer">
       <button class="btn" id="lb-btn">🏆 排行榜</button>
       <button class="btn" id="profile-btn">📊 我的成績</button>
-      <button class="btn" id="changelog-btn">📋 開發日誌</button>
+      <details class="utility-menu"><summary class="btn">更多工具 ＋</summary><div class="utility-content"><button class="btn" id="changelog-btn">開發日誌</button>
       <button class="btn" id="clear-btn">🗑️ 清除記錄</button>
       <button class="btn" id="backup-btn">💾 備份/還原</button>
-      <button class="btn" id="safety-btn">🛡️ 遊戲分級</button>
-    </div>
+      <button class="btn" id="safety-btn">遊戲分級</button></div></details>
+    </div><p class="site-signoff">PLAY NOOK / 在日常裡，收藏一點樂趣。</p>
   </div>
 </div>
 
@@ -181,7 +234,7 @@ body{font-family:sans-serif;background:#060612;color:#eee;min-height:100dvh;min-
 
       <div style="text-align:center;margin-bottom:1.5rem">
         <div style="font-size:36px;margin-bottom:.4rem">🎮</div>
-        <div style="font-size:18px;font-weight:700;color:#a78bfa">ADgame Lobby</div>
+        <div style="font-size:18px;font-weight:700;color:#172b38">遊隙 PLAY NOOK</div>
         <div style="font-size:12px;color:#555;margin-top:.2rem">與 Claude 共同開發 · 純靜態網頁遊戲平台</div>
         <a href="https://a-dgame-lobby.vercel.app" target="_blank" style="font-size:11px;color:#7c3aed;text-decoration:none">🔗 a-dgame-lobby.vercel.app</a>
       </div>
@@ -650,51 +703,71 @@ const CAT_META = [
   {key:'self',   icon:'🔮', label:'探索自我'},
 ];
 
-function buildLobby(){
-  const container = document.getElementById('game-sections');
-  container.innerHTML = '';
-  CAT_META.forEach(cat => {
-    const games = visibleGames().filter(g => g.category === cat.key);
-    if(!games.length) return;
-    const sec = document.createElement('div');
-    const gridId = 'cat-grid-' + cat.key;
-    sec.innerHTML = `<div class="section-title">${cat.icon} ${cat.label} (${games.length})</div><div class="game-grid" id="${gridId}"></div>`;
-    container.appendChild(sec);
-    renderGrid(gridId, games, cat.key === 'self');
-  });
-  document.getElementById('total-pts').textContent = Math.round(getTotalPtsLocal(DB.name));
-  document.getElementById('safety-status').textContent=isChildMode()?'🛡️ 兒童模式：所有年齡內容・成績僅存本機':'👨‍👩‍👧 完整遊戲庫：請留意年齡建議';
-}
 
-function renderGrid(gridId, games, isSelf=false){
-  const grid = document.getElementById(gridId);
-  grid.innerHTML = '';
-  games.forEach(g => {
-    const best = getBestLocal(g.id, DB.name);
-    const played = best !== null;
-    const a = document.createElement('div');
-    a.className = 'game-card' + (played ? ' played' : '');
-    a.onclick = () => { window.location.href = g.file + '?from=lobby'; };
-    let bottomHtml = '';
-    if(isSelf){
-      bottomHtml = played
-        ? `<div class="gc-best">✅ 已完成</div>`
-        : `<div class="gc-unplayed">點擊開始探索</div>`;
-    } else if(played){
-      bottomHtml = `<div class="gc-best">${g.lower ? '⭐ 最佳 '+best+g.unit : '⭐ 最高 '+best+g.unit}</div>`;
-    } else {
-      bottomHtml = `<div class="gc-unplayed">尚未遊玩</div>`;
-    }
-    a.innerHTML = `
-      <div class="gc-badge">${g.badge}</div>
-      <div class="gc-icon">${g.icon}</div>
-      <div class="gc-name">${g.name}</div>
-      <div class="gc-desc">${g.desc}</div>
-      <div class="gc-age">🛡️ ${gameSafety(g)}</div>
-      ${bottomHtml}`;
-    grid.appendChild(a);
-  });
+let collectionFilter='all';
+function coverArt(g,large=false){
+ const id=g.id; const seed=Array.from(id).reduce((a,c)=>a+c.charCodeAt(0),0);
+ const palettes=[['#244a57','#7eafa5','#eedcaa'],['#3b3f59','#a994b8','#ecc99a'],['#694b3e','#c99769','#f2dfb3'],['#365850','#94b887','#e5d7a3']];
+ const [bg,mid,light]=palettes[seed%4];
+ let art='';
+ if(/fishing|river/.test(id)){art='<circle cx="260" cy="58" r="28" fill="'+light+'"/><path d="M0 150Q70 100 150 145T360 120V240H0Z" fill="'+mid+'"/><path d="M0 175Q100 160 200 177T360 172M0 200Q100 185 200 202T360 198" fill="none" stroke="'+light+'" opacity=".35"/><path d="M90 160h120l-24 20h-74z" fill="'+light+'"/><path d="M149 159V78l50 70z" fill="#f4f0e7"/><path d="M255 200q20-20 40 0q-20 20-40 0l-12 12v-24z" fill="'+light+'" opacity=".6"/>';}
+ else if(/dungeon|mine|maze/.test(id)){art='<path d="M0 240V0h110L70 65l40 60-60 115M360 0H255l40 70-30 70 45 100h50z" fill="'+mid+'"/><path d="m170 60 30 55-20 70-25-60z" fill="'+light+'"/><path d="m230 130 15 35-12 45-18-40z" fill="'+mid+'"/><path d="M95 240q70-80 160 0" fill="#172b38"/><circle cx="180" cy="210" r="6" fill="'+light+'"/>';}
+ else if(/little-prince|cell|mbti/.test(id)){art='<circle cx="178" cy="146" r="65" fill="'+mid+'"/><ellipse cx="178" cy="160" rx="103" ry="22" fill="none" stroke="'+light+'" stroke-width="2" transform="rotate(-20 178 160)"/><path d="M181 107V75m0 9q-32-22-18-32q23-4 18 25q5-29 25-19q10 13-25 26" fill="'+light+'" stroke="'+light+'"/>';}
+ else if(/shop|stock|sim/.test(id)){art='<path d="M65 205V100h70v105m18 0V65h65v140m20 0V125h55v80" fill="'+mid+'"/><path d="M58 205h246M74 143l60-25 43 20 41-53 69-22" fill="none" stroke="'+light+'" stroke-width="5"/><path d="m268 65 21-5-3 21" fill="none" stroke="'+light+'" stroke-width="5"/>';}
+ else if(/turtlesoup|q20|ab|iq/.test(id)){art='<rect x="98" y="55" width="144" height="153" rx="4" fill="'+mid+'" transform="rotate(-8 170 130)"/><path d="M122 87h70m-70 20h91m-91 22h60" stroke="'+light+'" stroke-width="4" opacity=".6"/><circle cx="221" cy="148" r="35" fill="'+bg+'" stroke="'+light+'" stroke-width="7"/><path d="m244 175 29 32" stroke="'+light+'" stroke-width="12"/>';}
+ else if(/chicken|witch|quiz|fishing/.test(id)){art='<path d="M96 207V115l84-60 84 60v92" fill="'+mid+'"/><path d="M84 119l96-70 96 70" stroke="'+light+'" stroke-width="7" fill="none"/><rect x="154" y="135" width="52" height="72" rx="26" fill="'+bg+'"/><circle cx="180" cy="169" r="18" fill="'+light+'"/><circle cx="174" cy="165" r="2" fill="'+bg+'"/><circle cx="186" cy="165" r="2" fill="'+bg+'"/>';}
+ else{art='<rect x="91" y="51" width="164" height="164" rx="20" fill="'+mid+'" transform="rotate(-12 173 133)"/><rect x="116" y="80" width="57" height="57" rx="8" fill="'+light+'"/><rect x="184" y="80" width="47" height="47" rx="8" fill="#f4f0e7" opacity=".65"/><rect x="120" y="150" width="47" height="47" rx="8" fill="#f4f0e7" opacity=".65"/><circle cx="205" cy="176" r="29" fill="'+light+'"/>';}
+ const stars=Array.from({length:10},(_,i)=>'<circle cx="'+((seed*13+i*59)%340+10)+'" cy="'+((seed+i*37)%90+12)+'" r="'+(i%3+1)+'" fill="'+light+'" opacity=".35"/>').join('');
+ return '<svg viewBox="0 0 360 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="360" height="240" fill="'+bg+'"/>'+stars+art+'<path d="M0 233h360" stroke="'+light+'" opacity=".3"/></svg>';
 }
+function timeScene(hour){
+ if(hour>=5&&hour<11)return {key:'morning',label:'早安，慢慢醒來也很好。',sub:'晨光剛好，挑一個小世界，輕輕開始今天。',sky:'#83aba9',horizon:'#d9d8b5',sun:'#f8e6ad',water:'#59868d'};
+ if(hour>=11&&hour<17)return {key:'day',label:'午安，留一點空檔給自己。',sub:'忙碌之間，來這裡換個心情。今天想玩些什麼？',sky:'#5e98ae',horizon:'#cadace',sun:'#fff0ba',water:'#397689'};
+ if(hour>=17&&hour<22)return {key:'evening',label:'晚安，今天辛苦了。',sub:'讓晚霞陪你，把這一刻留給喜歡的遊戲。',sky:'#876c84',horizon:'#e1a57e',sun:'#f6cc92',water:'#535c79'};
+ return {key:'night',label:'夜深了，這裡還有一盞燈。',sub:'想再待一會也可以。找個舒服的角落，玩一小局。',sky:'#172b43',horizon:'#455677',sun:'#ece1b6',water:'#233c55'};
+}
+function landscape(t){
+ let stars=t.key==='night'?Array.from({length:26},(_,i)=>'<circle cx="'+(i*73%570+15)+'" cy="'+(i*31%140+10)+'" r="'+(i%2+1)+'" fill="#eee3c2" opacity=".65"/>').join(''):'';
+ return '<svg viewBox="0 0 600 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="scene-sky" x2="0" y2="1"><stop stop-color="'+t.sky+'"/><stop offset="1" stop-color="'+t.horizon+'"/></linearGradient></defs><rect width="600" height="400" fill="url(#scene-sky)"/>'+stars+'<circle cx="425" cy="90" r="35" fill="'+t.sun+'"/><path d="M0 240 100 128 215 225 340 165 480 239 600 152V400H0" fill="'+t.water+'" opacity=".5"/><path d="M0 280Q150 220 300 270T600 260V400H0" fill="'+t.water+'"/><path d="M255 300h180m-150 20h124m-107 22h82" stroke="'+t.sun+'" opacity=".35" stroke-width="2"/><path d="M0 356q150-56 280 44H0" fill="#172b38"/><path d="M38 320v-80m-25 30 25-44 25 44zm-13 16 13-38 13 38z" fill="#172b38"/><path d="M95 324v-48l32-22 32 22v48z" fill="#172b38"/><rect x="120" y="282" width="14" height="18" fill="'+t.sun+'"/><path d="M89 277l38-28 38 28" fill="none" stroke="#172b38" stroke-width="7"/></svg>';
+}
+function renderFeature(){
+ const t=timeScene(new Date().getHours());
+ document.body.dataset.time=t.key;
+ const g=visibleGames().find(g=>g.id==='fishing_rod')||visibleGames().find(g=>g.id==='little-prince')||visibleGames()[0];
+ document.getElementById('featured-game').innerHTML='<div class="hero-copy"><div class="eyebrow">PLAY NOOK / '+({morning:'MORNING LIGHT',day:'DAYTIME BREAK',evening:'EVENING GLOW',night:'MIDNIGHT CORNER'}[t.key])+'</div><h2>'+t.label+'</h2><p>'+t.sub+'</p><a class="hero-link" href="'+g.file+'?from=lobby">走進 '+g.name+' <span aria-hidden="true">↗</span></a></div><div class="hero-art">'+landscape(t)+'</div>';
+}
+function buildLobby(){
+ const games=visibleGames();
+ if(collectionFilter!=='all'&&!games.some(g=>g.category===collectionFilter))collectionFilter='all';
+ renderFeature();
+ const nav=document.getElementById('collection-nav');nav.innerHTML='';
+ [{key:'all',label:'全部收藏'},...CAT_META.filter(c=>games.some(g=>g.category===c.key))].forEach(cat=>{
+ const b=document.createElement('button');b.className='collection-tab'+(collectionFilter===cat.key?' active':'');b.textContent=cat.label;b.setAttribute('aria-pressed',collectionFilter===cat.key);b.onclick=()=>{collectionFilter=cat.key;buildLobby();document.querySelector('#collection-nav button[aria-pressed="true"]')?.focus({preventScroll:true});};nav.appendChild(b);
+ });
+ document.getElementById('collection-count').textContent=games.length+' 款遊戲 / 隨時出發';
+ const container=document.getElementById('game-sections');container.innerHTML='';
+ CAT_META.forEach(cat=>{
+ const list=games.filter(g=>g.category===cat.key);if(!list.length||(collectionFilter!=='all'&&collectionFilter!==cat.key))return;
+ const sec=document.createElement('section');sec.setAttribute('aria-label',cat.label);
+ const gridId='cat-grid-'+cat.key;
+ sec.innerHTML='<h3 class="section-title">'+cat.label+' <small>'+String(list.length).padStart(2,'0')+'</small></h3><div class="game-grid" id="'+gridId+'"></div>';
+ container.appendChild(sec);renderGrid(gridId,list,cat.key==='self');
+ });
+ document.getElementById('total-pts').textContent=Math.round(getTotalPtsLocal(DB.name));
+ document.getElementById('safety-status').textContent=isChildMode()?'兒童模式 · 本機記錄':'完整遊戲庫 · 留意年齡建議';
+}
+function renderGrid(gridId,games,isSelf=false){
+ const grid=document.getElementById(gridId);grid.innerHTML='';
+ games.forEach(g=>{
+ const best=getBestLocal(g.id,DB.name),played=best!==null;
+ const a=document.createElement('a');a.href=g.file+'?from=lobby';a.className='game-card'+(played?' played':'');a.setAttribute('aria-label','遊玩 '+g.name);
+ const bottom=isSelf?(played?'已完成':'開始探索'):(played?(g.lower?'最佳 ':'最高 ')+best+g.unit:'開始遊玩');
+ a.innerHTML='<div class="cover">'+coverArt(g)+'<span class="gc-badge">'+g.badge+'</span></div><div class="card-copy"><h4 class="gc-name">'+g.name+'</h4><p class="gc-desc">'+g.desc+'</p><div class="gc-age">'+gameSafety(g)+'</div><div class="card-bottom"><span class="'+(played?'gc-best':'gc-unplayed')+'">'+bottom+'</span><span class="card-arrow" aria-hidden="true">↗</span></div></div>';
+ grid.appendChild(a);
+ });
+}
+setInterval(()=>{if(document.visibilityState==='visible')renderFeature();},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')renderFeature();});
 
 document.getElementById('name-inp').value = DB.name;
 document.getElementById('name-inp').addEventListener('input', function(){
