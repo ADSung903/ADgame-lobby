@@ -738,7 +738,7 @@ function renderFeature(){
  document.body.dataset.time=t.key;
  const sceneId={morning:'fishing_rod',day:'river',evening:'shop',night:'turtlesoup'}[t.key];
  const g=visibleGames().find(g=>g.id===sceneId)||visibleGames()[0];
- document.getElementById('featured-game').innerHTML='<div class="hero-copy"><div class="eyebrow">PLAY NOOK / '+({morning:'MORNING LIGHT',day:'DAYTIME BREAK',evening:'EVENING GLOW',night:'MIDNIGHT CORNER'}[t.key])+'</div><h2>'+t.label+'</h2><p>'+t.sub+'</p><a class="hero-link" href="'+g.file+'?from=lobby">走進 '+g.name+' <span aria-hidden="true">↗</span></a></div><div class="hero-art">'+'<img src="assets/covers/'+g.id+'-v2.webp" alt="" width="960" height="640">'+'</div>';
+ document.getElementById('featured-game').innerHTML='<div class="hero-copy"><div class="eyebrow">PLAY NOOK / '+({morning:'MORNING LIGHT',day:'DAYTIME BREAK',evening:'EVENING GLOW',night:'MIDNIGHT CORNER'}[t.key])+'</div><h2>'+t.label.replace('，','，<br>')+'</h2><p>'+t.sub+'</p><a class="hero-link" href="'+g.file+'?from=lobby">走進 '+g.name+' <span aria-hidden="true">↗</span></a></div><div class="hero-art">'+'<img src="assets/covers/'+g.id+'-v2.webp" alt="" width="960" height="640">'+'</div>';
 }
 function buildLobby(){
  const games=visibleGames();
