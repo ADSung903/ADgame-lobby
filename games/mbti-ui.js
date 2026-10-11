@@ -10,8 +10,14 @@
  function safeRead(k){try{return JSON.parse(localStorage.getItem(k)||'null');}catch{return null;}}
  function screen(id){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id===id));}
  function saveDraft(){try{localStorage.setItem(DRAFT,JSON.stringify({current,answers}));}catch{}}
- function question(){screen('questions');const q=NookPreference.questions[current],m=meta[q.dim];$('q-number').textContent=(current+1)+' / 24';$('q-dimension').textContent=m.title;$('q-text').textContent=q.q;$('left-answer').textContent=q.a;$('right-answer').textContent=q.b;$('progress').style.width=(current/24*100)+'%';
-  document.querySelectorAll('.rating button').forEach(b=>b.setAttribute('aria-pressed',answers[current]===Number(b.dataset.value)));$('previous').disabled=current===0;$('next').disabled=answers[current]===null;$('next').textContent=current===23?'查看偏好輪廓':'下一題 →';
+ function question(){screen('questions');const q=NookPreference.questions[current],m=meta[q.dim];$('q-number').textContent=(current+1)+' / 24';$('q-dimension').textContent=m.title;$('q-text').textContent=q.q;$('progress').style.width=(current/24*100)+'%';
+  document.querySelectorAll('.rating button').forEach(b=>{
+   const value=Number(b.dataset.value);b.replaceChildren();
+   if(value===0){b.textContent='兩者皆有／視情況而定';}
+   else{const description=document.createElement('strong'),degree=document.createElement('span');
+    description.textContent=value>0?q.a:q.b;degree.textContent=Math.abs(value)===2?'很符合我':'稍微符合我';b.append(description,degree);}
+   b.setAttribute('aria-pressed',answers[current]===value);
+  });$('previous').disabled=current===0;$('next').disabled=answers[current]===null;$('next').textContent=current===23?'查看偏好輪廓':'下一題 →';
  }
  function renderResult(r){result=r;screen('results');$('result-type').textContent=r.type;$('dimensions').replaceChildren();for(const d of r.dimensions){const m=meta[d.dim],el=document.createElement('section');el.className='dim-card';el.innerHTML='<h3>'+m.title+'</h3><div class="scale-label"><span>'+m.left+'</span><span>'+m.right+'</span></div><div class="track"><div style="width:'+d.responsePct+'%"></div></div><p><strong>'+(d.letter==='X'?'回答接近中間，暫不指定偏好':(d.score>0?m.left:m.right)+' 的回答較多')+'</strong></p><p>'+m.desc+'</p><p>想一想：'+m.reflect+'</p>';$('dimensions').append(el);}$('share-status').textContent='';}
  function finish(){const r=NookPreference.calculate(answers);try{localStorage.setItem(KEY,JSON.stringify({...r,date:new Date().toLocaleDateString('zh-TW')}));localStorage.removeItem(DRAFT);const db=safeRead('game_lobby_v2')||{};db.self=db.self||{};db.self.mbti={type:r.type,name:'四組偏好探索（非正式評估）',icon:'◈',date:new Date().toLocaleDateString('zh-TW'),scores:r.dimensions.reduce((o,d)=>{o[d.dim]=d.score;return o;},{}),version:2};localStorage.setItem('game_lobby_v2',JSON.stringify(db));}catch{}renderResult(r);}
