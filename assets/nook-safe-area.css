@@ -21,3 +21,9 @@ body[data-nook-safe="sim"] #side-panel{top:env(safe-area-inset-top,0px);bottom:e
  padding-bottom:max(16px,env(safe-area-inset-bottom,0px))!important;
  padding-left:max(16px,env(safe-area-inset-left,0px))!important;
 }
+
+/* These two games now begin with a breadcrumb, which owns the top inset. */
+body[data-nook-game="rainbow"] .nook-breadcrumb,
+body[data-nook-game="fishing"] .nook-breadcrumb{padding-top:env(safe-area-inset-top,0px)}
+body[data-nook-game="rainbow"] .topbar,
+body[data-nook-game="fishing"] .topbar{padding-top:10px!important}

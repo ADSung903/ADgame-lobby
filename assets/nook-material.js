@@ -9,6 +9,7 @@
  // Keep native button handlers intact: they save progress and may return to a
  // game's own internal lobby, such as the fishing results screen.
  const file=location.pathname.split('/').pop().replace('.html','');
+ document.body.dataset.nookGame=file;
  // One owner per page: preserve existing safe-area-aware game headers.
  const needsSafeBody=['ab','q20','turtlesoup','sim','witch','mbti','block-blast','fishing_rod','fishing_rod_core'];
  if(needsSafeBody.includes(file)){
