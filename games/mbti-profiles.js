@@ -26,6 +26,10 @@ window.NookProfiles={
     "partners": [
       "ENFP",
       "ENTP",
+      "INFJ",
+      "INFP",
+      "ENTJ",
+      "INTJ",
       "ESFP",
       "ESFJ"
     ],
@@ -58,6 +62,10 @@ window.NookProfiles={
     "partners": [
       "ENTJ",
       "ENFJ",
+      "INFJ",
+      "INTJ",
+      "ENTP",
+      "INTP",
       "ESFJ",
       "ESTJ"
     ],
@@ -90,6 +98,10 @@ window.NookProfiles={
     "partners": [
       "INTP",
       "INFP",
+      "ENTJ",
+      "INTJ",
+      "ENTP",
+      "ENFP",
       "ISFP",
       "ISFJ"
     ],
@@ -122,6 +134,10 @@ window.NookProfiles={
     "partners": [
       "INFJ",
       "INTJ",
+      "ENTJ",
+      "ENTP",
+      "ENFP",
+      "INTP",
       "ISFJ",
       "ISTJ"
     ],
@@ -154,6 +170,10 @@ window.NookProfiles={
     "partners": [
       "ENTP",
       "ENFP",
+      "INFJ",
+      "INFP",
+      "INTJ",
+      "ENFJ",
       "ESTP",
       "ISTP"
     ],
@@ -186,6 +206,10 @@ window.NookProfiles={
     "partners": [
       "ENFJ",
       "ENTJ",
+      "INFJ",
+      "INFP",
+      "ENFP",
+      "ISFP",
       "ESTJ"
     ],
     "scene": "挑選活動時，你可能先問「這是不是我真正想投入的事？」。 這只是一個方便理解偏好的虛構例子，並非你的能力或固定行為。"
@@ -217,6 +241,10 @@ window.NookProfiles={
     "partners": [
       "INFP",
       "INTP",
+      "ENFJ",
+      "INFJ",
+      "ENFP",
+      "ISFJ",
       "ISTP",
       "ESTP"
     ],
@@ -249,6 +277,10 @@ window.NookProfiles={
     "partners": [
       "INTJ",
       "INFJ",
+      "ENFP",
+      "INFP",
+      "ENTJ",
+      "ENFJ",
       "ISTJ",
       "ISFJ"
     ],
@@ -281,6 +313,10 @@ window.NookProfiles={
     "partners": [
       "ESFP",
       "ESTP",
+      "ISTJ",
+      "ISFJ",
+      "ESTJ",
+      "ESFJ",
       "ENFP",
       "ENTP"
     ],
@@ -313,6 +349,10 @@ window.NookProfiles={
     "partners": [
       "ESTP",
       "ESFP",
+      "ISFJ",
+      "ISTJ",
+      "ESFJ",
+      "ENFJ",
       "ENTJ",
       "ENTP"
     ],
@@ -345,6 +385,10 @@ window.NookProfiles={
     "partners": [
       "ISFP",
       "ISTP",
+      "ESTJ",
+      "ISTJ",
+      "ESFJ",
+      "ISFJ",
       "INFP",
       "ENFP"
     ],
@@ -377,6 +421,10 @@ window.NookProfiles={
     "partners": [
       "ISTP",
       "ISFP",
+      "ESFJ",
+      "ISFJ",
+      "ESTJ",
+      "ENFJ",
       "INTP",
       "INTJ"
     ],
@@ -386,7 +434,7 @@ window.NookProfiles={
     "name": "鑑賞家",
     "icon": "🔧",
     "title": "從實際觀察找出可行解法",
-    "core": "先獨自觀察具体資訊，用邏輯分析，再依現場變化調整做法。",
+    "core": "先獨自觀察具體資訊，用邏輯分析，再依現場變化調整做法。",
     "behavior": "東西出狀況時，你可能先檢查實際現象，再試一個可驗證的解法。",
     "communication": "把觀察與下一步說出來，讓夥伴不必猜測你的進度。",
     "work": "能接觸實際問題、動手驗證，並保有調整方法的空間。",
@@ -409,6 +457,10 @@ window.NookProfiles={
     "partners": [
       "ESFJ",
       "ESTJ",
+      "ISTP",
+      "ISFP",
+      "ESTP",
+      "ISTJ",
       "ENFJ",
       "ENTJ"
     ],
@@ -441,6 +493,10 @@ window.NookProfiles={
     "partners": [
       "ESTJ",
       "ESFJ",
+      "ISFP",
+      "ISTP",
+      "ENFP",
+      "INFP",
       "ENTJ"
     ],
     "scene": "創作或挑選物件時，你可能先在意實際感受與自己的喜好。 這只是一個方便理解偏好的虛構例子，並非你的能力或固定行為。"
@@ -472,6 +528,10 @@ window.NookProfiles={
     "partners": [
       "ISFJ",
       "ISTJ",
+      "ESTP",
+      "ISTP",
+      "ESFP",
+      "ESTJ",
       "INFJ",
       "INFP"
     ],
@@ -504,6 +564,10 @@ window.NookProfiles={
     "partners": [
       "ISTJ",
       "ISFJ",
+      "ESFP",
+      "ISFP",
+      "ESTP",
+      "ESFJ",
       "INTJ",
       "INFJ"
     ],
