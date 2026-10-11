@@ -5,7 +5,7 @@ body.nook-material{background:#30251f!important;background-image:linear-gradient
 .nook-material .btn:active{transform:translateY(2px)!important;box-shadow:0 1px 0 #5b402c!important}
 .nook-material .big-btn,.nook-material .start-btn{background:linear-gradient(145deg,#ba995f,#8f6c39)!important;color:#fff7e5!important;border:1px solid #d6b97f!important;border-radius:5px!important;min-height:46px;box-shadow:0 3px 0 #4e371e}
 .nook-material .pill,.nook-material .steps-pill{background:#d9c7a4!important;color:#463522!important;border:1px solid #b08d52!important;border-radius:4px!important}
-.nook-material .topbar{flex-wrap:wrap;gap:12px;padding-top:10px!important}
+.nook-material .topbar{flex-wrap:wrap;gap:12px}
 .nook-material .topbar h1{background:none!important;-webkit-text-fill-color:#f1e7d2!important;color:#f1e7d2!important;filter:none!important}
 .nook-material .grid-card,.nook-material .ctrl-panel,.nook-material .game-top{background-image:linear-gradient(#33271faa,#33271f99),url(materials/materials.webp)!important;border:1px solid #b4935a!important;box-shadow:var(--nook-shadow);border-radius:8px!important}
 .nook-material .intro-card,.nook-material .q-card,.nook-material .ov-card,.nook-material .result-box,.nook-material .setup-box,.nook-material .section-box,.nook-material .diff-card,.nook-material .lvl-card{background:linear-gradient(150deg,#483729,#2c241e)!important;border:1px solid #9f8050!important;color:#f1e7d2!important;border-radius:8px!important}

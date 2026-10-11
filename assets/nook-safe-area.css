@@ -1,0 +1,23 @@
+/* Keep backgrounds edge-to-edge; only interactive content owns an inset. */
+body[data-nook-safe]{
+ box-sizing:border-box;
+ padding-top:calc(var(--nook-base-top,24px) + var(--nook-safe-top,env(safe-area-inset-top,0px)))!important;
+ padding-right:max(var(--nook-base-right,24px),env(safe-area-inset-right,0px))!important;
+ padding-bottom:calc(var(--nook-base-bottom,80px) + var(--nook-safe-bottom,env(safe-area-inset-bottom,0px)))!important;
+ padding-left:max(var(--nook-base-left,24px),env(safe-area-inset-left,0px))!important;
+}
+@media(max-width:600px){body[data-nook-safe="lobby"]{--nook-base-top:18px;--nook-base-right:16px;--nook-base-bottom:50px;--nook-base-left:16px}}
+body[data-nook-safe="fishing_rod"]{height:100dvh}
+body[data-nook-safe="fishing_rod"] iframe{height:100%!important;min-height:0}
+/* The wrapper has already reserved the device insets for its child frame. */
+body[data-nook-embedded]{--nook-safe-top:0px;--nook-safe-bottom:0px}
+body[data-nook-safe="sim"] .screen{box-sizing:border-box;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+body[data-nook-safe="sim"] #side-panel{top:env(safe-area-inset-top,0px);bottom:env(safe-area-inset-bottom,0px);right:env(safe-area-inset-right,0px)}
+/* Fixed overlays don't inherit body padding. Reserve their own device space. */
+.wm-overlay,.modal-back,.item-card-back,.death-overlay,.inherit-overlay,#modal-overlay{
+ box-sizing:border-box;
+ padding-top:max(16px,env(safe-area-inset-top,0px))!important;
+ padding-right:max(16px,env(safe-area-inset-right,0px))!important;
+ padding-bottom:max(16px,env(safe-area-inset-bottom,0px))!important;
+ padding-left:max(16px,env(safe-area-inset-left,0px))!important;
+}

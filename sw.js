@@ -1,4 +1,4 @@
-const CACHE = 'adgame-v8-inline-home';
+const CACHE = 'adgame-v9-safe-area';
 
 // App shell + 所有遊戲 HTML（素材類走執行期快取，見下方 fetch）
 const ASSETS = [
