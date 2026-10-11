@@ -23,12 +23,12 @@
   const overview=$('profile-overview');overview.append(card(p.icon+' '+type+' · '+p.name,p.title+'。'+p.core));
   const strengths=card('可以觀察的優勢');strengths.append(element('p','這些是可運用、可練習的方式，不代表這一型一定具備。'),tags(p.strengths));overview.append(strengths,card('成長練習',p.growth),card('典型生活情境',p.scene));
   $('profile-deep').append(card('人格核心：偏好如何連在一起',p.core+' 這四個方向描述閱讀框架，不能直接推論你的認知功能、能力或固定性格。'),card('日常行為模式',p.behavior+' 可以回想最近一次相似情境，看看自己是否也是這樣選擇。'),card('自我對照','哪些描述貼近你的日常？哪些只有在特定角色下才出現？用具體經驗校正，比勉強符合一個名稱更有幫助。'));
-  const relations=$('profile-relations');relations.append(card('溝通與界線',p.communication),card('不同偏好的相處線索','以下保留原版配對的閱讀入口，改成比較共同點與差異。沒有相容性排名或配對成功率；實際關係仍要看溝通、價值觀與互相尊重。'));
+  const relations=$('profile-relations');relations.append(card('溝通與界線',p.communication),card('不同偏好的相處線索','比較不同偏好的共同點與差異，找到可以一起討論的相處線索。沒有相容性排名或配對成功率；實際關係仍要看溝通、價值觀與互相尊重。'));
   p.partners.forEach(other=>{const same=[],diff=[];for(let i=0;i<4;i++)(other[i]===type[i]?same:diff).push(other[i]===type[i]?label[type[i]]:label[type[i]]+'／'+label[other[i]]);
    const box=card(other+' · '+profiles[other].name);box.append(element('p',same.length?'共同起點：'+same.join('、')+'。':'四組偏好方向都不同，可以先從共同經驗找起。'),element('p',diff.length?'可以討論：'+diff.join('、')+'。差異可能帶來新觀點，也需要說清楚彼此的需求。':'偏好相似也不保證相處容易，仍需確認各自的期待。'));
    const btn=element('button','閱讀 '+other,'btn');btn.type='button';btn.onclick=()=>{$('profile-select').value=other;render(other);};box.append(btn);relations.append(box);
   });
-  const career=$('profile-career');career.append(card('工作風格與環境',p.work),card('可探索的職業方向','保留原版八個職業例子，作為了解工作內容的入口。它們不是適職排名，也不表示其他工作不適合你；興趣、技能、資格與現實條件都要一起考量。'));
+  const career=$('profile-career');career.append(card('工作風格與環境',p.work),card('可探索的職業方向','以下八個職業例子，作為了解工作內容的入口。它們不是適職排名，也不表示其他工作不適合你；興趣、技能、資格與現實條件都要一起考量。'));
   const jobs=card('八個探索起點');jobs.append(tags(p.careers));career.append(jobs,card('職涯練習',p.growth),card('把方向變成小實驗','挑一個有興趣的工作，了解它一天實際做什麼、需要哪些技能。試一次相關任務，或訪談一位從業者，再記下你喜歡與不喜歡的部分。'));
  }
  function open(r){
