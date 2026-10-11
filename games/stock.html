@@ -98,7 +98,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);mi
 .slb-section{flex-shrink:0;border-top:.5px solid var(--border);margin-top:.25rem}
 .slb-hdr{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;padding:.5rem .75rem .1rem}
 </style>
-</head><body><div class="app">
+<link rel="stylesheet" href="../assets/nook-material.css?v=2"><style>body.nook-material{--bg:#30251f;--bg2:#3d3025;--bg3:#493a2d;--border:#9b805650;--text:#f2e5cd;--sub:#d0bd9c;--accent:#c4a268;--gold:#e0be7d}.nook-material .topbar,.nook-material .tabs,.nook-material .acc-item,.nook-material .no-cash-box{background:#33291fe8!important;border-color:#a78a5655!important}.nook-material .hero{background:linear-gradient(#4d3b27e6,#30251fe8)!important}.nook-material .back-btn,.nook-material .tb-btn,.nook-material .no-cash-box button{border-color:#c0a271!important;color:#ead8b5!important}.nook-material input{color:#392c21!important}</style></head><body class="nook-material"><div class="app">
 
 <div class="topbar">
   <button class="back-btn" onclick="goBack()">← 大廳</button>
@@ -607,4 +607,5 @@ if(state.lastFetch&&Date.now()-state.lastFetch<5*60*1000){
 }
 setInterval(refreshPrices,5*60*1000);
 </script>
-</body></html>
+<script src="../assets/nook-material.js?v=2"></script></body></html>
+
