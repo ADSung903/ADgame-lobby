@@ -59,8 +59,12 @@ canvas{display:block;border-radius:14px;background:transparent;touch-action:none
   .lvl-chip.locked{opacity:.38;cursor:default;font-size:18px}
   .lvl-chip .lc-best{font-size:11px;font-weight:600;color:#ffd34d}
   #lvl-close{display:block;margin:22px auto 0}
+
+#lvl-screen{background:#2e241df7}#lvl-screen h2{color:#f5e6c8}#lvl-screen .sub{color:#cdb990}.lvl-chip{background:linear-gradient(145deg,#ece2ce,#c9b48d);color:#3b3021;border:1px solid #c4a571;box-shadow:0 4px 0 #5b4228}
+.lvl-chip .lc-best{color:#38593b}.grid-card{padding:14px}.win{background:#354d39;color:#eadbb5;border-color:#849569}
+.topbar .meta{width:100%;justify-content:center}
 </style>
-</head><body>
+<link rel="stylesheet" href="../assets/nook-material.css?v=2"></head><body class="nook-material">
 <div class="app">
   <div class="topbar">
     <button class="btn" onclick="window.location.href='/'">← 大廳</button>
@@ -88,7 +92,7 @@ canvas{display:block;border-radius:14px;background:transparent;touch-action:none
 </div>
 
 <script>
-const RAINBOW=['#FF6B6B','#FFB84D','#FFE066','#6FCF6F','#4DA8FF','#9B6BFF','#FF6BC7'];
+const RAINBOW=['#be6251','#c98b43','#c5a24f','#658a66','#537f92','#827294','#ac7080'];
 const SEG=3; // 每幾格換一次顏色
 const DIRS=[[0,1],[0,-1],[1,0],[-1,0]];
 const LV_KEY='rainbow_level';
@@ -102,6 +106,7 @@ let t0=0;
 
 const cv=document.getElementById('gc');
 const ctx=cv.getContext('2d');
+const woodTexture=new Image();woodTexture.src='../assets/materials/materials.webp';woodTexture.onload=()=>render();
 
 function key(r,c){return r+','+c;}
 
@@ -309,10 +314,11 @@ function render(){
       const col=colorForIndex(filledIdx);
       grad.addColorStop(0,lighten(col,22));grad.addColorStop(1,col);
     }else{
-      grad.addColorStop(0,'#2c2c46');grad.addColorStop(1,'#1a1a2c');
+      grad.addColorStop(0,'#f3e9d5');grad.addColorStop(1,'#c9b792');
     }
     ctx.fillStyle=grad;
     ctx.beginPath();ctx.roundRect(x,y,w,h,r2);ctx.fill();
+    ctx.save();ctx.clip();if(woodTexture.complete&&woodTexture.naturalWidth){ctx.globalAlpha=.12;ctx.drawImage(woodTexture,x,y,w,h);}ctx.restore();
     ctx.restore();
     ctx.save();
     ctx.beginPath();ctx.roundRect(x+2,y+2,w-4,h*0.42,r2*0.7);
@@ -391,4 +397,5 @@ openLevelSelect();
 <script>
   document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
-</body></html>
+<script src="../assets/nook-material.js?v=2"></script></body></html>
+

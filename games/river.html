@@ -60,7 +60,18 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
     padding-bottom: env(safe-area-inset-bottom, 16px);
     min-height: 100dvh;
   }
-</style></head><body>
+
+.river-rules{padding:14px 18px;background:#f1e7d2;color:#3c392a;border:1px solid #b39765;border-radius:5px;font-size:12px;line-height:1.9;margin-bottom:12px}.river-rules summary{font-weight:650;cursor:pointer}.river-position{font-size:12px;color:#eadab5;margin:12px 0}
+.scene{height:350px;background:linear-gradient(#0001,#0003),url(../assets/covers/river-v2.webp) center/cover;border:1px solid #ba995c;border-radius:8px}
+.bank{width:34%;background:#193b3266;justify-content:flex-start;padding:38px 8px 70px;gap:7px;overflow:auto;flex-direction:row;flex-wrap:wrap;align-content:flex-start}
+.bank-label{color:#fff0c7;background:#2a362de6;padding:4px 9px;border-radius:3px}
+.bank-left{border:0}.bank-right{border:0}.river{background:#547f8922;left:34%;right:34%}
+.character{font:inherit;font-size:11px;line-height:1.2;color:#302d25;width:58px;border:1px solid #b39a6b;border-radius:5px;background:#e9dfc8;padding:4px;box-shadow:0 3px 8px #0005;display:flex;flex-direction:column;gap:4px;align-items:center}
+.river-portrait{width:46px;height:46px;background-image:url(../assets/materials/river-atlas.webp);background-size:300% 200%;display:block;border-radius:3px}
+.river-symbol{font-size:26px;min-height:35px}.boat{bottom:12%;width:110px;min-height:70px;height:auto;padding:6px;background-image:url(../assets/materials/materials.webp);border:2px solid #c7a571;border-radius:5px 5px 20px 20px;gap:4px}
+.boat-left{left:calc(34% - 55px)}.boat-right{left:calc(66% - 55px)}.character.on-boat{width:40px;font-size:9px}.character.on-boat .river-portrait{width:31px;height:31px}
+@media(max-width:400px){.character{width:48px;font-size:10px}.river-portrait{width:36px;height:36px}.scene{height:370px}}
+</style><link rel="stylesheet" href="../assets/nook-material.css?v=2"></head><body class="nook-material">
 <div class="app">
 <button class="btn" style="margin-bottom:.5rem" onclick="window.location.href='/'">← 大廳</button>
 <h1>🚣 過河難題</h1>
@@ -77,7 +88,7 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
       <span class="steps-pill" id="time-display" style="display:none">⏱ <span id="time-used">0</span>/<span id="time-limit">15</span>分</span>
     </div>
   </div>
-  <div class="scene">
+  <details class="river-rules" open><summary>本關規則與目標</summary><p id="rule-description"></p></details><div class="river-position" id="river-position" role="status"></div><div class="scene">
     <div class="bank bank-left" id="bank-left"><span class="bank-label">出發岸</span></div>
     <div class="river"><div class="wave"></div><div class="wave"></div><div class="wave"></div></div>
     <div class="bank bank-right" id="bank-right"><span class="bank-label">目標岸</span></div>
@@ -94,7 +105,7 @@ h1{font-size:21px;font-weight:500;text-align:center;margin-bottom:.75rem}
   <div class="history" id="history"></div>
   <div class="controls-bot">
     <button class="btn" id="back-lvl-btn">← 關卡選擇</button>
-    <button class="btn" id="restart-btn">重新開始</button>
+    <button class="btn" id="restart-btn">重新開始</button><button class="btn" id="undo-move">復原上一步</button>
     <button class="btn" id="hint-btn">💡 提示</button>
     <button class="btn" id="next-lvl-btn" style="display:none">下一關 ➜</button>
   </div>
@@ -112,7 +123,7 @@ const LEVELS=[
     hint:'先把羊送過去，再送狼（或白菜），記得把羊帶回來！',
   },
   {
-    title:'👨‍👩‍👧 三口之家',
+    title:'一家四口',
     desc:'爸媽和兩個孩子，大人船才能划，每次載一人',
     diff:'⭐⭐ 簡單',capacity:1,
     cast:[
@@ -256,7 +267,9 @@ LEVELS.forEach((lv,i)=>{
   lgrid.appendChild(c);
 });
 
+let moveSnapshots=[],failed=false;
 function loadLevel(idx){
+  moveSnapshots=[];failed=false;
   curLvl=idx;const lv=LEVELS[idx];
   steps=0;boatSide='left';boatPass=[];won=false;histLog=[];timeUsed=0;
   state={};lv.cast.forEach((_,i)=>state[i]='left');
@@ -271,6 +284,7 @@ function loadLevel(idx){
   const td=document.getElementById('time-display');
   if(lv.isBridge){td.style.display='inline-block';document.getElementById('time-used').textContent=0;document.getElementById('time-limit').textContent=lv.timeLimit;}
   else td.style.display='none';
+  document.getElementById('rule-description').textContent=lv.desc+'。'+(lv.note||'')+(lv.forbidden?.length?' 限制：'+lv.forbidden.map(([a,b])=>lv.cast[a].name+'與'+lv.cast[b].name+(lv.boatForbiddenOnly?'不能同船':'不可無人看管地同岸')).join('；'):'');
   updateBoat();buildControls();renderScene();
 }
 
@@ -290,7 +304,7 @@ function buildControls(){
 }
 
 function toggleBoard(ci){
-  if(won)return;
+  if(won||failed)return;
   const lv=LEVELS[curLvl];const side=state[ci];
   if(side!==boatSide&&side!=='boat')return;
   if(side==='boat'){
@@ -309,7 +323,7 @@ function toggleBoard(ci){
       if(boatPass.includes(ci))return;
       boatPass.push(ci);state[ci]='boat';
     } else {
-      if(!fob){setMsg(lv.cast[fi].name+'必須先上船！',true);return;}
+      if(!fob){if(state[fi]!==boatSide){setMsg('船夫必須與你在同一岸。',true);return;}boatPass.push(fi);state[fi]='boat';}
       if(boatPass.length-1>=lv.capacity){setMsg('船已滿！',true);return;}
       // ✅ 五寶：檢查同船衝突
       if(lv.boatForbiddenOnly){
@@ -327,7 +341,7 @@ function toggleBoard(ci){
 }
 
 function rowBoat(){
-  if(won)return;
+  if(won||failed)return;
   const lv=LEVELS[curLvl];
   if(lv.isBridge){
     if(boatPass.length===0){setMsg('沒有人在橋上！',true);return;}
@@ -339,6 +353,7 @@ function rowBoat(){
     if(!boatPass.includes(fi)){setMsg(lv.cast[fi].name+'不在船上！',true);return;}
   }
 
+  moveSnapshots.push({state:{...state},boatPass:[...boatPass],boatSide,steps,timeUsed,histLog:[...histLog]});
   const from=boatSide;
   boatSide=boatSide==='left'?'right':'left';
   steps++;document.getElementById('step-count').textContent=steps;
@@ -356,12 +371,12 @@ function rowBoat(){
 
   if(lv.isBridge&&timeUsed>lv.timeLimit){
     renderScene();setMsg('⏰ 超時！共'+timeUsed+'分，限'+lv.timeLimit+'分！',true);
-    setTimeout(()=>loadLevel(curLvl),1800);return;
+    failed=true;setMsg('時間超過限制。可復原上一步，重新安排過橋順序。',true);return;
   }
 
   // ✅ 五寶只檢查船上，其他關卡檢查岸上
   const viol=checkForbidden();
-  if(viol){setMsg('❌ '+viol+'！重來！',true);setTimeout(()=>loadLevel(curLvl),1300);return;}
+  if(viol){failed=true;renderScene();setMsg(viol+'。請復原上一步，換個安排。',true);return;}
 
   renderScene();
   const allRight=lv.cast.every((_,i)=>state[i]==='right');
@@ -408,7 +423,7 @@ function checkForbidden(){
         const otherHub=here.find(i=>{
           const c=lv.cast[i];if(c.couple===undefined)return false;
           const m=lv.cast.map((x,j)=>({...x,j})).filter(x=>x.couple===c.couple);
-          return m[0].j===i&&c.couple!==wc.couple;
+          return m[0].i===i&&c.couple!==wc.couple;
         });
         if(otherHub!==undefined)return wc.name+'不能和其他男人同岸';
       }
@@ -432,13 +447,14 @@ function updateBoat(){
 }
 
 function renderScene(){
-  const lv=LEVELS[curLvl];
+  const lv=LEVELS[curLvl];document.getElementById('river-position').textContent=(lv.isBridge?'火把':'船')+'目前在'+(boatSide==='left'?'出發岸':'目標岸')+' · 已選 '+boatPass.length+' 人／物';
   const lb=document.getElementById('bank-left'),rb=document.getElementById('bank-right'),be=document.getElementById('boat');
   lb.querySelectorAll('.character').forEach(e=>e.remove());
   rb.querySelectorAll('.character').forEach(e=>e.remove());
   be.querySelectorAll('.character').forEach(e=>e.remove());
   lv.cast.forEach((c,i)=>{
-    const el=document.createElement('div');el.className='character';el.title=c.name;el.textContent=c.e;
+    const el=document.createElement('button');el.className='character';el.title=c.name;el.setAttribute('aria-label',c.name+'，'+(state[i]==='boat'?'在船上':state[i]==='left'?'在出發岸':'在目標岸'));
+    const portraits={'農夫':0,'狼':1,'羊':2,'白菜':3,'穀物':4,'雞':5};const portrait=portraits[c.name];if(portrait!==undefined){el.innerHTML='<span class="river-portrait" style="background-position:'+(portrait%3*50)+'% '+(Math.floor(portrait/3)*100)+'%"></span><span>'+c.name+'</span>';}else{el.innerHTML='<span class="river-symbol">'+c.e+'</span><span>'+c.name+'</span>';}
     el.addEventListener('click',e=>{e.stopPropagation();toggleBoard(i);});
     const s=state[i];
     if(s==='left')lb.appendChild(el);
@@ -449,10 +465,11 @@ function renderScene(){
     const b=document.getElementById('ctrl-'+i);if(!b)return;
     const s=state[i];
     b.style.borderColor=s==='boat'?'#f90':s===boatSide?'#555':'#1a2a3a';
-    b.style.opacity=s===boatSide||s==='boat'?'1':'0.38';
+    b.style.opacity=s===boatSide||s==='boat'?'1':'0.38';b.disabled=won||failed||(s!==boatSide&&s!=='boat');b.setAttribute('aria-pressed',s==='boat');
   });
 }
 
+document.getElementById('undo-move').onclick=()=>{const prev=moveSnapshots.pop();if(!prev){setMsg('還沒有可以復原的航程。');return;}({state,boatPass,boatSide,steps,timeUsed,histLog}=prev);won=false;failed=false;document.getElementById('step-count').textContent=steps;document.getElementById('time-used').textContent=timeUsed;document.getElementById('history').textContent=histLog.join('　');document.getElementById('win-box').style.display='none';document.getElementById('next-lvl-btn').style.display='none';updateBoat();renderScene();setMsg('已復原，重新選擇這一趟的乘客。');};
 function setMsg(txt,isErr=false){
   const el=document.getElementById('msg-box');
   el.textContent=txt;el.className='msg-box'+(isErr?' err-msg':'');
@@ -470,4 +487,5 @@ document.getElementById('hint-btn').addEventListener('click',()=>{
 <script>
   document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
-</body></html>
+<script src="../assets/nook-material.js?v=2"></script></body></html>
+

@@ -1,0 +1,20 @@
+body{margin:0;min-height:100dvh;padding:20px max(16px,env(safe-area-inset-right)) 40px;display:flex;justify-content:center}
+.app{width:100%;max-width:860px}.screen{display:none}.screen.active{display:block}
+h1{font-size:28px;font-weight:600;margin:0 0 10px}.lead{color:#d9c9b3;line-height:1.8;font-size:13px;margin:0 0 22px}.setup-box{padding:28px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}.form-row label{font-size:12px;display:flex;flex-direction:column;gap:9px}input,select{padding:12px;border:1px solid;border-radius:4px;font:inherit;width:100%}
+.rules{font-size:13px;line-height:1.9;border-left:2px solid #c5a16a;padding:8px 16px;margin:20px 0}.start-btn{padding:13px 28px;font-size:15px;cursor:pointer}
+.turn-top{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:15px}.turn-top h2{font-size:20px;margin:0}.turn-count{color:#d0b680;font-size:12px}
+.table{position:relative;padding:35px 28px 30px;border:1px solid #a28353;border-radius:8px;background-image:linear-gradient(#1627249c,#251910b8),url(../assets/covers/witch-v2.webp);background-position:center;background-size:cover;box-shadow:0 20px 40px #0006;min-height:340px}
+.table::before{content:"你的視角 · 藥劑桌";display:block;font-size:10px;letter-spacing:3px;text-align:center;color:#e1cba5;margin-bottom:24px}
+.potions{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;align-items:end}
+.potion{position:relative;padding:0 0 12px;cursor:pointer;background:#30261dee;border:1px solid #9f8052;border-radius:8px;color:#f4e1bb;box-shadow:0 8px 15px #0005;transition:transform .15s;font:inherit;min-width:0}
+.potion:hover{transform:translateY(-5px)}.potion:focus-visible{outline:3px solid #f4d397;outline-offset:3px}
+.potion-art{display:block;width:100%;aspect-ratio:1;background-image:url(../assets/materials/potion-atlas.webp);background-size:300% 200%;background-position:var(--px) var(--py);border-radius:7px 7px 0 0}
+.potion-number{display:block;font-size:13px;font-weight:600;letter-spacing:1px;padding-top:8px}
+.potion.selected{outline:3px solid #f4cc74;transform:translateY(-8px)}.potion.selected::after{content:"已藏毒";position:absolute;inset:auto 4px 4px;background:#9b4932;color:#fff4dd;font-size:10px;padding:2px}
+.potion.used{opacity:.35;cursor:default;filter:grayscale(.9)}.potion.used:hover{transform:none}
+.action-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}.action-footer p{font-size:13px;line-height:1.7;color:#e0ceb0}
+.handoff,.resolution,.finished{max-width:500px;margin:40px auto;padding:36px;text-align:center;border:1px solid #b99a61;background:linear-gradient(#433426,#25211c);border-radius:8px}
+.handoff h2,.resolution h2,.finished h2{font-size:26px;margin:12px 0}.handoff p,.resolution p,.finished p{line-height:1.9;color:#ddcdb5;font-size:14px}.seal{font-size:13px;letter-spacing:4px;color:#cfb077}
+.scoreline{font-size:14px;color:#e4ceaa;margin-top:25px;padding-top:18px;border-top:1px solid #8d724644}
+@media(max-width:600px){.setup-box{padding:20px}.form-row{gap:12px}.table{padding:24px 14px}.potions{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.potion-art{aspect-ratio:1.05}.handoff,.resolution,.finished{padding:28px;margin:25px auto}.turn-top h2{font-size:17px}h1{font-size:23px}.table::before{margin-bottom:15px}}

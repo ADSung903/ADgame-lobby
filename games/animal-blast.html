@@ -176,8 +176,8 @@
   .combo-banner{position:fixed; top:30%; left:50%; transform:translate(-50%,-50%) scale(0.4); font-family:'Baloo 2',sans-serif; font-weight:800; font-size:36px; color:var(--gold); text-shadow:0 4px 10px rgba(0,0,0,.6); opacity:0; pointer-events:none; z-index:150; transition:transform .25s cubic-bezier(.2,1.4,.4,1), opacity .25s ease;}
   .combo-banner.show{opacity:1; transform:translate(-50%,-50%) scale(1);}
 </style>
-</head>
-<body>
+<link rel="stylesheet" href="../assets/nook-material.css?v=2"></head>
+<body class="nook-material">
 
 <!-- ===================== LEVEL MAP SCREEN ===================== -->
 <div class="screen show" id="screenMap">
@@ -1152,5 +1152,6 @@ renderMap();
 showScreen('screenMap');
 window.addEventListener('resize', ()=>{ if(document.getElementById('screenGame').classList.contains('show')) renderBoard(); });
 </script>
-</body>
+<script src="../assets/nook-material.js?v=2"></script></body>
 </html>
+

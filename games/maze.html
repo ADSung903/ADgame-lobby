@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>
 *{box-sizing:border-box;margin:0;padding:0;touch-action:manipulation}
 body{font-family:sans-serif;background:#1a1a1a;color:#eee;display:flex;justify-content:center;padding:1rem}
@@ -35,7 +35,7 @@ canvas{display:block;border-radius:10px;border:0.5px solid #444;touch-action:non
     padding-bottom: env(safe-area-inset-bottom, 16px);
     min-height: 100dvh;
   }
-</style></head><body>
+</style><link rel="stylesheet" href="../assets/nook-material.css?v=2"></head><body class="nook-material">
 <div class="app">
   <div class="topbar">
     <button class="btn" onclick="window.location.href='/'">← 大廳</button>
@@ -247,4 +247,5 @@ load(0);
 <script>
   document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
-</body></html>
+<script src="../assets/nook-material.js?v=2"></script></body></html>
+

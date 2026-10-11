@@ -1,0 +1,11 @@
+body{margin:0;display:flex;justify-content:center;min-height:100dvh;padding:20px 18px 50px}.app{width:100%;max-width:660px}.screen{display:none}.screen.active{display:block}
+h1{font-size:27px;font-weight:600;margin:0 0 12px}.intro-card,.q-card{padding:28px;line-height:1.9}.lead{font-size:14px;color:#dfcfb6}.fine{font-size:12px;line-height:1.9;color:#bfb498;margin:20px 0}.fine a{color:#ddc78d}.big-btn{padding:13px 22px;cursor:pointer;font:inherit}
+.answer-axis{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0;padding:15px;background:#f0e5cc;color:#3a352c;border-radius:5px;font-size:14px;line-height:1.8}
+.answer-axis strong{font-size:10px;letter-spacing:2px;display:block;color:#887044}
+.rating{display:flex;flex-direction:column;gap:9px}.choice{padding:13px;text-align:left;cursor:pointer;font:inherit;font-size:14px;border:1px solid}.choice[aria-pressed="true"]{outline:3px solid #e8c375;outline-offset:2px}
+.progress{height:5px;background:#76604666;border-radius:5px;margin:18px 0}.progress div{height:100%;background:#c4a16a;border-radius:5px}.q-meta{display:flex;justify-content:space-between;font-size:12px;color:#d1b98e;margin-bottom:18px}
+.q-card h2{font-size:19px;font-weight:500;line-height:1.7;margin:0}
+.nav-actions{display:flex;justify-content:space-between;gap:12px;margin-top:22px}.type-code{font-size:42px;letter-spacing:7px;color:#dec18b;margin:10px 0}
+.dim-card{background:#ede4ce;color:#383a30;border:1px solid #baa06b;padding:20px;border-radius:6px;margin:14px 0}.dim-card h3{font-size:15px;margin:0 0 8px}.dim-card p{font-size:12px;line-height:1.8;margin:8px 0}.track{height:9px;border-radius:6px;background:#b5bfa9;overflow:hidden;margin:12px 0}.track div{height:100%;background:#507970}.scale-label{display:flex;justify-content:space-between;font-size:11px}
+.result-note{padding:18px;background:#3b3d2d;color:#e4d8b7;font-size:13px;line-height:1.9;border-left:2px solid #c4a16a}.saved{margin-bottom:18px;font-size:13px;line-height:1.8;border:1px solid #957344;padding:18px}
+button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:480px){.intro-card,.q-card{padding:21px}.answer-axis{gap:12px;padding:12px;font-size:12px}h1{font-size:23px}}

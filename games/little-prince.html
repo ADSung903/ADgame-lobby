@@ -295,8 +295,8 @@ body{font-family:Georgia,'Noto Serif TC',serif}button{font:inherit}button:focus-
 #screenExplore .world-quest{flex:1;min-width:200px}
 @media(max-width:540px){#screenExplore .explore-foot{gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}#screenExplore .world-quest{font-size:11px;line-height:1.5}#screenExplore .world-quest strong{font-size:13px}#screenExplore .explore-start{padding:13px 20px}}
 </style>
-</head>
-<body>
+<link rel="stylesheet" href="../assets/nook-material.css?v=2"></head>
+<body class="nook-material">
 <div class="screen" id="screenExplore">
   <header class="explore-head"><div class="explore-brand">小王子・星光旅程<small>A JOURNEY OF SMALL THINGS</small></div><nav aria-label="旅途選單"><button class="quiet-btn" onclick="showAtlas()">星圖</button><button class="quiet-btn" onclick="showJourneyJournal()">手札</button><button class="quiet-btn" id="worldMode" onclick="toggleWorldMode()">旅程模式</button><button class="quiet-btn" onclick="AudioM.toggleMute()" aria-label="切換音樂">♫</button><button class="quiet-btn" onclick="goLobby()">大廳</button></nav></header>
   <section class="explore-copy"><div class="chapter-tag" id="worldChapter"></div><h1 id="worldTitle"></h1><p id="worldIntro"></p></section>
@@ -1707,6 +1707,7 @@ renderMap();
 showScreen('screenMap');
 window.addEventListener('resize', ()=>{ if(document.getElementById('screenGame').classList.contains('show')) renderBoard(); });
 </script>
-</body>
+<script src="../assets/nook-material.js?v=2"></script></body>
 </html>
+
 

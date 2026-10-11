@@ -229,8 +229,8 @@ body.stage-4{--bg:#16244a;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--gold-dim);border-radius:8px;padding:8px 16px;font-size:11px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;}
 .toast.show{opacity:1;}
 </style>
-</head>
-<body>
+<link rel="stylesheet" href="../assets/nook-material.css?v=2"></head>
+<body class="nook-material">
 
 <!-- SETUP SCREEN -->
 <div id="screen-setup" class="screen active">
@@ -3208,5 +3208,6 @@ document.getElementById("modal-overlay").onclick=function(e){
 
 renderSetup();
 </script>
-</body>
+<script src="../assets/nook-material.js?v=2"></script></body>
 </html>
+

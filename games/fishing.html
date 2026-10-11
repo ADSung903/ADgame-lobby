@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>🐟 釣魚翻牌記憶</title>
 <style>
@@ -41,8 +41,17 @@ body{background:#060612;color:#eee;font-family:sans-serif;display:flex;justify-c
     padding-bottom: env(safe-area-inset-bottom, 16px);
     min-height: 100dvh;
   }
+
+.grid{padding:16px;background-image:url(../assets/materials/materials.webp);border:1px solid #c4a371;border-radius:8px;box-shadow:0 15px 30px #0005;gap:8px;width:max-content;max-width:100%;margin-left:auto;margin-right:auto}
+.card{padding:0;border:0;background:none;display:block;box-shadow:0 4px 8px #21180d66}
+.face{border-radius:7px}
+.back{background:repeating-linear-gradient(45deg,#315a5a 0px,#315a5a 7px,#3e6867 7px,#3e6867 8px);border:3px double #cdbb92;box-shadow:inset 0 0 0 5px #203f43,inset 0 0 0 6px #b59c6e}
+.card-compass{font-family:serif;font-size:32px;color:#d9c295;text-shadow:0 2px 3px #0005}
+.front{background-color:#efe6d2;border:2px solid #c2ab7e}
+.card.matched .front{box-shadow:inset 0 0 0 3px #709077}
+.win-banner{background:#344a37;color:#f0e2ba}
 </style>
-</head><body>
+<link rel="stylesheet" href="../assets/nook-material.css?v=2"></head><body class="nook-material">
 <div class="app">
   <h2 class="sr-only">釣魚翻牌記憶遊戲</h2>
   <div class="topbar">
@@ -71,6 +80,8 @@ const LEVELS=[
   {pairs:10,cols:5},
   {pairs:12,cols:6},
 ];
+let roundEpoch=0;
+const FISH_NAMES=['鱒魚','錦鯉','河豚','鯊魚','海豚','座頭鯨','魷魚','蝦','龍蝦','螃蟹','章魚','海豹'];
 const ALL_FISH=['🐟','🐠','🐡','🦈','🐬','🐳','🦑','🦐','🦞','🦀','🐙','🦭'];
 
 let levelIdx=0, flipped=[], matchedCount=0, moves=0, lock=false, totalPairs=0;
@@ -85,6 +96,8 @@ function shuffle(arr){
 }
 
 function loadLevel(idx){
+  if(idx<0||idx>=LEVELS.length)return;
+  roundEpoch++;
   levelIdx=idx;
   const lv=LEVELS[idx];
   totalPairs=lv.pairs;
@@ -98,7 +111,7 @@ function loadLevel(idx){
   document.getElementById('next-btn').style.display='none';
   document.getElementById('msg').textContent='翻開兩張一樣的魚，把它們釣走！';
 
-  const availW=Math.min(window.innerWidth-32,504);
+  const availW=Math.min(window.innerWidth-72,464);
   const cardSize=Math.floor((availW-(lv.cols-1)*8)/lv.cols);
   const fontSize=Math.floor(cardSize*0.42);
 
@@ -112,8 +125,8 @@ function loadLevel(idx){
   deck.forEach((emoji,i)=>{
     const wrap=document.createElement('div');
     wrap.className='card-wrap';
-    const card=document.createElement('div');
-    card.className='card';
+    const card=document.createElement('button');
+    card.className='card';card.type='button';card.setAttribute('aria-label','第 '+(i+1)+' 張，未翻開');
     card.style.width=cardSize+'px';
     card.style.height=cardSize+'px';
     card.dataset.emoji=emoji;
@@ -121,11 +134,15 @@ function loadLevel(idx){
     const back=document.createElement('div');
     back.className='face back';
     back.style.fontSize=fontSize+'px';
-    back.textContent='🎣';
+    back.innerHTML='<span class="card-compass" aria-hidden="true">✧</span>';
     const front=document.createElement('div');
     front.className='face front';
     front.style.fontSize=fontSize+'px';
-    front.textContent=emoji;
+    const fi=ALL_FISH.indexOf(emoji);card.dataset.name=FISH_NAMES[fi];
+    front.style.backgroundImage='url(../assets/materials/fish-atlas.webp)';
+    front.style.backgroundSize='400% 300%';
+    front.style.backgroundPosition=(fi%4/3*100)+'% '+(Math.floor(fi/4)/2*100)+'%';
+    front.setAttribute('aria-hidden','true');
 
     card.appendChild(back);
     card.appendChild(front);
@@ -139,7 +156,7 @@ function loadLevel(idx){
 function onFlip(card){
   if(lock||card.classList.contains('flipped')||card.classList.contains('matched')) return;
   if(flipped.length>=2) return;
-  card.classList.add('flipped');
+  card.classList.add('flipped');card.setAttribute('aria-label',card.dataset.name);
   flipped.push(card);
   moves++;
   document.getElementById('moves').textContent=moves;
@@ -147,17 +164,19 @@ function onFlip(card){
 }
 
 function checkMatch(){
-  lock=true;
+  lock=true;const epoch=roundEpoch;
   const [a,b]=flipped;
   if(a.dataset.emoji===b.dataset.emoji){
     setTimeout(()=>{
-      a.classList.add('matched');
+      if(epoch!==roundEpoch)return;
+      a.classList.add('matched');a.disabled=true;b.disabled=true;
       b.classList.add('matched');
       matchedCount++;
       document.getElementById('found').textContent=matchedCount;
       flipped=[];
       lock=false;
       if(matchedCount===totalPairs){
+        try{const db=JSON.parse(localStorage.getItem('game_lobby_v2')||'{}');if(db.name)localStorage.setItem('game_pending_score',JSON.stringify({game:'fishing',score:moves,detail:'第 '+(levelIdx+1)+' 關'}));}catch{}
         document.getElementById('win-banner').style.display='block';
         document.getElementById('next-btn').style.display=levelIdx<LEVELS.length-1?'inline-block':'none';
         document.getElementById('msg').textContent='';
@@ -165,12 +184,14 @@ function checkMatch(){
     },400);
   } else {
     setTimeout(()=>{
+      if(epoch!==roundEpoch)return;
       a.classList.remove('flipped');
-      b.classList.remove('flipped');
+      b.classList.remove('flipped');a.setAttribute('aria-label','未翻開的牌');b.setAttribute('aria-label','未翻開的牌');
       flipped=[];
       lock=false;
       document.getElementById('msg').textContent='再試一次！';
       setTimeout(()=>{
+      if(epoch!==roundEpoch)return;
         if(!document.getElementById('win-banner').style.display||document.getElementById('win-banner').style.display==='none')
           document.getElementById('msg').textContent='翻開兩張一樣的魚，把它們釣走！';
       },800);
@@ -186,4 +207,5 @@ loadLevel(0);
 <script>
   document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
-</body></html>
+<script src="../assets/nook-material.js?v=2"></script></body></html>
+
