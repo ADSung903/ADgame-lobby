@@ -1,7 +1,7 @@
 (()=>{
  const $=id=>document.getElementById(id);let duel,names=['玩家 1','玩家 2'],wins=[0,0],tallied=false;
  function screen(id){document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('active',el.id===id));}
- function playerName(p){return names[p]+'（玩家 '+(p+1)+'）';}
+ function playerName(p){return names[p]==='玩家 '+(p+1)?names[p]:names[p]+'（玩家 '+(p+1)+'）';}
  function render(){
   if(duel.phase==='handoff'){$('handoff-name').textContent=playerName(duel.player);$('handoff-step').textContent=duel.next==='hide'?'請另一位玩家移開視線。準備好後，秘密選定自己的毒藥。':'輪到你選擇對手的藥瓶。準備好再揭開藥劑桌。';$('potions').replaceChildren();screen('handoff');return;}
   if(duel.phase==='hide'||duel.phase==='attack'){
