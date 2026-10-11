@@ -1,23 +1,13 @@
 (()=>{
  const lobbyURL='https://a-dgame-lobby.vercel.app/';
- // A regular top-level link works for direct visits and embedded game pages.
- if(!document.querySelector('[data-nook-home]')){
-  const home=document.createElement('a');home.href=lobbyURL;home.target='_top';
-  home.className='nook-home-link';home.dataset.nookHome='';
-  home.textContent='← 回遊戲大廳';home.setAttribute('aria-label','回遊戲大廳');
-  Object.assign(home.style,{position:'fixed',right:'14px',bottom:'calc(14px + env(safe-area-inset-bottom, 0px))',zIndex:'2147483646',display:'inline-flex',alignItems:'center',justifyContent:'center',minHeight:'44px',padding:'10px 16px',border:'1px solid #b89a65',borderRadius:'6px',background:'linear-gradient(#f1e4c8,#d4bc89)',color:'#362819',boxShadow:'0 4px 14px #0005',font:'600 13px system-ui,sans-serif',textDecoration:'none',touchAction:'manipulation'});
-  document.body.append(home);
- }
- document.querySelectorAll('a[href="../index.html"],a[href="/"],a[href="../"]').forEach(a=>{a.href=lobbyURL;a.target='_top';});
- // Legacy button handlers still run first, including their score saves.
- // Embedded pages then leave the outer frame rather than replacing only its contents.
- document.addEventListener('click',event=>{
-  const control=event.target.closest?.('a,button');
-  if(!control||control.matches('[data-nook-home]')||!/(?:回|←|返回).*大廳/.test(control.textContent.trim()))return;
-  if(control.tagName==='A'){control.href=lobbyURL;control.target='_top';return;}
-  if(event.defaultPrevented||window===window.top)return;
-  try{window.top.location.href=lobbyURL;}catch{window.location.href=lobbyURL;}
+ // Use the game's own navigation so controls never cover its play area.
+ // Top-level anchors also leave embedded games without trapping the lobby in an iframe.
+ document.querySelectorAll('a[href="../index.html"],a[href="/"],a[href="../"]').forEach(a=>{
+  a.href=lobbyURL;a.target='_top';
+  if(a.closest('.nook-breadcrumb')){a.textContent='← 回遊戲大廳';a.setAttribute('aria-label','回遊戲大廳');}
  });
+ // Keep native button handlers intact: they save progress and may return to a
+ // game's own internal lobby, such as the fishing results screen.
  const file=location.pathname.split('/').pop().replace('.html','');
  const app=document.querySelector('.app');
  if(!app||!['river','rainbow','mine','fishing'].includes(file))return;
