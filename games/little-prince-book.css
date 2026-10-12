@@ -9,3 +9,13 @@
 @media(max-width:700px){.map-top{padding:13px 18px;gap:10px}.map-top h1{font-size:14px;letter-spacing:1px}#mapBest{display:none}.journey-hero{display:block;padding:20px 20px 16px}.chapter-art{width:100%;max-width:440px;margin:0 auto 20px;border-radius:3px 45px 3px 3px}.chapter-copy h2{font-size:27px;margin:9px 0}.chapter-copy .intro{font-size:13px;line-height:1.8;margin-bottom:15px}.chapter-count{margin-bottom:10px}.chapter-steps{margin-bottom:15px}.chapter-step{min-height:49px;padding:8px 4px}.chapter-step span{font-size:17px}.chapter-footer{margin-top:10px}.map-scroll{padding:10px 20px 100px}.map-path{grid-template-columns:1fr}.chapter-route{padding:17px}.story-card{display:block;max-width:430px}.story-image-box{width:100%;aspect-ratio:1.25;overflow:hidden}.story-image-box .story-art{height:auto;aspect-ratio:1;transform:translateY(-8%)}.story-text-box{padding:20px 23px}.story-title{font-size:23px;margin:8px 0 12px}.story-text{font-size:13px;line-height:1.85}.story-continue{margin-top:17px}.map-bottom{gap:7px;padding-left:14px;padding-right:14px}.map-bottom .btn{font-size:11px}.sb-icon{width:66px;height:66px}}
 @media(max-height:760px) and (max-width:700px){.journey-hero>.chapter-art{max-width:270px;margin-bottom:15px}.game-chapter{padding-top:3px}.game-chapter strong{font-size:18px}.journey-mission{margin-top:5px}.journey-help{margin-top:6px}.topbar{padding-top:8px}.bottombar{padding-bottom:9px}.pwr-btn{min-height:49px}.story-card{max-width:380px}.story-image-box{aspect-ratio:1.65}.story-image-box .story-art{transform:translateY(-15%)}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* Each story uses its own complete illustration. */
+.chapter-art.chapter-illustration{background-image:none;aspect-ratio:1200/655;overflow:hidden;border-radius:4px}
+.chapter-illustration img{width:100%;height:100%;object-fit:contain;display:block}
+#app:before{background-image:var(--chapter-art);background-size:cover;background-position:center top}
+.story-card{display:block;width:min(92vw,760px)}
+.story-image-box{aspect-ratio:1200/655;width:100%;overflow:hidden}
+.story-image-box>img{display:block;width:100%;height:100%;object-fit:contain}
+.story-text-box{padding:22px 30px}.sb-icon .chapter-illustration{aspect-ratio:1200/655}
+@media(max-width:700px){.journey-hero>.chapter-illustration{max-width:100%;margin-bottom:19px}.story-card{max-width:440px}.story-image-box{aspect-ratio:1200/655}.story-text-box{padding:20px 23px}}

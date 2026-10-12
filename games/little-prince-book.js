@@ -14,7 +14,10 @@ if(bookState.pending&&!chapterLevels.includes(bookState.pending))bookState.pendi
 function saveBook(){try{localStorage.setItem(BOOK_KEY,JSON.stringify(bookState));}catch{}}
 saveBook();
 function chapterIsComplete(s){return PR.completed(s,state.unlocked,state.starsMap);}
-function chapterArt(s,extra=''){return '<div class="chapter-art art-'+bookBiome(s)+' '+extra+'" role="img" aria-label="'+locales[bookBiome(s)]+'的繪本風景"></div>';}
+const chapterPlaces={1:'地球 · 撒哈拉沙漠',4:'地球 · 撒哈拉沙漠',7:'B-612 · 小小的星球',10:'B-612 · 星球日常',13:'B-612 · 玫瑰的花園',16:'B-612 · 玫瑰的花園',19:'B-612 · 日落時分',22:'國王的小行星',25:'虛榮者的小行星',28:'酒鬼的小行星',31:'商人的小行星',34:'點燈人的小行星',37:'地理學家的小行星',40:'地球 · 沙漠',43:'地球 · 尋訪的路上',46:'地球 · 麥田與狐狸',49:'地球 · 麥田與狐狸',52:'地球 · 狐狸的道別',55:'地球 · 火車站',58:'地球 · 商人的市集',61:'地球 · 沙漠裡的井',64:'地球 · 道別前夕',67:'地球 · 道別之夜',70:'飛行員的家鄉 · 星空下'};
+function chapterPlace(s){return chapterPlaces[s]||'星光續篇';}
+function chapterArt(s,extra=''){const ch=STORY_CHAPTERS[s];return '<div class="chapter-art chapter-illustration '+extra+'"><img src="'+ch.image+'" alt="'+ch.title+' · '+chapterPlace(s)+'" decoding="async"></div>';}
+
 function routeSteps(start){let out='';for(let n=start;n<start+3;n++){const done=(state.starsMap[n]||0)>0;out+=`<button class="chapter-step ${done?'done':n===state.unlocked?'current':''}" ${n>state.unlocked?'disabled':''} onclick="launchJourney(${n})" aria-label="第 ${n} 關${done?'，已完成':n>state.unlocked?'，尚未解鎖':'，開始消除'}"><span>${done?'✓ ':''}${n}</span>${done?'已完成':n===state.unlocked?'目前關卡':'消除關卡'}</button>`;}return out;}
 renderMap=function(){
  document.getElementById('mapBest').textContent='最高 '+state.best;
@@ -22,10 +25,10 @@ renderMap=function(){
  const lvl=state.unlocked,start=PR.chapterStart(lvl),ch=STORY_CHAPTERS[start],num=PR.chapterNumber(lvl),completed=chapterLevels.filter(chapterIsComplete).length;
  const pending=bookState.pending&&chapterIsComplete(bookState.pending)&&!bookState.acknowledged.includes(bookState.pending);
  const afterBook=lvl>72;
- document.getElementById('journeyHero').innerHTML=chapterArt(start)+`<div class="chapter-copy"><div class="eyebrow">THE LITTLE PRINCE · STORY ${String(num).padStart(2,'0')}</div><h2>${afterBook?'故事之後，星光仍在。':ch.title}</h2><p class="intro">${afterBook?'二十四段故事已經展開。你可以回到手札重讀，也可以繼續挑戰星光關卡。':invitations[start]}</p><div class="chapter-count">${locales[bookBiome(start)]} · ${afterBook?'自由挑戰':`第 ${start}–${start+2} 關`}</div>${afterBook?'':`<div class="chapter-steps">${routeSteps(start)}</div>`}<div class="chapter-actions"><button class="journey-primary" onclick="${pending?'readPendingStory()':'launchJourney('+lvl+')'}">${pending?'閱讀剛完成的章末故事 →':lvl===1?'開始第 1 關 →':'繼續第 '+lvl+' 關 →'}</button></div><div class="chapter-footer"><p>${afterBook?'已完成完整故事':`完成本章三關後，解鎖一段故事`}<br>已收藏 ${completed}／24 段故事</p><button class="journey-mode" onclick="setJourneyMode()">${journey.mode==='classic'?'限時模式':'悠然模式 · 不計時'}</button></div></div>`;
+ document.getElementById('journeyHero').innerHTML=chapterArt(start)+`<div class="chapter-copy"><div class="eyebrow">THE LITTLE PRINCE · STORY ${String(num).padStart(2,'0')}</div><h2>${afterBook?'故事之後，星光仍在。':ch.title}</h2><p class="intro">${afterBook?'二十四段故事已經展開。你可以回到手札重讀，也可以繼續挑戰星光關卡。':invitations[start]}</p><div class="chapter-count">${chapterPlace(start)} · ${afterBook?'自由挑戰':`第 ${start}–${start+2} 關`}</div>${afterBook?'':`<div class="chapter-steps">${routeSteps(start)}</div>`}<div class="chapter-actions"><button class="journey-primary" onclick="${pending?'readPendingStory()':'launchJourney('+lvl+')'}">${pending?'閱讀剛完成的章末故事 →':lvl===1?'開始第 1 關 →':'繼續第 '+lvl+' 關 →'}</button></div><div class="chapter-footer"><p>${afterBook?'已完成完整故事':`完成本章三關後，解鎖一段故事`}<br>已收藏 ${completed}／24 段故事</p><button class="journey-mode" onclick="setJourneyMode()">${journey.mode==='classic'?'限時模式':'悠然模式 · 不計時'}</button></div></div>`;
  const wrap=document.getElementById('mapPath');wrap.innerHTML='';
  // Show the full finite story so location and overall journey remain visible.
- chapterLevels.forEach((s,i)=>{const c=STORY_CHAPTERS[s],revealed=s<=lvl,complete=chapterIsComplete(s),section=document.createElement('section');section.className='chapter-route'+(s===start?' active':'');section.innerHTML=`<div class="chapter-number">CHAPTER ${String(i+1).padStart(2,'0')} · ${s}–${s+2}</div><h3>${revealed?c.title:'尚未抵達的章節'}</h3><p>${complete?'三關完成 · 故事已收藏':revealed?locales[bookBiome(s)]+' · 完成三關後閱讀故事':'沿著星光，繼續旅程'}</p><div class="route-grid"></div>${complete?`<button class="chapter-review" onclick="replayStory(${s})">重看本章故事 ↗</button>`:''}`;
+ chapterLevels.forEach((s,i)=>{const c=STORY_CHAPTERS[s],revealed=s<=lvl,complete=chapterIsComplete(s),section=document.createElement('section');section.className='chapter-route'+(s===start?' active':'');section.innerHTML=`<div class="chapter-number">CHAPTER ${String(i+1).padStart(2,'0')} · ${s}–${s+2}</div><h3>${revealed?c.title:'尚未抵達的章節'}</h3><p>${complete?'三關完成 · 故事已收藏':revealed?chapterPlace(s)+' · 完成三關後閱讀故事':'沿著星光，繼續旅程'}</p><div class="route-grid"></div>${complete?`<button class="chapter-review" onclick="replayStory(${s})">重看本章故事 ↗</button>`:''}`;
  for(let n=s;n<s+3;n++){const node=document.createElement('button'),stars=state.starsMap[n]||0;node.className='lvl-node '+(n>lvl?'locked':stars?'done':'unlocked')+(n===lvl?' current':'');node.disabled=n>lvl;node.setAttribute('aria-label',`第 ${n} 關${stars?'，已完成':node.disabled?'，尚未解鎖':'，開始消除'}`);node.innerHTML=n+(stars?'<small>'+('✦'.repeat(stars))+'</small>':'');node.onclick=()=>launchJourney(n);section.querySelector('.route-grid').appendChild(node);}
  wrap.appendChild(section);});
 };
@@ -42,8 +45,8 @@ startLevel=function(lvl){
 const bookHud=refreshHud;
 refreshHud=function(){
  bookHud();const s=PR.chapterStart(state.level),ch=STORY_CHAPTERS[s],biome=bookBiome(s);
- document.getElementById('gameChapter').innerHTML=`<strong>${state.level>72?'星光續篇':ch.title}</strong>${locales[biome]} · ${state.level>72?'第 '+state.level+' 關':`第 ${PR.chapterNumber(state.level)} 章 · 本章第 ${state.level-s+1}／3 關`}<div><span class="chapter-progress">${[0,1,2].map(i=>'<i class="'+(s+i<state.level?'past':s+i===state.level?'here':'')+'"></i>').join('')}</span></div>`;
- const pos={desert:['0%','0%'],home:['100%','0%'],cosmos:['0%','100%'],garden:['100%','100%']}[biome];document.getElementById('app').style.setProperty('--scene-x',pos[0]);document.getElementById('app').style.setProperty('--scene-y',pos[1]);
+ document.getElementById('gameChapter').innerHTML=`<strong>${state.level>72?'星光續篇':ch.title}</strong>${chapterPlace(s)} · ${state.level>72?'第 '+state.level+' 關':`第 ${PR.chapterNumber(state.level)} 章 · 本章第 ${state.level-s+1}／3 關`}<div><span class="chapter-progress">${[0,1,2].map(i=>'<i class="'+(s+i<state.level?'past':s+i===state.level?'here':'')+'"></i>').join('')}</span></div>`;
+ const pos={desert:['0%','0%'],home:['100%','0%'],cosmos:['0%','100%'],garden:['100%','100%']}[biome];document.getElementById('app').style.setProperty('--chapter-art', 'url("'+ch.image+'")');
  if(journeyRun){document.getElementById('journeyMission').innerHTML=`<span aria-hidden="true" class="piece mission-piece piece-${journeyRun.animal}"></span><span>收集${pieceNames[journeyRun.animal]} ${Math.min(journeyRun.collected,journeyRun.goal)}／${journeyRun.goal} · 星光目標 ${state.target}</span>`;}
  else document.getElementById('journeyMission').textContent='收集相連棋子的星光，在時間內達成目標。';
  document.getElementById('scoreVal').parentElement.setAttribute('aria-label','目前星光 '+state.score+'，目標 '+state.target);
@@ -86,7 +89,7 @@ overToMap=function(){document.getElementById('modalOver').classList.remove('show
 showStoryCard=function(start,onDone){
  const ch=STORY_CHAPTERS[start];if(!ch||!chapterIsComplete(start)){if(onDone)onDone();return;}
  pauseGame();AudioM.playBgm(null);storyOverlayActive=true;const overlay=document.getElementById('storyOverlay');overlay.onclick=null;
- document.getElementById('storyImageBox').innerHTML='<div class="story-art art-'+bookBiome(start)+'" role="img" aria-label="'+locales[bookBiome(start)]+'的繪本插畫"></div>';
+ document.getElementById('storyImageBox').innerHTML='<img src="'+ch.image+'" alt="'+ch.title+' · '+chapterPlace(start)+'" decoding="async">';
  document.getElementById('storyChapterLabel').textContent='第 '+PR.chapterNumber(start)+' 章 · 第 '+start+'–'+(start+2)+' 關完成';
  document.getElementById('storyTitle').textContent=ch.title;document.getElementById('storyText').textContent=ch.text;
  document.getElementById('storyContinue').textContent='收好故事，返回章節 →';
